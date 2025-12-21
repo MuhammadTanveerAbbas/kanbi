@@ -17,42 +17,43 @@
 
 ### 🎯 What is KANBI
 
-**KANBI** is a simple Kanban tool that uses AI to suggest tasks from your notes, with local storage for privacy.
-Built with **Next.js 15**, **React 18**, **TypeScript**, and **Tailwind CSS**.
+**KANBI** is an AI-powered task management tool that transforms messy notes into organized Kanban boards instantly. Built with **Next.js 15**, **React 18**, **TypeScript**, and **Tailwind CSS** for modern productivity.
 
 ---
 
 ### 🎯 Target Audience
 
-Solo founders and small teams (2-5 people) who take unstructured notes and need basic task organization.
+Busy founders, small teams, freelancers, and students who need to quickly organize scattered thoughts and ideas into actionable tasks.
 
 ---
 
 ### ⚙️ The Problem
 
-Founders often spend time manually converting meeting notes and ideas into task lists.
+People have great ideas scattered in random notes, meeting minutes, and thoughts, but turning them into organized task lists is time-consuming and tedious.
 
 ---
 
 ### 🧩 The Solution
 
-**KANBI** provides a focused alternative:
+**KANBI** provides an intelligent solution:
 
-- 🤖 **AI Task Suggestions** : Uses AI to suggest tasks from clear, structured notes (requires internet)
-- 📋 **Simple Kanban** : Basic drag-and-drop task management
-- 💾 **Local Storage** : Your data stays on your device
-- 🚫 **No Account Required** : Start using immediately for basic features
-- 🎨 **Clean Interface** : Built with modern web technologies
+- 🤖 **Smart Task Parsing** : Automatically extracts tasks, deadlines, priorities, and assignees from your notes
+- 📋 **Intuitive Kanban Board** : Drag-and-drop task management with To Do, In Progress, and Done columns
+- 💾 **Privacy-First** : All data stays in your browser - no servers, no tracking
+- 🚫 **No Signup Required** : Start organizing immediately
+- ⚡ **Keyboard Shortcuts** : Ctrl+Enter to create tasks quickly
+- 📱 **Mobile Optimized** : Works seamlessly on all devices
 
 ---
 
 ### ✅ What Actually Works
 
-- Local data storage and basic Kanban functionality
-- AI task suggestions when online with clear input
-- Export/import for data portability
-- Responsive design for mobile and desktop
-- No registration needed for core features
+- 💾 **Local Data Storage** : All tasks saved in browser with export/import functionality
+- 🤖 **Intelligent Task Parsing** : Recognizes deadlines, priorities, and assignees from natural language
+- 📋 **Full Kanban Functionality** : Create, edit, move, and delete tasks with drag-and-drop
+- 📱 **Responsive Design** : Optimized for mobile and desktop with touch-friendly interface
+- ⚡ **Keyboard Shortcuts** : Ctrl+Enter for quick task creation
+- 🚫 **Zero Setup** : No registration, no installation, works immediately
 
 🔗 **[Live Demo →](https://kanbi.vercel.app)**
 
@@ -60,11 +61,12 @@ Founders often spend time manually converting meeting notes and ideas into task 
 
 ### 🌟 Core Features
 
-- 📋 **Basic Kanban Board** : Create, edit, move tasks between columns
-- 🤖 **AI Task Suggestions** : When online, get task suggestions from notes
-- 💾 **Local Storage** : Data saved in browser, no server required
-- 📤 **Export/Import** : JSON format for data portability
-- 📱 **Mobile Friendly** : Works on phones and tablets
+- 📋 **Advanced Kanban Board** : Three-column layout with task counters and empty states
+- 🤖 **Smart Text Processing** : Extracts tasks from meeting notes, bullet points, and unstructured text
+- 💾 **Local-First Storage** : Data never leaves your device, works offline
+- 📤 **Export/Import** : JSON format for backup and data portability
+- 📱 **Mobile Optimized** : Touch-friendly interface with responsive design
+- ⚡ **Quick Actions** : One-click task status changes and inline editing
 
 ---
 
@@ -75,15 +77,16 @@ Founders often spend time manually converting meeting notes and ideas into task 
 
 ---
 
-### 📊 Honest Metrics
+### 📊 Project Stats
 
 | Metric               | Value                     |
 | :------------------- | :------------------------ |
 | 🧩 **Components**    | 25+ reusable UI components|
-| 🧠 **Type Safety**   | TypeScript throughout     |
+| 🧠 **Type Safety**   | 100% TypeScript coverage  |
 | 🧾 **Code Quality**  | Modern React patterns     |
-| 📱 **Responsive**    | Mobile and desktop ready  |
-| ⚡ **Performance**   | Depends on device/network |
+| 📱 **Responsive**    | Mobile-first design       |
+| ⚡ **Performance**   | Optimized for speed       |
+| 🔒 **Privacy**       | Zero data collection      |
 
 ---
 
@@ -102,13 +105,12 @@ Founders often spend time manually converting meeting notes and ideas into task 
 git clone https://github.com/MuhammadTanveerAbbas/kanbi-ActionBoard.git
 cd kanbi-ActionBoard
 npm install
-echo "GEMINI_API_KEY=your_api_key" > .env  # Optional: for AI features
 npm run dev
 ```
 
 Then open **[http://localhost:3000](http://localhost:3000)**
 
-**Note**: AI features require internet connection and API key. Basic Kanban works offline.
+**Note**: Works completely offline with local storage. No API keys or external services required.
 
 Deploy → [Deploy to Vercel](https://github.com/MuhammadTanveerAbbas/kanbi-ActionBoard)
 
