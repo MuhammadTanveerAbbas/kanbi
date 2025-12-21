@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowRight, Users, Zap, Shield, CheckCircle, ChevronDown } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 type FinalCtaSectionProps = {
   setIsLoading: (isLoading: boolean) => void;
@@ -13,7 +13,7 @@ type FinalCtaSectionProps = {
 const faqs = [
   {
     q: "Is this really free?",
-    a: "Yes, basic features are completely free forever. AI features require a paid plan."
+    a: "Yes, the basic Kanban features are completely free forever. AI features require the Pro plan."
   },
   {
     q: "Do I need to create an account?",
@@ -25,37 +25,34 @@ const faqs = [
   },
   {
     q: "Does it work offline?",
-    a: "Basic Kanban features work offline. AI task extraction requires internet connection."
+    a: "Yes, basic Kanban features work offline. AI task extraction requires internet connection."
   },
   {
     q: "Can I export my tasks?",
-    a: "Yes, you can export all your tasks as a JSON file anytime."
+    a: "Yes, you can export all your tasks as a JSON file anytime for backup or sharing."
   },
   {
-    q: "Is this a real product or just a demo?",
-    a: "This is a portfolio project demonstrating web development skills. It works fully but isn't a commercial service."
-  },
-  {
-    q: "What AI service do you use?",
-    a: "We use Google's Gemini API for task extraction from notes."
-  },
-  {
-    q: "Can teams use this together?",
-    a: "You can share exported task files, but there's no real-time collaboration features."
+    q: "How does the AI task extraction work?",
+    a: "Paste your notes and our AI identifies actionable tasks, deadlines, and priorities automatically."
   },
   {
     q: "What happens if I clear my browser data?",
     a: "You'll lose all your tasks since they're stored locally. Export regularly as backup."
   },
   {
-    q: "Who built this?",
-    a: "Muhammad Tanveer Abbas created this as a portfolio project to showcase development skills."
+    q: "Can teams collaborate in real-time?",
+    a: "You can share exported task files, but there's no real-time collaboration features currently."
   }
 ];
 
 export default function FinalCtaSection({ setIsLoading }: FinalCtaSectionProps) {
   const router = useRouter();
   const [openItems, setOpenItems] = useState<number[]>([]);
+  const [mounted, setMounted] = useState(false);
+  
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   
   const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
@@ -74,7 +71,7 @@ export default function FinalCtaSection({ setIsLoading }: FinalCtaSectionProps) 
   };
 
   return (
-    <section className="w-full py-12 sm:py-24 relative overflow-hidden">
+    <section className="w-full py-12 sm:py-24 relative overflow-hidden bg-black">
       <div className="container mx-auto text-center max-w-5xl px-4 relative">
         {/* Badge */}
         <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 mb-4 sm:mb-6">
@@ -123,20 +120,26 @@ export default function FinalCtaSection({ setIsLoading }: FinalCtaSectionProps) 
 
         {/* FAQ Section */}
         <div className="mt-16 max-w-3xl mx-auto">
-          <h3 className="text-2xl font-bold mb-8">Frequently Asked Questions</h3>
-          <div className="space-y-2">
-            {faqs.map((faq, index) => (
-              <Collapsible key={index} open={openItems.includes(index)} onOpenChange={() => toggleItem(index)}>
-                <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg border p-4 text-left hover:bg-muted/50 transition-colors">
-                  <span className="font-medium">{faq.q}</span>
-                  <ChevronDown className={`h-4 w-4 transition-transform ${openItems.includes(index) ? 'rotate-180' : ''}`} />
-                </CollapsibleTrigger>
-                <CollapsibleContent className="px-4 pb-4 text-sm text-muted-foreground">
-                  {faq.a}
-                </CollapsibleContent>
-              </Collapsible>
-            ))}
-          </div>
+          <h3 className="text-2xl font-bold mb-8 text-center">Common Questions</h3>
+          {mounted && (
+            <div className="space-y-3">
+              {faqs.map((faq, index) => (
+                <div key={index} className="border rounded-lg">
+                  <Collapsible open={openItems.includes(index)} onOpenChange={() => toggleItem(index)}>
+                    <CollapsibleTrigger className="flex w-full items-center justify-between p-4 text-left hover:bg-muted/50 transition-colors rounded-lg">
+                      <span className="font-medium text-left">{faq.q}</span>
+                      <ChevronDown className={`h-4 w-4 transition-transform flex-shrink-0 ml-4 ${openItems.includes(index) ? 'rotate-180' : ''}`} />
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="px-4 pb-4 text-sm text-muted-foreground border-t">
+                      <div className="pt-3 text-left leading-relaxed">
+                        {faq.a}
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </section>

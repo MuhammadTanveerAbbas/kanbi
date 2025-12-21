@@ -76,7 +76,7 @@ const getValue = (value: string) => {
 
 export default function ComparisonSection() {
   return (
-    <section className="w-full py-12 sm:py-24">
+    <section className="w-full py-12 sm:py-24 bg-black">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-8 sm:mb-12">
           <Badge className="mb-3 sm:mb-4 text-xs">Why Choose KANBI</Badge>

@@ -4,10 +4,7 @@ import { useTasksStore } from "@/hooks/use-tasks-store";
 import TaskGenerator from "./ai/task-generator";
 import KanbanBoard from "./board/kanban-board";
 import ExportImport from "./board/export-import";
-import Onboarding, { QuickStartExample } from "./onboarding";
-import KeyboardShortcuts from "./keyboard-shortcuts";
-import PrivacyNotice from "./privacy-notice";
-import HelpSystem from "./help-system";
+import Onboarding from "./onboarding";
 import { NoTasksEmptyState } from "./empty-states";
 import { AppLoadingSkeleton } from "./loading-states";
 import { CheckCircle } from "lucide-react";
@@ -55,10 +52,7 @@ export default function Kanbi() {
 
   return (
     <>
-      <KeyboardShortcuts onQuickAdd={handleQuickAdd} onFocusNotes={handleFocusNotes} />
       <Onboarding hasAnyTasks={hasTasks} />
-      <PrivacyNotice />
-      <HelpSystem />
       
       <div className="w-full max-w-7xl mx-auto space-y-6 p-4">
         {/* Encouraging header */}
@@ -84,7 +78,6 @@ export default function Kanbi() {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 items-stretch">
           <div className="lg:col-span-3 space-y-4">
             <TaskGenerator addTask={store.addTask} />
-            {!hasTasks && <QuickStartExample />}
           </div>
           <div className="lg:col-span-1">
             <ExportImport tasks={store.tasks} setTasks={store.setTasks} />

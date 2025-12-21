@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Sparkles, Loader2, WifiOff, AlertCircle, CheckCircle } from 'lucide-react';
+import { Sparkles, Loader2, WifiOff, AlertCircle, CheckCircle, HelpCircle } from 'lucide-react';
 import { Task } from '@/lib/types';
 
 interface TaskGeneratorProps {
@@ -83,7 +83,6 @@ export default function TaskGenerator({ addTask }: TaskGeneratorProps) {
         addTask(task);
       });
       
-      setSuccess(`Perfect! I found ${parsedTasks.length} things for you to do.`);
       setNotes('');
       
     } catch (error) {
@@ -96,7 +95,6 @@ export default function TaskGenerator({ addTask }: TaskGeneratorProps) {
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setNotes(e.target.value);
     if (error) setError(null);
-    if (success) setSuccess(null);
   };
 
   const insertExample = () => {
@@ -113,28 +111,28 @@ export default function TaskGenerator({ addTask }: TaskGeneratorProps) {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" />
-            <h2 className="font-semibold">Dump Your Thoughts Here</h2>
+            <h2 className="font-semibold">Add Your Tasks</h2>
             {!isOnline && <WifiOff className="h-4 w-4 text-muted-foreground" />}
           </div>
           {!notes && (
-            <Button variant="ghost" size="sm" onClick={insertExample}>
-              Show Me How
+            <Button variant="ghost" size="sm" className="px-2 sm:px-3" onClick={insertExample}>
+              <span className="hidden sm:inline">Show Me How</span>
+              <HelpCircle className="sm:hidden h-4 w-4" />
             </Button>
           )}
         </div>
 
         {/* Clear input */}
         <Textarea
-          placeholder="What's on your mind? Meeting notes, random ideas, things you need to do...
+          placeholder="What's on your mind?
 
-Just write it like this:
-- Fix the login bug by Friday
-- Review marketing copy
-- Call John about the project"
+- Fix login bug
+- Review copy
+- Call John"
           value={notes}
           onChange={handleInputChange}
           rows={5}
-          className="resize-none"
+          className="resize-none min-h-[120px] sm:min-h-[140px] sm:placeholder:text-sm placeholder:text-xs"
         />
 
         {/* Human status messages */}
@@ -142,13 +140,6 @@ Just write it like this:
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-        
-        {success && (
-          <Alert className="border-green-200 bg-green-50 text-green-800">
-            <CheckCircle className="h-4 w-4" />
-            <AlertDescription>{success}</AlertDescription>
           </Alert>
         )}
 

@@ -2,7 +2,7 @@ import { FileText, ArrowRight, Download } from "lucide-react";
 
 export default function SolutionSection() {
   return (
-    <section className="w-full py-16 bg-muted/30">
+    <section className="w-full py-16 bg-black">
       <div className="container mx-auto max-w-5xl px-4">
         {/* How it works */}
         <div className="text-center mb-12">

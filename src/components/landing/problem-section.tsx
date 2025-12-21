@@ -1,6 +1,6 @@
 export default function ProblemSection() {
   return (
-    <section className="w-full py-16 sm:py-24 bg-card">
+    <section className="w-full py-16 sm:py-24 bg-black">
       <div className="container mx-auto max-w-3xl text-center px-4 sm:px-6 lg:px-8">
         <div className="text-sm font-bold uppercase text-primary tracking-wider">The Disconnect</div>
         <h2 className="mt-4 text-3xl font-bold tracking-tight sm:text-5xl">

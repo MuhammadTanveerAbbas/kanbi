@@ -1,6 +1,6 @@
 export default function SocialProofSection() {
   return (
-    <section className="w-full py-12 bg-muted/20">
+    <section className="w-full py-12 bg-black">
       <div className="container mx-auto text-center px-4">
         <h2 className="text-2xl font-bold mb-8">
           Simple, Honest Tool
