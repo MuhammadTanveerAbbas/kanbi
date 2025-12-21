@@ -1,6 +1,6 @@
 <div align="center">
 
-# KANBI 📃 Task Management Platform 🌟
+# KANBI 📋 Simple Kanban Tool
 
 </div>
 
@@ -15,68 +15,56 @@
 
 ---
 
-### 🧠 What is it
+### 🎯 What is KANBI
 
-**KANBI** is an **Task management platform** that transforms unstructured notes into actionable Kanban boards.
-Built with **Next.js 15**, **React 18**, **TypeScript**, and **Tailwind CSS**, it integrates for intelligent task processing and analytics.
-
-This SaaS MVP demonstrates **AI integration**, **UI/UX craftsmanship**, and **production level architecture** built in **2 weeks** to showcase full stack expertise.
+**KANBI** is a simple Kanban tool that uses AI to suggest tasks from your notes, with local storage for privacy.
+Built with **Next.js 15**, **React 18**, **TypeScript**, and **Tailwind CSS**.
 
 ---
 
-### 💡 Why it is
+### 🎯 Target Audience
 
-Modern teams often struggle to turn scattered thoughts into structured workflows.
-**KANBI** bridges this gap by blending **AI intelligence** with a **fast, offline first task system**, helping users move from ideation to execution seamlessly.
-
----
-
-### ⚙️ What is the Problem
-
-Traditional task tools often:
-
-- Require complex setup and onboarding
-- Lack AI based automation and insights
-- Depend heavily on online connectivity
-- Force account creation for simple usage
-- Are bloated and slow for everyday workflows
+Solo founders and small teams (2-5 people) who take unstructured notes and need basic task organization.
 
 ---
 
-### 🧩 What is the Solution
+### ⚙️ The Problem
 
-**KANBI** provides a focused, AI driven, and privacy first alternative:
-
-- 🤖 **AI Task Extraction** : Converts raw notes into actionable tasks
-- 📊 **AI Insights** : Predicts velocity, detects bottlenecks, and suggests priorities
-- ⚡ **Offline First** : Works locally with no login required
-- 🧱 **Modern Stack** : Built on Next.js 15 + TypeScript
-- 🎨 **Beautiful UI** : Powered by Tailwind CSS and ShadCN components
-- 🔒 **Privacy First** : No server data; 100% local storage
+Founders often spend time manually converting meeting notes and ideas into task lists.
 
 ---
 
-### 🚀 Result
+### 🧩 The Solution
 
-A polished, **production ready SaaS MVP** that’s:
+**KANBI** provides a focused alternative:
 
-- Fast, responsive, and mobile friendly
-- Backed by AI powered task intelligence
-- Ready for deployment to **Vercel** in minutes
-- Built for founders, freelancers, and enterprises alike
+- 🤖 **AI Task Suggestions** : Uses AI to suggest tasks from clear, structured notes (requires internet)
+- 📋 **Simple Kanban** : Basic drag-and-drop task management
+- 💾 **Local Storage** : Your data stays on your device
+- 🚫 **No Account Required** : Start using immediately for basic features
+- 🎨 **Clean Interface** : Built with modern web technologies
+
+---
+
+### ✅ What Actually Works
+
+- Local data storage and basic Kanban functionality
+- AI task suggestions when online with clear input
+- Export/import for data portability
+- Responsive design for mobile and desktop
+- No registration needed for core features
 
 🔗 **[Live Demo →](https://kanbi.vercel.app)**
 
 ---
 
-### 🌟 Key Features
+### 🌟 Core Features
 
-- 🤖 **AI Intelligence** : Task extraction, analytics, recommendations
-- 🧩 **Task Automation** : Auto prioritization, dependencies, reminders
-- 💼 **Industry Templates** : 9 pre built templates across sectors
-- ⚙️ **Power Tools** : Import/export JSON or CSV, keyboard shortcuts
-- 🧠 **Privacy Mode** : Fully offline, no tracking
-- 📈 **Performance Optimized** : <100 ms navigation and 60 fps animations
+- 📋 **Basic Kanban Board** : Create, edit, move tasks between columns
+- 🤖 **AI Task Suggestions** : When online, get task suggestions from notes
+- 💾 **Local Storage** : Data saved in browser, no server required
+- 📤 **Export/Import** : JSON format for data portability
+- 📱 **Mobile Friendly** : Works on phones and tablets
 
 ---
 
@@ -87,52 +75,24 @@ A polished, **production ready SaaS MVP** that’s:
 
 ---
 
-### 🧱 Project Structure
-
-```
-
-src/
-├── app/ # Next.js App Router
-│ ├── board/ # Main Kanban board
-│ ├── actions.ts # Server actions
-│ └── layout.tsx # Root layout
-│
-├── components/
-│ ├── ai/ # AI features
-│ ├── board/ # Kanban UI components
-│ ├── landing/ # Landing & marketing sections
-│ ├── layout/ # Header & footer
-│ └── ui/ # ShadCN primitives
-│
-├── ai/ # Genkit AI flows
-├── hooks/ # Custom React hooks
-└── lib/ # Utilities & types
-
-```
-
----
-
-### 📊 Project Metrics
+### 📊 Honest Metrics
 
 | Metric               | Value                     |
 | :------------------- | :------------------------ |
-| ⚡ **Performance**   | < 100 ms load time        |
-| 🧩 **Components**    | 30 + reusable             |
-| 🧠 **Type Safety**   | 100 % TypeScript coverage |
-| ♿ **Accessibility** | WCAG 2.1 AA compliant     |
-| 🧾 **Lines of Code** | 5 000 +                   |
-| 🧠 **Features**      | 15 + production ready     |
-| ⏱️ **Build Time**    | 2 weeks                   |
+| 🧩 **Components**    | 25+ reusable UI components|
+| 🧠 **Type Safety**   | TypeScript throughout     |
+| 🧾 **Code Quality**  | Modern React patterns     |
+| 📱 **Responsive**    | Mobile and desktop ready  |
+| ⚡ **Performance**   | Depends on device/network |
 
 ---
 
-### 🎯 Perfect For
+### 🎯 Best For
 
-- 🚀 **Founders** launching SaaS ideas
-- 👥 **Teams** managing agile workflows
-- 💼 **Freelancers** tracking clients
-- 🎓 **Students** planning projects
-- 🏢 **Enterprises** optimizing task systems
+- 🚀 **Solo Founders** organizing daily tasks
+- 👥 **Small Teams** (2-5 people) with simple workflows
+- 💼 **Freelancers** tracking project tasks
+- 🎓 **Students** managing assignments
 
 ---
 
@@ -142,32 +102,34 @@ src/
 git clone https://github.com/MuhammadTanveerAbbas/kanbi-ActionBoard.git
 cd kanbi-ActionBoard
 npm install
-echo "GEMINI_API_KEY=your_api_key" > .env
+echo "GEMINI_API_KEY=your_api_key" > .env  # Optional: for AI features
 npm run dev
 ```
 
 Then open **[http://localhost:3000](http://localhost:3000)**
 
-Deploy instantly → [Deploy to Vercel](https://github.com/MuhammadTanveerAbbas/kanbi-ActionBoard)
+**Note**: AI features require internet connection and API key. Basic Kanban works offline.
+
+Deploy → [Deploy to Vercel](https://github.com/MuhammadTanveerAbbas/kanbi-ActionBoard)
 
 ---
 
 <div align="center">
 
-# 👨‍💻 Muhammad Tanveer Abbas
+# 👨💻 Muhammad Tanveer Abbas
 
-**SaaS MVP Developer** • **AI Integration Expert** • **Full Stack Developer**
+**Full Stack Developer** • **SaaS Builder**
 
-⚡ Specialized in Building Production Ready SaaS MVPs for founders in Weeks
+⚡ Building practical tools for founders and small teams
 
-**Next.js • TypeScript • Firebase • AI • Tailwind CSS**
+**Next.js • TypeScript • React • Tailwind CSS**
 
 💼 **[View Portfolio](https://muhammadtanveerabbas.vercel.app/)**
 
 ---
 
-⭐ **Star this repo** if you find it inspiring!
+⭐ **Star this repo** if you find it useful!
 
-Built with ❤️ to showcase professional SaaS MVP development.
+Built to solve real productivity problems.
 
 </div>

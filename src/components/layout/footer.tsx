@@ -1,46 +1,34 @@
-import { Github, LayoutGrid, Linkedin } from 'lucide-react';
-import Link from 'next/link';
+'use client';
 
-const XIcon = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg
-    viewBox="0 0 1200 1227"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-    {...props}
-  >
-    <path
-      d="M714.163 519.284L1160.89 0H1055.03L667.137 450.887L357.328 0H0L468.492 681.821L0 1226.37H105.866L515.491 750.218L842.672 1226.37H1200L714.137 519.284H714.163ZM569.165 687.828L521.697 619.934L144.011 79.6902H306.615L611.412 515.685L658.88 583.579L1055.08 1150.31H892.476L569.165 687.854V687.828Z"
-      fill="currentColor"
-    />
-  </svg>
-);
+import Link from 'next/link';
 
 export default function Footer() {
   return (
-    <footer className="bg-background border-t">
-      <div className="container mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col md:flex-row justify-between items-center space-y-6 md:space-y-0">
-          <div className="flex items-center space-x-2">
-            <LayoutGrid className="h-6 w-6 text-primary" />
-            <span className="font-headline text-lg">KANBI</span>
+    <footer className="border-t bg-muted/30 mt-12">
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+          <div className="text-sm text-muted-foreground">
+            © 2024 KANBI - Portfolio Project by Muhammad Tanveer Abbas
           </div>
-          <div className="text-center font-glitch text-sm sm:text-lg tracking-wider glitch-effect" data-text="Made by Muhammad Tanveer Abbas">
-            Made by Muhammad Tanveer Abbas
-          </div>
-          <div className="flex space-x-4">
-             <Link href="https://linkedin.com/in/Muhammadtanveerabbas" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground">
-              <Linkedin className="h-6 w-6" />
+          
+          <div className="flex gap-6 text-sm">
+            <Link 
+              href="/privacy" 
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Privacy Policy
             </Link>
-             <Link href="https://github.com/Muhammadtanveerabbas" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground">
-              <Github className="h-6 w-6" />
-            </Link>
-             <Link href="https://x.com/m_tanveerabbas" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground">
-              <XIcon className="h-5 w-5" />
+            <Link 
+              href="/terms" 
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Terms of Service
             </Link>
           </div>
         </div>
-        <div className="text-center text-sm text-muted-foreground mt-8">
-          &copy; {new Date().getFullYear()} KANBI. All rights reserved.
+        
+        <div className="mt-4 pt-4 border-t text-xs text-muted-foreground text-center">
+          This is a demonstration project showcasing modern web development practices.
         </div>
       </div>
     </footer>

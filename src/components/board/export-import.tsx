@@ -1,19 +1,11 @@
 'use client';
 
-import { useState } from 'react';
-import { Task } from '@/lib/types';
+import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { useToast } from '@/hooks/use-toast';
-import { Download, Upload, FileJson, FileSpreadsheet, Trash2 } from 'lucide-react';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-} from '@/components/ui/dropdown-menu';
-import {
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { 
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -23,215 +15,198 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Download, Upload, CheckCircle, AlertCircle } from 'lucide-react';
+import { Task } from '@/lib/types';
 
-type ExportImportProps = {
+interface ExportImportProps {
   tasks: Task[];
   setTasks: (tasks: Task[]) => void;
-};
+}
 
 export default function ExportImport({ tasks, setTasks }: ExportImportProps) {
-  const [isImporting, setIsImporting] = useState(false);
-  const [showClearDialog, setShowClearDialog] = useState(false);
-  const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [showImportConfirm, setShowImportConfirm] = useState(false);
+  const [pendingImport, setPendingImport] = useState<Task[] | null>(null);
 
-  const exportToJSON = () => {
-    if (tasks.length === 0) {
-      toast({
-        title: 'No Tasks',
-        description: 'Add tasks before exporting.',
-        variant: 'destructive',
-      });
-      return;
+  const exportTasks = () => {
+    try {
+      if (tasks.length === 0) {
+        setError('You don\'t have any tasks to save yet');
+        setTimeout(() => setError(null), 3000);
+        return;
+      }
+
+      const dataStr = JSON.stringify(tasks, null, 2);
+      const dataBlob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(dataBlob);
+      
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `my-tasks-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      setSuccess(`Saved ${tasks.length} tasks to your computer`);
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (error) {
+      setError('Couldn\'t save your tasks. Try again?');
+      setTimeout(() => setError(null), 3000);
     }
-
-    const dataStr = JSON.stringify(tasks, null, 2);
-    const dataBlob = new Blob([dataStr], { type: 'application/json' });
-    const url = URL.createObjectURL(dataBlob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `kanbi-tasks-${new Date().toISOString().split('T')[0]}.json`;
-    link.click();
-    URL.revokeObjectURL(url);
-    
-    toast({
-      title: 'Export Successful',
-      description: `${tasks.length} tasks exported to JSON.`,
-    });
   };
 
-  const exportToCSV = () => {
-    if (tasks.length === 0) {
-      toast({
-        title: 'No Tasks',
-        description: 'Add tasks before exporting.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    const headers = ['Title', 'Status', 'Owner', 'Deadline', 'Priority', 'Tags', 'Created At'];
-    const csvContent = [
-      headers.join(','),
-      ...tasks.map(task => [
-        `"${task.title.replace(/"/g, '""')}"`,
-        task.status,
-        task.owner || '',
-        task.deadline || '',
-        task.priority || '',
-        (task.tags || []).join(';'),
-        task.createdAt || ''
-      ].join(','))
-    ].join('\n');
-
-    const dataBlob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(dataBlob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `kanbi-tasks-${new Date().toISOString().split('T')[0]}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
-
-    toast({
-      title: 'Export Successful',
-      description: `${tasks.length} tasks exported to CSV.`,
-    });
-  };
-
-  const handleFileImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    setIsImporting(true);
-    try {
-      const text = await file.text();
-      let importedTasks: Task[] = [];
+    if (!file.name.endsWith('.json')) {
+      setError('That file won\'t work. I need a .json file.');
+      setTimeout(() => setError(null), 3000);
+      return;
+    }
 
-      if (file.name.endsWith('.json')) {
-        importedTasks = JSON.parse(text);
-      } else if (file.name.endsWith('.csv')) {
-        const lines = text.split('\n');
-        const headers = lines[0].split(',');
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const content = e.target?.result as string;
+        const importedTasks = JSON.parse(content);
         
-        importedTasks = lines.slice(1)
-          .filter(line => line.trim())
-          .map((line, index) => {
-            const values = line.split(',').map(v => v.replace(/^"|"$/g, ''));
-            return {
-              id: `imported-${Date.now()}-${index}`,
-              title: values[0] || `Imported Task ${index + 1}`,
-              status: (values[1] as Task['status']) || 'To Do',
-              owner: values[2] || undefined,
-              deadline: values[3] || undefined,
-              priority: (values[4] as Task['priority']) || undefined,
-              tags: values[5] ? values[5].split(';') : undefined,
-              estimatedHours: values[6] ? Number(values[6]) : undefined,
-              createdAt: values[7] || new Date().toISOString(),
-            };
-          });
+        if (!Array.isArray(importedTasks)) {
+          throw new Error('This doesn\'t look like a task file');
+        }
+        
+        const isValid = importedTasks.every(task => 
+          task.id && task.title && task.status && 
+          ['To Do', 'In Progress', 'Done'].includes(task.status)
+        );
+        
+        if (!isValid) {
+          throw new Error('This file has tasks I can\'t understand');
+        }
+        
+        if (tasks.length > 0) {
+          setPendingImport(importedTasks);
+          setShowImportConfirm(true);
+        } else {
+          setTasks(importedTasks);
+          setSuccess(`Loaded ${importedTasks.length} tasks from your file`);
+          setTimeout(() => setSuccess(null), 3000);
+        }
+        
+      } catch (error) {
+        setError('Something\'s wrong with that file. Try a different one?');
+        setTimeout(() => setError(null), 3000);
       }
-
-      // Validate imported tasks
-      const validTasks = importedTasks.filter(task => 
-        task.title && 
-        ['To Do', 'In Progress', 'Done'].includes(task.status)
-      );
-
-      if (validTasks.length > 0) {
-        const duplicateCount = importedTasks.length - validTasks.length;
-        setTasks([...tasks, ...validTasks]);
-        toast({
-          title: 'Import Successful',
-          description: `${validTasks.length} tasks imported successfully.${duplicateCount > 0 ? ` ${duplicateCount} invalid tasks skipped.` : ''}`,
-        });
-      } else {
-        toast({
-          title: 'Import Failed',
-          description: 'No valid tasks found in the file.',
-          variant: 'destructive',
-        });
-      }
-    } catch (error) {
-      toast({
-        title: 'Import Failed',
-        description: 'Error reading file. Please check the format.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsImporting(false);
-      event.target.value = '';
+    };
+    
+    reader.readAsText(file);
+    
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
   };
 
-  const clearAllTasks = () => {
-    setTasks([]);
-    setShowClearDialog(false);
-    toast({
-      title: 'All Tasks Cleared',
-      description: 'All tasks have been removed.',
-    });
+  const confirmImport = () => {
+    if (pendingImport) {
+      setTasks(pendingImport);
+      setSuccess(`Loaded ${pendingImport.length} tasks from your file`);
+      setTimeout(() => setSuccess(null), 3000);
+      setPendingImport(null);
+    }
+    setShowImportConfirm(false);
   };
 
   return (
     <>
-      <div className="flex flex-wrap gap-2">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm">
-              <Download className="h-4 w-4 mr-2" />
-              Export
+      <Card className="h-full">
+        <CardHeader className="pb-6">
+          <CardTitle className="text-lg">Save Your Work</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6 flex flex-col justify-between flex-1">
+          {success && (
+            <Alert className="border-green-200 bg-green-50 text-green-800">
+              <CheckCircle className="h-4 w-4" />
+              <AlertDescription>{success}</AlertDescription>
+            </Alert>
+          )}
+          
+          {error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          
+          <div className="space-y-3">
+            <Button 
+              onClick={exportTasks} 
+              variant="outline" 
+              className="w-full"
+              disabled={tasks.length === 0}
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Save to Computer
             </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={exportToJSON}>
-              <FileJson className="h-4 w-4 mr-2" />
-              Export as JSON
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={exportToCSV}>
-              <FileSpreadsheet className="h-4 w-4 mr-2" />
-              Export as CSV
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-        
-        <div className="relative">
+            
+            <Button 
+              onClick={() => fileInputRef.current?.click()} 
+              variant="outline" 
+              className="w-full"
+            >
+              <Upload className="mr-2 h-4 w-4" />
+              Load from File
+            </Button>
+            
+            <Button 
+              onClick={() => setTasks([])} 
+              variant="outline" 
+              className="w-full text-red-600 hover:text-red-700 hover:bg-red-50"
+              disabled={tasks.length === 0}
+            >
+              Clear All Tasks
+            </Button>
+          </div>
+          
+          {tasks.length > 0 && (
+            <div className="text-center p-3 bg-muted/50 rounded-lg">
+              <p className="text-sm font-medium">{tasks.length} tasks saved locally</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Last updated: {new Date().toLocaleDateString()}
+              </p>
+            </div>
+          )}
+          
           <Input
+            ref={fileInputRef}
             type="file"
-            accept=".json,.csv"
-            onChange={handleFileImport}
-            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-            disabled={isImporting}
+            accept=".json"
+            onChange={handleFileSelect}
+            className="hidden"
           />
-          <Button variant="outline" size="sm" disabled={isImporting}>
-            <Upload className="h-4 w-4 mr-2" />
-            {isImporting ? 'Importing...' : 'Import'}
-          </Button>
-        </div>
+          
+          <p className="text-xs text-muted-foreground text-center">
+            Export as JSON file or clear workspace
+          </p>
+        </CardContent>
+      </Card>
 
-        {tasks.length > 0 && (
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => setShowClearDialog(true)}
-            className="text-red-500 hover:text-red-600"
-          >
-            <Trash2 className="h-4 w-4 mr-2" />
-            Clear All
-          </Button>
-        )}
-      </div>
-
-      <AlertDialog open={showClearDialog} onOpenChange={setShowClearDialog}>
+      <AlertDialog open={showImportConfirm} onOpenChange={setShowImportConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Clear All Tasks?</AlertDialogTitle>
+            <AlertDialogTitle>Replace what you have now?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete all {tasks.length} tasks. This action cannot be undone.
+              You have {tasks.length} tasks right now. This file has {pendingImport?.length} tasks.
+              <br /><br />
+              If you continue, I'll replace everything you have with what's in the file. You can't undo this.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={clearAllTasks} className="bg-red-500 hover:bg-red-600">
-              Clear All
+            <AlertDialogCancel>Never mind</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmImport}>
+              Yes, replace everything
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

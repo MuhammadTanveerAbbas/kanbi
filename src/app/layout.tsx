@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Space_Grotesk, Rubik_Glitch } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
-import { Toaster } from "@/components/ui/toaster";
 import Header from "@/components/layout/header";
 import Footer from "@/components/layout/footer";
 
@@ -76,7 +75,6 @@ export default function RootLayout({
           <main className="flex-grow">{children}</main>
           <Footer />
         </div>
-        <Toaster />
       </body>
     </html>
   );
