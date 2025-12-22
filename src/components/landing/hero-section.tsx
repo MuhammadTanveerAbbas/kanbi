@@ -34,7 +34,7 @@ export default function HeroSection({ setIsLoading }: HeroSectionProps) {
         </div>
 
         {/* Crystal clear what it is */}
-        <h1 className="text-3xl sm:text-4xl lg:text-6xl font-bold tracking-tight mb-4 sm:mb-6 bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
+        <h1 className="text-3xl sm:text-4xl lg:text-7xl font-bold tracking-tight mb-4 sm:mb-6 bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
           <span className="sm:hidden">
             Turn Messy Notes Into{" "}
             <span className="text-primary bg-gradient-to-r from-primary to-primary/80 bg-clip-text">
@@ -51,13 +51,8 @@ export default function HeroSection({ setIsLoading }: HeroSectionProps) {
         </h1>
 
         {/* Exactly who and what problem */}
-        <p className="text-sm sm:text-lg text-muted-foreground max-w-3xl mx-auto mb-2 sm:mb-4">
-          For busy founders and small teams who have great ideas scattered in
-          random notes.
-        </p>
-
-        <p className="text-sm sm:text-base text-muted-foreground max-w-xl mx-auto mb-6 sm:mb-8">
-          Paste your meeting notes, get a clean task board. No signup required.
+        <p className="text-sm sm:text-lg lg:text-xl text-muted-foreground max-w-3xl mx-auto mb-6 sm:mb-8">
+          For busy founders and small teams who have great ideas scattered in random notes. Paste your meeting notes, get a clean task board. No signup required.
         </p>
 
         {/* Clear, specific CTA */}

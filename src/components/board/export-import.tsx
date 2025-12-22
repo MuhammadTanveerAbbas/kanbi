@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Progress } from '@/components/ui/progress';
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -15,47 +16,35 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Download, Upload, CheckCircle, AlertCircle } from 'lucide-react';
+import { Upload, CheckCircle, AlertCircle, BarChart3, Target, Clock, Archive } from 'lucide-react';
 import { Task } from '@/lib/types';
 
-interface ExportImportProps {
+interface TaskStatsProps {
   tasks: Task[];
   setTasks: (tasks: Task[]) => void;
 }
 
-export default function ExportImport({ tasks, setTasks }: ExportImportProps) {
+export default function TaskStats({ tasks, setTasks }: TaskStatsProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showImportConfirm, setShowImportConfirm] = useState(false);
   const [pendingImport, setPendingImport] = useState<Task[] | null>(null);
 
-  const exportTasks = () => {
-    try {
-      if (tasks.length === 0) {
-        setError('You don\'t have any tasks to save yet');
-        setTimeout(() => setError(null), 3000);
-        return;
-      }
-
-      const dataStr = JSON.stringify(tasks, null, 2);
-      const dataBlob = new Blob([dataStr], { type: 'application/json' });
-      const url = URL.createObjectURL(dataBlob);
-      
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `my-tasks-${new Date().toISOString().split('T')[0]}.json`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-      
-      setSuccess(`Saved ${tasks.length} tasks to your computer`);
-      setTimeout(() => setSuccess(null), 3000);
-    } catch (error) {
-      setError('Couldn\'t save your tasks. Try again?');
-      setTimeout(() => setError(null), 3000);
-    }
+  const todoTasks = tasks.filter(t => t.status === 'To Do');
+  const inProgressTasks = tasks.filter(t => t.status === 'In Progress');
+  const doneTasks = tasks.filter(t => t.status === 'Done');
+  
+  const completionRate = tasks.length > 0 ? Math.round((doneTasks.length / tasks.length) * 100) : 0;
+  const activeRate = tasks.length > 0 ? Math.round((inProgressTasks.length / tasks.length) * 100) : 0;
+  
+  const getProductivityMessage = () => {
+    if (tasks.length === 0) return "Start adding tasks to see your progress!";
+    if (completionRate >= 80) return "🎉 Excellent progress! You're crushing it!";
+    if (completionRate >= 60) return "💪 Great work! Keep the momentum going!";
+    if (completionRate >= 40) return "📈 Good progress! You're on the right track!";
+    if (completionRate >= 20) return "🚀 Getting started! Every task counts!";
+    return "💡 Ready to tackle some tasks? You've got this!";
   };
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -122,8 +111,11 @@ export default function ExportImport({ tasks, setTasks }: ExportImportProps) {
   return (
     <>
       <Card className="h-full">
-        <CardHeader className="pb-6">
-          <CardTitle className="text-lg">Save Your Work</CardTitle>
+        <CardHeader className="pb-4">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <BarChart3 className="h-5 w-5 text-muted-foreground" />
+            Your Progress
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6 flex flex-col justify-between flex-1">
           {success && (
@@ -140,24 +132,61 @@ export default function ExportImport({ tasks, setTasks }: ExportImportProps) {
             </Alert>
           )}
           
+          <div className="space-y-4">
+            {/* Completion Progress */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="flex items-center gap-1">
+                  <Target className="h-4 w-4 text-muted-foreground" />
+                  Completion Rate
+                </span>
+                <span className="font-medium">{completionRate}%</span>
+              </div>
+              <Progress value={completionRate} className="h-2" />
+            </div>
+            
+            {/* Task Breakdown */}
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <div className="p-2 rounded border border-muted-foreground/20" style={{backgroundColor: '#141414'}}>
+                <div className="text-lg font-bold text-muted-foreground">{todoTasks.length}</div>
+                <div className="text-xs text-muted-foreground">To Do</div>
+              </div>
+              <div className="p-2 rounded border border-muted-foreground/20" style={{backgroundColor: '#141414'}}>
+                <div className="text-lg font-bold text-muted-foreground">{inProgressTasks.length}</div>
+                <div className="text-xs text-muted-foreground">In Progress</div>
+              </div>
+              <div className="p-2 rounded border border-muted-foreground/20" style={{backgroundColor: '#141414'}}>
+                <div className="text-lg font-bold text-muted-foreground">{doneTasks.length}</div>
+                <div className="text-xs text-muted-foreground">Done</div>
+              </div>
+            </div>
+            
+            {/* Productivity Message */}
+            <div className="text-center p-3 bg-primary/5 rounded-lg border border-primary/20">
+              <p className="text-sm font-medium text-primary">{getProductivityMessage()}</p>
+            </div>
+          </div>
+          
           <div className="space-y-3">
             <Button 
-              onClick={exportTasks} 
+              onClick={() => {
+                const completedTasks = tasks.filter(t => t.status === 'Done');
+                if (completedTasks.length > 0) {
+                  const updatedTasks = tasks.filter(t => t.status !== 'Done');
+                  setTasks(updatedTasks);
+                  setSuccess(`Removed ${completedTasks.length} completed tasks!`);
+                  setTimeout(() => setSuccess(null), 3000);
+                } else {
+                  setError('No completed tasks to remove');
+                  setTimeout(() => setError(null), 3000);
+                }
+              }}
               variant="outline" 
               className="w-full"
-              disabled={tasks.length === 0}
+              disabled={doneTasks.length === 0}
             >
-              <Download className="mr-2 h-4 w-4" />
-              Save to Computer
-            </Button>
-            
-            <Button 
-              onClick={() => fileInputRef.current?.click()} 
-              variant="outline" 
-              className="w-full"
-            >
-              <Upload className="mr-2 h-4 w-4" />
-              Load from File
+              <CheckCircle className="mr-2 h-4 w-4" />
+              Clear Completed ({doneTasks.length})
             </Button>
             
             <Button 
@@ -172,8 +201,9 @@ export default function ExportImport({ tasks, setTasks }: ExportImportProps) {
           
           {tasks.length > 0 && (
             <div className="text-center p-3 bg-muted/50 rounded-lg">
-              <p className="text-sm font-medium">{tasks.length} tasks saved locally</p>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-sm font-medium">{tasks.length} total tasks</p>
+              <p className="text-xs text-muted-foreground mt-1 flex items-center justify-center gap-1">
+                <Clock className="h-3 w-3 text-muted-foreground" />
                 Last updated: {new Date().toLocaleDateString()}
               </p>
             </div>
@@ -188,7 +218,7 @@ export default function ExportImport({ tasks, setTasks }: ExportImportProps) {
           />
           
           <p className="text-xs text-muted-foreground text-center">
-            Export as JSON file or clear workspace
+            Keep your workspace clean and organized
           </p>
         </CardContent>
       </Card>

@@ -1,6 +1,6 @@
 <div align="center">
 
-# KANBI 📋 Simple Kanban Tool
+# KANBI 📋 AI-Powered Kanban Tool
 
 </div>
 
@@ -17,63 +17,74 @@
 
 ### 🎯 What is KANBI
 
-**KANBI** is an AI-powered task management tool that transforms messy notes into organized Kanban boards instantly. Built with **Next.js 15**, **React 18**, **TypeScript**, and **Tailwind CSS** for modern productivity.
-
----
-
-### 🎯 Target Audience
-
-Busy founders, small teams, freelancers, and students who need to quickly organize scattered thoughts and ideas into actionable tasks.
+**KANBI** is a free, open-source task management tool that transforms messy notes into organized Kanban boards. Built with **Next.js 15**, **React 18**, **TypeScript**, and **Tailwind CSS**.
 
 ---
 
 ### ⚙️ The Problem
 
-People have great ideas scattered in random notes, meeting minutes, and thoughts, but turning them into organized task lists is time-consuming and tedious.
+People have great ideas scattered in random notes, meeting minutes, and thoughts, but turning them into organized task lists is time-consuming.
 
 ---
 
 ### 🧩 The Solution
 
-**KANBI** provides an intelligent solution:
+**KANBI** provides a simple solution:
 
-- 🤖 **Smart Task Parsing** : Automatically extracts tasks, deadlines, priorities, and assignees from your notes
-- 📋 **Intuitive Kanban Board** : Drag-and-drop task management with To Do, In Progress, and Done columns
+- 🤖 **AI-Powered Task Extraction** : Uses Google AI (Gemini) to extract tasks from your notes (requires API key)
+- 📋 **Simple Kanban Board** : Drag-and-drop task management with To Do, In Progress, and Done columns
 - 💾 **Privacy-First** : All data stays in your browser - no servers, no tracking
 - 🚫 **No Signup Required** : Start organizing immediately
-- ⚡ **Keyboard Shortcuts** : Ctrl+Enter to create tasks quickly
-- 📱 **Mobile Optimized** : Works seamlessly on all devices
+- 📱 **Mobile Optimized** : Works on all devices
+- 📊 **Progress Tracking** : Visual statistics to track completion
 
 ---
 
 ### ✅ What Actually Works
 
-- 💾 **Local Data Storage** : All tasks saved in browser with export/import functionality
-- 🤖 **Intelligent Task Parsing** : Recognizes deadlines, priorities, and assignees from natural language
-- 📋 **Full Kanban Functionality** : Create, edit, move, and delete tasks with drag-and-drop
-- 📱 **Responsive Design** : Optimized for mobile and desktop with touch-friendly interface
-- ⚡ **Keyboard Shortcuts** : Ctrl+Enter for quick task creation
-- 🚫 **Zero Setup** : No registration, no installation, works immediately
+- 🤖 **AI Task Parsing** : Google AI integration (when API key is provided)
+- 💾 **Local Data Storage** : All tasks saved in browser
+- 📋 **Full Kanban Functionality** : Create, edit, move, and delete tasks
+- 📱 **Responsive Design** : Works on mobile and desktop
+- 📊 **Task Statistics** : Progress tracking and completion rates
+- 🧹 **Clear Completed Tasks** : Keep workspace organized
+- 🚫 **Zero Setup** : No registration required
 
 🔗 **[Live Demo →](https://kanbi.vercel.app)**
 
 ---
 
-### 🌟 Core Features
+### 🌟 Features
 
-- 📋 **Advanced Kanban Board** : Three-column layout with task counters and empty states
-- 🤖 **Smart Text Processing** : Extracts tasks from meeting notes, bullet points, and unstructured text
-- 💾 **Local-First Storage** : Data never leaves your device, works offline
-- 📤 **Export/Import** : JSON format for backup and data portability
-- 📱 **Mobile Optimized** : Touch-friendly interface with responsive design
-- ⚡ **Quick Actions** : One-click task status changes and inline editing
+- 📋 **Kanban Board** : Three-column layout with task counters
+- 🤖 **AI Text Processing** : Extracts tasks from notes using Google AI (optional)
+- 💾 **Local Storage** : Data never leaves your device
+- 📊 **Task Statistics** : Progress tracking with completion rates
+- 📱 **Mobile Responsive** : Works on all screen sizes
+- 🧹 **Clear Completed** : Remove finished tasks to stay organized
 
 ---
 
 ### 🛠️ Technology Used
 
 **Next.js 15** • **React 18** • **TypeScript** • **Tailwind CSS** • **ShadCN UI**
-• **Lucide Icons** • **Radix Primitives** • **Google Fonts**
+• **Lucide Icons** • **Radix Primitives** • **Google AI (Gemini)** • **Genkit**
+
+---
+
+### 🤖 AI Setup (Optional)
+
+To enable AI features, get a free API key from [Google AI Studio](https://aistudio.google.com/app/apikey) and add to `.env.local`:
+
+```bash
+GOOGLE_GENKIT_API_KEY=your_api_key_here
+GEMINI_API_KEY=your_api_key_here
+GOOGLE_API_KEY=your_api_key_here
+NEXT_PUBLIC_USE_AI=true
+```
+
+**With AI:** Smart task extraction from notes  
+**Without AI:** Manual task creation (still fully functional)
 
 ---
 
@@ -83,17 +94,17 @@ People have great ideas scattered in random notes, meeting minutes, and thoughts
 | :------------------- | :------------------------ |
 | 🧩 **Components**    | 25+ reusable UI components|
 | 🧠 **Type Safety**   | 100% TypeScript coverage  |
-| 🧾 **Code Quality**  | Modern React patterns     |
+| 🤖 **AI Integration** | Google AI (Gemini) powered|
 | 📱 **Responsive**    | Mobile-first design       |
 | ⚡ **Performance**   | Optimized for speed       |
 | 🔒 **Privacy**       | Zero data collection      |
 
 ---
 
-### 🎯 Best For
+### 🎯 Perfect For
 
-- 🚀 **Solo Founders** organizing daily tasks
-- 👥 **Small Teams** (2-5 people) with simple workflows
+- 🚀 **Solo developers** organizing personal tasks
+- 👥 **Small teams** with simple workflows
 - 💼 **Freelancers** tracking project tasks
 - 🎓 **Students** managing assignments
 
@@ -110,7 +121,7 @@ npm run dev
 
 Then open **[http://localhost:3000](http://localhost:3000)**
 
-**Note**: Works completely offline with local storage. No API keys or external services required.
+**Note**: Works completely offline. AI features are optional and require a free Google AI API key.
 
 Deploy → [Deploy to Vercel](https://github.com/MuhammadTanveerAbbas/kanbi-ActionBoard)
 
@@ -120,11 +131,11 @@ Deploy → [Deploy to Vercel](https://github.com/MuhammadTanveerAbbas/kanbi-Acti
 
 # 👨💻 Muhammad Tanveer Abbas
 
-**Full Stack Developer** • **SaaS Builder**
+**Full Stack Developer** • **AI Integration Specialist**
 
-⚡ Building practical tools for founders and small teams
+⚡ Building intelligent tools for modern productivity
 
-**Next.js • TypeScript • React • Tailwind CSS**
+**Next.js • TypeScript • React • AI • Tailwind CSS**
 
 💼 **[View Portfolio](https://muhammadtanveerabbas.vercel.app/)**
 
@@ -132,6 +143,6 @@ Deploy → [Deploy to Vercel](https://github.com/MuhammadTanveerAbbas/kanbi-Acti
 
 ⭐ **Star this repo** if you find it useful!
 
-Built to solve real productivity problems.
+Built to solve real productivity problems with AI.
 
 </div>

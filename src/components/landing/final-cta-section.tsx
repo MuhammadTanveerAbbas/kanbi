@@ -1,58 +1,15 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Users, Zap, Shield, CheckCircle, ChevronDown } from 'lucide-react';
+import { ArrowRight, Users, Zap, Shield, CheckCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { useState, useEffect } from 'react';
 
 type FinalCtaSectionProps = {
   setIsLoading: (isLoading: boolean) => void;
 };
 
-const faqs = [
-  {
-    q: "Is this really free?",
-    a: "Yes, the basic Kanban features are completely free forever. AI features require the Pro plan."
-  },
-  {
-    q: "Do I need to create an account?",
-    a: "No. You can start using it immediately without any signup or registration."
-  },
-  {
-    q: "Where is my data stored?",
-    a: "Everything stays in your browser's local storage. We don't store anything on our servers."
-  },
-  {
-    q: "Does it work offline?",
-    a: "Yes, basic Kanban features work offline. AI task extraction requires internet connection."
-  },
-  {
-    q: "Can I export my tasks?",
-    a: "Yes, you can export all your tasks as a JSON file anytime for backup or sharing."
-  },
-  {
-    q: "How does the AI task extraction work?",
-    a: "Paste your notes and our AI identifies actionable tasks, deadlines, and priorities automatically."
-  },
-  {
-    q: "What happens if I clear my browser data?",
-    a: "You'll lose all your tasks since they're stored locally. Export regularly as backup."
-  },
-  {
-    q: "Can teams collaborate in real-time?",
-    a: "You can share exported task files, but there's no real-time collaboration features currently."
-  }
-];
-
 export default function FinalCtaSection({ setIsLoading }: FinalCtaSectionProps) {
   const router = useRouter();
-  const [openItems, setOpenItems] = useState<number[]>([]);
-  const [mounted, setMounted] = useState(false);
-  
-  useEffect(() => {
-    setMounted(true);
-  }, []);
   
   const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
@@ -60,14 +17,6 @@ export default function FinalCtaSection({ setIsLoading }: FinalCtaSectionProps) 
     requestAnimationFrame(() => {
       router.push('/board');
     });
-  };
-
-  const toggleItem = (index: number) => {
-    setOpenItems(prev => 
-      prev.includes(index) 
-        ? prev.filter(i => i !== index)
-        : [...prev, index]
-    );
   };
 
   return (
@@ -117,30 +66,6 @@ export default function FinalCtaSection({ setIsLoading }: FinalCtaSectionProps) 
         <p className="mt-4 sm:mt-6 text-xs sm:text-sm text-muted-foreground">
           Try it now - no commitment, no signup required
         </p>
-
-        {/* FAQ Section */}
-        <div className="mt-16 max-w-3xl mx-auto">
-          <h3 className="text-2xl font-bold mb-8 text-center">Common Questions</h3>
-          {mounted && (
-            <div className="space-y-3">
-              {faqs.map((faq, index) => (
-                <div key={index} className="border rounded-lg">
-                  <Collapsible open={openItems.includes(index)} onOpenChange={() => toggleItem(index)}>
-                    <CollapsibleTrigger className="flex w-full items-center justify-between p-4 text-left hover:bg-muted/50 transition-colors rounded-lg">
-                      <span className="font-medium text-left">{faq.q}</span>
-                      <ChevronDown className={`h-4 w-4 transition-transform flex-shrink-0 ml-4 ${openItems.includes(index) ? 'rotate-180' : ''}`} />
-                    </CollapsibleTrigger>
-                    <CollapsibleContent className="px-4 pb-4 text-sm text-muted-foreground border-t">
-                      <div className="pt-3 text-left leading-relaxed">
-                        {faq.a}
-                      </div>
-                    </CollapsibleContent>
-                  </Collapsible>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
       </div>
     </section>
   );

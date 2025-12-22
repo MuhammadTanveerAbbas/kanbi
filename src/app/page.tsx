@@ -9,7 +9,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 const SolutionSection = dynamic(() => import('@/components/landing/solution-section'), { ssr: true });
 const FeaturesSection = dynamic(() => import('@/components/landing/features-section'), { ssr: true });
 const SocialProofSection = dynamic(() => import('@/components/landing/social-proof-section'), { ssr: true });
-const PricingSection = dynamic(() => import('@/components/landing/pricing-section'), { ssr: true });
+const TechStackSection = dynamic(() => import('@/components/landing/pricing-section'), { ssr: true });
+const FaqSection = dynamic(() => import('@/components/landing/faq-section'), { ssr: true });
 const FinalCtaSection = dynamic(() => import('@/components/landing/final-cta-section'), { ssr: true });
 
 export default function Home() {
@@ -47,7 +48,8 @@ export default function Home() {
       <Suspense fallback={<div className="h-96" />}>
         <SolutionSection />
         <FeaturesSection />
-        <PricingSection />
+        <TechStackSection />
+        <FaqSection />
         <FinalCtaSection setIsLoading={setIsLoading} />
       </Suspense>
     </div>

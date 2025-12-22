@@ -54,7 +54,7 @@ export default function Kanbi() {
     <>
       <Onboarding hasAnyTasks={hasTasks} />
       
-      <div className="w-full max-w-7xl mx-auto space-y-6 p-4">
+      <div className="w-full max-w-7xl mx-auto space-y-6 p-1 sm:p-4">
         {/* Encouraging header */}
         <div className="text-center space-y-2">
           <h1 className="text-2xl font-bold">What's On Your Mind?</h1>
@@ -75,8 +75,8 @@ export default function Kanbi() {
         </div>
 
         {/* Input section */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 items-stretch">
-          <div className="lg:col-span-3 space-y-4">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
+          <div className="lg:col-span-2 space-y-4">
             <TaskGenerator addTask={store.addTask} />
           </div>
           <div className="lg:col-span-1">

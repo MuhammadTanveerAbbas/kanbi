@@ -56,19 +56,14 @@ function EmptyState({ title, description, icon, action, secondaryAction }: Empty
 // Main empty state - no tasks at all
 export function NoTasksEmptyState({ onShowExample }: { onShowExample: () => void }) {
   return (
-    <div className="text-center py-20 border-2 border-dashed rounded-lg bg-gradient-to-br from-muted/20 to-muted/10 hover:from-muted/30 hover:to-muted/20 transition-all">
-      <div className="animate-bounce">
+    <div className="text-center py-20 border-2 border-dashed rounded-lg transition-all" style={{backgroundColor: '#141414'}}>
+      <div>
         <Sparkles className="mx-auto h-12 w-12 text-primary mb-4" />
       </div>
       <h3 className="text-lg font-medium mb-2">Ready to get organized?</h3>
       <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
         Paste your meeting notes, random ideas, or thoughts above and I'll turn them into tasks you can actually track.
       </p>
-      <div className="space-y-2">
-        <Button onClick={onShowExample} className="animate-pulse hover:animate-none">
-          Show Me an Example
-        </Button>
-      </div>
     </div>
   );
 }
