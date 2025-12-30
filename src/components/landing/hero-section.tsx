@@ -52,8 +52,9 @@ export default function HeroSection({ setIsLoading }: HeroSectionProps) {
 
         {/* Exactly who and what problem */}
         <p className="text-sm sm:text-lg lg:text-xl text-muted-foreground max-w-3xl mx-auto mb-6 sm:mb-8">
-          Paste your notes, get organized tasks. Works in your browser with no
-          signup required.
+          Paste your notes and quickly turn them into clear, actionable tasks.
+          The tool works instantly in your browser assist you organize ideas in
+          seconds.
         </p>
 
         {/* Clear, specific CTA */}
