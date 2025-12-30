@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Space_Grotesk, Rubik_Glitch } from "next/font/google";
+import { Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import Header from "@/components/layout/header";
@@ -8,16 +8,6 @@ import Footer from "@/components/layout/footer";
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
   variable: "--font-space-grotesk",
-  display: "swap",
-  preload: true,
-});
-
-const rubikGlitch = Rubik_Glitch({
-  subsets: ["latin"],
-  variable: "--font-rubik-glitch",
-  weight: "400",
-  display: "swap",
-  preload: false,
 });
 
 export const metadata: Metadata = {
@@ -66,8 +56,7 @@ export default function RootLayout({
       <body
         className={cn(
           "antialiased font-sans",
-          spaceGrotesk.variable,
-          rubikGlitch.variable
+          spaceGrotesk.variable
         )}
       >
         <div className="flex flex-col min-h-screen">

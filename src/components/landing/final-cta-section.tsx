@@ -14,9 +14,9 @@ export default function FinalCtaSection({ setIsLoading }: FinalCtaSectionProps) 
   const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     setIsLoading(true);
-    requestAnimationFrame(() => {
+    setTimeout(() => {
       router.push('/board');
-    });
+    }, 100);
   };
 
   return (
@@ -35,7 +35,7 @@ export default function FinalCtaSection({ setIsLoading }: FinalCtaSectionProps) 
         
         {/* Description */}
         <p className="mt-4 text-sm sm:text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-          For founders, teams, and creators who want results, not just plans. Transform notes into tasks in seconds.
+          Transform notes into organized tasks. Simple, fast, and private.
         </p>
 
         {/* Feature grid */}

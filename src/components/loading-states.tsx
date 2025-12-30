@@ -1,47 +1,22 @@
 'use client';
 
-import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Loader2, Sparkles } from 'lucide-react';
 
-// App loading skeleton
 export function AppLoadingSkeleton() {
   return (
     <div className="w-full max-w-7xl mx-auto space-y-6 p-4">
-      <div className="text-center">
-        <Skeleton className="h-8 w-48 mx-auto mb-2" />
-        <Skeleton className="h-4 w-32 mx-auto" />
-      </div>
-      
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-        <div className="lg:col-span-3">
-          <Card>
-            <CardHeader>
-              <Skeleton className="h-6 w-40" />
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Skeleton className="h-32 w-full" />
-              <Skeleton className="h-12 w-full" />
-            </CardContent>
-          </Card>
+      <div className="text-center space-y-4">
+        <div className="relative w-16 h-16 mx-auto">
+          <div className="absolute inset-0 border-4 border-primary/20 rounded-full" />
+          <div className="absolute inset-0 border-4 border-transparent border-t-primary rounded-full animate-spin" />
         </div>
-        <div className="lg:col-span-1">
-          <Card>
-            <CardHeader>
-              <Skeleton className="h-6 w-32" />
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-            </CardContent>
-          </Card>
-        </div>
+        <p className="text-sm text-muted-foreground">Loading...</p>
       </div>
     </div>
   );
 }
 
-// Task generation loading
 export function TaskGenerationLoading() {
   return (
     <div className="flex items-center justify-center p-8">
@@ -59,26 +34,21 @@ export function TaskGenerationLoading() {
   );
 }
 
-// Board loading skeleton
 export function BoardLoadingSkeleton() {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       {['To Do', 'Working On', 'Finished'].map((column) => (
         <Card key={column}>
           <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <Skeleton className="h-5 w-20" />
-              <Skeleton className="h-4 w-4 rounded-full" />
-            </div>
+            <div className="h-5 w-20 bg-muted rounded animate-pulse" />
           </CardHeader>
           <CardContent className="space-y-3">
             {[1, 2, 3].map((i) => (
               <div key={i} className="p-3 border rounded-lg">
-                <Skeleton className="h-4 w-full mb-2" />
-                <Skeleton className="h-3 w-3/4" />
+                <div className="h-4 w-full bg-muted rounded animate-pulse mb-2" />
+                <div className="h-3 w-3/4 bg-muted rounded animate-pulse" />
               </div>
             ))}
-            <Skeleton className="h-10 w-full border-dashed" />
           </CardContent>
         </Card>
       ))}
@@ -86,7 +56,6 @@ export function BoardLoadingSkeleton() {
   );
 }
 
-// Data operation loading
 export function DataOperationLoading({ operation }: { operation: string }) {
   return (
     <div className="flex items-center justify-center p-4">
@@ -98,7 +67,6 @@ export function DataOperationLoading({ operation }: { operation: string }) {
   );
 }
 
-// Page transition loading
 export function PageTransitionLoading() {
   return (
     <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">

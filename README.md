@@ -1,116 +1,31 @@
-<div align="center">
+# KANBI 📋
 
-# KANBI 📋 AI-Powered Kanban Tool
+AI-Powered Kanban Task Management
 
-</div>
+[![Next.js](https://img.shields.io/badge/Next.js-15-black?logo=next.js)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?logo=typescript)](https://www.typescriptlang.org/)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-<br/>
+**[Live Demo →](https://kanbi.vercel.app)**
 
-<div align="center">
-  <img src="https://img.shields.io/badge/Next.js-000000?logo=nextdotjs&logoColor=white&style=for-the-badge" height="40" alt="Next.js" />
-  <img src="https://img.shields.io/badge/React-20232A?logo=react&logoColor=61DAFB&style=for-the-badge" height="40" alt="React" />
-  <img src="https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white&style=for-the-badge" height="40" alt="TypeScript" />
-  <img src="https://img.shields.io/badge/Tailwind_CSS-38B2AC?logo=tailwindcss&logoColor=white&style=for-the-badge" height="40" alt="Tailwind CSS" />
-</div>
+## Overview
 
----
+Transform messy notes into organized Kanban boards. No signup required, all data stays local.
 
-### 🎯 What is KANBI
+## Features
 
-**KANBI** is a free, open-source task management tool that transforms messy notes into organized Kanban boards. Built with **Next.js 15**, **React 18**, **TypeScript**, and **Tailwind CSS**.
+- 🤖 **AI Task Extraction** - Optional Google AI (Gemini) integration
+- 📋 **Kanban Board** - Drag-and-drop task management
+- 🎯 **Priority Levels** - Low, Medium, High, Urgent
+- 📅 **Due Dates** - Track deadlines with overdue indicators
+- 🔍 **Search & Filter** - Find tasks by text or priority
+- 🗑️ **Bulk Actions** - Clear completed tasks at once
+- 💾 **Local Storage** - Data stays in your browser
+- 📱 **Responsive** - Works on all devices
+- 📊 **Progress Tracking** - Visual completion statistics
+- 📥 **Export/Import** - Backup and restore as JSON
 
----
-
-### ⚙️ The Problem
-
-People have great ideas scattered in random notes, meeting minutes, and thoughts, but turning them into organized task lists is time-consuming.
-
----
-
-### 🧩 The Solution
-
-**KANBI** provides a simple solution:
-
-- 🤖 **AI-Powered Task Extraction** : Uses Google AI (Gemini) to extract tasks from your notes (requires API key)
-- 📋 **Simple Kanban Board** : Drag-and-drop task management with To Do, In Progress, and Done columns
-- 💾 **Privacy-First** : All data stays in your browser - no servers, no tracking
-- 🚫 **No Signup Required** : Start organizing immediately
-- 📱 **Mobile Optimized** : Works on all devices
-- 📊 **Progress Tracking** : Visual statistics to track completion
-
----
-
-### ✅ What Actually Works
-
-- 🤖 **AI Task Parsing** : Google AI integration (when API key is provided)
-- 💾 **Local Data Storage** : All tasks saved in browser
-- 📋 **Full Kanban Functionality** : Create, edit, move, and delete tasks
-- 📱 **Responsive Design** : Works on mobile and desktop
-- 📊 **Task Statistics** : Progress tracking and completion rates
-- 🧹 **Clear Completed Tasks** : Keep workspace organized
-- 🚫 **Zero Setup** : No registration required
-
-🔗 **[Live Demo →](https://kanbi.vercel.app)**
-
----
-
-### 🌟 Features
-
-- 📋 **Kanban Board** : Three-column layout with task counters
-- 🤖 **AI Text Processing** : Extracts tasks from notes using Google AI (optional)
-- 💾 **Local Storage** : Data never leaves your device
-- 📊 **Task Statistics** : Progress tracking with completion rates
-- 📱 **Mobile Responsive** : Works on all screen sizes
-- 🧹 **Clear Completed** : Remove finished tasks to stay organized
-
----
-
-### 🛠️ Technology Used
-
-**Next.js 15** • **React 18** • **TypeScript** • **Tailwind CSS** • **ShadCN UI**
-• **Lucide Icons** • **Radix Primitives** • **Google AI (Gemini)** • **Genkit**
-
----
-
-### 🤖 AI Setup (Optional)
-
-To enable AI features, get a free API key from [Google AI Studio](https://aistudio.google.com/app/apikey) and add to `.env.local`:
-
-```bash
-GOOGLE_GENKIT_API_KEY=your_api_key_here
-GEMINI_API_KEY=your_api_key_here
-GOOGLE_API_KEY=your_api_key_here
-NEXT_PUBLIC_USE_AI=true
-```
-
-**With AI:** Smart task extraction from notes  
-**Without AI:** Manual task creation (still fully functional)
-
----
-
-### 📊 Project Stats
-
-| Metric               | Value                     |
-| :------------------- | :------------------------ |
-| 🧩 **Components**    | 25+ reusable UI components|
-| 🧠 **Type Safety**   | 100% TypeScript coverage  |
-| 🤖 **AI Integration** | Google AI (Gemini) powered|
-| 📱 **Responsive**    | Mobile-first design       |
-| ⚡ **Performance**   | Optimized for speed       |
-| 🔒 **Privacy**       | Zero data collection      |
-
----
-
-### 🎯 Perfect For
-
-- 🚀 **Solo developers** organizing personal tasks
-- 👥 **Small teams** with simple workflows
-- 💼 **Freelancers** tracking project tasks
-- 🎓 **Students** managing assignments
-
----
-
-### ⚡ Quick Start
+## Quick Start
 
 ```bash
 git clone https://github.com/MuhammadTanveerAbbas/kanbi-ActionBoard.git
@@ -119,30 +34,52 @@ npm install
 npm run dev
 ```
 
-Then open **[http://localhost:3000](http://localhost:3000)**
+Open [http://localhost:3000](http://localhost:3000)
 
-**Note**: Works completely offline. AI features are optional and require a free Google AI API key.
+## AI Setup (Optional)
 
-Deploy → [Deploy to Vercel](https://github.com/MuhammadTanveerAbbas/kanbi-ActionBoard)
+Get a free API key from [Google AI Studio](https://aistudio.google.com/app/apikey):
+
+```bash
+# .env.local
+GOOGLE_GENKIT_API_KEY=your_api_key_here
+GEMINI_API_KEY=your_api_key_here
+GOOGLE_API_KEY=your_api_key_here
+NEXT_PUBLIC_USE_AI=true
+```
+
+Without AI, manual task creation works perfectly.
+
+## Tech Stack
+
+- Next.js 15
+- React 18
+- TypeScript
+- Tailwind CSS
+- ShadCN UI
+- Google AI (Gemini)
+
+## Scripts
+
+```bash
+npm run dev      # Start development server
+npm run build    # Build for production
+npm run start    # Start production server
+npm run lint     # Run ESLint
+```
+
+## Deployment
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/MuhammadTanveerAbbas/kanbi-ActionBoard)
+
+## License
+
+MIT License - See [LICENSE](LICENSE) file
+
+## Author
+
+Built by [Muhammad Tanveer Abbas](https://muhammadtanveerabbas.vercel.app/)
 
 ---
 
-<div align="center">
-
-# 👨💻 Muhammad Tanveer Abbas
-
-**Full Stack Developer** • **AI Integration Specialist**
-
-⚡ Building intelligent tools for modern productivity
-
-**Next.js • TypeScript • React • AI • Tailwind CSS**
-
-💼 **[View Portfolio](https://muhammadtanveerabbas.vercel.app/)**
-
----
-
-⭐ **Star this repo** if you find it useful!
-
-Built to solve real productivity problems with AI.
-
-</div>
+⭐ Star this repo if you find it useful!

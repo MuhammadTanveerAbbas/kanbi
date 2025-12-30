@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 const faqs = [
   {
     question: "Is KANBI really free?",
-    answer: "Yes! KANBI is completely free and open source. All features work without any payment or subscription. It's built as a portfolio project to showcase modern web development."
+    answer: "Yes! KANBI is completely free and open source. All features work without any payment or subscription."
   },
   {
     question: "Do I need to create an account?",
@@ -15,27 +15,23 @@ const faqs = [
   },
   {
     question: "Is my data safe and private?",
-    answer: "Absolutely. Your data never leaves your device - everything is stored locally in your browser. No servers, no tracking, no data collection."
+    answer: "Yes. Your data is stored locally in your browser. No servers, no tracking, no data collection."
   },
   {
     question: "Can I use it offline?",
-    answer: "Yes! Once loaded, KANBI works completely offline. Your tasks are saved locally and will be there when you return."
+    answer: "Yes! Once loaded, KANBI works completely offline. Your tasks are saved locally."
   },
   {
     question: "What devices does it work on?",
-    answer: "KANBI works on all modern devices - desktop, tablet, and mobile. It's built with responsive design for the best experience everywhere."
+    answer: "KANBI works on desktop, tablet, and mobile with responsive design."
   },
   {
     question: "Can I export my tasks?",
-    answer: "Yes! You can export your tasks as JSON files for backup or to move between devices. Import functionality is also available."
+    answer: "Yes! You can export your tasks as JSON files for backup or to move between devices."
   },
   {
     question: "How does the AI task parsing work?",
-    answer: "KANBI uses Google AI (Gemini) to intelligently extract tasks from your notes. Add your GOOGLE_GENKIT_API_KEY to enable AI features, or use the built-in smart parsing that works offline."
-  },
-  {
-    question: "Can I collaborate with my team?",
-    answer: "KANBI is designed for individual use and small teams sharing the same device. For team collaboration, you can export/import task boards between team members."
+    answer: "KANBI can use Google AI (Gemini) to extract tasks from your notes. You need to add your own API key to enable this optional feature."
   }
 ];
 

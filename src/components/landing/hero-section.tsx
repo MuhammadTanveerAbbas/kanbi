@@ -14,9 +14,9 @@ export default function HeroSection({ setIsLoading }: HeroSectionProps) {
   const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     setIsLoading(true);
-    requestAnimationFrame(() => {
+    setTimeout(() => {
       router.push("/board");
-    });
+    }, 100);
   };
 
   return (
@@ -52,7 +52,8 @@ export default function HeroSection({ setIsLoading }: HeroSectionProps) {
 
         {/* Exactly who and what problem */}
         <p className="text-sm sm:text-lg lg:text-xl text-muted-foreground max-w-3xl mx-auto mb-6 sm:mb-8">
-          For busy founders and small teams who have great ideas scattered in random notes. Paste your meeting notes, get a clean task board. No signup required.
+          Paste your notes, get organized tasks. Works in your browser with no
+          signup required.
         </p>
 
         {/* Clear, specific CTA */}
@@ -98,7 +99,7 @@ export default function HeroSection({ setIsLoading }: HeroSectionProps) {
           <div className="flex items-center gap-1.5">
             <Check className="h-3 w-3 sm:h-4 sm:w-4 text-green-500" />
             <p className="text-xs sm:text-sm text-muted-foreground">
-              Your data stays private
+              Data stays private
             </p>
           </div>
         </div>

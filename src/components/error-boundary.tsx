@@ -45,7 +45,7 @@ export class ErrorBoundary extends Component<Props, State> {
       }
     }
     
-    this.setState({ errorInfo: errorInfo.componentStack });
+    this.setState({ errorInfo: errorInfo.componentStack || undefined });
   }
 
   handleRefresh = () => {

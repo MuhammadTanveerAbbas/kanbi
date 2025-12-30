@@ -22,7 +22,7 @@ export default function SolutionSection() {
                 <ArrowRight className="w-6 h-6 text-primary" />
               </div>
               <h3 className="font-semibold mb-2">Get Tasks</h3>
-              <p className="text-sm text-muted-foreground">AI finds action items</p>
+              <p className="text-sm text-muted-foreground">AI extracts tasks (optional)</p>
             </div>
 
             <div className="text-center">
