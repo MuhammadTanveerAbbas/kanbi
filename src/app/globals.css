@@ -39,10 +39,9 @@
   body {
     background: #000000;
     @apply text-foreground;
-    font-feature-settings: 'kern' 1, 'liga' 1;
-    text-rendering: optimizeLegibility;
+    font-feature-settings: 'kern' 1;
+    text-rendering: optimizeSpeed;
     -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
   }
   /* Hide scrollbar for Chrome, Safari and Opera */
   ::-webkit-scrollbar {
@@ -55,6 +54,68 @@
   }
   body {
     overflow-x: hidden;
+  }
+  
+  /* Mobile responsive base */
+  @media (max-width: 640px) {
+    html {
+      font-size: 14px;
+    }
+  }
+}
+
+@layer utilities {
+  /* Mobile-first responsive utilities */
+  .container-mobile {
+    @apply px-3 sm:px-4 md:px-6 lg:px-8;
+  }
+  
+  .section-py {
+    @apply py-12 sm:py-16 md:py-20 lg:py-24;
+  }
+  
+  .text-responsive-xs {
+    @apply text-xs sm:text-sm;
+  }
+  
+  .text-responsive-sm {
+    @apply text-sm sm:text-base;
+  }
+  
+  .text-responsive-base {
+    @apply text-base sm:text-lg;
+  }
+  
+  .text-responsive-lg {
+    @apply text-lg sm:text-xl md:text-2xl;
+  }
+  
+  .text-responsive-xl {
+    @apply text-xl sm:text-2xl md:text-3xl;
+  }
+  
+  .text-responsive-2xl {
+    @apply text-2xl sm:text-3xl md:text-4xl;
+  }
+  
+  .text-responsive-3xl {
+    @apply text-3xl sm:text-4xl md:text-5xl;
+  }
+  
+  .gap-responsive {
+    @apply gap-3 sm:gap-4 md:gap-6;
+  }
+  
+  .space-y-responsive > * + * {
+    @apply mt-3 sm:mt-4 md:mt-6;
+  }
+  
+  .p-responsive {
+    @apply p-4 sm:p-6 md:p-8;
+  }
+  
+  .card-responsive {
+    @apply p-4 sm:p-6 md:p-8 rounded-lg sm:rounded-xl;
   }
 }
 

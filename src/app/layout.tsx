@@ -2,12 +2,13 @@ import type { Metadata } from "next";
 import { Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
-import Header from "@/components/layout/header";
-import Footer from "@/components/layout/footer";
+import LayoutWrapper from "@/components/layout-wrapper";
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
   variable: "--font-space-grotesk",
+  display: 'swap',
+  preload: true,
 });
 
 export const metadata: Metadata = {
@@ -59,11 +60,7 @@ export default function RootLayout({
           spaceGrotesk.variable
         )}
       >
-        <div className="flex flex-col min-h-screen">
-          <Header />
-          <main className="flex-grow">{children}</main>
-          <Footer />
-        </div>
+        <LayoutWrapper>{children}</LayoutWrapper>
       </body>
     </html>
   );

@@ -1,8 +1,9 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Check } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
 
 type HeroSectionProps = {
   setIsLoading: (isLoading: boolean) => void;
@@ -14,96 +15,66 @@ export default function HeroSection({ setIsLoading }: HeroSectionProps) {
   const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     setIsLoading(true);
+    const isLoggedIn = false; // TODO: Replace with actual auth check
     setTimeout(() => {
-      router.push("/board");
+      router.push(isLoggedIn ? "/dashboard" : "/sign-up");
     }, 100);
   };
 
   return (
-    <section className="w-full relative overflow-hidden min-h-[80vh] sm:min-h-[85vh] flex items-center bg-black">
-      {/* Background gradient */}
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-black to-black/90" />
+    <section className="w-full relative overflow-hidden min-h-screen flex items-center justify-center bg-black pt-16">
+      {/* Background gradient mesh */}
+      <div className="absolute inset-0 bg-black" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(100,100,100,0.1),transparent_50%)]" />
 
-      <div className="container mx-auto text-center py-16 sm:py-24 px-4 relative">
-        {/* Badge */}
-        <div className="inline-flex items-center gap-2 px-2 py-1 sm:px-3 sm:py-1.5 rounded-full bg-primary/10 border border-primary/20 mb-4 sm:mb-6">
-          <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-green-500 rounded-full animate-pulse" />
-          <span className="text-xs font-medium text-primary">
-            AI Powered Task Management
-          </span>
-        </div>
-
-        {/* Crystal clear what it is */}
-        <h1 className="text-3xl sm:text-4xl lg:text-7xl font-bold tracking-tight mb-4 sm:mb-6 bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
-          <span className="sm:hidden">
-            Turn Messy Notes Into{" "}
-            <span className="text-primary bg-gradient-to-r from-primary to-primary/80 bg-clip-text">
-              Organized To Do Lists
+      <div className="container mx-auto text-center px-4 sm:px-6 relative z-10 -mt-32">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+        >
+          {/* Badge */}
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gray-800/50 border border-gray-700 mb-6 backdrop-blur-sm">
+            <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse shadow-lg shadow-green-400/50" />
+            <span className="text-xs font-semibold text-gray-300">
+              AI • Auth • Dashboard • Payments
             </span>
-          </span>
-          <span className="hidden sm:block">
-            Turn Messy Notes Into
-            <br />
-            <span className="text-primary bg-gradient-to-r from-primary to-primary/80 bg-clip-text">
-              Organized To Do Lists
+          </div>
+
+          {/* Headline */}
+          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight mb-6 leading-tight">
+            <span className="block text-white mb-2">Transform Notes Into</span>
+            <span className="block bg-gradient-to-r from-gray-200 via-gray-400 to-gray-600 bg-clip-text text-transparent">
+              Organized Kanban Boards
             </span>
-          </span>
-        </h1>
+          </h1>
 
-        {/* Exactly who and what problem */}
-        <p className="text-sm sm:text-lg lg:text-xl text-muted-foreground max-w-3xl mx-auto mb-6 sm:mb-8">
-          Paste your notes and quickly turn them into clear, actionable tasks.
-          The tool works instantly in your browser assist you organize ideas in
-          seconds.
-        </p>
+          {/* Subtext */}
+          <p className="text-base sm:text-lg md:text-xl text-gray-400 max-w-2xl mx-auto mb-8 leading-relaxed">
+            Complete SaaS platform with AI task extraction, secure authentication, cloud storage, 
+            Stripe payments, and analytics dashboard. <span className="text-white font-semibold">Start free, upgrade anytime.</span>
+          </p>
 
-        {/* Clear, specific CTA */}
-        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-center items-center mb-6 sm:mb-8">
-          <Button
-            size="lg"
-            onClick={handleClick}
-            className="text-sm sm:text-base px-6 py-4 sm:px-8 sm:py-6 shadow-lg hover:shadow-xl transition-all"
-          >
-            Try It Free Now
-            <ArrowRight className="ml-2 h-4 w-4 sm:h-5 sm:w-5" />
-          </Button>
-          <Button
-            variant="outline"
-            size="lg"
-            asChild
-            className="text-xs sm:text-base px-4 py-4 sm:px-8 sm:py-6"
-          >
-            <a
-              href="https://muhammadtanveerabbas.vercel.app"
-              target="_blank"
-              rel="noopener noreferrer"
+          {/* CTAs */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <Button
+              size="lg"
+              onClick={handleClick}
+              className="w-full sm:w-auto text-base md:text-lg px-8 py-6 shadow-2xl hover:shadow-xl transition-all duration-300 rounded-xl font-semibold"
             >
-              View Developer Portfolio
-            </a>
-          </Button>
-        </div>
-
-        {/* Trustworthy proof */}
-        <div className="flex flex-wrap justify-center gap-3 sm:gap-4">
-          <div className="flex items-center gap-1.5">
-            <Check className="h-3 w-3 sm:h-4 sm:w-4 text-green-500" />
-            <p className="text-xs sm:text-sm text-muted-foreground">
-              Works in your browser
-            </p>
+              Try It Free Now
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
+            <Button
+              variant="outline"
+              size="lg"
+              asChild
+              className="w-full sm:w-auto text-base md:text-lg px-8 py-6 rounded-xl font-semibold"
+            >
+              <a href="#features">See Features</a>
+            </Button>
           </div>
-          <div className="flex items-center gap-1.5">
-            <Check className="h-3 w-3 sm:h-4 sm:w-4 text-green-500" />
-            <p className="text-xs sm:text-sm text-muted-foreground">
-              No account needed
-            </p>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <Check className="h-3 w-3 sm:h-4 sm:w-4 text-green-500" />
-            <p className="text-xs sm:text-sm text-muted-foreground">
-              Data stays private
-            </p>
-          </div>
-        </div>
+        </motion.div>
       </div>
     </section>
   );

@@ -1,8 +1,9 @@
-'use client';
+"use client";
 
-import { Button } from '@/components/ui/button';
-import { ArrowRight, Users, Zap, Shield, CheckCircle } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { Button } from "@/components/ui/button";
+import { ArrowRight } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
 
 type FinalCtaSectionProps = {
   setIsLoading: (isLoading: boolean) => void;
@@ -10,62 +11,48 @@ type FinalCtaSectionProps = {
 
 export default function FinalCtaSection({ setIsLoading }: FinalCtaSectionProps) {
   const router = useRouter();
-  
+
   const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     setIsLoading(true);
+    const isLoggedIn = false; // TODO: Replace with actual auth check
     setTimeout(() => {
-      router.push('/board');
+      router.push(isLoggedIn ? "/dashboard" : "/sign-up");
     }, 100);
   };
 
   return (
-    <section className="w-full py-12 sm:py-24 relative overflow-hidden bg-black">
-      <div className="container mx-auto text-center max-w-5xl px-4 relative">
-        {/* Badge */}
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 mb-4 sm:mb-6">
-          <Users className="w-3.5 h-3.5 text-primary" />
-          <span className="text-xs font-semibold text-primary">Open Source & Free</span>
-        </div>
-
-        {/* Heading */}
-        <h2 className="text-2xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-foreground font-headline">
-          Turn Ideas Into Action
-        </h2>
-        
-        {/* Description */}
-        <p className="mt-4 text-sm sm:text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-          Transform notes into organized tasks. Simple, fast, and private.
-        </p>
-
-        {/* Feature grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mt-6 sm:mt-10 max-w-3xl mx-auto">
-          <div className="flex flex-col items-center gap-2 p-3 sm:p-4 rounded-lg bg-card border">
-            <Zap className="w-6 h-6 sm:w-8 sm:h-8 text-primary" />
-            <p className="text-xs sm:text-sm font-medium">No signup required</p>
-          </div>
-          <div className="flex flex-col items-center gap-2 p-3 sm:p-4 rounded-lg bg-card border">
-            <CheckCircle className="w-6 h-6 sm:w-8 sm:h-8 text-primary" />
-            <p className="text-xs sm:text-sm font-medium">Completely free</p>
-          </div>
-          <div className="flex flex-col items-center gap-2 p-3 sm:p-4 rounded-lg bg-card border">
-            <Shield className="w-6 h-6 sm:w-8 sm:h-8 text-primary" />
-            <p className="text-xs sm:text-sm font-medium">Data stays private</p>
-          </div>
-        </div>
-
-        {/* CTA */}
-        <div className="mt-6 sm:mt-10">
-          <Button size="lg" onClick={handleClick} className="text-sm sm:text-base px-6 py-5 sm:px-8 sm:py-6 shadow-lg hover:shadow-xl transition-all">
-            Start Building Now
-            <ArrowRight className="ml-2 h-4 w-4 sm:h-5 sm:w-5" />
+    <section className="w-full py-10 sm:py-14 md:py-18 lg:py-24 bg-black">
+      <div className="container mx-auto px-3 sm:px-4 md:px-6 lg:px-8">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+          className="max-w-4xl mx-auto text-center"
+        >
+          <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold tracking-tight mb-3 sm:mb-4 md:mb-6 px-2">
+            Ready to Organize
+            <br />
+            <span className="bg-gradient-to-r from-gray-200 via-gray-400 to-gray-600 bg-clip-text text-transparent">
+              Your Tasks?
+            </span>
+          </h2>
+          <p className="text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl text-muted-foreground mb-6 sm:mb-8 md:mb-10 max-w-2xl mx-auto px-2">
+            Transform your messy notes into organized Kanban boards with AI-powered task extraction.
+          </p>
+          <Button
+            size="lg"
+            onClick={handleClick}
+            className="text-sm sm:text-base md:text-lg lg:text-xl px-6 sm:px-8 md:px-10 lg:px-12 py-5 sm:py-6 md:py-7 lg:py-8 shadow-lg hover:shadow-xl transition-all min-h-[44px] sm:min-h-[48px] md:min-h-[56px] lg:min-h-[64px] rounded-lg sm:rounded-xl"
+          >
+            Get Started Free
+            <ArrowRight className="ml-1.5 sm:ml-2 h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6" />
           </Button>
-        </div>
-
-        {/* Social proof */}
-        <p className="mt-4 sm:mt-6 text-xs sm:text-sm text-muted-foreground">
-          Try it now - no commitment, no signup required
-        </p>
+          <p className="mt-3 sm:mt-4 md:mt-6 text-[10px] sm:text-xs md:text-sm text-muted-foreground px-2">
+            Free plan available • Secure authentication • Save your boards
+          </p>
+        </motion.div>
       </div>
     </section>
   );

@@ -6,32 +6,32 @@ import { Card, CardContent } from '@/components/ui/card';
 
 const faqs = [
   {
-    question: "Is KANBI really free?",
-    answer: "Yes! KANBI is completely free and open source. All features work without any payment or subscription."
+    question: "What is KANBI?",
+    answer: "KANBI is a complete SaaS platform that transforms notes into organized Kanban boards using AI. It includes authentication, cloud storage, premium subscriptions, and analytics."
   },
   {
     question: "Do I need to create an account?",
-    answer: "No account needed! Just visit the app and start organizing your tasks immediately. Your data is stored locally in your browser."
+    answer: "Yes, you need to sign up for an account to use KANBI. This allows you to save your boards securely in the cloud and access them from any device."
   },
   {
-    question: "Is my data safe and private?",
-    answer: "Yes. Your data is stored locally in your browser. No servers, no tracking, no data collection."
+    question: "Is my data safe?",
+    answer: "Yes. Your data is stored securely in Supabase PostgreSQL database with industry-standard encryption. We use Supabase Auth for secure authentication."
   },
   {
-    question: "Can I use it offline?",
-    answer: "Yes! Once loaded, KANBI works completely offline. Your tasks are saved locally."
+    question: "What's included in the free plan?",
+    answer: "The free plan includes 10 board uses per day (300 per month), AI task extraction, Kanban board, priorities, due dates, and save/export features."
   },
   {
-    question: "What devices does it work on?",
-    answer: "KANBI works on desktop, tablet, and mobile with responsive design."
+    question: "What does Premium offer?",
+    answer: "Premium ($20/month) includes unlimited board uses, unlimited AI generations, advanced AI features, cloud sync, unlimited saved boards, and priority support."
   },
   {
     question: "Can I export my tasks?",
-    answer: "Yes! You can export your tasks as JSON files for backup or to move between devices."
+    answer: "Yes! You can export your tasks as JSON files for backup or sharing with your team."
   },
   {
-    question: "How does the AI task parsing work?",
-    answer: "KANBI can use Google AI (Gemini) to extract tasks from your notes. You need to add your own API key to enable this optional feature."
+    question: "How does the AI work?",
+    answer: "KANBI uses Google Gemini and Groq AI to intelligently parse your notes and extract tasks with priorities and due dates automatically."
   }
 ];
 

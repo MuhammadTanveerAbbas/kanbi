@@ -9,16 +9,23 @@ import { NoTasksEmptyState } from "./empty-states";
 import { AppLoadingSkeleton } from "./loading-states";
 import { CheckCircle } from "lucide-react";
 import { analytics } from "@/lib/analytics";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 export default function Kanbi() {
   const store = useTasksStore();
   const hasTasks = store.tasks.length > 0;
   const completedTasks = store.tasks.filter(task => task.status === 'Done').length;
+  const hasTrackedUsage = useRef(false);
 
-  // Track app usage
+  // Track app usage and board usage
   useEffect(() => {
     analytics.track('app_loaded');
+    
+    // Track board usage once per session
+    if (!hasTrackedUsage.current) {
+      hasTrackedUsage.current = true;
+      fetch('/api/track-board-usage', { method: 'POST' }).catch(console.error);
+    }
   }, []);
 
   const handleQuickAdd = () => {
@@ -54,29 +61,33 @@ export default function Kanbi() {
     <>
       <Onboarding hasAnyTasks={hasTasks} />
       
-      <div className="w-full max-w-7xl mx-auto space-y-6 p-1 sm:p-4">
-        {/* Encouraging header */}
-        <div className="text-center space-y-2">
-          <h1 className="text-2xl font-bold">What's On Your Mind?</h1>
+      <div className="w-full max-w-7xl mx-auto space-y-4 sm:space-y-6 p-2 sm:p-3 md:p-4">
+        {/* Header */}
+        <div className="text-center space-y-2 sm:space-y-3 py-3 sm:py-4">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent px-2">
+            Transform Notes Into Action
+          </h1>
+          <p className="text-xs sm:text-sm md:text-base text-gray-400 max-w-2xl mx-auto px-2">
+            Paste your messy notes below and let AI organize them into a beautiful Kanban board
+          </p>
           {hasTasks && (
-            <div className="flex items-center justify-center gap-4 text-sm text-muted-foreground">
-              <span>You have {store.tasks.length} things to do</span>
+            <div className="flex items-center justify-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-400 pt-1.5 sm:pt-2">
+              <span className="px-2 sm:px-3 py-0.5 sm:py-1 bg-[#1a1a1a] border border-[#262626] rounded-full">
+                {store.tasks.length} tasks
+              </span>
               {completedTasks > 0 && (
-                <>
-                  <span>•</span>
-                  <span className="flex items-center gap-1">
-                    <CheckCircle className="w-4 h-4 text-green-600" />
-                    {completedTasks} finished ({Math.round((completedTasks / store.tasks.length) * 100)}%)
-                  </span>
-                </>
+                <span className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-0.5 sm:py-1 bg-green-500/10 border border-green-500/20 rounded-full text-green-400">
+                  <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4" />
+                  {completedTasks} done ({Math.round((completedTasks / store.tasks.length) * 100)}%)
+                </span>
               )}
             </div>
           )}
         </div>
 
         {/* Input section */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
-          <div className="lg:col-span-2 space-y-4">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 items-stretch">
+          <div className="lg:col-span-2 space-y-3 sm:space-y-4">
             <TaskGenerator addTask={store.addTask} />
           </div>
           <div className="lg:col-span-1">
@@ -93,9 +104,12 @@ export default function Kanbi() {
 
         {/* Celebration message */}
         {completedTasks > 0 && completedTasks === store.tasks.length && (
-          <div className="text-center p-4 bg-green-50 border border-green-200 rounded-lg">
-            <p className="text-green-800 font-medium">
-              🎉 Nice work! You finished everything. Ready for more?
+          <div className="text-center p-6 bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-xl">
+            <p className="text-lg font-semibold text-green-400 mb-2">
+              🎉 Amazing! You've completed everything!
+            </p>
+            <p className="text-sm text-gray-400">
+              Ready to tackle more? Add new tasks above.
             </p>
           </div>
         )}
@@ -103,8 +117,9 @@ export default function Kanbi() {
         {/* Save error warning */}
         {store.saveError && (
           <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:max-w-sm z-30">
-            <div className="bg-destructive text-destructive-foreground p-3 rounded-lg text-sm">
-              ⚠️ {store.saveError}
+            <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-xl text-sm backdrop-blur-sm">
+              <p className="font-semibold mb-1">⚠️ Save Error</p>
+              <p className="text-xs text-gray-400">{store.saveError}</p>
             </div>
           </div>
         )}
