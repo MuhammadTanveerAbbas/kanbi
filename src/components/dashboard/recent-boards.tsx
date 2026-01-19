@@ -14,8 +14,14 @@ export default function RecentBoards() {
         if (!res.ok) throw new Error('Failed');
         return res.json();
       })
-      .then(data => setBoards(data.boards || []))
-      .catch(() => setBoards([]));
+      .then(data => {
+        // API returns array directly, not wrapped in boards property
+        setBoards(Array.isArray(data) ? data : []);
+      })
+      .catch((error) => {
+        console.error('Failed to fetch recent boards:', error);
+        setBoards([]);
+      });
   }, []);
 
   return (
@@ -38,9 +44,9 @@ export default function RecentBoards() {
                 className="flex items-center justify-between p-3 rounded-lg border border-[#262626] hover:border-primary/50 transition-all group"
               >
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium truncate">{board.title || 'Untitled'}</p>
+                  <p className="font-medium truncate">{board.title || board.content?.substring(0, 30) || 'Untitled'}</p>
                   <p className="text-xs text-muted-foreground">
-                    {new Date(board.created_at).toLocaleDateString()}
+                    {board.created_at ? new Date(board.created_at).toLocaleDateString() : 'No date'}
                   </p>
                 </div>
                 {board.is_favorite && <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />}

@@ -1,13 +1,44 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { Task, TaskStatus } from '@/lib/types';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Task, TaskStatus, TaskPriority } from '@/lib/types';
 import { analytics } from '@/lib/analytics';
 
 export function useTasksStore() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Sync task stats to Supabase (debounced)
+  const syncToSupabase = useCallback((currentTasks: Task[]) => {
+    // Clear any pending sync
+    if (syncTimeoutRef.current) {
+      clearTimeout(syncTimeoutRef.current);
+    }
+
+    // Debounce sync to avoid too many API calls
+    syncTimeoutRef.current = setTimeout(async () => {
+      try {
+        const stats = {
+          urgent: currentTasks.filter(t => t.priority === 'Urgent').length,
+          high: currentTasks.filter(t => t.priority === 'High').length,
+          medium: currentTasks.filter(t => t.priority === 'Medium').length,
+          low: currentTasks.filter(t => t.priority === 'Low').length,
+          total: currentTasks.length,
+          completed: currentTasks.filter(t => t.status === 'Done').length,
+        };
+
+        await fetch('/api/sync-task-stats', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(stats),
+        });
+      } catch (error) {
+        console.error('Failed to sync stats to Supabase:', error);
+      }
+    }, 500);
+  }, []);
 
   // Load tasks from localStorage on mount
   useEffect(() => {
@@ -20,6 +51,8 @@ export function useTasksStore() {
           if (Array.isArray(parsedTasks)) {
             setTasks(parsedTasks);
             analytics.track('tasks_loaded', { count: parsedTasks.length });
+            // Sync initial stats
+            syncToSupabase(parsedTasks);
           }
         }
       } catch (error) {
@@ -36,7 +69,7 @@ export function useTasksStore() {
     } else {
       setTimeout(loadTasks, 0);
     }
-  }, []);
+  }, [syncToSupabase]);
 
   // Save tasks to localStorage when tasks change
   useEffect(() => {
@@ -44,13 +77,15 @@ export function useTasksStore() {
       try {
         localStorage.setItem('kanbi-tasks', JSON.stringify(tasks));
         setSaveError(null);
+        // Sync to Supabase
+        syncToSupabase(tasks);
       } catch (error) {
         console.error('Failed to save tasks:', error);
         setSaveError('Unable to save changes. Storage may be full.');
         analytics.trackError('Failed to save tasks to localStorage');
       }
     }
-  }, [tasks, isInitialized]);
+  }, [tasks, isInitialized, syncToSupabase]);
 
   const addTask = useCallback((task: Omit<Task, 'id' | 'status' | 'createdAt'>) => {
     try {
@@ -76,12 +111,12 @@ export function useTasksStore() {
         prev.map(task => {
           if (task.id === taskId) {
             const updatedTask = { ...task, ...updates };
-            
+
             // Track completion
             if (updates.status === 'Done' && task.status !== 'Done') {
               analytics.trackTaskCompleted();
             }
-            
+
             return updatedTask;
           }
           return task;

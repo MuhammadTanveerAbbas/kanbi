@@ -369,9 +369,11 @@ function GenerationCard({
   onExport: (gen: Generation) => void;
   onView: (gen: Generation) => void;
 }) {
+  // Handle both old format (output_text) and new format (content)
+  const textContent = generation.output_text || generation.content || '';
   const preview =
-    generation.output_text.substring(0, 150) +
-    (generation.output_text.length > 150 ? "..." : "");
+    textContent.substring(0, 150) +
+    (textContent.length > 150 ? "..." : "");
 
   if (viewMode === "list") {
     return (

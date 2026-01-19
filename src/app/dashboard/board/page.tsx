@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Suspense } from 'react';
 import ActionBoard from '@/components/action-board';
 import { ErrorBoundary } from '@/components/error-boundary';
@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { FileText } from 'lucide-react';
 import BoardTemplates from '@/components/dashboard/board-templates';
+import { Task, TaskStatus, TaskPriority } from '@/lib/types';
 
 function BoardSkeleton() {
   return (
@@ -27,10 +28,41 @@ function BoardSkeleton() {
   );
 }
 
+// Map template status and priority to proper types
+const statusMap: Record<string, TaskStatus> = {
+  'todo': 'To Do',
+  'in-progress': 'In Progress',
+  'done': 'Done',
+};
+
+const priorityMap: Record<string, TaskPriority> = {
+  'low': 'Low',
+  'medium': 'Medium',
+  'high': 'High',
+  'urgent': 'Urgent',
+};
+
 export default function DashboardBoardPage() {
   const [showTemplates, setShowTemplates] = useState(false);
+  const [templateTasks, setTemplateTasks] = useState<Task[] | null>(null);
 
   const handleTemplateSelect = (template: any) => {
+    // Convert template tasks to proper Task objects
+    const tasks: Task[] = template.tasks.map((t: any, index: number) => ({
+      id: `task-${Date.now()}-${index}-${Math.random().toString(36).substr(2, 9)}`,
+      title: t.title,
+      description: t.description || '',
+      status: statusMap[t.status] || 'To Do',
+      priority: priorityMap[t.priority] || 'Medium',
+      createdAt: new Date().toISOString(),
+    }));
+
+    // Store tasks in localStorage to be picked up by the board
+    localStorage.setItem('kanbi-tasks', JSON.stringify(tasks));
+
+    // Force a page reload to load the new tasks
+    window.location.reload();
+
     setShowTemplates(false);
   };
 
@@ -44,11 +76,11 @@ export default function DashboardBoardPage() {
             Use Template
           </Button>
         </div>
-        
+
         <Suspense fallback={<BoardSkeleton />}>
           <ActionBoard />
         </Suspense>
-        
+
         <Dialog open={showTemplates} onOpenChange={setShowTemplates}>
           <DialogContent className="max-w-4xl">
             <DialogHeader>
@@ -61,3 +93,4 @@ export default function DashboardBoardPage() {
     </ErrorBoundary>
   );
 }
+

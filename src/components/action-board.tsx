@@ -4,6 +4,7 @@ import { useTasksStore } from "@/hooks/use-tasks-store";
 import TaskGenerator from "./ai/task-generator";
 import KanbanBoard from "./board/kanban-board";
 import ExportImport from "./board/export-import";
+import SaveBoardButton from "./board/save-board-button";
 import Onboarding from "./onboarding";
 import { NoTasksEmptyState } from "./empty-states";
 import { AppLoadingSkeleton } from "./loading-states";
@@ -20,7 +21,7 @@ export default function Kanbi() {
   // Track app usage and board usage
   useEffect(() => {
     analytics.track('app_loaded');
-    
+
     // Track board usage once per session
     if (!hasTrackedUsage.current) {
       hasTrackedUsage.current = true;
@@ -60,7 +61,7 @@ export default function Kanbi() {
   return (
     <>
       <Onboarding hasAnyTasks={hasTasks} />
-      
+
       <div className="w-full max-w-7xl mx-auto space-y-4 sm:space-y-6 p-2 sm:p-3 md:p-4">
         {/* Header */}
         <div className="text-center space-y-2 sm:space-y-3 py-3 sm:py-4">
@@ -68,10 +69,10 @@ export default function Kanbi() {
             Transform Notes Into Action
           </h1>
           <p className="text-xs sm:text-sm md:text-base text-gray-400 max-w-2xl mx-auto px-2">
-            Paste your messy notes below and let AI organize them into a beautiful Kanban board
+            Paste your messy notes below and let AI organize them into a Kanban board
           </p>
           {hasTasks && (
-            <div className="flex items-center justify-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-400 pt-1.5 sm:pt-2">
+            <div className="flex items-center justify-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-400 pt-1.5 sm:pt-2 flex-wrap">
               <span className="px-2 sm:px-3 py-0.5 sm:py-1 bg-[#1a1a1a] border border-[#262626] rounded-full">
                 {store.tasks.length} tasks
               </span>
@@ -81,6 +82,7 @@ export default function Kanbi() {
                   {completedTasks} done ({Math.round((completedTasks / store.tasks.length) * 100)}%)
                 </span>
               )}
+              <SaveBoardButton tasks={store.tasks} />
             </div>
           )}
         </div>

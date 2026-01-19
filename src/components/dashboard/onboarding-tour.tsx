@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { X, ArrowRight, ArrowLeft, Sparkles, LayoutDashboard, Move, Save, BarChart } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
 
 const steps = [
   {
@@ -36,33 +37,63 @@ const steps = [
 export default function OnboardingTour() {
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(0);
+  const supabase = createClient();
 
   useEffect(() => {
-    const hasSeenTour = localStorage.getItem('hasSeenTour');
-    if (!hasSeenTour) {
-      setTimeout(() => setOpen(true), 1000);
-    }
+    const checkOnboarding = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data } = await supabase
+        .from('profiles')
+        .select('has_seen_onboarding')
+        .eq('id', user.id)
+        .single();
+
+      if (data && !data.has_seen_onboarding) {
+        setTimeout(() => setOpen(true), 1000);
+      }
+    };
+    checkOnboarding();
   }, []);
 
-  const handleComplete = () => {
-    localStorage.setItem('hasSeenTour', 'true');
+  const handleComplete = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      await supabase
+        .from('profiles')
+        .update({ has_seen_onboarding: true })
+        .eq('id', user.id);
+    }
     setOpen(false);
   };
 
   const Icon = steps[step].icon;
 
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => {
+    <Dialog open={open} onOpenChange={async (isOpen) => {
       if (!isOpen) {
-        localStorage.setItem('hasSeenTour', 'true');
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await supabase
+            .from('profiles')
+            .update({ has_seen_onboarding: true })
+            .eq('id', user.id);
+        }
       }
       setOpen(isOpen);
     }}>
       <DialogContent className="max-w-[280px] sm:max-w-md [&>button]:!hidden">
         <DialogTitle className="sr-only">{steps[step].title}</DialogTitle>
         <button 
-          onClick={() => {
-            localStorage.setItem('hasSeenTour', 'true');
+          onClick={async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+              await supabase
+                .from('profiles')
+                .update({ has_seen_onboarding: true })
+                .eq('id', user.id);
+            }
             setOpen(false);
           }} 
           className="absolute right-2 top-2 z-50 rounded-sm opacity-70 hover:opacity-100 transition-opacity"

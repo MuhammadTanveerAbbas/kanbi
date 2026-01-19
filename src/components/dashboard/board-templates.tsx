@@ -55,6 +55,20 @@ const templates = [
     description: 'Empty board to start fresh',
     tasks: []
   },
+  {
+    id: 'weekly',
+    name: 'Weekly Planning',
+    icon: Calendar,
+    description: 'Plan your week ahead',
+    tasks: [
+      { title: 'Review last week\'s accomplishments', status: 'todo', priority: 'high' },
+      { title: 'Set weekly goals', status: 'todo', priority: 'urgent' },
+      { title: 'Schedule important meetings', status: 'todo', priority: 'high' },
+      { title: 'Block focus time for deep work', status: 'todo', priority: 'medium' },
+      { title: 'Plan personal tasks', status: 'todo', priority: 'low' },
+      { title: 'Prepare for Monday standup', status: 'todo', priority: 'medium' },
+    ]
+  },
 ];
 
 export default function BoardTemplates({ onSelect }: { onSelect: (template: any) => void }) {
