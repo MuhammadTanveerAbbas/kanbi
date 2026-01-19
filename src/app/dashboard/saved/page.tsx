@@ -369,8 +369,8 @@ function GenerationCard({
   onExport: (gen: Generation) => void;
   onView: (gen: Generation) => void;
 }) {
-  // Handle both old format (output_text) and new format (content)
-  const textContent = generation.output_text || generation.content || '';
+  // Use output_text from the generation
+  const textContent = generation.output_text || '';
   const preview =
     textContent.substring(0, 150) +
     (textContent.length > 150 ? "..." : "");
