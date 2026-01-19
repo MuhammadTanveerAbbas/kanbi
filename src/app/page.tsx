@@ -3,12 +3,16 @@
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import HeroSection from '@/components/landing/hero-section';
+import SocialProofSection from '@/components/landing/social-proof-section';
+import ScrollProgress from '@/components/scroll-progress';
 
 const ProblemSection = dynamic(() => import('@/components/landing/problem-section'), { ssr: false });
 const FeaturesSection = dynamic(() => import('@/components/landing/features-section'), { ssr: false });
+const DemoPreviewSection = dynamic(() => import('@/components/landing/demo-preview-section'), { ssr: false });
 const HowItWorksSection = dynamic(() => import('@/components/landing/how-it-works-section'), { ssr: false });
 const PricingPreviewSection = dynamic(() => import('@/components/landing/pricing-preview-section'), { ssr: false });
 const TestimonialsSection = dynamic(() => import('@/components/landing/testimonials-section'), { ssr: false });
+const FaqSection = dynamic(() => import('@/components/landing/faq-section'), { ssr: false });
 const StatsSection = dynamic(() => import('@/components/landing/stats-section'), { ssr: false });
 const FinalCtaSection = dynamic(() => import('@/components/landing/final-cta-section'), { ssr: false });
 
@@ -41,15 +45,23 @@ export default function Home() {
   }
 
   return (
-    <div className="flex flex-col items-center">
-      <HeroSection setIsLoading={setIsLoading} />
-      <ProblemSection />
-      <FeaturesSection />
-      <HowItWorksSection />
-      <PricingPreviewSection />
-      <TestimonialsSection />
-      <StatsSection />
-      <FinalCtaSection setIsLoading={setIsLoading} />
-    </div>
+    <>
+      <ScrollProgress />
+      <div className="flex flex-col items-center">
+        <HeroSection setIsLoading={setIsLoading} />
+        <div className="mt-12 sm:mt-0 w-full">
+          <SocialProofSection />
+        </div>
+        <ProblemSection />
+        <FeaturesSection />
+        <DemoPreviewSection />
+        <HowItWorksSection />
+        <PricingPreviewSection />
+        <TestimonialsSection />
+        <FaqSection />
+        <StatsSection />
+        <FinalCtaSection setIsLoading={setIsLoading} />
+      </div>
+    </>
   );
 }

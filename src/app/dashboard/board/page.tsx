@@ -1,8 +1,13 @@
 'use client';
 
+import { useState } from 'react';
 import { Suspense } from 'react';
 import ActionBoard from '@/components/action-board';
 import { ErrorBoundary } from '@/components/error-boundary';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { FileText } from 'lucide-react';
+import BoardTemplates from '@/components/dashboard/board-templates';
 
 function BoardSkeleton() {
   return (
@@ -23,12 +28,35 @@ function BoardSkeleton() {
 }
 
 export default function DashboardBoardPage() {
+  const [showTemplates, setShowTemplates] = useState(false);
+
+  const handleTemplateSelect = (template: any) => {
+    setShowTemplates(false);
+  };
+
   return (
     <ErrorBoundary>
       <div className="max-w-7xl mx-auto">
+        <div className="flex justify-between items-center mb-4">
+          <h1 className="text-2xl font-bold">Kanban Board</h1>
+          <Button onClick={() => setShowTemplates(true)} variant="outline">
+            <FileText className="h-4 w-4 mr-2" />
+            Use Template
+          </Button>
+        </div>
+        
         <Suspense fallback={<BoardSkeleton />}>
           <ActionBoard />
         </Suspense>
+        
+        <Dialog open={showTemplates} onOpenChange={setShowTemplates}>
+          <DialogContent className="max-w-4xl">
+            <DialogHeader>
+              <DialogTitle>Choose a Template</DialogTitle>
+            </DialogHeader>
+            <BoardTemplates onSelect={handleTemplateSelect} />
+          </DialogContent>
+        </Dialog>
       </div>
     </ErrorBoundary>
   );

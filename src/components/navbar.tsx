@@ -2,15 +2,19 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { LayoutGrid, Menu, X, User } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { LayoutGrid, UserPlus, User, Settings, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { useAuth } from "@/hooks/useAuth";
+import { createClient } from "@/lib/supabase/client";
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const pathname = usePathname();
-  const isLoggedIn = false;
+  const router = useRouter();
+  const { user } = useAuth();
+  const supabase = createClient();
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 20);
@@ -18,12 +22,10 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  useEffect(() => {
-    document.body.style.overflow = isMobileMenuOpen ? "hidden" : "";
-    return () => { document.body.style.overflow = ""; };
-  }, [isMobileMenuOpen]);
-
-  const navLinks: never[] = [];
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push('/');
+  };
 
   return (
     <nav
@@ -52,74 +54,42 @@ export default function Navbar() {
             </span>
           </Link>
 
-          {/* Desktop Actions */}
-          <div className="hidden lg:flex items-center space-x-3 ml-auto">
-            {isLoggedIn ? (
-              <>
-                <Button variant="ghost" asChild>
-                  <Link href="/dashboard" className="min-h-[44px]">
-                    Dashboard
-                  </Link>
-                </Button>
-                <Button variant="ghost" size="icon" className="min-h-[44px] min-w-[44px]">
-                  <User className="h-5 w-5" />
-                </Button>
-              </>
+          {/* Actions */}
+          <div className="flex items-center space-x-3 ml-auto">
+            {user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-10 sm:w-10 rounded-full focus-visible:ring-0 focus-visible:ring-offset-0">
+                    <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-gradient-to-br from-[#1f1f1f] to-[#2a2a2a] flex items-center justify-center border border-[#262626]">
+                      <User className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                    </div>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem asChild>
+                    <Link href="/dashboard/settings" className="cursor-pointer">
+                      <Settings className="mr-2 h-4 w-4" />
+                      Settings
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-red-500">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Logout
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             ) : (
-              <>
-                <Button asChild className="min-h-[44px]">
-                  <Link href="/sign-up">Get Started</Link>
-                </Button>
-              </>
+              <Button asChild className="h-9 sm:min-h-[44px] text-[9px] sm:text-sm px-1.5 sm:px-4">
+                <Link href="/sign-up" className="flex items-center gap-0.5 sm:gap-2">
+                  <UserPlus className="h-2.5 w-2.5 sm:h-4 sm:w-4" />
+                  Get Started
+                </Link>
+              </Button>
             )}
           </div>
-
-          {/* Mobile Menu Button */}
-          <button
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="lg:hidden min-h-[44px] min-w-[44px] flex items-center justify-center text-foreground"
-            aria-label="Toggle menu"
-          >
-            {isMobileMenuOpen ? (
-              <X className="h-6 w-6" />
-            ) : (
-              <Menu className="h-6 w-6" />
-            )}
-          </button>
         </div>
       </div>
-
-      {/* Mobile Menu */}
-      {isMobileMenuOpen && (
-        <div className="lg:hidden bg-background border-t border-border">
-          <div className="container mx-auto px-4 py-6 space-y-4">
-              <div className="space-y-3">
-                {isLoggedIn ? (
-                  <>
-                    <Button variant="ghost" asChild className="w-full min-h-[44px] justify-start">
-                      <Link href="/dashboard" onClick={() => setIsMobileMenuOpen(false)}>
-                        Dashboard
-                      </Link>
-                    </Button>
-                    <Button variant="ghost" asChild className="w-full min-h-[44px] justify-start">
-                      <Link href="/profile" onClick={() => setIsMobileMenuOpen(false)}>
-                        Profile
-                      </Link>
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <Button asChild className="w-full min-h-[44px]">
-                      <Link href="/sign-up" onClick={() => setIsMobileMenuOpen(false)}>
-                        Get Started
-                      </Link>
-                    </Button>
-                  </>
-                )}
-              </div>
-          </div>
-        </div>
-      )}
     </nav>
   );
 }

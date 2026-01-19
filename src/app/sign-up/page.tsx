@@ -80,28 +80,28 @@ export default function SignUpPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-3 sm:p-4 bg-black">
+    <div className="flex h-screen items-center justify-center p-3 sm:p-4 bg-black overflow-hidden">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(120,119,198,0.05),transparent_50%)]" />
-      <Card className="w-full max-w-md relative z-10 border-primary/20 bg-card/50 backdrop-blur-sm">
-        <CardHeader className="space-y-3 sm:space-y-4 pb-4 sm:pb-6">
+      <Card className="w-full max-w-[340px] sm:max-w-md relative z-10 border-primary/20 bg-card/50 backdrop-blur-sm">
+        <CardHeader className="space-y-2 sm:space-y-4 pb-3 sm:pb-6">
           <Link href="/" className="flex items-center gap-1.5 sm:gap-2 mx-auto">
-            <LayoutGrid className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
-            <span className="font-bold text-lg sm:text-xl">KANBI</span>
+            <LayoutGrid className="h-4 w-4 sm:h-6 sm:w-6 text-primary" />
+            <span className="font-bold text-base sm:text-xl">KANBI</span>
           </Link>
           <div className="text-center">
-            <CardTitle className="text-xl sm:text-2xl">Create an account</CardTitle>
-            <CardDescription className="text-xs sm:text-sm">Enter your information to get started</CardDescription>
+            <CardTitle className="text-lg sm:text-2xl">Create an account</CardTitle>
+            <CardDescription className="text-[10px] sm:text-sm">Enter your information to get started</CardDescription>
           </div>
         </CardHeader>
         <form onSubmit={handleSubmit}>
-          <CardContent className="space-y-3 sm:space-y-4">
+          <CardContent className="space-y-2.5 sm:space-y-4">
             {error && (
               <Alert variant="destructive">
-                <AlertDescription className="text-xs sm:text-sm">{error}</AlertDescription>
+                <AlertDescription className="text-[10px] sm:text-sm">{error}</AlertDescription>
               </Alert>
             )}
-            <div className="space-y-1.5 sm:space-y-2">
-              <Label htmlFor="fullName" className="text-xs sm:text-sm">Full Name</Label>
+            <div className="space-y-1 sm:space-y-2">
+              <Label htmlFor="fullName" className="text-[10px] sm:text-sm">Full Name</Label>
               <Input
                 id="fullName"
                 type="text"
@@ -110,11 +110,11 @@ export default function SignUpPage() {
                 onChange={(e) => setFullName(e.target.value)}
                 required
                 disabled={loading}
-                className="h-10 sm:h-11 text-sm"
+                className="h-8 sm:h-11 text-xs sm:text-sm"
               />
             </div>
-            <div className="space-y-1.5 sm:space-y-2">
-              <Label htmlFor="email" className="text-xs sm:text-sm">Email</Label>
+            <div className="space-y-1 sm:space-y-2">
+              <Label htmlFor="email" className="text-[10px] sm:text-sm">Email</Label>
               <Input
                 id="email"
                 type="email"
@@ -123,11 +123,11 @@ export default function SignUpPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 disabled={loading}
-                className="h-10 sm:h-11 text-sm"
+                className="h-8 sm:h-11 text-xs sm:text-sm"
               />
             </div>
-            <div className="space-y-1.5 sm:space-y-2">
-              <Label htmlFor="password" className="text-xs sm:text-sm">Password</Label>
+            <div className="space-y-1 sm:space-y-2">
+              <Label htmlFor="password" className="text-[10px] sm:text-sm">Password</Label>
               <div className="relative">
                 <Input
                   id="password"
@@ -138,7 +138,7 @@ export default function SignUpPage() {
                   required
                   minLength={6}
                   disabled={loading}
-                  className="h-10 sm:h-11 pr-10 text-sm"
+                  className="h-8 sm:h-11 pr-10 text-xs sm:text-sm"
                 />
                 <button
                   type="button"
@@ -146,17 +146,17 @@ export default function SignUpPage() {
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                   disabled={loading}
                 >
-                  {showPassword ? <EyeOff className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> : <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
+                  {showPassword ? <EyeOff className="h-3 w-3 sm:h-4 sm:w-4" /> : <Eye className="h-3 w-3 sm:h-4 sm:w-4" />}
                 </button>
               </div>
-              <p className="text-[10px] sm:text-xs text-muted-foreground">Must be at least 6 characters</p>
+              <p className="text-[9px] sm:text-xs text-muted-foreground">Must be at least 6 characters</p>
             </div>
           </CardContent>
-          <CardFooter className="flex flex-col space-y-3 sm:space-y-4">
-            <Button type="submit" className="w-full h-10 sm:h-11 text-sm sm:text-base" disabled={loading}>
+          <CardFooter className="flex flex-col space-y-2.5 sm:space-y-4">
+            <Button type="submit" className="w-full h-9 sm:h-11 text-xs sm:text-base" disabled={loading}>
               {loading ? 'Creating account...' : 'Sign up'}
             </Button>
-            <p className="text-xs sm:text-sm text-center text-muted-foreground">
+            <p className="text-[10px] sm:text-sm text-center text-muted-foreground">
               Already have an account?{' '}
               <Link href="/login" className="text-primary hover:underline font-medium">
                 Sign in

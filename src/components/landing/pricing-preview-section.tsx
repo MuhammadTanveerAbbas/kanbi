@@ -72,10 +72,10 @@ export default function PricingPreviewSection() {
               transition={{ duration: 0.6, delay: index * 0.1 }}
             >
               <Card
-                className={`h-full border-2 transition-all duration-300 ${
+                className={`h-full border-2 transition-all duration-300 hover:-translate-y-2 ${
                   plan.popular
-                    ? "border-primary bg-gradient-to-br from-primary/10 to-primary/5 shadow-lg shadow-primary/20"
-                    : "border-[#262626] bg-gradient-to-br from-[#1a1a1a] to-[#141414] hover:border-[#3a3a3a]"
+                    ? "border-primary bg-gradient-to-br from-primary/10 to-primary/5 shadow-lg shadow-primary/20 hover:shadow-2xl hover:shadow-primary/30"
+                    : "border-[#262626] bg-gradient-to-br from-[#1a1a1a] to-[#141414] hover:border-[#3a3a3a] hover:shadow-xl"
                 }`}
               >
                 <CardHeader className="text-center pb-3 sm:pb-4 md:pb-6">

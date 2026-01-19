@@ -1,9 +1,10 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, LayoutDashboard } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
+import { useAuth } from "@/hooks/useAuth";
 
 type FinalCtaSectionProps = {
   setIsLoading: (isLoading: boolean) => void;
@@ -11,13 +12,13 @@ type FinalCtaSectionProps = {
 
 export default function FinalCtaSection({ setIsLoading }: FinalCtaSectionProps) {
   const router = useRouter();
+  const { user } = useAuth();
 
   const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     setIsLoading(true);
-    const isLoggedIn = false; // TODO: Replace with actual auth check
     setTimeout(() => {
-      router.push(isLoggedIn ? "/dashboard" : "/sign-up");
+      router.push(user ? "/dashboard" : "/sign-up");
     }, 100);
   };
 
@@ -44,10 +45,22 @@ export default function FinalCtaSection({ setIsLoading }: FinalCtaSectionProps) 
           <Button
             size="lg"
             onClick={handleClick}
-            className="text-sm sm:text-base md:text-lg lg:text-xl px-6 sm:px-8 md:px-10 lg:px-12 py-5 sm:py-6 md:py-7 lg:py-8 shadow-lg hover:shadow-xl transition-all min-h-[44px] sm:min-h-[48px] md:min-h-[56px] lg:min-h-[64px] rounded-lg sm:rounded-xl"
+            className="text-sm sm:text-base md:text-lg lg:text-xl px-6 sm:px-8 md:px-10 lg:px-12 py-5 sm:py-6 md:py-7 lg:py-8 shadow-lg hover:shadow-xl hover:shadow-primary/50 transition-all min-h-[48px] sm:min-h-[52px] md:min-h-[56px] lg:min-h-[64px] rounded-lg sm:rounded-xl group relative overflow-hidden"
           >
-            Get Started Free
-            <ArrowRight className="ml-1.5 sm:ml-2 h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6" />
+            <span className="relative z-10 flex items-center">
+              {user ? (
+                <>
+                  <LayoutDashboard className="mr-1.5 sm:mr-2 h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6" />
+                  Go to Dashboard
+                </>
+              ) : (
+                <>
+                  Get Started Free
+                  <ArrowRight className="ml-1.5 sm:ml-2 h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 group-hover:translate-x-1 transition-transform" />
+                </>
+              )}
+            </span>
+            <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-white/10 to-primary/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
           </Button>
           <p className="mt-3 sm:mt-4 md:mt-6 text-[10px] sm:text-xs md:text-sm text-muted-foreground px-2">
             Free plan available • Secure authentication • Save your boards

@@ -1,8 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const faqs = [
   {
@@ -43,43 +44,68 @@ export default function FaqSection() {
   };
 
   return (
-    <section className="w-full py-12 sm:py-24 bg-black">
+    <section className="w-full py-10 sm:py-14 md:py-18 lg:py-24 bg-black">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-8 sm:mb-12">
-          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight mb-4">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+          className="text-center mb-8 sm:mb-12 md:mb-16"
+        >
+          <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight mb-3 sm:mb-4 md:mb-6 px-2">
             Frequently Asked Questions
           </h2>
-          <p className="text-sm sm:text-lg text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-xs sm:text-sm md:text-base lg:text-lg text-muted-foreground max-w-2xl mx-auto px-2">
             Everything you need to know about KANBI
           </p>
-        </div>
+        </motion.div>
 
         <div className="max-w-3xl mx-auto space-y-3 sm:space-y-4">
           {faqs.map((faq, index) => (
-            <Card key={index} className="border-primary/20 hover:border-primary/40 transition-colors">
-              <CardContent className="p-0">
-                <button
-                  onClick={() => toggleFaq(index)}
-                  className="w-full text-left p-4 sm:p-6 flex items-center justify-between hover:bg-primary/5 transition-colors"
-                >
-                  <span className="text-sm sm:text-base font-medium pr-4">
-                    {faq.question}
-                  </span>
-                  {openIndex === index ? (
-                    <ChevronUp className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0" />
-                  ) : (
-                    <ChevronDown className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground flex-shrink-0" />
-                  )}
-                </button>
-                {openIndex === index && (
-                  <div className="px-4 sm:px-6 pb-4 sm:pb-6">
-                    <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                      {faq.answer}
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <motion.div
+              key={index}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: index * 0.05 }}
+            >
+              <Card className="border-2 border-border hover:border-primary/40 transition-all duration-300 bg-card/50 backdrop-blur-sm overflow-hidden">
+                <CardContent className="p-0">
+                  <button
+                    onClick={() => toggleFaq(index)}
+                    className="w-full text-left p-4 sm:p-6 flex items-center justify-between hover:bg-primary/5 transition-colors group"
+                  >
+                    <span className="text-sm sm:text-base font-medium pr-4">
+                      {faq.question}
+                    </span>
+                    <motion.div
+                      animate={{ rotate: openIndex === index ? 180 : 0 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <ChevronDown className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0" />
+                    </motion.div>
+                  </button>
+                  <AnimatePresence>
+                    {openIndex === index && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.3 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="px-4 sm:px-6 pb-4 sm:pb-6 border-t border-border/50">
+                          <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed pt-4">
+                            {faq.answer}
+                          </p>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </CardContent>
+              </Card>
+            </motion.div>
           ))}
         </div>
       </div>

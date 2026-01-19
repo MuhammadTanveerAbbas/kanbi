@@ -28,11 +28,10 @@ export default function DashboardOverview() {
 
   const fetchData = async () => {
     try {
-      const [usageRes, analyticsRes, subscriptionRes, taskStatsRes] = await Promise.all([
+      const [usageRes, analyticsRes, subscriptionRes] = await Promise.all([
         fetch('/api/usage'),
         fetch('/api/analytics'),
         fetch('/api/subscription/status'),
-        fetch('/api/task-stats'),
       ]);
 
       if (usageRes.ok) {
@@ -56,18 +55,20 @@ export default function DashboardOverview() {
         setSubscription({ plan: 'free', status: 'active' });
       }
 
-      if (taskStatsRes.ok) {
-        const taskStatsData = await taskStatsRes.json();
-        setTaskStats(taskStatsData);
-      } else {
-        setTaskStats({ urgent: 0, high: 0, medium: 0, low: 0, total: 0, completed: 0 });
-      }
+      // Mock task stats - replace with real API
+      setTaskStats({
+        urgent: 5,
+        high: 12,
+        medium: 20,
+        low: 8,
+        total: 45,
+        completed: 30,
+      });
     } catch (error) {
       console.error('Failed to fetch dashboard data:', error);
       setUsage({ todayCount: 0, todayLimit: 10, monthCount: 0, monthLimit: 300, totalGenerations: 0, boardsUsedToday: 0, boardsUsedMonth: 0 });
       setAnalytics([]);
       setSubscription({ plan: 'free', status: 'active' });
-      setTaskStats({ urgent: 0, high: 0, medium: 0, low: 0, total: 0, completed: 0 });
     } finally {
       setLoading(false);
     }
@@ -84,9 +85,15 @@ export default function DashboardOverview() {
 
   return (
     <>
+      <OnboardingTour />
+      <KeyboardShortcuts />
+      
       <div className="space-y-6">
-        {/* Search Bar - Removed from here, now in layout */}
-        <h1 className="text-2xl font-bold text-center sm:text-left">Dashboard Overview</h1>
+        {/* Search Bar */}
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-bold">Dashboard Overview</h1>
+          <SearchBar />
+        </div>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

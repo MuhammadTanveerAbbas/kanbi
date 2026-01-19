@@ -24,6 +24,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { EmptyState } from '@/components/dashboard/empty-state';
 import { Generation } from "@/lib/dashboard-types";
 
 type ViewMode = "grid" | "list";
@@ -61,7 +62,11 @@ export default function SavedPage() {
       });
 
       const response = await fetch(`/api/saved/list?${params}`);
-      if (!response.ok) throw new Error("Failed to fetch");
+      if (!response.ok) {
+        const text = await response.text();
+        console.error('API Error:', text);
+        throw new Error("Failed to fetch");
+      }
 
       const data = await response.json();
       setGenerations(data);
@@ -152,7 +157,7 @@ export default function SavedPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-gray-400">Loading...</div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -229,14 +234,12 @@ export default function SavedPage() {
 
       {/* Generations Grid/List */}
       {filteredGenerations.length === 0 ? (
-        <Card className="border-[#262626] bg-gradient-to-br from-[#1a1a1a] to-[#141414]">
-          <CardContent className="p-12 text-center">
-            <p className="text-lg text-gray-400 mb-2">No saved boards yet</p>
-            <p className="text-sm text-gray-500">
-              Create and save your Kanban boards to access them here
-            </p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          title="No saved boards yet"
+          description="Create and save your Kanban boards to access them here"
+          action="/dashboard/board"
+          actionLabel="Create Board"
+        />
       ) : (
         <div
           className={

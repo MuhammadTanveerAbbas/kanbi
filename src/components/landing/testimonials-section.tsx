@@ -55,7 +55,7 @@ export default function TestimonialsSection() {
               viewport={{ once: true }}
               transition={{ duration: 0.6, delay: index * 0.1 }}
             >
-              <Card className="h-full border-2 border-border hover:border-primary/30 transition-all duration-300 bg-card/50 backdrop-blur-sm">
+              <Card className="h-full border-2 border-border hover:border-primary/30 transition-all duration-300 bg-card/50 backdrop-blur-sm hover:-translate-y-2 hover:shadow-lg hover:shadow-primary/10">
                 <CardContent className="p-4 sm:p-6 md:p-8">
                   <div className="flex items-start gap-3 sm:gap-4">
                     <div className="p-2 sm:p-2.5 md:p-3 rounded-lg sm:rounded-xl bg-primary/10 border border-primary/20 flex-shrink-0">

@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import KeyboardShortcuts from '@/components/dashboard/keyboard-shortcuts';
+import OnboardingTour from '@/components/dashboard/onboarding-tour';
 
 const navItems = [
   { href: '/dashboard', label: 'Overview', icon: LayoutDashboard },
@@ -30,10 +32,16 @@ export default function DashboardLayout({
   };
 
   return (
-    <div className="min-h-screen bg-[#141414] text-white flex flex-col">
+    <>
+      <OnboardingTour />
+      <div className="hidden sm:block">
+        <KeyboardShortcuts />
+      </div>
+      
+      <div className="min-h-screen bg-[#141414] text-white flex flex-col">
       {/* Pill Navbar */}
       <nav className="sticky top-0 z-40 border-b border-[#262626] bg-[#141414]/95 backdrop-blur-sm py-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
+        <div className="px-4 sm:px-6 flex items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2">
             <LayoutGrid className="h-6 w-6 text-primary" />
@@ -41,7 +49,7 @@ export default function DashboardLayout({
           </Link>
 
           {/* Nav Items - Desktop */}
-          <div className="hidden md:flex gap-2 bg-[#1a1a1a] p-1 rounded-full border border-[#262626]">
+          <div className="hidden md:flex gap-2 bg-[#1a1a1a] p-1 rounded-full border border-[#262626] absolute left-1/2 -translate-x-1/2">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
@@ -125,5 +133,6 @@ export default function DashboardLayout({
         {children}
       </main>
     </div>
+    </>
   );
 }

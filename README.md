@@ -10,12 +10,13 @@ AI-Powered Task Management SaaS Platform
 
 ## Overview
 
-SaaS platform that transforms notes into organized Kanban boards using AI. Includes authentication, cloud storage, premium subscriptions, and analytics dashboard.
+Transform messy notes into organized Kanban boards using AI. Complete SaaS platform with authentication, cloud storage, premium subscriptions, analytics dashboard, and advanced productivity features.
 
-## Features
+## ✨ Features
 
+### Core Features
 - 🤖 **AI Task Extraction** - Google Gemini & Groq AI parse notes and extract tasks
-- 📋 **Kanban Board** - Drag-and-drop task management
+- 📋 **Kanban Board** - Drag-and-drop task management with priorities
 - 🔐 **Authentication** - Supabase Auth with email/password
 - 💾 **Cloud Storage** - PostgreSQL database for secure storage
 - 💳 **Stripe Payments** - Premium subscriptions ($20/month)
@@ -23,7 +24,19 @@ SaaS platform that transforms notes into organized Kanban boards using AI. Inclu
 - 📥 **Export** - Save boards as JSON
 - 📱 **Responsive** - Works on desktop, tablet, and mobile
 
-## Quick Start
+### Dashboard Features
+- 🎯 **Goal Setting** - Set and track daily/weekly task goals
+- 📈 **Task Statistics** - Priority distribution and completion rate charts
+- ⏱️ **Recent Boards** - Quick access to last 5 boards
+- 📝 **Activity Feed** - Real-time timeline of all actions
+- ⌨️ **Keyboard Shortcuts** - Power user efficiency (Press `?`)
+- 🎨 **Dark/Light Mode** - Theme toggle with persistence
+- 🚀 **Onboarding Tour** - Guided introduction for new users
+- 📋 **Board Templates** - 5 pre-built workflows (Daily, Sprint, Meeting, Project, Quick Start)
+- ⭐ **Favorites** - Star important boards for quick access
+- 🔍 **Search** - Find boards instantly
+
+## 🚀 Quick Start
 
 ```bash
 git clone https://github.com/MuhammadTanveerAbbas/kanbi-ActionBoard.git
@@ -32,14 +45,17 @@ npm install
 npm run dev
 ```
 
-## Environment Setup
+Open [http://localhost:3000](http://localhost:3000)
+
+## 🔧 Environment Setup
 
 ### 1. Supabase (Required)
 
 1. Create a project at [Supabase](https://supabase.com)
-2. Run the SQL from `supabase/schema.sql` in SQL Editor
-3. Get your project URL and anon key from Settings → API
-4. Add to `.env.local`:
+2. Run `supabase/schema.sql` in SQL Editor
+3. Run `supabase/migration-dashboard-features.sql` for new features
+4. Get credentials from Settings → API
+5. Add to `.env.local`:
 
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=your_project_url
@@ -49,7 +65,7 @@ SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 
 ### 2. AI Keys (Required)
 
-The app supports both Groq and Google Gemini AI:
+Choose one or both:
 
 **Google Gemini**
 ```bash
@@ -70,44 +86,106 @@ STRIPE_WEBHOOK_SECRET=your_webhook_secret
 STRIPE_PRICE_ID=your_price_id
 ```
 
-## Tech Stack
+## 🛠️ Tech Stack
 
-- Next.js 15, TypeScript, Tailwind CSS
-- Supabase (Auth + PostgreSQL)
-- Google Gemini & Groq AI
-- Stripe Payments
-- ShadCN UI, Framer Motion
+- **Framework**: Next.js 15 (App Router)
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS
+- **Database**: Supabase (PostgreSQL)
+- **Auth**: Supabase Auth
+- **AI**: Google Gemini & Groq
+- **Payments**: Stripe
+- **UI**: ShadCN UI
+- **Animation**: Framer Motion
+- **Charts**: Recharts
 
-## Project Structure
+## 📁 Project Structure
 
 ```
 src/
 ├── app/
-│   ├── dashboard/          # Dashboard pages
-│   │   ├── page.tsx       # Overview with stats & analytics
-│   │   ├── board/         # Kanban board page
-│   │   ├── saved/         # Saved boards management
-│   │   └── settings/      # User settings & billing
-│   ├── login/             # Login page
-│   ├── sign-up/           # Signup page
-│   ├── pricing/           # Pricing page
-│   └── api/               # API routes
-│       ├── ai/            # AI extraction endpoints
-│       ├── saved/         # Board CRUD operations
-│       ├── subscription/  # Stripe subscription
-│       └── checkout/      # Stripe checkout
+│   ├── dashboard/
+│   │   ├── page.tsx           # Overview with stats & analytics
+│   │   ├── board/page.tsx     # Kanban board with templates
+│   │   ├── saved/page.tsx     # Saved boards management
+│   │   ├── settings/page.tsx  # User settings & billing
+│   │   └── layout.tsx         # Dashboard layout with nav
+│   ├── (auth)/
+│   │   ├── login/             # Login page
+│   │   └── sign-up/           # Signup page
+│   ├── pricing/               # Pricing page
+│   ├── api/                   # API routes
+│   └── page.tsx               # Landing page
 ├── components/
-│   ├── action-board.tsx   # Main Kanban board
-│   ├── board/             # Board components
-│   ├── landing/           # Landing page sections
-│   └── ui/                # ShadCN UI components
+│   ├── dashboard/             # Dashboard-specific components
+│   │   ├── search-bar.tsx
+│   │   ├── board-templates.tsx
+│   │   ├── keyboard-shortcuts.tsx
+│   │   ├── recent-boards.tsx
+│   │   ├── onboarding-tour.tsx
+│   │   ├── theme-toggle.tsx
+│   │   ├── task-statistics.tsx
+│   │   ├── goal-setting.tsx
+│   │   ├── activity-feed.tsx
+│   │   ├── skeleton.tsx
+│   │   └── empty-state.tsx
+│   ├── landing/               # Landing page sections
+│   ├── board/                 # Board components
+│   └── ui/                    # ShadCN UI components
 └── lib/
-    ├── supabase/          # Supabase client & auth
-    ├── stripe/            # Stripe configuration
-    └── dashboard-types.ts # TypeScript types
+    ├── supabase/              # Supabase client & auth
+    ├── stripe/                # Stripe configuration
+    └── dashboard-types.ts     # TypeScript types
 ```
 
-## Scripts
+## ⌨️ Keyboard Shortcuts
+
+Press `?` anywhere to see all shortcuts:
+
+- `Ctrl/⌘ + K` - Open search
+- `Ctrl/⌘ + N` - New board
+- `Ctrl/⌘ + S` - Save board
+- `Ctrl/⌘ + E` - Export board
+- `?` - Show shortcuts panel
+
+## 📊 Database Schema
+
+The app uses these main tables:
+
+- `profiles` - User profiles
+- `subscriptions` - Stripe subscriptions
+- `usage_tracking` - Daily usage limits
+- `saved_generations` - Saved boards with favorites
+- `board_tags` - Task labels/tags
+- `task_stats` - Analytics data
+
+Run both SQL files in order:
+1. `supabase/schema.sql` - Base schema
+2. `supabase/migration-dashboard-features.sql` - New features
+
+## 🎯 Usage
+
+### Create a Board
+1. Go to Dashboard → Board
+2. Click "Use Template" or start from scratch
+3. Paste your notes
+4. AI extracts tasks automatically
+5. Drag & drop to organize
+6. Save to cloud
+
+### Track Progress
+1. Set daily/weekly goals in Dashboard
+2. View task statistics and charts
+3. Check activity feed for history
+4. Monitor completion rates
+
+### Manage Boards
+1. Access recent boards from Dashboard
+2. Star favorites for quick access
+3. Search all saved boards
+4. Export as JSON
+
+## 📜 Scripts
 
 ```bash
 npm run dev      # Start development server
@@ -116,17 +194,60 @@ npm run start    # Start production server
 npm run lint     # Run ESLint
 ```
 
-## Deployment
+## 🚀 Deployment
 
-1. Deploy to Vercel
-2. Add environment variables
-3. Set up Stripe webhook
-4. Run Supabase migrations
+### Vercel (Recommended)
 
-## License
+1. Push to GitHub
+2. Import to Vercel
+3. Add environment variables
+4. Deploy
 
-MIT License
+### Database Setup
+
+1. Create Supabase project
+2. Run `schema.sql`
+3. Run `migration-dashboard-features.sql`
+4. Enable Row Level Security
+
+### Stripe Setup
+
+1. Create Stripe account
+2. Add webhook endpoint: `your-domain.com/api/webhooks/stripe`
+3. Copy webhook secret
+4. Add to environment variables
+
+## 🤝 Contributing
+
+Contributions welcome! Please:
+
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Open a Pull Request
+
+## 📝 License
+
+MIT License - see [LICENSE](LICENSE) file
+
+## 🙏 Acknowledgments
+
+- [Next.js](https://nextjs.org/)
+- [Supabase](https://supabase.com/)
+- [Stripe](https://stripe.com/)
+- [ShadCN UI](https://ui.shadcn.com/)
+- [Framer Motion](https://www.framer.com/motion/)
+
+## 📧 Support
+
+For issues and questions:
+- Open an issue on GitHub
+- Check existing documentation
+- Review code comments
 
 ---
 
-⭐ Star this repo if you find it useful!
+⭐ **Star this repo if you find it useful!**
+
+Made with ❤️ by [Muhammad Tanveer Abbas](https://github.com/MuhammadTanveerAbbas)

@@ -88,9 +88,13 @@ export default function StatsSection() {
               className="text-center"
             >
               <div className="flex justify-center mb-2 sm:mb-3 md:mb-4">
-                <div className="p-2 sm:p-3 md:p-4 rounded-lg sm:rounded-xl bg-primary/10 border border-primary/20">
+                <motion.div 
+                  className="p-2 sm:p-3 md:p-4 rounded-lg sm:rounded-xl bg-primary/10 border border-primary/20"
+                  whileHover={{ scale: 1.1, rotate: 5 }}
+                  transition={{ type: "spring", stiffness: 300 }}
+                >
                   {stat.icon}
-                </div>
+                </motion.div>
               </div>
               <div className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-1 sm:mb-1.5 md:mb-2 bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
                 {stat.value}
