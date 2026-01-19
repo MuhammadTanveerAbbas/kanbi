@@ -92,7 +92,22 @@ export default function DashboardOverview() {
         const usageData = await usageRes.json();
         setUsage(usageData);
       } else {
-        setUsage({ todayCount: 0, todayLimit: 10, monthCount: 0, monthLimit: 300, totalGenerations: 0, boardsUsedToday: 0, boardsUsedMonth: 0 });
+        setUsage({
+          todayCount: 0,
+          todayLimit: 10,
+          monthCount: 0,
+          monthLimit: 300,
+          totalGenerations: 0,
+          boardsUsedToday: 0,
+          boardsUsedMonth: 0,
+          boardsTodayLimit: 10,
+          boardsMonthLimit: 300,
+          aiUsedToday: 0,
+          aiUsedMonth: 0,
+          aiTodayLimit: 10,
+          aiMonthLimit: 300,
+          plan: 'free'
+        });
       }
 
       if (analyticsRes.ok) {
@@ -112,7 +127,22 @@ export default function DashboardOverview() {
       setRecentActivity([]);
     } catch (error) {
       console.error('Failed to fetch dashboard data:', error);
-      setUsage({ todayCount: 0, todayLimit: 10, monthCount: 0, monthLimit: 300, totalGenerations: 0, boardsUsedToday: 0, boardsUsedMonth: 0 });
+      setUsage({
+        todayCount: 0,
+        todayLimit: 10,
+        monthCount: 0,
+        monthLimit: 300,
+        totalGenerations: 0,
+        boardsUsedToday: 0,
+        boardsUsedMonth: 0,
+        boardsTodayLimit: 10,
+        boardsMonthLimit: 300,
+        aiUsedToday: 0,
+        aiUsedMonth: 0,
+        aiTodayLimit: 10,
+        aiMonthLimit: 300,
+        plan: 'free'
+      });
       setAnalytics([]);
       setSubscription({ plan: 'free', status: 'active' });
     } finally {
@@ -192,17 +222,17 @@ export default function DashboardOverview() {
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#262626" vertical={false} />
-              <XAxis 
-                dataKey="date" 
-                stroke="#666" 
+              <XAxis
+                dataKey="date"
+                stroke="#666"
                 tick={{ fontSize: 12 }}
                 tickLine={false}
                 axisLine={{ stroke: '#262626' }}
                 interval="preserveStartEnd"
                 minTickGap={30}
               />
-              <YAxis 
-                stroke="#666" 
+              <YAxis
+                stroke="#666"
                 tick={{ fontSize: 12 }}
                 tickLine={false}
                 axisLine={{ stroke: '#262626' }}
