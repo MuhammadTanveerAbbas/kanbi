@@ -1,58 +1,72 @@
 "use client";
 
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  Sparkles,
-  Save,
-  BarChart3,
-  Shield,
-  CreditCard,
-  LayoutDashboard,
-  Database,
-  Zap,
-  Crown,
-} from "lucide-react";
 import { motion } from "framer-motion";
+import {
+    BarChart3,
+    CreditCard,
+    Crown,
+    Database,
+    LayoutDashboard,
+    Save,
+    Shield,
+    Sparkles,
+    Zap,
+} from "lucide-react";
 
 const features = [
   {
-    icon: <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-primary" />,
-    title: "AI-Powered Extraction",
+    icon: (
+      <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-primary" />
+    ),
+    title: "AI powered Extraction",
     description:
       "Google Gemini & Groq AI intelligently parse your notes and extract tasks with priorities and due dates automatically.",
   },
   {
-    icon: <Shield className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-primary" />,
+    icon: (
+      <Shield className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-primary" />
+    ),
     title: "Secure Authentication",
     description:
       "Supabase Auth provides secure login and signup. Your data is protected with industry-standard encryption.",
   },
   {
-    icon: <LayoutDashboard className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-primary" />,
+    icon: (
+      <LayoutDashboard className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-primary" />
+    ),
     title: "Complete Dashboard",
     description:
       "Full-featured dashboard with analytics, usage stats, saved boards, and settings management.",
   },
   {
-    icon: <Database className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-primary" />,
+    icon: (
+      <Database className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-primary" />
+    ),
     title: "Cloud Storage",
     description:
       "Supabase PostgreSQL database stores your boards securely. Access from any device, anytime.",
   },
   {
-    icon: <CreditCard className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-primary" />,
+    icon: (
+      <CreditCard className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-primary" />
+    ),
     title: "Stripe Payments",
     description:
       "Integrated Stripe for premium subscriptions. Secure payment processing with subscription management.",
   },
   {
-    icon: <Crown className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-primary" />,
+    icon: (
+      <Crown className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-primary" />
+    ),
     title: "Premium Plans",
     description:
       "Free tier with 10 boards/day. Premium unlocks unlimited AI generations and advanced features.",
   },
   {
-    icon: <BarChart3 className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-primary" />,
+    icon: (
+      <BarChart3 className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-primary" />
+    ),
     title: "Analytics & Tracking",
     description:
       "Track your productivity with charts, usage statistics, and activity history over 30 days.",
@@ -67,7 +81,7 @@ const features = [
     icon: <Zap className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-primary" />,
     title: "Lightning Fast",
     description:
-      "Built with Next.js 15 and TypeScript. Instant task extraction with drag-and-drop Kanban board.",
+      "Built with Next.js 15 and TypeScript. Instant task extraction with Drag and drop Kanban board.",
   },
 ];
 
@@ -89,7 +103,8 @@ export default function FeaturesSection() {
             Complete Task Management Platform
           </h2>
           <p className="text-xs sm:text-sm md:text-base lg:text-lg text-muted-foreground max-w-2xl mx-auto px-2">
-            AI-powered extraction, secure authentication, cloud storage, premium plans, and full analytics dashboard.
+            AI powered extraction, secure authentication, cloud storage, premium
+            plans, and full analytics dashboard.
           </p>
         </motion.div>
 

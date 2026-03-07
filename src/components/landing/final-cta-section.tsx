@@ -10,7 +10,9 @@ type FinalCtaSectionProps = {
   setIsLoading: (isLoading: boolean) => void;
 };
 
-export default function FinalCtaSection({ setIsLoading }: FinalCtaSectionProps) {
+export default function FinalCtaSection({
+  setIsLoading,
+}: FinalCtaSectionProps) {
   const router = useRouter();
   const { user } = useAuth();
 
@@ -40,7 +42,8 @@ export default function FinalCtaSection({ setIsLoading }: FinalCtaSectionProps) 
             </span>
           </h2>
           <p className="text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl text-muted-foreground mb-6 sm:mb-8 md:mb-10 max-w-2xl mx-auto px-2">
-            Transform your messy notes into organized Kanban boards with AI-powered task extraction.
+            Transform your messy notes into organized Kanban boards with AI
+            powered task extraction.
           </p>
           <Button
             size="lg"

@@ -1,8 +1,8 @@
 "use client";
 
 import { Card, CardContent } from "@/components/ui/card";
-import { CheckCircle2, Shield, Zap, Code } from "lucide-react";
 import { motion } from "framer-motion";
+import { CheckCircle2, Code, Shield, Zap } from "lucide-react";
 
 const benefits = [
   {
@@ -22,7 +22,7 @@ const benefits = [
   },
   {
     icon: <CheckCircle2 className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 text-primary" />,
-    title: "AI-Powered",
+    title: "AI powered",
     description: "Intelligent task extraction using Google Gemini and Groq AI. Automatically detect priorities and deadlines.",
   },
 ];

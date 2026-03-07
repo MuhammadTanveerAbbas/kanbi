@@ -65,7 +65,7 @@ export default function HeroSection({ setIsLoading }: HeroSectionProps) {
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-primary/20 via-primary/10 to-primary/20 border border-primary/30 mb-6 backdrop-blur-sm shadow-lg shadow-primary/10">
             <Sparkles className="h-3.5 w-3.5 text-primary animate-pulse" />
             <span className="text-xs font-semibold bg-gradient-to-r from-gray-200 to-gray-400 bg-clip-text text-transparent">
-              AI Powered Task Management • Tracking
+              AI Powered Task Management • Workflow Tracking
             </span>
           </div>
 
@@ -80,7 +80,7 @@ export default function HeroSection({ setIsLoading }: HeroSectionProps) {
           {/* Subtext */}
           <p className="text-sm xs:text-base sm:text-lg md:text-xl text-gray-400 max-w-2xl mx-auto mb-8 leading-relaxed px-2">
             Complete SaaS platform with AI task extraction, secure
-            authentication, cloud storage, Stripe payments, and analytics
+            authentication, cloud storage, Lemon Squeezy payments, and analytics
             dashboard.{" "}
             <span className="text-white font-semibold block sm:inline">
               Start free, upgrade anytime.

@@ -1,7 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { Check, Sparkles, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -10,6 +8,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { motion } from "framer-motion";
+import { Check, Crown } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -23,7 +23,7 @@ const plans = [
       "10 board uses per day",
       "300 board uses per month",
       "AI task extraction",
-      "Drag-and-drop Kanban board",
+      "Drag and drop Kanban board",
       "Priority levels & due dates",
       "Save & sync boards",
       "Export/Import JSON",

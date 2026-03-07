@@ -1,8 +1,8 @@
 "use client";
 
 import { Card, CardContent } from "@/components/ui/card";
-import { Clock, Brain, TrendingUp } from "lucide-react";
 import { motion } from "framer-motion";
+import { Brain, Clock, TrendingUp } from "lucide-react";
 
 const problems = [
   {
@@ -21,7 +21,7 @@ const problems = [
     icon: <TrendingUp className="h-6 w-6 sm:h-8 sm:w-8 md:h-10 md:w-10 text-primary" />,
     title: "Scale Your Productivity",
     description:
-      "Handle more tasks efficiently. Whether you have 5 items or 500, our drag-and-drop Kanban board helps you prioritize, track progress, and stay organized.",
+      "Handle more tasks efficiently. Whether you have 5 items or 500, our Drag and drop Kanban board helps you prioritize, track progress, and stay organized.",
   },
 ];
 

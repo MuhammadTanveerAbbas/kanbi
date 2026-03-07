@@ -1,6 +1,6 @@
 # KANBI 📋
 
-AI-Powered Task Management SaaS Platform
+AI powered Task Management SaaS Platform
 
 [![Next.js](https://img.shields.io/badge/Next.js-15-black?logo=next.js)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?logo=typescript)](https://www.typescriptlang.org/)
@@ -15,8 +15,9 @@ Transform messy notes into organized Kanban boards using AI. Complete SaaS platf
 ## ✨ Features
 
 ### Core Features
+
 - 🤖 **AI Task Extraction** - Google Gemini & Groq AI parse notes and extract tasks
-- 📋 **Kanban Board** - Drag-and-drop task management with priorities
+- 📋 **Kanban Board** - Drag and drop task management with priorities
 - 🔐 **Authentication** - Supabase Auth with email/password
 - 💾 **Cloud Storage** - PostgreSQL database for secure storage
 - 💳 **Stripe Payments** - Premium subscriptions ($20/month)
@@ -25,6 +26,7 @@ Transform messy notes into organized Kanban boards using AI. Complete SaaS platf
 - 📱 **Responsive** - Works on desktop, tablet, and mobile
 
 ### Dashboard Features
+
 - 🎯 **Goal Setting** - Set and track daily/weekly task goals
 - 📈 **Task Statistics** - Priority distribution and completion rate charts
 - ⏱️ **Recent Boards** - Quick access to last 5 boards
@@ -68,11 +70,13 @@ SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 Choose one or both:
 
 **Google Gemini**
+
 ```bash
 GOOGLE_GENKIT_API_KEY=your_gemini_api_key
 ```
 
 **Groq**
+
 ```bash
 GROQ_API_KEY=your_groq_api_key
 ```
@@ -160,12 +164,14 @@ The app uses these main tables:
 - `task_stats` - Analytics data
 
 Run both SQL files in order:
+
 1. `supabase/schema.sql` - Base schema
 2. `supabase/migration-dashboard-features.sql` - New features
 
 ## 🎯 Usage
 
 ### Create a Board
+
 1. Go to Dashboard → Board
 2. Click "Use Template" or start from scratch
 3. Paste your notes
@@ -174,12 +180,14 @@ Run both SQL files in order:
 6. Save to cloud
 
 ### Track Progress
+
 1. Set daily/weekly goals in Dashboard
 2. View task statistics and charts
 3. Check activity feed for history
 4. Monitor completion rates
 
 ### Manage Boards
+
 1. Access recent boards from Dashboard
 2. Star favorites for quick access
 3. Search all saved boards
@@ -242,6 +250,7 @@ MIT License - see [LICENSE](LICENSE) file
 ## 📧 Support
 
 For issues and questions:
+
 - Open an issue on GitHub
 - Check existing documentation
 - Review code comments

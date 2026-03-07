@@ -1,9 +1,9 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Check, Crown, ArrowRight } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { motion } from "framer-motion";
+import { ArrowRight, Check, Crown } from "lucide-react";
 import Link from "next/link";
 
 const plans = [
@@ -15,7 +15,7 @@ const plans = [
     features: [
       "10 AI generations per day",
       "Basic task extraction",
-      "Drag-and-drop Kanban board",
+      "Drag and drop Kanban board",
       "Priority levels & due dates",
       "Export/Import JSON",
     ],

@@ -40,17 +40,17 @@ export default function TechStackSection() {
 
         <div className="text-center">
           <p className="text-xs sm:text-sm text-muted-foreground mb-4 sm:mb-6 px-4">
-            <strong>Open Source & Free Forever:</strong> Built as a portfolio showcase of modern web development practices.
+            <strong>Free to Start, Premium Available:</strong> Built with modern web development practices. Free tier includes 300 board uses/month, upgrade to Premium for unlimited access.
           </p>
           <div className="flex flex-wrap justify-center gap-3 sm:gap-4">
             <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 px-3 py-1">
-              ⚡ Client-Side Only
+              ⚡ Cloud Sync
             </Badge>
             <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 px-3 py-1">
               📱 Responsive Design
             </Badge>
             <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 px-3 py-1">
-              🔓 MIT Open Source
+              🔒 Secure & Private
             </Badge>
           </div>
         </div>
