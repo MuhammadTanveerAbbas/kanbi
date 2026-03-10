@@ -1,4 +1,4 @@
-# KANBI 📋
+# KANBI
 
 AI powered Task Management SaaS Platform
 
@@ -12,33 +12,33 @@ AI powered Task Management SaaS Platform
 
 Transform messy notes into organized Kanban boards using AI. Complete SaaS platform with authentication, cloud storage, premium subscriptions, analytics dashboard, and advanced productivity features.
 
-## ✨ Features
+## Features
 
 ### Core Features
 
-- 🤖 **AI Task Extraction** - Google Gemini & Groq AI parse notes and extract tasks
-- 📋 **Kanban Board** - Drag and drop task management with priorities
-- 🔐 **Authentication** - Supabase Auth with email/password
-- 💾 **Cloud Storage** - PostgreSQL database for secure storage
-- 💳 **Stripe Payments** - Premium subscriptions ($20/month)
-- 📊 **Analytics Dashboard** - Usage stats and activity tracking
-- 📥 **Export** - Save boards as JSON
-- 📱 **Responsive** - Works on desktop, tablet, and mobile
+- **AI Task Extraction** - Google Gemini & Groq AI parse notes and extract tasks
+- **Kanban Board** - Drag and drop task management with priorities
+- **Authentication** - Supabase Auth with email/password
+- **Cloud Storage** - PostgreSQL database for secure storage
+- **Stripe Payments** - Premium subscriptions ($20/month)
+- **Analytics Dashboard** - Usage stats and activity tracking
+- **Export** - Save boards as JSON
+- **Responsive** - Works on desktop, tablet, and mobile
 
 ### Dashboard Features
 
-- 🎯 **Goal Setting** - Set and track daily/weekly task goals
-- 📈 **Task Statistics** - Priority distribution and completion rate charts
-- ⏱️ **Recent Boards** - Quick access to last 5 boards
-- 📝 **Activity Feed** - Real-time timeline of all actions
-- ⌨️ **Keyboard Shortcuts** - Power user efficiency (Press `?`)
-- 🎨 **Dark/Light Mode** - Theme toggle with persistence
-- 🚀 **Onboarding Tour** - Guided introduction for new users
-- 📋 **Board Templates** - 5 pre-built workflows (Daily, Sprint, Meeting, Project, Quick Start)
-- ⭐ **Favorites** - Star important boards for quick access
-- 🔍 **Search** - Find boards instantly
+- **Goal Setting** - Set and track daily/weekly task goals
+- **Task Statistics** - Priority distribution and completion rate charts
+- **Recent Boards** - Quick access to last 5 boards
+- **Activity Feed** - Real-time timeline of all actions
+- **Keyboard Shortcuts** - Power user efficiency (Press `?`)
+- **Dark/Light Mode** - Theme toggle with persistence
+- **Onboarding Tour** - Guided introduction for new users
+- **Board Templates** - 5 pre-built workflows (Daily, Sprint, Meeting, Project, Quick Start)
+- **Favorites** - Star important boards for quick access
+- **Search** - Find boards instantly
 
-## 🚀 Quick Start
+## Quick Start
 
 ```bash
 git clone https://github.com/MuhammadTanveerAbbas/kanbi-ActionBoard.git
@@ -49,7 +49,7 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000)
 
-## 🔧 Environment Setup
+## Environment Setup
 
 ### 1. Supabase (Required)
 
@@ -90,7 +90,7 @@ STRIPE_WEBHOOK_SECRET=your_webhook_secret
 STRIPE_PRICE_ID=your_price_id
 ```
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 - **Framework**: Next.js 15 (App Router)
 - **Language**: TypeScript
@@ -103,7 +103,7 @@ STRIPE_PRICE_ID=your_price_id
 - **Animation**: Framer Motion
 - **Charts**: Recharts
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 src/
@@ -142,7 +142,7 @@ src/
     └── dashboard-types.ts     # TypeScript types
 ```
 
-## ⌨️ Keyboard Shortcuts
+## Keyboard Shortcuts
 
 Press `?` anywhere to see all shortcuts:
 
@@ -152,7 +152,7 @@ Press `?` anywhere to see all shortcuts:
 - `Ctrl/⌘ + E` - Export board
 - `?` - Show shortcuts panel
 
-## 📊 Database Schema
+## Database Schema
 
 The app uses these main tables:
 
@@ -168,7 +168,7 @@ Run both SQL files in order:
 1. `supabase/schema.sql` - Base schema
 2. `supabase/migration-dashboard-features.sql` - New features
 
-## 🎯 Usage
+## Usage
 
 ### Create a Board
 
@@ -193,7 +193,7 @@ Run both SQL files in order:
 3. Search all saved boards
 4. Export as JSON
 
-## 📜 Scripts
+## Scripts
 
 ```bash
 npm run dev      # Start development server
@@ -202,7 +202,7 @@ npm run start    # Start production server
 npm run lint     # Run ESLint
 ```
 
-## 🚀 Deployment
+## Deployment
 
 ### Vercel (Recommended)
 
@@ -225,7 +225,7 @@ npm run lint     # Run ESLint
 3. Copy webhook secret
 4. Add to environment variables
 
-## 🤝 Contributing
+## Contributing
 
 Contributions welcome! Please:
 
@@ -235,11 +235,11 @@ Contributions welcome! Please:
 4. Push to the branch
 5. Open a Pull Request
 
-## 📝 License
+## License
 
 MIT License - see [LICENSE](LICENSE) file
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - [Next.js](https://nextjs.org/)
 - [Supabase](https://supabase.com/)
@@ -247,7 +247,7 @@ MIT License - see [LICENSE](LICENSE) file
 - [ShadCN UI](https://ui.shadcn.com/)
 - [Framer Motion](https://www.framer.com/motion/)
 
-## 📧 Support
+## Support
 
 For issues and questions:
 
@@ -257,6 +257,6 @@ For issues and questions:
 
 ---
 
-⭐ **Star this repo if you find it useful!**
+**Star this repo if you find it useful!**
 
-Made with ❤️ by [Muhammad Tanveer Abbas](https://github.com/MuhammadTanveerAbbas)
+Made with love by [Muhammad Tanveer Abbas](https://github.com/MuhammadTanveerAbbas)

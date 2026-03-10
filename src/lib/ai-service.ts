@@ -183,81 +183,273 @@ Generate the content now:`;
   }
 
   /**
-   * Parse tasks from notes (uses Gemini for better understanding)
+   * Normalize AI response to { task, owner, deadline, priority }[]
    */
-  static async parseTasks(notes: string): Promise<any[]> {
+  private static normalizeTaskArray(raw: any[]): { task: string; owner: string; deadline: string; priority?: string }[] {
+    return raw.map((item: any) => ({
+      task: item.task ?? item.title ?? String(item.description ?? ''),
+      owner: item.owner ?? item.assignee ?? 'Me',
+      deadline: item.deadline ?? item.dueDate ?? item.due ?? 'Not specified',
+      priority: item.priority ?? 'medium',
+    })).filter((t: any) => t.task && t.task.trim().length > 0);
+  }
+
+  /**
+   * Parse tasks from notes. Uses Groq for short input (<300 chars), Gemini for longer.
+   * Falls back to the other model if primary fails.
+   */
+  static async parseTasks(notes: string): Promise<{ task: string; owner: string; deadline: string; priority?: string }[]> {
     if (!notes || typeof notes !== 'string') {
       throw new Error('Notes are required');
     }
 
-    const prompt = `You are an AI assistant tasked with extracting tasks from notes or meeting minutes.
+    const systemPrompt = `You are an expert assistant for freelance consultants. Extract every action item from the following client meeting notes or email thread. For each task identify: the task description (make it specific and actionable), who owns it (consultant or client name if mentioned, otherwise 'Me'), the deadline (extract from context like 'by Friday', 'end of month', 'ASAP' — convert to actual dates based on today's date), and priority (urgent if deadline <3 days, high if deadline <1 week, medium if <2 weeks, low otherwise). Return ONLY a valid JSON array, no markdown, no explanation.`;
 
-Analyze the following notes:
-${notes}
+    const userContent = notes.trim();
+    const useGroqFirst = userContent.length < 300;
 
-Identify potential tasks and extract them. Return a JSON array where each task has:
-- task: The task description (actionable item)
-- owner: Who is responsible (use "Unassigned" if not specified)
-- deadline: When it's due (use "Not specified" if not mentioned)
+    const tryGroq = async (): Promise<{ tasks: any[]; tokens: number }> => {
+      if (!groq) throw new Error('Groq not configured');
+      const completion = await groq.chat.completions.create({
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userContent },
+        ],
+        model: 'llama-3.3-70b-versatile',
+        temperature: 0.3,
+        max_tokens: 2048,
+      });
+      const content = completion.choices[0]?.message?.content || '[]';
+      const jsonMatch = content.match(/\[[\s\S]*\]/);
+      const raw = jsonMatch ? jsonMatch[0] : content;
+      const parsed = JSON.parse(raw);
+      const tasks = Array.isArray(parsed) ? parsed : (parsed.tasks || []);
+      const tokens = (completion as any).usage?.total_tokens ?? 0;
+      return { tasks, tokens };
+    };
 
-Return ONLY a valid JSON array, no other text. Example format:
-[
-  {"task": "Review quarterly budget report", "owner": "John", "deadline": "Friday"},
-  {"task": "Call dentist", "owner": "Unassigned", "deadline": "Not specified"}
-]`;
+    const tryGemini = async (): Promise<{ tasks: any[]; tokens: number }> => {
+      if (!genAI) throw new Error('Gemini not configured');
+      const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+      const prompt = systemPrompt + '\n\nNotes:\n' + userContent;
+      const result = await model.generateContent(prompt);
+      const response = result.response;
+      const text = response.text();
+      const jsonMatch = text.match(/\[[\s\S]*\]/);
+      const raw = jsonMatch ? jsonMatch[0] : text;
+      const parsed = JSON.parse(raw);
+      const tasks = Array.isArray(parsed) ? parsed : (parsed.tasks || []);
+      const tokens = (response as any).usageMetadata?.totalTokenCount ?? 0;
+      return { tasks, tokens };
+    };
 
     try {
-      // Prefer Gemini for task parsing (better understanding)
-      if (genAI) {
-        const model = genAI.getGenerativeModel({
-          model: 'gemini-2.0-flash-exp',
-        });
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const text = response.text();
-
-        // Extract JSON from response
-        const jsonMatch = text.match(/\[[\s\S]*\]/);
-        if (jsonMatch) {
-          return JSON.parse(jsonMatch[0]);
+      if (useGroqFirst && groq) {
+        try {
+          const { tasks, tokens } = await tryGroq();
+          console.log(`[AI] Used: llama-3.3-70b-versatile (Groq), tokens: ${tokens}`);
+          return this.normalizeTaskArray(tasks);
+        } catch (err) {
+          console.warn('[AI] Groq failed, falling back to Gemini', err);
+          if (genAI) {
+            const { tasks, tokens } = await tryGemini();
+            console.log(`[AI] Used: gemini-2.0-flash-exp (Gemini), tokens: ${tokens}`);
+            return this.normalizeTaskArray(tasks);
+          }
+          throw err;
         }
-        return JSON.parse(text);
-      } else if (groq) {
-        // Fallback to Groq
-        const completion = await groq.chat.completions.create({
-          messages: [
-            {
-              role: 'system',
-              content: 'You are a task extraction AI. Always return valid JSON arrays only.',
-            },
-            {
-              role: 'user',
-              content: prompt,
-            },
-          ],
-          model: 'llama-3.3-70b-versatile',
-          response_format: { type: 'json_object' },
-          temperature: 0.3,
-        });
-
-        const content = completion.choices[0]?.message?.content || '{}';
-        const parsed = JSON.parse(content);
-        return Array.isArray(parsed) ? parsed : (parsed.tasks || []);
-      } else {
-        throw new Error('No AI service available');
       }
+      if (genAI) {
+        try {
+          const { tasks, tokens } = await tryGemini();
+          console.log(`[AI] Used: gemini-2.0-flash-exp (Gemini), tokens: ${tokens}`);
+          return this.normalizeTaskArray(tasks);
+        } catch (err) {
+          console.warn('[AI] Gemini failed, falling back to Groq', err);
+          if (groq) {
+            const { tasks, tokens } = await tryGroq();
+            console.log(`[AI] Used: llama-3.3-70b-versatile (Groq), tokens: ${tokens}`);
+            return this.normalizeTaskArray(tasks);
+          }
+          throw err;
+        }
+      }
+      if (groq) {
+        const { tasks, tokens } = await tryGroq();
+        console.log(`[AI] Used: llama-3.3-70b-versatile (Groq), tokens: ${tokens}`);
+        return this.normalizeTaskArray(tasks);
+      }
+      throw new Error('No AI service available');
     } catch (error) {
       console.error('Task parsing error:', error);
-      // Return fallback structure
       return notes
         .split('\n')
         .filter(line => line.trim().startsWith('-') || line.trim().match(/^\d+\./))
         .map(line => ({
           task: line.replace(/^[-•\d.\s]+/, '').trim(),
-          owner: 'Unassigned',
+          owner: 'Me',
           deadline: 'Not specified',
+          priority: 'medium',
         }))
         .filter(item => item.task.length > 0);
+    }
+  }
+
+  /**
+   * Parse tasks from email thread (Gmail-specific prompt addition).
+   */
+  static async parseTasksFromEmail(emailContent: string): Promise<{ task: string; owner: string; deadline: string; priority?: string }[]> {
+    const emailPromptAddition = ' This is an email thread. Extract every action item, commitment, request, and deadline mentioned. Pay special attention to: \'please\', \'can you\', \'by [date]\', \'I need\', \'let me know\', \'follow up\'.';
+    const systemPrompt = `You are an expert assistant for freelance consultants. Extract every action item from the following client meeting notes or email thread. For each task identify: the task description (make it specific and actionable), who owns it (consultant or client name if mentioned, otherwise 'Me'), the deadline (extract from context like 'by Friday', 'end of month', 'ASAP' — convert to actual dates based on today's date), and priority (urgent if deadline <3 days, high if deadline <1 week, medium if <2 weeks, low otherwise). Return ONLY a valid JSON array, no markdown, no explanation.${emailPromptAddition}`;
+
+    if (!emailContent?.trim()) throw new Error('Email content is required');
+    const userContent = emailContent.trim();
+    const useGroqFirst = userContent.length < 300;
+
+    const tryGroq = async (): Promise<{ tasks: any[]; tokens: number }> => {
+      if (!groq) throw new Error('Groq not configured');
+      const completion = await groq.chat.completions.create({
+        messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userContent }],
+        model: 'llama-3.3-70b-versatile',
+        temperature: 0.3,
+        max_tokens: 2048,
+      });
+      const content = completion.choices[0]?.message?.content || '[]';
+      const jsonMatch = content.match(/\[[\s\S]*\]/);
+      const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : content);
+      const tasks = Array.isArray(parsed) ? parsed : (parsed.tasks || []);
+      return { tasks, tokens: (completion as any).usage?.total_tokens ?? 0 };
+    };
+
+    const tryGemini = async (): Promise<{ tasks: any[]; tokens: number }> => {
+      if (!genAI) throw new Error('Gemini not configured');
+      const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+      const result = await model.generateContent(systemPrompt + '\n\nEmail:\n' + userContent);
+      const response = result.response;
+      const text = response.text();
+      const jsonMatch = text.match(/\[[\s\S]*\]/);
+      const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : text);
+      const tasks = Array.isArray(parsed) ? parsed : (parsed.tasks || []);
+      return { tasks, tokens: (response as any).usageMetadata?.totalTokenCount ?? 0 };
+    };
+
+    try {
+      if (useGroqFirst && groq) {
+        try {
+          const { tasks, tokens } = await tryGroq();
+          console.log(`[AI] Used: llama-3.3-70b-versatile (Groq), tokens: ${tokens}`);
+          return this.normalizeTaskArray(tasks);
+        } catch (err) {
+          if (genAI) {
+            const { tasks, tokens } = await tryGemini();
+            console.log(`[AI] Used: gemini-2.0-flash-exp (Gemini), tokens: ${tokens}`);
+            return this.normalizeTaskArray(tasks);
+          }
+          throw err;
+        }
+      }
+      if (genAI) {
+        try {
+          const { tasks, tokens } = await tryGemini();
+          console.log(`[AI] Used: gemini-2.0-flash-exp (Gemini), tokens: ${tokens}`);
+          return this.normalizeTaskArray(tasks);
+        } catch (err) {
+          if (groq) {
+            const { tasks, tokens } = await tryGroq();
+            console.log(`[AI] Used: llama-3.3-70b-versatile (Groq), tokens: ${tokens}`);
+            return this.normalizeTaskArray(tasks);
+          }
+          throw err;
+        }
+      }
+      if (groq) {
+        const { tasks, tokens } = await tryGroq();
+        console.log(`[AI] Used: llama-3.3-70b-versatile (Groq), tokens: ${tokens}`);
+        return this.normalizeTaskArray(tasks);
+      }
+      throw new Error('No AI service available');
+    } catch (error) {
+      console.error('Email task parsing error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Parse tasks from web page content (URL-specific prompt).
+   */
+  static async parseTasksFromWebPage(webContent: string): Promise<{ task: string; owner: string; deadline: string; priority?: string }[]> {
+    const urlPromptAddition = ' This is content from a web page (brief, project doc, or job posting). Extract every actionable task, requirement, or deliverable mentioned.';
+    const systemPrompt = `You are an expert assistant for freelance consultants. Extract every action item from the following client meeting notes or email thread. For each task identify: the task description (make it specific and actionable), who owns it (consultant or client name if mentioned, otherwise 'Me'), the deadline (extract from context like 'by Friday', 'end of month', 'ASAP' — convert to actual dates based on today's date), and priority (urgent if deadline <3 days, high if deadline <1 week, medium if <2 weeks, low otherwise). Return ONLY a valid JSON array, no markdown, no explanation.${urlPromptAddition}`;
+
+    if (!webContent?.trim()) throw new Error('Web content is required');
+    const userContent = webContent.trim();
+    const useGroqFirst = userContent.length < 300;
+
+    const tryGroq = async (): Promise<{ tasks: any[]; tokens: number }> => {
+      if (!groq) throw new Error('Groq not configured');
+      const completion = await groq.chat.completions.create({
+        messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userContent }],
+        model: 'llama-3.3-70b-versatile',
+        temperature: 0.3,
+        max_tokens: 2048,
+      });
+      const content = completion.choices[0]?.message?.content || '[]';
+      const jsonMatch = content.match(/\[[\s\S]*\]/);
+      const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : content);
+      const tasks = Array.isArray(parsed) ? parsed : (parsed.tasks || []);
+      return { tasks, tokens: (completion as any).usage?.total_tokens ?? 0 };
+    };
+
+    const tryGemini = async (): Promise<{ tasks: any[]; tokens: number }> => {
+      if (!genAI) throw new Error('Gemini not configured');
+      const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+      const result = await model.generateContent(systemPrompt + '\n\nContent:\n' + userContent);
+      const response = result.response;
+      const text = response.text();
+      const jsonMatch = text.match(/\[[\s\S]*\]/);
+      const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : text);
+      const tasks = Array.isArray(parsed) ? parsed : (parsed.tasks || []);
+      return { tasks, tokens: (response as any).usageMetadata?.totalTokenCount ?? 0 };
+    };
+
+    try {
+      if (useGroqFirst && groq) {
+        try {
+          const { tasks, tokens } = await tryGroq();
+          console.log(`[AI] Used: llama-3.3-70b-versatile (Groq), tokens: ${tokens}`);
+          return this.normalizeTaskArray(tasks);
+        } catch (err) {
+          if (genAI) {
+            const { tasks, tokens } = await tryGemini();
+            console.log(`[AI] Used: gemini-2.0-flash-exp (Gemini), tokens: ${tokens}`);
+            return this.normalizeTaskArray(tasks);
+          }
+          throw err;
+        }
+      }
+      if (genAI) {
+        try {
+          const { tasks, tokens } = await tryGemini();
+          console.log(`[AI] Used: gemini-2.0-flash-exp (Gemini), tokens: ${tokens}`);
+          return this.normalizeTaskArray(tasks);
+        } catch (err) {
+          if (groq) {
+            const { tasks, tokens } = await tryGroq();
+            console.log(`[AI] Used: llama-3.3-70b-versatile (Groq), tokens: ${tokens}`);
+            return this.normalizeTaskArray(tasks);
+          }
+          throw err;
+        }
+      }
+      if (groq) {
+        const { tasks, tokens } = await tryGroq();
+        console.log(`[AI] Used: llama-3.3-70b-versatile (Groq), tokens: ${tokens}`);
+        return this.normalizeTaskArray(tasks);
+      }
+      throw new Error('No AI service available');
+    } catch (error) {
+      console.error('Web page task parsing error:', error);
+      throw error;
     }
   }
 

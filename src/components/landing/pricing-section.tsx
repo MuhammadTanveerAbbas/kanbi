@@ -2,6 +2,7 @@
 
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Zap, Smartphone, Lock } from 'lucide-react';
 
 const architectureHighlights = [
   { metric: '15+', label: 'Components', description: 'Modular design' },
@@ -40,17 +41,17 @@ export default function TechStackSection() {
 
         <div className="text-center">
           <p className="text-xs sm:text-sm text-muted-foreground mb-4 sm:mb-6 px-4">
-            <strong>Free to Start, Premium Available:</strong> Built with modern web development practices. Free tier includes 300 board uses/month, upgrade to Premium for unlimited access.
+            <strong>Free to Start, Premium Available:</strong> Built with modern web development practices. Free tier includes 300 board uses/month, upgrade to Premium for 50 boards/day and 50 AI extractions/day.
           </p>
           <div className="flex flex-wrap justify-center gap-3 sm:gap-4">
-            <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 px-3 py-1">
-              ⚡ Cloud Sync
+            <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 px-3 py-1 flex items-center gap-1.5">
+              <Zap className="h-3 w-3" /> Cloud Sync
             </Badge>
-            <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 px-3 py-1">
-              📱 Responsive Design
+            <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 px-3 py-1 flex items-center gap-1.5">
+              <Smartphone className="h-3 w-3" /> Responsive Design
             </Badge>
-            <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 px-3 py-1">
-              🔒 Secure & Private
+            <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 px-3 py-1 flex items-center gap-1.5">
+              <Lock className="h-3 w-3" /> Secure & Private
             </Badge>
           </div>
         </div>

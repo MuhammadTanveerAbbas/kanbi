@@ -2,20 +2,7 @@ import { type NextRequest } from 'next/server'
 import { updateSession } from '@/lib/supabase/middleware'
 
 export async function middleware(request: NextRequest) {
-  const response = await updateSession(request)
-  
-  // Protect dashboard routes
-  if (request.nextUrl.pathname.startsWith('/dashboard')) {
-    const supabaseSession = request.cookies.get('sb-auth-token')?.value
-    
-    if (!supabaseSession) {
-      const loginUrl = new URL('/login', request.url)
-      loginUrl.searchParams.set('redirect', request.nextUrl.pathname)
-      return Response.redirect(loginUrl)
-    }
-  }
-  
-  return response
+  return await updateSession(request)
 }
 
 export const config = {

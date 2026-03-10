@@ -56,9 +56,12 @@ export async function GET(request: NextRequest) {
       .select('*')
       .eq('user_id', user.id);
 
-    // Apply search filter
+    // Apply search filter with sanitization
     if (search) {
-      query = query.or(`title.ilike.%${search}%,input_text.ilike.%${search}%,output_text.ilike.%${search}%`);
+      const safeSearch = search.replace(/[^a-zA-Z0-9\s\-_]/g, '').trim().slice(0, 100);
+      if (safeSearch.length > 0) {
+        query = query.or(`title.ilike.%${safeSearch}%,input_text.ilike.%${safeSearch}%,output_text.ilike.%${safeSearch}%`);
+      }
     }
 
     // Apply favorite filter

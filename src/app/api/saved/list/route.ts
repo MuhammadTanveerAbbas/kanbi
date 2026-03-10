@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { rateLimit, rateLimitResponse } from '@/lib/rate-limiter';
 
 export async function GET(request: NextRequest) {
+  const limit = rateLimit(request, { maxRequests: 30, windowMs: 60000 });
+  if (!limit.success) return rateLimitResponse();
+
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -24,8 +28,12 @@ export async function GET(request: NextRequest) {
       .select('*')
       .eq('user_id', user.id);
 
+    // Sanitize search input to prevent SQL injection
     if (search) {
-      query = query.or(`title.ilike.%${search}%,input_text.ilike.%${search}%,output_text.ilike.%${search}%`);
+      const safeSearch = search.replace(/[^a-zA-Z0-9\s\-_]/g, '').trim().slice(0, 100);
+      if (safeSearch.length > 0) {
+        query = query.or(`title.ilike.%${safeSearch}%,input_text.ilike.%${safeSearch}%,output_text.ilike.%${safeSearch}%`);
+      }
     }
 
     if (favorite === 'true') {

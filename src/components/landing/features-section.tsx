@@ -2,86 +2,44 @@
 
 import { Card, CardContent } from "@/components/ui/card";
 import { motion } from "framer-motion";
-import {
-    BarChart3,
-    CreditCard,
-    Crown,
-    Database,
-    LayoutDashboard,
-    Save,
-    Shield,
-    Sparkles,
-    Zap,
-} from "lucide-react";
+import { Bot, FileText, Target, Clipboard, BarChart3, Lock } from "lucide-react";
 
 const features = [
   {
-    icon: (
-      <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-primary" />
-    ),
-    title: "AI powered Extraction",
+    icon: <Bot className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 text-primary" />,
+    title: "Real AI extraction",
     description:
-      "Google Gemini & Groq AI intelligently parse your notes and extract tasks with priorities and due dates automatically.",
+      "Powered by Gemini + Groq. Not keyword matching — actual understanding of what needs to happen, who owns it, and when.",
   },
   {
-    icon: (
-      <Shield className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-primary" />
-    ),
-    title: "Secure Authentication",
+    icon: <FileText className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 text-primary" />,
+    title: "5 ways to get your notes in",
     description:
-      "Supabase Auth provides secure login and signup. Your data is protected with industry-standard encryption.",
+      "Paste text, upload a PDF, import a Notion page, paste an email thread, or drop in a URL. Kanbi reads them all.",
   },
   {
-    icon: (
-      <LayoutDashboard className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-primary" />
-    ),
-    title: "Complete Dashboard",
+    icon: <Target className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 text-primary" />,
+    title: "Priorities set automatically",
     description:
-      "Full-featured dashboard with analytics, usage stats, saved boards, and settings management.",
+      "AI reads deadlines in context. 'By Friday' becomes Urgent. 'Next sprint' becomes Medium. No manual tagging.",
   },
   {
-    icon: (
-      <Database className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-primary" />
-    ),
-    title: "Cloud Storage",
+    icon: <Clipboard className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 text-primary" />,
+    title: "Kanban board, ready instantly",
     description:
-      "Supabase PostgreSQL database stores your boards securely. Access from any device, anytime.",
+      "Tasks land in To Do, In Progress, or Done. Drag to move. Everything saves to your account automatically.",
   },
   {
-    icon: (
-      <CreditCard className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-primary" />
-    ),
-    title: "Stripe Payments",
+    icon: <BarChart3 className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 text-primary" />,
+    title: "Track what you actually shipped",
     description:
-      "Integrated Stripe for premium subscriptions. Secure payment processing with subscription management.",
+      "Dashboard shows task completion trends, AI usage, and board history. Know your productivity at a glance.",
   },
   {
-    icon: (
-      <Crown className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-primary" />
-    ),
-    title: "Premium Plans",
+    icon: <Lock className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 text-primary" />,
+    title: "Your client data stays yours",
     description:
-      "Free tier with 10 boards/day. Premium unlocks unlimited AI generations and advanced features.",
-  },
-  {
-    icon: (
-      <BarChart3 className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-primary" />
-    ),
-    title: "Analytics & Tracking",
-    description:
-      "Track your productivity with charts, usage statistics, and activity history over 30 days.",
-  },
-  {
-    icon: <Save className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-primary" />,
-    title: "Save & Export",
-    description:
-      "Save unlimited boards to your account. Export to JSON for backup or sharing with your team.",
-  },
-  {
-    icon: <Zap className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-primary" />,
-    title: "Lightning Fast",
-    description:
-      "Built with Next.js 15 and TypeScript. Instant task extraction with Drag and drop Kanban board.",
+      "Supabase row-level security means no one else can see your boards. Export anytime as JSON.",
   },
 ];
 
@@ -100,11 +58,10 @@ export default function FeaturesSection() {
           className="text-center mb-8 sm:mb-12 md:mb-16"
         >
           <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight mb-3 sm:mb-4 md:mb-6 px-2">
-            Complete Task Management Platform
+            Built for how you work
           </h2>
           <p className="text-xs sm:text-sm md:text-base lg:text-lg text-muted-foreground max-w-2xl mx-auto px-2">
-            AI powered extraction, secure authentication, cloud storage, premium
-            plans, and full analytics dashboard.
+            One tool for notes, emails, PDFs, and Notion. One Kanban board. One less thing to remember.
           </p>
         </motion.div>
 

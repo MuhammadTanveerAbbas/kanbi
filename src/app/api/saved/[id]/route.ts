@@ -1,10 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase';
+import { z } from 'zod';
+import { rateLimit, rateLimitResponse } from '@/lib/rate-limiter';
+
+const UpdateBoardSchema = z.object({
+  title: z.string().min(1).max(200).optional(),
+  content: z.string().max(50000).optional(),
+  is_favorite: z.boolean().optional(),
+  category: z.enum(['other', 'meeting', 'project', 'daily', 'sprint', 'quick']).optional(),
+  icon: z.string().max(50).optional(),
+  input_text: z.string().max(50000).optional(),
+  output_text: z.string().max(50000).optional(),
+});
 
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const limit = rateLimit(request, { maxRequests: 30, windowMs: 60000 });
+  if (!limit.success) return rateLimitResponse();
+
   try {
     const supabase = createServerClient();
 
@@ -58,6 +73,9 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const limit = rateLimit(request, { maxRequests: 30, windowMs: 60000 });
+  if (!limit.success) return rateLimitResponse();
+
   try {
     const supabase = createServerClient();
 
@@ -83,6 +101,15 @@ export async function PATCH(
 
     const { id } = await params;
     const body = await request.json();
+
+    // Validate input
+    const validation = UpdateBoardSchema.safeParse(body);
+    if (!validation.success) {
+      return NextResponse.json(
+        { error: 'Invalid fields', details: validation.error.issues },
+        { status: 400 }
+      );
+    }
 
     const { data, error } = await supabase
       .from('saved_generations')

@@ -8,7 +8,7 @@ import SaveBoardButton from "./board/save-board-button";
 import Onboarding from "./onboarding";
 import { NoTasksEmptyState } from "./empty-states";
 import { AppLoadingSkeleton } from "./loading-states";
-import { CheckCircle } from "lucide-react";
+import { CheckCircle, AlertCircle } from "lucide-react";
 import { analytics } from "@/lib/analytics";
 import { useEffect, useRef } from "react";
 
@@ -108,7 +108,7 @@ export default function Kanbi() {
         {completedTasks > 0 && completedTasks === store.tasks.length && (
           <div className="text-center p-6 bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-xl">
             <p className="text-lg font-semibold text-green-400 mb-2">
-              🎉 Amazing! You've completed everything!
+              Amazing! You've completed everything!
             </p>
             <p className="text-sm text-gray-400">
               Ready to tackle more? Add new tasks above.
@@ -120,7 +120,7 @@ export default function Kanbi() {
         {store.saveError && (
           <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:max-w-sm z-30">
             <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-xl text-sm backdrop-blur-sm">
-              <p className="font-semibold mb-1">⚠️ Save Error</p>
+              <p className="font-semibold mb-1 flex items-center gap-2"><AlertCircle className="h-4 w-4" /> Save Error</p>
               <p className="text-xs text-gray-400">{store.saveError}</p>
             </div>
           </div>

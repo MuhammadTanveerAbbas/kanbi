@@ -2,8 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { AIService } from '@/lib/ai-service';
 import { createClient } from '@/lib/supabase/server';
 import { usageService } from '@/lib/services/usage-service';
+import { rateLimit, rateLimitResponse } from '@/lib/rate-limiter';
 
 export async function POST(request: NextRequest) {
+  const limit = rateLimit(request, { maxRequests: 20, windowMs: 60000 });
+  if (!limit.success) return rateLimitResponse();
+
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -31,6 +35,13 @@ export async function POST(request: NextRequest) {
 
     if (!notes || typeof notes !== 'string') {
       return NextResponse.json({ error: 'Notes are required' }, { status: 400 });
+    }
+
+    if (notes.length > 10000) {
+      return NextResponse.json(
+        { error: 'Notes too long. Max 10,000 characters.' },
+        { status: 413 }
+      );
     }
 
     // Use unified AI service (prefers Gemini for better task understanding)

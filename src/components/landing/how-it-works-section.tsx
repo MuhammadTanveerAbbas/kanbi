@@ -7,23 +7,23 @@ const steps = [
   {
     number: "1",
     icon: <FileText className="h-6 w-6 sm:h-8 sm:w-8 md:h-10 md:w-10 text-primary" />,
-    title: "Sign Up & Paste Notes",
+    title: "Drop in your notes",
     description:
-      "Create your account and paste your messy notes, meeting minutes, or random thoughts into the board.",
+      "Paste text, upload PDF, link Notion, paste email, or enter a URL",
   },
   {
     number: "2",
     icon: <Sparkles className="h-6 w-6 sm:h-8 sm:w-8 md:h-10 md:w-10 text-primary" />,
-    title: "AI Extracts Tasks",
+    title: "AI extracts every action item",
     description:
-      "Our AI intelligently parses your notes, extracts tasks, detects priorities and due dates automatically.",
+      "Gemini or Groq reads the content, finds tasks, assigns owners, sets deadlines",
   },
   {
     number: "3",
     icon: <Rocket className="h-6 w-6 sm:h-8 sm:w-8 md:h-10 md:w-10 text-primary" />,
-    title: "Organize & Track",
+    title: "Your Kanban board is ready",
     description:
-      "Drag tasks across your Kanban board, set priorities, track progress. Export anytime to backup or share.",
+      "Drag tasks across columns, save the board, export if needed",
   },
 ];
 
@@ -39,10 +39,10 @@ export default function HowItWorksSection() {
           className="text-center mb-8 sm:mb-12 md:mb-16"
         >
           <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight mb-3 sm:mb-4 md:mb-6 px-2">
-            How It Works
+            From messy notes to clean tasks in under 10 seconds
           </h2>
           <p className="text-xs sm:text-sm md:text-base lg:text-lg text-muted-foreground max-w-2xl mx-auto px-2">
-            Three simple steps to transform your task management workflow.
+            Three steps. No templates. No manual tagging.
           </p>
         </motion.div>
 

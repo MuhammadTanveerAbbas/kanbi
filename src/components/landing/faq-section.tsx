@@ -7,32 +7,24 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 const faqs = [
   {
-    question: "What is KANBI?",
-    answer: "KANBI is a complete SaaS platform that transforms notes into organized Kanban boards using AI. It includes authentication, cloud storage, premium subscriptions, and analytics."
+    question: "Do I need to change how I take notes?",
+    answer: "No. Kanbi reads whatever you have — bullet points, paragraphs, messy stream of consciousness. It's built for real meeting notes, not structured templates."
   },
   {
-    question: "Do I need to create an account?",
-    answer: "Yes, you need to sign up for an account to use KANBI. This allows you to save your boards securely in the cloud and access them from any device."
+    question: "What if my notes are confidential client information?",
+    answer: "Your data is stored with row-level security in Supabase. Nobody else can access your boards. You can delete everything from settings at any time."
   },
   {
-    question: "Is my data safe?",
-    answer: "Yes. Your data is stored securely in Supabase PostgreSQL database with industry-standard encryption. We use Supabase Auth for secure authentication."
+    question: "How accurate is the AI task extraction?",
+    answer: "95%+ on structured notes. The AI is specifically prompted for consultant workflows — it understands phrases like 'follow up with', 'client needs', 'deadline is', and 'action item'."
   },
   {
-    question: "What's included in the free plan?",
-    answer: "The free plan includes 10 board uses per day (300 per month), AI task extraction, Kanban board, priorities, due dates, and save/export features."
+    question: "What's the difference between Free and Pro?",
+    answer: "Free gives you 10 AI extractions per day — enough to test with real client work. Premium ($12/month) gives you 50/day plus PDF upload, Notion import, Gmail extraction, and URL crawling."
   },
   {
-    question: "What does Premium offer?",
-    answer: "Premium ($20/month) includes unlimited board uses, unlimited AI generations, advanced AI features, cloud sync, unlimited saved boards, and priority support."
-  },
-  {
-    question: "Can I export my tasks?",
-    answer: "Yes! You can export your tasks as JSON files for backup or sharing with your team."
-  },
-  {
-    question: "How does the AI work?",
-    answer: "KANBI uses Google Gemini and Groq AI to intelligently parse your notes and extract tasks with priorities and due dates automatically."
+    question: "Can I export my tasks to other tools?",
+    answer: "Yes. Export any board as JSON. CSV export and direct integrations with Notion and Linear are on the roadmap."
   }
 ];
 

@@ -166,6 +166,11 @@ export default function KanbanBoard({ store }: KanbanBoardProps) {
                         <h4 className="font-medium text-sm leading-tight">{task.title}</h4>
                         {task.description && <p className="text-xs text-muted-foreground leading-relaxed">{task.description}</p>}
                         <div className="flex flex-wrap gap-2">
+                          {task.tags?.includes('ai-extracted') && (
+                            <Badge variant="secondary" className="text-xs text-muted-foreground bg-primary/10">
+                              ✨ Extracted by AI
+                            </Badge>
+                          )}
                           {task.priority && (
                             <Badge variant="secondary" className={`text-xs ${PRIORITY_COLORS[task.priority]}`}>
                               <Flag className="h-3 w-3 mr-1" />

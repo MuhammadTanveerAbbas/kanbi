@@ -7,21 +7,21 @@ import { Brain, Clock, TrendingUp } from "lucide-react";
 const problems = [
   {
     icon: <Clock className="h-6 w-6 sm:h-8 sm:w-8 md:h-10 md:w-10 text-primary" />,
-    title: "Stop Wasting Time",
+    title: "You're losing 20 minutes after every client call",
     description:
-      "Spend hours manually organizing notes into tasks? Our AI extracts actionable items from your messy notes instantly, so you can focus on getting things done.",
+      "Scrolling through notes, copy-pasting into your task manager, figuring out who owns what. It's not the hard part of consulting — but it's eating your time anyway.",
   },
   {
     icon: <Brain className="h-6 w-6 sm:h-8 sm:w-8 md:h-10 md:w-10 text-primary" />,
-    title: "Overcome Organization Chaos",
+    title: "Your notes live in 4 different places",
     description:
-      "Never lose track of what needs to be done. Transform scattered notes, meeting minutes, and random thoughts into a clear, organized Kanban board in seconds.",
+      "Gmail threads, Notion docs, PDF briefs, meeting recordings. Kanbi reads all of them. Paste, upload, import, or link — you get tasks either way.",
   },
   {
     icon: <TrendingUp className="h-6 w-6 sm:h-8 sm:w-8 md:h-10 md:w-10 text-primary" />,
-    title: "Scale Your Productivity",
+    title: "You forget the small commitments",
     description:
-      "Handle more tasks efficiently. Whether you have 5 items or 500, our Drag and drop Kanban board helps you prioritize, track progress, and stay organized.",
+      "Client said 'can you send that by Friday?' buried in email. Kanbi catches every action item, assigns it, and sets the deadline — even if you missed it live.",
   },
 ];
 
@@ -40,10 +40,10 @@ export default function ProblemSection() {
           className="text-center mb-8 sm:mb-12 md:mb-16"
         >
           <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight mb-3 sm:mb-4 md:mb-6 px-2">
-            The Task Management Challenge
+            The consultant bottleneck
           </h2>
           <p className="text-xs sm:text-sm md:text-base lg:text-lg text-muted-foreground max-w-2xl mx-auto px-2">
-            Everyone struggles with organizing scattered notes. We built a solution that transforms chaos into clarity.
+            Your expertise is in the room. The admin shouldn't follow you out the door.
           </p>
         </motion.div>
 

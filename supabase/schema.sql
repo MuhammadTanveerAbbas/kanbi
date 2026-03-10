@@ -1,12 +1,15 @@
--- Kanbi Complete Database Schema
--- This is the ONLY SQL file needed - run on Supabase SQL Editor
+-- ================================================
+-- KANBI - Complete Database Schema
+-- ================================================
+-- Run this ONCE in Supabase SQL Editor
 -- Works for both new and existing databases
+-- ================================================
 
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- ================================================
--- Core Tables
+-- TABLES
 -- ================================================
 
 -- Profiles table
@@ -20,7 +23,6 @@ CREATE TABLE IF NOT EXISTS profiles (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Add has_seen_onboarding if missing (for existing databases)
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS has_seen_onboarding BOOLEAN DEFAULT FALSE;
 
 -- Subscriptions table
@@ -49,7 +51,6 @@ CREATE TABLE IF NOT EXISTS usage_tracking (
   UNIQUE(user_id, date)
 );
 
--- Add missing columns if they don't exist (for existing databases)
 ALTER TABLE usage_tracking ADD COLUMN IF NOT EXISTS boards_used_count INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE usage_tracking ADD COLUMN IF NOT EXISTS ai_used_count INTEGER NOT NULL DEFAULT 0;
 
@@ -66,7 +67,6 @@ CREATE TABLE IF NOT EXISTS saved_generations (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Add columns for existing databases
 ALTER TABLE saved_generations ADD COLUMN IF NOT EXISTS content TEXT;
 ALTER TABLE saved_generations ADD COLUMN IF NOT EXISTS category VARCHAR(50) DEFAULT 'other';
 ALTER TABLE saved_generations ADD COLUMN IF NOT EXISTS icon VARCHAR(50) DEFAULT 'file';
@@ -97,8 +97,14 @@ CREATE TABLE IF NOT EXISTS task_stats (
   UNIQUE(user_id, date)
 );
 
+-- Webhook events table (Stripe idempotency)
+CREATE TABLE IF NOT EXISTS processed_webhook_events (
+  id TEXT PRIMARY KEY,
+  processed_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- ================================================
--- Indexes
+-- INDEXES
 -- ================================================
 
 CREATE INDEX IF NOT EXISTS idx_subscriptions_user_id ON subscriptions(user_id);
@@ -114,9 +120,10 @@ CREATE INDEX IF NOT EXISTS idx_board_tags_board_id ON board_tags(board_id);
 CREATE INDEX IF NOT EXISTS idx_task_stats_user_date ON task_stats(user_id, date);
 
 -- ================================================
--- Functions
+-- FUNCTIONS
 -- ================================================
 
+-- Increment generation count
 CREATE OR REPLACE FUNCTION increment_generation_count(p_user_id UUID, p_date DATE)
 RETURNS VOID AS $$
 BEGIN
@@ -128,6 +135,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Increment board usage
 CREATE OR REPLACE FUNCTION increment_board_usage(p_user_id UUID, p_date DATE)
 RETURNS VOID AS $$
 BEGIN
@@ -139,7 +147,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Function to increment AI usage
+-- Increment AI usage
 CREATE OR REPLACE FUNCTION increment_ai_usage(p_user_id UUID, p_date DATE)
 RETURNS VOID AS $$
 BEGIN
@@ -151,6 +159,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Reset daily usage (cleanup old records)
 CREATE OR REPLACE FUNCTION reset_daily_usage()
 RETURNS VOID AS $$
 BEGIN
@@ -158,6 +167,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Handle new user creation
 CREATE OR REPLACE FUNCTION handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -180,7 +190,7 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- ================================================
--- Triggers
+-- TRIGGERS
 -- ================================================
 
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
@@ -189,21 +199,24 @@ CREATE TRIGGER on_auth_user_created
   FOR EACH ROW EXECUTE FUNCTION handle_new_user();
 
 -- ================================================
--- Row Level Security
+-- ROW LEVEL SECURITY
 -- ================================================
 
+-- Profiles
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can view own profile" ON profiles;
 CREATE POLICY "Users can view own profile" ON profiles FOR SELECT USING (auth.uid() = id);
 DROP POLICY IF EXISTS "Users can update own profile" ON profiles;
 CREATE POLICY "Users can update own profile" ON profiles FOR UPDATE USING (auth.uid() = id);
 
+-- Subscriptions
 ALTER TABLE subscriptions ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can view own subscription" ON subscriptions;
 CREATE POLICY "Users can view own subscription" ON subscriptions FOR SELECT USING (auth.uid() = user_id);
 DROP POLICY IF EXISTS "Users can update own subscription" ON subscriptions;
 CREATE POLICY "Users can update own subscription" ON subscriptions FOR UPDATE USING (auth.uid() = user_id);
 
+-- Usage Tracking
 ALTER TABLE usage_tracking ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can view own usage" ON usage_tracking;
 CREATE POLICY "Users can view own usage" ON usage_tracking FOR SELECT USING (auth.uid() = user_id);
@@ -212,6 +225,7 @@ CREATE POLICY "Users can insert own usage" ON usage_tracking FOR INSERT WITH CHE
 DROP POLICY IF EXISTS "Users can update own usage" ON usage_tracking;
 CREATE POLICY "Users can update own usage" ON usage_tracking FOR UPDATE USING (auth.uid() = user_id);
 
+-- Saved Boards
 ALTER TABLE saved_generations ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can view own saved boards" ON saved_generations;
 CREATE POLICY "Users can view own saved boards" ON saved_generations FOR SELECT USING (auth.uid() = user_id);
@@ -222,6 +236,7 @@ CREATE POLICY "Users can update own saved boards" ON saved_generations FOR UPDAT
 DROP POLICY IF EXISTS "Users can delete own saved boards" ON saved_generations;
 CREATE POLICY "Users can delete own saved boards" ON saved_generations FOR DELETE USING (auth.uid() = user_id);
 
+-- Board Tags
 ALTER TABLE board_tags ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can view tags for own boards" ON board_tags;
 CREATE POLICY "Users can view tags for own boards" ON board_tags FOR SELECT
@@ -233,6 +248,7 @@ DROP POLICY IF EXISTS "Users can delete tags for own boards" ON board_tags;
 CREATE POLICY "Users can delete tags for own boards" ON board_tags FOR DELETE
   USING (EXISTS (SELECT 1 FROM saved_generations WHERE saved_generations.id = board_tags.board_id AND saved_generations.user_id = auth.uid()));
 
+-- Task Statistics
 ALTER TABLE task_stats ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can view own task stats" ON task_stats;
 CREATE POLICY "Users can view own task stats" ON task_stats FOR SELECT USING (auth.uid() = user_id);
@@ -241,8 +257,11 @@ CREATE POLICY "Users can insert own task stats" ON task_stats FOR INSERT WITH CH
 DROP POLICY IF EXISTS "Users can update own task stats" ON task_stats;
 CREATE POLICY "Users can update own task stats" ON task_stats FOR UPDATE USING (auth.uid() = user_id);
 
+-- Webhook Events
+ALTER TABLE processed_webhook_events ENABLE ROW LEVEL SECURITY;
+
 -- ================================================
--- Storage
+-- STORAGE
 -- ================================================
 
 INSERT INTO storage.buckets (id, name, public) VALUES ('files', 'files', false) ON CONFLICT (id) DO NOTHING;

@@ -22,8 +22,7 @@ export default function Footer() {
             </div>
             <p className="text-sm text-muted-foreground max-w-md leading-relaxed">
               Transform messy notes into organized Kanban boards with AI powered
-              task management. Start free, upgrade to Premium for unlimited
-              access.
+              task management. Start free, upgrade to Premium for more.
             </p>
             <p className="text-xs text-muted-foreground">
               Questions?{' '}

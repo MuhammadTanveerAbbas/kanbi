@@ -18,7 +18,7 @@ const plans = [
     name: "Free",
     price: "$0",
     period: "forever",
-    description: "Perfect for personal use",
+    description: "Try it out — no credit card needed",
     features: [
       "10 board uses per day",
       "300 board uses per month",
@@ -33,21 +33,22 @@ const plans = [
   },
   {
     name: "Premium",
-    price: "$20",
+    price: "$12",
     period: "month",
-    description: "For power users and teams",
+    description: "For freelance consultants",
     features: [
-      "Unlimited board uses",
-      "Unlimited AI generations",
-      "Advanced AI features",
+      "50 boards per day",
+      "50 AI extractions per day",
+      "PDF, Notion, Gmail & URL extraction",
       "Cloud sync across devices",
       "Unlimited saved boards",
-      "Priority support",
-      "Custom integrations",
+      "Email support within 24h",
+      "API access (coming soon)",
     ],
     cta: "Upgrade to Premium",
     href: "/api/checkout/create-session",
     popular: true,
+    annual: "or $99/year (save 31%)",
   },
 ];
 
@@ -126,6 +127,9 @@ export default function PricingPage() {
                     <span className="text-5xl font-bold">{plan.price}</span>
                     <span className="text-gray-400">/{plan.period}</span>
                   </div>
+                  {(plan as any).annual && (
+                    <p className="text-xs text-gray-400 mb-2">{(plan as any).annual}</p>
+                  )}
                   <CardDescription className="text-gray-300">
                     {plan.description}
                   </CardDescription>

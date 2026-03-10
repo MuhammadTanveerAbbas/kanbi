@@ -2,7 +2,9 @@ export default function PrivacyPage() {
   return (
     <div className="container mx-auto max-w-4xl py-6 sm:py-12 px-4 sm:px-6">
       <div className="mb-6 sm:mb-8">
-        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2">Privacy Policy</h1>
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2">
+          Privacy Policy
+        </h1>
         <p className="text-sm text-muted-foreground">
           Last updated: March 2025
         </p>
@@ -68,9 +70,9 @@ export default function PrivacyPage() {
                 2.4 Payment Information
               </h3>
               <p>
-                Payment processing is handled by Lemon Squeezy. We do not store
-                credit card information directly. We receive transaction
-                confirmations and subscription status from Lemon Squeezy.
+                Payment processing is handled by stripe. We do not store credit
+                card information directly. We receive transaction confirmations
+                and subscription status from stripe.
               </p>
             </div>
             <div>
@@ -147,9 +149,9 @@ export default function PrivacyPage() {
                 4.3 Payment Processor
               </h3>
               <p>
-                Lemon Squeezy processes payments and manages subscriptions. It
-                complies with PCI DSS standards and does not share your payment
-                details with us.
+                Stripe processes payments and manages subscriptions. It complies
+                with PCI DSS standards and does not share your payment details
+                with us.
               </p>
             </div>
           </div>

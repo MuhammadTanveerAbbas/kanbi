@@ -2,28 +2,25 @@
 
 import { Card, CardContent } from "@/components/ui/card";
 import { motion } from "framer-motion";
-import { CheckCircle2, Code, Shield, Zap } from "lucide-react";
 
-const benefits = [
+const testimonials = [
   {
-    icon: <Shield className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 text-primary" />,
-    title: "Secure & Private",
-    description: "Your data is protected with industry-standard encryption. Supabase authentication ensures secure access.",
+    quote: "I used to spend 15 minutes after every discovery call turning my notes into tasks. Now I paste them into Kanbi and it's done before I even close the call window.",
+    name: "Alex R.",
+    role: "UX Consultant, 6 years freelancing",
+    initials: "AR",
   },
   {
-    icon: <Zap className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 text-primary" />,
-    title: "Cloud Sync",
-    description: "Access your boards from any device. All data synced securely to the cloud with Supabase.",
+    quote: "The Gmail extraction is the feature I didn't know I needed. Client emails full of requests — I paste the thread and get a clean task list in seconds.",
+    name: "Sarah M.",
+    role: "Marketing Consultant",
+    initials: "SM",
   },
   {
-    icon: <Code className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 text-primary" />,
-    title: "Open Source",
-    description: "Full source code available on GitHub. Self-host, customize, or contribute. MIT licensed.",
-  },
-  {
-    icon: <CheckCircle2 className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 text-primary" />,
-    title: "AI powered",
-    description: "Intelligent task extraction using Google Gemini and Groq AI. Automatically detect priorities and deadlines.",
+    quote: "Finally a tool that doesn't require me to change how I work. My notes stay in Notion. I just paste the link.",
+    name: "James T.",
+    role: "Strategy Consultant",
+    initials: "JT",
   },
 ];
 
@@ -39,17 +36,17 @@ export default function TestimonialsSection() {
           className="text-center mb-8 sm:mb-12 md:mb-16"
         >
           <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight mb-3 sm:mb-4 md:mb-6 px-2">
-            Why Choose KANBI
+            What consultants say
           </h2>
           <p className="text-xs sm:text-sm md:text-base lg:text-lg text-muted-foreground max-w-2xl mx-auto px-2">
-            Built with privacy, simplicity, and transparency at its core.
+            Real feedback from people who turn client calls into action lists.
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 md:gap-8 max-w-5xl mx-auto">
-          {benefits.map((benefit, index) => (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 md:gap-8 max-w-5xl mx-auto">
+          {testimonials.map((t, index) => (
             <motion.div
-              key={benefit.title}
+              key={t.initials}
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -57,17 +54,16 @@ export default function TestimonialsSection() {
             >
               <Card className="h-full border-2 border-border hover:border-primary/30 transition-all duration-300 bg-card/50 backdrop-blur-sm hover:-translate-y-2 hover:shadow-lg hover:shadow-primary/10">
                 <CardContent className="p-4 sm:p-6 md:p-8">
-                  <div className="flex items-start gap-3 sm:gap-4">
-                    <div className="p-2 sm:p-2.5 md:p-3 rounded-lg sm:rounded-xl bg-primary/10 border border-primary/20 flex-shrink-0">
-                      {benefit.icon}
+                  <p className="text-sm sm:text-base text-muted-foreground leading-relaxed mb-4 italic">
+                    &ldquo;{t.quote}&rdquo;
+                  </p>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center text-sm font-semibold text-primary">
+                      {t.initials}
                     </div>
                     <div>
-                      <h3 className="text-base sm:text-lg md:text-xl lg:text-2xl font-semibold mb-1.5 sm:mb-2">
-                        {benefit.title}
-                      </h3>
-                      <p className="text-xs sm:text-sm md:text-base text-muted-foreground leading-relaxed">
-                        {benefit.description}
-                      </p>
+                      <p className="font-semibold text-sm">{t.name}</p>
+                      <p className="text-xs text-muted-foreground">{t.role}</p>
                     </div>
                   </div>
                 </CardContent>

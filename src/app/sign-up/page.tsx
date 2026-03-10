@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Eye, EyeOff, LayoutGrid } from 'lucide-react'
+import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton'
 
 export default function SignUpPage() {
   const [email, setEmail] = useState('')
@@ -71,6 +72,9 @@ export default function SignUpPage() {
           console.error('Subscription creation error:', subError)
         }
 
+        // Wait for session to be established
+        await new Promise(resolve => setTimeout(resolve, 500))
+        
         router.push('/dashboard')
       }
     } catch (err) {
@@ -100,6 +104,8 @@ export default function SignUpPage() {
                 <AlertDescription className="text-[10px] sm:text-sm">{error}</AlertDescription>
               </Alert>
             )}
+            <GoogleSignInButton />
+            <p className="text-center text-[10px] sm:text-xs text-muted-foreground">or continue with email</p>
             <div className="space-y-1 sm:space-y-2">
               <Label htmlFor="fullName" className="text-[10px] sm:text-sm">Full Name</Label>
               <Input

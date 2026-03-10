@@ -65,26 +65,21 @@ export default function HeroSection({ setIsLoading }: HeroSectionProps) {
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-primary/20 via-primary/10 to-primary/20 border border-primary/30 mb-6 backdrop-blur-sm shadow-lg shadow-primary/10">
             <Sparkles className="h-3.5 w-3.5 text-primary animate-pulse" />
             <span className="text-xs font-semibold bg-gradient-to-r from-gray-200 to-gray-400 bg-clip-text text-transparent">
-              AI Powered Task Management • Workflow Tracking
+              For freelance consultants
             </span>
           </div>
 
           {/* Headline */}
           <h1 className="text-3xl xs:text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight mb-6 leading-tight">
-            <span className="block text-white mb-2">Transform Notes Into</span>
+            <span className="block text-white mb-2">Turn client call notes into</span>
             <span className="block bg-gradient-to-r from-gray-200 via-gray-400 to-gray-600 bg-clip-text text-transparent">
-              Organized Kanban Boards
+              tasks in 3 seconds
             </span>
           </h1>
 
           {/* Subtext */}
           <p className="text-sm xs:text-base sm:text-lg md:text-xl text-gray-400 max-w-2xl mx-auto mb-8 leading-relaxed px-2">
-            Complete SaaS platform with AI task extraction, secure
-            authentication, cloud storage, Lemon Squeezy payments, and analytics
-            dashboard.{" "}
-            <span className="text-white font-semibold block sm:inline">
-              Start free, upgrade anytime.
-            </span>
+            You finish a client call with 2 pages of messy notes. Kanbi reads them — whether you paste them, upload a PDF, forward an email, or share a Notion doc — and builds your action list instantly.
           </p>
 
           {/* CTAs */}
@@ -103,7 +98,7 @@ export default function HeroSection({ setIsLoading }: HeroSectionProps) {
                     </>
                   ) : (
                     <>
-                      Try It Free Now
+                      Extract my first tasks free →
                       <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
                     </>
                   )}
@@ -118,10 +113,13 @@ export default function HeroSection({ setIsLoading }: HeroSectionProps) {
                 asChild
                 className="w-full sm:w-auto text-base md:text-lg px-8 py-6 min-h-[48px] rounded-xl font-semibold border-2 hover:bg-primary/10"
               >
-                <a href="#features">See Features</a>
+                <a href="#demo">Watch 60s demo</a>
               </Button>
             </motion.div>
           </div>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-4">
+            Used by 23 consultants • No credit card needed • Free forever plan
+          </p>
         </motion.div>
       </div>
     </section>

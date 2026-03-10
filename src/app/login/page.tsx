@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Eye, EyeOff, LayoutGrid } from 'lucide-react'
+import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -19,6 +20,12 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const router = useRouter()
   const supabase = createClient()
+  const [oauthError, setOauthError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('error') === 'oauth_failed') setOauthError('Google sign-in failed. Please try again or use email.')
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -37,6 +44,9 @@ export default function LoginPage() {
         return
       }
 
+      // Wait a moment for session to be established
+      await new Promise(resolve => setTimeout(resolve, 500))
+      
       router.push('/dashboard')
       router.refresh()
     } catch (err) {
@@ -61,11 +71,13 @@ export default function LoginPage() {
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-2.5 sm:space-y-4">
-            {error && (
+            {(error || oauthError) && (
               <Alert variant="destructive">
-                <AlertDescription className="text-[10px] sm:text-sm">{error}</AlertDescription>
+                <AlertDescription className="text-[10px] sm:text-sm">{error || oauthError}</AlertDescription>
               </Alert>
             )}
+            <GoogleSignInButton />
+            <p className="text-center text-[10px] sm:text-xs text-muted-foreground">or continue with email</p>
             <div className="space-y-1 sm:space-y-2">
               <Label htmlFor="email" className="text-[10px] sm:text-sm">Email</Label>
               <Input
