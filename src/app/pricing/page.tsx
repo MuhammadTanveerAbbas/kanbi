@@ -18,7 +18,7 @@ const plans = [
     name: "Free",
     price: "$0",
     period: "forever",
-    description: "Try it out — no credit card needed",
+    description: "Try it out with real client work",
     features: [
       "10 board uses per day",
       "300 board uses per month",
@@ -128,7 +128,9 @@ export default function PricingPage() {
                     <span className="text-gray-400">/{plan.period}</span>
                   </div>
                   {(plan as any).annual && (
-                    <p className="text-xs text-gray-400 mb-2">{(plan as any).annual}</p>
+                    <p className="text-xs text-gray-400 mb-2">
+                      {(plan as any).annual}
+                    </p>
                   )}
                   <CardDescription className="text-gray-300">
                     {plan.description}

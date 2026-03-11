@@ -65,17 +65,6 @@ export class AIService {
    * Select the best model based on input complexity and requirements
    */
   private static selectBestModel(input: string, options: GenerationOptions): AIModel {
-    // Use Groq for:
-    // - Short inputs (< 500 chars)
-    // - Simple formatting (text, markdown)
-    // - Quick responses needed
-
-    // Use Gemini for:
-    // - Complex reasoning tasks
-    // - JSON/structured output
-    // - Long content generation
-    // - Better understanding needed
-
     const inputLength = input.length;
     const isComplexFormat = options.format === 'json' || options.format === 'html';
     const isLongContent = options.length === 'long' || inputLength > 1000;
@@ -84,7 +73,6 @@ export class AIService {
       return genAI ? 'gemini' : (groq ? 'groq' : 'gemini');
     }
 
-    // Default to Groq for speed, fallback to Gemini
     return groq ? 'groq' : (genAI ? 'gemini' : 'groq');
   }
 
@@ -110,16 +98,7 @@ export class AIService {
           ? 'Return HTML formatted content.'
           : 'Return plain text.';
 
-    const prompt = `You are a helpful AI assistant. Generate content based on the following input.
-
-Input: ${input}
-
-Requirements:
-- Tone: ${tone}
-- Length: ${lengthWords} words
-- Format: ${formatInstruction}
-
-Generate the content now:`;
+    const prompt = `You are a helpful AI assistant. Generate content based on the following input.\n\nInput: ${input}\n\nRequirements:\n- Tone: ${tone}\n- Length: ${lengthWords} words\n- Format: ${formatInstruction}\n\nGenerate the content now:`;
 
     const completion = await groq.chat.completions.create({
       messages: [
@@ -132,7 +111,7 @@ Generate the content now:`;
           content: prompt,
         },
       ],
-      model: 'llama-3.3-70b-versatile', // Best Groq model for general tasks
+      model: 'llama-3.3-70b-versatile',
       temperature: 0.7,
       max_tokens: length === 'short' ? 200 : length === 'medium' ? 500 : 1000,
     });
@@ -162,19 +141,10 @@ Generate the content now:`;
           ? 'Return HTML formatted content.'
           : 'Return plain text.';
 
-    const prompt = `You are a helpful AI assistant. Generate content based on the following input.
-
-Input: ${input}
-
-Requirements:
-- Tone: ${tone}
-- Length: ${lengthWords} words
-- Format: ${formatInstruction}
-
-Generate the content now:`;
+    const prompt = `You are a helpful AI assistant. Generate content based on the following input.\n\nInput: ${input}\n\nRequirements:\n- Tone: ${tone}\n- Length: ${lengthWords} words\n- Format: ${formatInstruction}\n\nGenerate the content now:`;
 
     const model = genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash-exp', // Fast and capable Gemini model
+      model: 'gemini-2.0-flash-exp',
     });
 
     const result = await model.generateContent(prompt);
@@ -186,17 +156,24 @@ Generate the content now:`;
    * Normalize AI response to { task, owner, deadline, priority }[]
    */
   private static normalizeTaskArray(raw: any[]): { task: string; owner: string; deadline: string; priority?: string }[] {
-    return raw.map((item: any) => ({
-      task: item.task ?? item.title ?? String(item.description ?? ''),
-      owner: item.owner ?? item.assignee ?? 'Me',
-      deadline: item.deadline ?? item.dueDate ?? item.due ?? 'Not specified',
-      priority: item.priority ?? 'medium',
-    })).filter((t: any) => t.task && t.task.trim().length > 0);
+    if (!Array.isArray(raw)) return [];
+    return raw
+      .map((item: any) => {
+        if (!item || typeof item !== 'object') return null;
+        const task = (item.task ?? item.title ?? item.description ?? '').toString().trim();
+        if (!task) return null;
+        return {
+          task,
+          owner: (item.owner ?? item.assignee ?? 'Me').toString().trim(),
+          deadline: (item.deadline ?? item.dueDate ?? item.due ?? 'Not specified').toString().trim(),
+          priority: (item.priority ?? 'medium').toString().toLowerCase(),
+        };
+      })
+      .filter((t: any) => t !== null && t.task.length > 0);
   }
 
   /**
-   * Parse tasks from notes. Uses Groq for short input (<300 chars), Gemini for longer.
-   * Falls back to the other model if primary fails.
+   * Parse tasks from notes with improved fallback handling
    */
   static async parseTasks(notes: string): Promise<{ task: string; owner: string; deadline: string; priority?: string }[]> {
     if (!notes || typeof notes !== 'string') {
@@ -248,7 +225,15 @@ Generate the content now:`;
         try {
           const { tasks, tokens } = await tryGroq();
           console.log(`[AI] Used: llama-3.3-70b-versatile (Groq), tokens: ${tokens}`);
-          return this.normalizeTaskArray(tasks);
+          const normalized = this.normalizeTaskArray(tasks);
+          if (normalized.length > 0) return normalized;
+          if (genAI) {
+            console.log('[AI] Groq returned empty, trying Gemini...');
+            const { tasks: gTasks, tokens: gTokens } = await tryGemini();
+            console.log(`[AI] Used: gemini-2.0-flash-exp (Gemini), tokens: ${gTokens}`);
+            return this.normalizeTaskArray(gTasks);
+          }
+          return normalized;
         } catch (err) {
           console.warn('[AI] Groq failed, falling back to Gemini', err);
           if (genAI) {
@@ -263,7 +248,15 @@ Generate the content now:`;
         try {
           const { tasks, tokens } = await tryGemini();
           console.log(`[AI] Used: gemini-2.0-flash-exp (Gemini), tokens: ${tokens}`);
-          return this.normalizeTaskArray(tasks);
+          const normalized = this.normalizeTaskArray(tasks);
+          if (normalized.length > 0) return normalized;
+          if (groq) {
+            console.log('[AI] Gemini returned empty, trying Groq...');
+            const { tasks: gTasks, tokens: gTokens } = await tryGroq();
+            console.log(`[AI] Used: llama-3.3-70b-versatile (Groq), tokens: ${gTokens}`);
+            return this.normalizeTaskArray(gTasks);
+          }
+          return normalized;
         } catch (err) {
           console.warn('[AI] Gemini failed, falling back to Groq', err);
           if (groq) {
@@ -282,9 +275,9 @@ Generate the content now:`;
       throw new Error('No AI service available');
     } catch (error) {
       console.error('Task parsing error:', error);
-      return notes
+      const fallbackTasks = notes
         .split('\n')
-        .filter(line => line.trim().startsWith('-') || line.trim().match(/^\d+\./))
+        .filter(line => line.trim().startsWith('-') || line.trim().startsWith('•') || line.trim().match(/^\d+\./)) 
         .map(line => ({
           task: line.replace(/^[-•\d.\s]+/, '').trim(),
           owner: 'Me',
@@ -292,6 +285,13 @@ Generate the content now:`;
           priority: 'medium',
         }))
         .filter(item => item.task.length > 0);
+      
+      if (fallbackTasks.length > 0) {
+        console.log(`[AI] Fallback: extracted ${fallbackTasks.length} tasks from bullet points`);
+        return fallbackTasks;
+      }
+      
+      throw error;
     }
   }
 

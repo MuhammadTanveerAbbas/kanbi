@@ -148,7 +148,7 @@ export default function TaskGenerator({ addTask }: TaskGeneratorProps) {
 
       const tasks = Array.isArray(data) ? data : data.tasks || [];
       if (tasks.length === 0) {
-        setError("No tasks found. Try adding more action items to your notes.");
+        setError("No tasks found. Make sure your notes contain action items like 'Fix bug', 'Call client', 'Review document', etc.");
         return;
       }
 
@@ -347,7 +347,6 @@ export default function TaskGenerator({ addTask }: TaskGeneratorProps) {
     setSuccess(null);
 
     try {
-      // Try AI-generated examples first
       if (process.env.NEXT_PUBLIC_USE_AI === "true") {
         try {
           const response = await fetch("/api/generate-example", {
@@ -366,7 +365,6 @@ export default function TaskGenerator({ addTask }: TaskGeneratorProps) {
         }
       }
 
-      // Fallback examples
       const examples = [
         `- Fix the login bug by Friday
 - Review marketing copy

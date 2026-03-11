@@ -21,28 +21,9 @@ export default function Footer() {
               </span>
             </div>
             <p className="text-sm text-muted-foreground max-w-md leading-relaxed">
-              Transform messy notes into organized Kanban boards with AI powered
-              task management. Start free, upgrade to Premium for more.
+              Transform messy notes into organized Kanban boards for seamless
+              task management. Start free, upgrade what need.
             </p>
-            <p className="text-xs text-muted-foreground">
-              Questions?{' '}
-              <a
-                href="mailto:muhammadtanveerabbas.dev@gmail.com"
-                className="text-primary hover:underline transition-colors"
-              >
-                Contact us
-              </a>
-            </p>
-            <a
-              href="https://github.com/MuhammadTanveerAbbas/kanbi-ActionBoard"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 border border-primary/20 text-sm text-primary hover:bg-primary/20 transition-all group"
-            >
-              <Github className="h-4 w-4" />
-              Star on GitHub
-              <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform" />
-            </a>
           </div>
 
           {/* Product */}
@@ -103,17 +84,17 @@ export default function Footer() {
         {/* Bottom */}
         <div className="border-t border-border/40 pt-8 flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-muted-foreground">
           <p>
-            © {new Date().getFullYear()} KANBI. Built by Muhammad Tanveer Abbas
-            .
+            © {new Date().getFullYear()} KANBI. All rights reserved.
           </p>
-          <div className="flex items-center gap-2 text-xs">
-            <span>Built with</span>
-            <span className="text-primary">Next.js</span>
-            <span>•</span>
-            <span className="text-primary">TypeScript</span>
-            <span>•</span>
-            <span className="text-primary">Tailwind</span>
-          </div>
+          <p className="text-xs">
+            Questions?{" "}
+            <a
+              href="mailto:muhammadtanveerabbas.dev@gmail.com"
+              className="text-primary hover:underline transition-colors"
+            >
+              Contact us
+            </a>
+          </p>
         </div>
       </div>
     </footer>

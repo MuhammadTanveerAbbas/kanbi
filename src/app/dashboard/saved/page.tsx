@@ -42,6 +42,8 @@ export default function SavedPage() {
   const [selectedGeneration, setSelectedGeneration] =
     useState<Generation | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -113,22 +115,43 @@ export default function SavedPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this generation?")) return;
+    setDeleteTargetId(id);
+    setDeleteConfirmOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTargetId) return;
 
     try {
-      const response = await fetch(`/api/saved/${id}`, {
+      const response = await fetch(`/api/saved/${deleteTargetId}`, {
         method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
       });
 
-      if (response.ok) {
-        fetchGenerations();
-        if (selectedGeneration?.id === id) {
-          setIsModalOpen(false);
-          setSelectedGeneration(null);
-        }
+      console.log("Delete response status:", response.status);
+      const responseText = await response.text();
+      console.log("Delete response:", responseText);
+
+      if (!response.ok) {
+        console.error("Delete failed with status:", response.status);
+        alert("Failed to delete board. Please try again.");
+        return;
+      }
+
+      console.log("Delete successful");
+      fetchGenerations();
+      if (selectedGeneration?.id === deleteTargetId) {
+        setIsModalOpen(false);
+        setSelectedGeneration(null);
       }
     } catch (error) {
       console.error("Failed to delete:", error);
+      alert("An error occurred while deleting. Please try again.");
+    } finally {
+      setDeleteConfirmOpen(false);
+      setDeleteTargetId(null);
     }
   };
 
@@ -348,6 +371,33 @@ export default function SavedPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <DialogContent className="border-[#262626] bg-[#141414] max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-red-500">Delete Board</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this board? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setDeleteConfirmOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDelete}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -369,7 +419,6 @@ function GenerationCard({
   onExport: (gen: Generation) => void;
   onView: (gen: Generation) => void;
 }) {
-  // Use output_text from the generation
   const textContent = generation.output_text || '';
   const preview =
     textContent.substring(0, 150) +

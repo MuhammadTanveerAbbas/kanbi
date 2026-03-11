@@ -53,7 +53,7 @@ export default function FinalCtaSection({
                 </>
               ) : (
                 <>
-                  Start extracting tasks free →
+                  Start extracting tasks
                   <ArrowRight className="ml-1.5 sm:ml-2 h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 group-hover:translate-x-1 transition-transform" />
                 </>
               )}

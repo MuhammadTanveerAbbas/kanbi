@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/server';
 import { z } from 'zod';
 import { rateLimit, rateLimitResponse } from '@/lib/rate-limiter';
 
@@ -21,22 +21,10 @@ export async function DELETE(
   if (!limit.success) return rateLimitResponse();
 
   try {
-    const supabase = createServerClient();
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
 
-    // Get user from auth header or session
-    const authHeader = request.headers.get('authorization');
-    let userId: string | null = null;
-
-    if (authHeader?.startsWith('Bearer ')) {
-      const token = authHeader.replace('Bearer ', '');
-      const { data: { user } } = await supabase.auth.getUser(token);
-      userId = user?.id || null;
-    } else {
-      const { data: { user } } = await supabase.auth.getUser();
-      userId = user?.id || null;
-    }
-
-    if (!userId) {
+    if (!user) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
@@ -49,7 +37,7 @@ export async function DELETE(
       .from('saved_generations')
       .delete()
       .eq('id', id)
-      .eq('user_id', userId);
+      .eq('user_id', user.id);
 
     if (error) {
       console.error('Delete error:', error);
@@ -77,22 +65,10 @@ export async function PATCH(
   if (!limit.success) return rateLimitResponse();
 
   try {
-    const supabase = createServerClient();
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
 
-    // Get user from auth header or session
-    const authHeader = request.headers.get('authorization');
-    let userId: string | null = null;
-
-    if (authHeader?.startsWith('Bearer ')) {
-      const token = authHeader.replace('Bearer ', '');
-      const { data: { user } } = await supabase.auth.getUser(token);
-      userId = user?.id || null;
-    } else {
-      const { data: { user } } = await supabase.auth.getUser();
-      userId = user?.id || null;
-    }
-
-    if (!userId) {
+    if (!user) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
@@ -115,7 +91,7 @@ export async function PATCH(
       .from('saved_generations')
       .update(body)
       .eq('id', id)
-      .eq('user_id', userId)
+      .eq('user_id', user.id)
       .select()
       .single();
 

@@ -6,22 +6,28 @@ import { Brain, Clock, TrendingUp } from "lucide-react";
 
 const problems = [
   {
-    icon: <Clock className="h-6 w-6 sm:h-8 sm:w-8 md:h-10 md:w-10 text-primary" />,
+    icon: (
+      <Clock className="h-6 w-6 sm:h-8 sm:w-8 md:h-10 md:w-10 text-primary" />
+    ),
     title: "You're losing 20 minutes after every client call",
     description:
-      "Scrolling through notes, copy-pasting into your task manager, figuring out who owns what. It's not the hard part of consulting — but it's eating your time anyway.",
+      "Scrolling through notes, copy pasting into your task manager, figuring out who owns what none of it is hard, but it still eats your time anyway.",
   },
   {
-    icon: <Brain className="h-6 w-6 sm:h-8 sm:w-8 md:h-10 md:w-10 text-primary" />,
-    title: "Your notes live in 4 different places",
+    icon: (
+      <Brain className="h-6 w-6 sm:h-8 sm:w-8 md:h-10 md:w-10 text-primary" />
+    ),
+    title: "Your notes live in many different places",
     description:
-      "Gmail threads, Notion docs, PDF briefs, meeting recordings. Kanbi reads all of them. Paste, upload, import, or link — you get tasks either way.",
+      "Gmail threads, Notion docs, PDF briefs, meeting recordings Kanbi reads them all. Paste, upload, import, or link, and get tasks either way.",
   },
   {
-    icon: <TrendingUp className="h-6 w-6 sm:h-8 sm:w-8 md:h-10 md:w-10 text-primary" />,
-    title: "You forget the small commitments",
+    icon: (
+      <TrendingUp className="h-6 w-6 sm:h-8 sm:w-8 md:h-10 md:w-10 text-primary" />
+    ),
+    title: "You forget the small commitments early",
     description:
-      "Client said 'can you send that by Friday?' buried in email. Kanbi catches every action item, assigns it, and sets the deadline — even if you missed it live.",
+      "Client said 'can you send that by Friday?' buried in email. Kanbi catches every action item, assigns it, and sets the deadline even if you missed it live.",
   },
 ];
 
@@ -43,7 +49,8 @@ export default function ProblemSection() {
             The consultant bottleneck
           </h2>
           <p className="text-xs sm:text-sm md:text-base lg:text-lg text-muted-foreground max-w-2xl mx-auto px-2">
-            Your expertise is in the room. The admin shouldn't follow you out the door.
+            Your expertise is in the room. The admin shouldn't follow you out
+            the door.
           </p>
         </motion.div>
 

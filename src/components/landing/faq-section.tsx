@@ -1,31 +1,36 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { ChevronDown } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Card, CardContent } from "@/components/ui/card";
+import { AnimatePresence, motion } from "framer-motion";
+import { ChevronDown } from "lucide-react";
+import { useState } from "react";
 
 const faqs = [
   {
     question: "Do I need to change how I take notes?",
-    answer: "No. Kanbi reads whatever you have — bullet points, paragraphs, messy stream of consciousness. It's built for real meeting notes, not structured templates."
+    answer:
+      "No. Kanbi reads whatever you have bullet points, paragraphs, messy stream of consciousness. It's built for real meeting notes, not structured templates.",
   },
   {
     question: "What if my notes are confidential client information?",
-    answer: "Your data is stored with row-level security in Supabase. Nobody else can access your boards. You can delete everything from settings at any time."
+    answer:
+      "Your data is stored with row level security in Supabase. Nobody else can access your boards. You can delete everything from settings at any time.",
   },
   {
     question: "How accurate is the AI task extraction?",
-    answer: "95%+ on structured notes. The AI is specifically prompted for consultant workflows — it understands phrases like 'follow up with', 'client needs', 'deadline is', and 'action item'."
+    answer:
+      "95%+ on structured notes. The AI is specifically prompted for consultant workflows, it understands phrases like 'follow up with', 'client needs', 'deadline is', and 'action item'.",
   },
   {
     question: "What's the difference between Free and Pro?",
-    answer: "Free gives you 10 AI extractions per day — enough to test with real client work. Premium ($12/month) gives you 50/day plus PDF upload, Notion import, Gmail extraction, and URL crawling."
+    answer:
+      "Free gives you 10 AI extractions per day enough to test with real client work. Premium ($12/month) gives you 50/day plus PDF upload, Notion import, Gmail extraction, and URL crawling.",
   },
   {
     question: "Can I export my tasks to other tools?",
-    answer: "Yes. Export any board as JSON. CSV export and direct integrations with Notion and Linear are on the roadmap."
-  }
+    answer:
+      "Yes. Export any board as JSON. CSV export and direct integrations with Notion and Linear are on the roadmap.",
+  },
 ];
 
 export default function FaqSection() {

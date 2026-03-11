@@ -2,44 +2,63 @@
 
 import { Card, CardContent } from "@/components/ui/card";
 import { motion } from "framer-motion";
-import { Bot, FileText, Target, Clipboard, BarChart3, Lock } from "lucide-react";
+import {
+  Bot,
+  FileText,
+  Target,
+  Clipboard,
+  BarChart3,
+  Lock,
+} from "lucide-react";
 
 const features = [
   {
-    icon: <Bot className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 text-primary" />,
+    icon: (
+      <Bot className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 text-primary" />
+    ),
     title: "Real AI extraction",
     description:
-      "Powered by Gemini + Groq. Not keyword matching — actual understanding of what needs to happen, who owns it, and when.",
+      "Not keyword matching actual understanding of what needs to happen, who owns it, and when.",
   },
   {
-    icon: <FileText className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 text-primary" />,
+    icon: (
+      <FileText className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 text-primary" />
+    ),
     title: "5 ways to get your notes in",
     description:
       "Paste text, upload a PDF, import a Notion page, paste an email thread, or drop in a URL. Kanbi reads them all.",
   },
   {
-    icon: <Target className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 text-primary" />,
+    icon: (
+      <Target className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 text-primary" />
+    ),
     title: "Priorities set automatically",
     description:
       "AI reads deadlines in context. 'By Friday' becomes Urgent. 'Next sprint' becomes Medium. No manual tagging.",
   },
   {
-    icon: <Clipboard className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 text-primary" />,
+    icon: (
+      <Clipboard className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 text-primary" />
+    ),
     title: "Kanban board, ready instantly",
     description:
       "Tasks land in To Do, In Progress, or Done. Drag to move. Everything saves to your account automatically.",
   },
   {
-    icon: <BarChart3 className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 text-primary" />,
-    title: "Track what you actually shipped",
+    icon: (
+      <BarChart3 className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 text-primary" />
+    ),
+    title: "Track what's actually shipped",
     description:
       "Dashboard shows task completion trends, AI usage, and board history. Know your productivity at a glance.",
   },
   {
-    icon: <Lock className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 text-primary" />,
+    icon: (
+      <Lock className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 text-primary" />
+    ),
     title: "Your client data stays yours",
     description:
-      "Supabase row-level security means no one else can see your boards. Export anytime as JSON.",
+      "Supabase row level security means no one else can see your boards. Export anytime as JSON.",
   },
 ];
 
@@ -61,7 +80,8 @@ export default function FeaturesSection() {
             Built for how you work
           </h2>
           <p className="text-xs sm:text-sm md:text-base lg:text-lg text-muted-foreground max-w-2xl mx-auto px-2">
-            One tool for notes, emails, PDFs, and Notion. One Kanban board. One less thing to remember.
+            One tool for notes, emails, PDFs, and Notion. One Kanban board. One
+            less thing to remember.
           </p>
         </motion.div>
 

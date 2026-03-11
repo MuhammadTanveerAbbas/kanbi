@@ -11,7 +11,7 @@ const plans = [
     name: "Free",
     price: "$0",
     period: "forever",
-    description: "Try it out — no credit card needed",
+    description: "Try it out with real client work",
     features: [
       "10 AI generations per day",
       "Basic task extraction",
@@ -105,7 +105,10 @@ export default function PricingPreviewSection() {
                 <CardContent className="space-y-3 sm:space-y-4 md:space-y-6">
                   <ul className="space-y-2 sm:space-y-3 md:space-y-4">
                     {plan.features.map((feature) => (
-                      <li key={feature} className="flex items-start gap-2 sm:gap-3">
+                      <li
+                        key={feature}
+                        className="flex items-start gap-2 sm:gap-3"
+                      >
                         <Check className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0 mt-0.5" />
                         <span className="text-xs sm:text-sm md:text-base">
                           {feature}
@@ -125,8 +128,12 @@ export default function PricingPreviewSection() {
                     variant="ghost"
                     className="w-full text-xs sm:text-sm text-gray-400 hover:text-primary"
                   >
-                    <Link href="/pricing" className="flex items-center justify-center gap-1">
-                      View Full Pricing <ArrowRight className="h-3 w-3 sm:h-4 sm:w-4" />
+                    <Link
+                      href="/pricing"
+                      className="flex items-center justify-center gap-1"
+                    >
+                      View Full Pricing{" "}
+                      <ArrowRight className="h-3 w-3 sm:h-4 sm:w-4" />
                     </Link>
                   </Button>
                 </CardContent>
