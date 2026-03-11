@@ -169,7 +169,7 @@ export class AIService {
           priority: (item.priority ?? 'medium').toString().toLowerCase(),
         };
       })
-      .filter((t: any) => t !== null && t.task.length > 0);
+      .filter((t: any): t is { task: string; owner: string; deadline: string; priority?: string } => t !== null && t.task.length > 0);
   }
 
   /**
