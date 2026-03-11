@@ -157,19 +157,18 @@ export class AIService {
    */
   private static normalizeTaskArray(raw: any[]): { task: string; owner: string; deadline: string; priority?: string }[] {
     if (!Array.isArray(raw)) return [];
-    return raw
-      .map((item: any) => {
-        if (!item || typeof item !== 'object') return null;
-        const task = (item.task ?? item.title ?? item.description ?? '').toString().trim();
-        if (!task) return null;
-        return {
-          task,
-          owner: (item.owner ?? item.assignee ?? 'Me').toString().trim(),
-          deadline: (item.deadline ?? item.dueDate ?? item.due ?? 'Not specified').toString().trim(),
-          priority: (item.priority ?? 'medium').toString().toLowerCase(),
-        };
-      })
-      .filter((t: any): t is { task: string; owner: string; deadline: string; priority?: string } => t !== null && t.task.length > 0);
+    const mapped = raw.map((item: any) => {
+      if (!item || typeof item !== 'object') return null;
+      const task = (item.task ?? item.title ?? item.description ?? '').toString().trim();
+      if (!task) return null;
+      return {
+        task,
+        owner: (item.owner ?? item.assignee ?? 'Me').toString().trim(),
+        deadline: (item.deadline ?? item.dueDate ?? item.due ?? 'Not specified').toString().trim(),
+        priority: (item.priority ?? 'medium').toString().toLowerCase(),
+      };
+    });
+    return mapped.filter((t): t is { task: string; owner: string; deadline: string; priority?: string } => t !== null && t.task.length > 0);
   }
 
   /**
