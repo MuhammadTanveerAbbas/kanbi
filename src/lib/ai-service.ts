@@ -157,7 +157,7 @@ export class AIService {
    */
   private static normalizeTaskArray(raw: any[]): { task: string; owner: string; deadline: string; priority?: string }[] {
     if (!Array.isArray(raw)) return [];
-    const mapped = raw.map((item: any) => {
+    const mapped: (({ task: string; owner: string; deadline: string; priority: string } | null)[]) = raw.map((item: any) => {
       if (!item || typeof item !== 'object') return null;
       const task = (item.task ?? item.title ?? item.description ?? '').toString().trim();
       if (!task) return null;
@@ -168,7 +168,7 @@ export class AIService {
         priority: (item.priority ?? 'medium').toString().toLowerCase(),
       };
     });
-    return mapped.filter((t): t is { task: string; owner: string; deadline: string; priority?: string } => t !== null && t.task.length > 0);
+    return mapped.filter((t: any): t is { task: string; owner: string; deadline: string; priority: string } => t !== null && t.task.length > 0) as { task: string; owner: string; deadline: string; priority?: string }[];
   }
 
   /**
