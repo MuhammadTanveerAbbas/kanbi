@@ -25,7 +25,16 @@ export default function LoginPage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     if (params.get('error') === 'oauth_failed') setOauthError('Google sign-in failed. Please try again or use email.')
-  }, [])
+    
+    // Check if user is already logged in and redirect to dashboard
+    const checkAuth = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        router.push('/dashboard')
+      }
+    }
+    checkAuth()
+  }, [router, supabase.auth])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -49,6 +58,7 @@ export default function LoginPage() {
       
       router.push('/dashboard')
       router.refresh()
+      return
     } catch (err) {
       setError('An unexpected error occurred. Please try again.')
       setLoading(false)

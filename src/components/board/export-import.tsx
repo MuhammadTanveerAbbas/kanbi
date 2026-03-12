@@ -23,12 +23,58 @@ export default function TaskStats({ tasks, setTasks }: TaskStatsProps) {
   const doneTasks = tasks.filter(t => t.status === 'Done');
   const completionRate = tasks.length > 0 ? Math.round((doneTasks.length / tasks.length) * 100) : 0;
 
+  const sanitizeString = (value: unknown): string => {
+    if (typeof value !== 'string') return '';
+    return value.replace(/[<>"'&]/g, (char) => {
+      const entities: Record<string, string> = {
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;',
+        '&': '&amp;'
+      };
+      return entities[char] || char;
+    }).slice(0, 500);
+  };
+
+  const validateAndSanitizeTask = (task: any): Task | null => {
+    try {
+      if (!task || typeof task !== 'object') return null;
+      
+      const id = typeof task.id === 'string' ? task.id.slice(0, 100) : '';
+      const title = sanitizeString(task.title);
+      const status = ['To Do', 'In Progress', 'Done'].includes(task.status) ? task.status : 'To Do';
+      const priority = ['Low', 'Medium', 'High', 'Urgent'].includes(task.priority) ? task.priority : 'Medium';
+      
+      if (!id || !title) return null;
+      
+      return {
+        id,
+        title,
+        description: task.description ? sanitizeString(task.description) : undefined,
+        status,
+        priority,
+        dueDate: task.dueDate && typeof task.dueDate === 'string' ? task.dueDate.slice(0, 50) : undefined,
+        tags: Array.isArray(task.tags) ? task.tags.filter((t: any) => typeof t === 'string').map((t: string) => t.slice(0, 50)) : undefined,
+        createdAt: task.createdAt && typeof task.createdAt === 'string' ? task.createdAt : new Date().toISOString()
+      };
+    } catch {
+      return null;
+    }
+  };
+
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     if (!file.name.endsWith('.json')) {
       setError('Need a .json file');
+      setTimeout(() => setError(null), 3000);
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError('File too large (max 5MB)');
       setTimeout(() => setError(null), 3000);
       return;
     }
@@ -41,19 +87,24 @@ export default function TaskStats({ tasks, setTasks }: TaskStatsProps) {
         
         if (!Array.isArray(importedTasks)) throw new Error('Invalid file');
         
-        const isValid = importedTasks.every(task => 
-          task.id && task.title && task.status && 
-          ['To Do', 'In Progress', 'Done'].includes(task.status)
-        );
-        
-        if (!isValid) throw new Error('Invalid tasks');
-        
-        if (tasks.length > 0 && !confirm(`Replace ${tasks.length} tasks with ${importedTasks.length} from file?`)) {
+        if (importedTasks.length > 1000) {
+          setError('Too many tasks (max 1000)');
+          setTimeout(() => setError(null), 3000);
           return;
         }
         
-        setTasks(importedTasks);
-        setSuccess(`Loaded ${importedTasks.length} tasks`);
+        const sanitizedTasks = importedTasks
+          .map(validateAndSanitizeTask)
+          .filter((task): task is Task => task !== null);
+        
+        if (sanitizedTasks.length === 0) throw new Error('No valid tasks');
+        
+        if (tasks.length > 0 && !confirm(`Replace ${tasks.length} tasks with ${sanitizedTasks.length} from file?`)) {
+          return;
+        }
+        
+        setTasks(sanitizedTasks);
+        setSuccess(`Loaded ${sanitizedTasks.length} tasks`);
         setTimeout(() => setSuccess(null), 3000);
       } catch (error) {
         setError('Invalid file');

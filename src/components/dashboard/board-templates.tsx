@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { CheckSquare, Calendar, Rocket, FileText, Zap, HelpCircle, X } from 'lucide-react';
+import { CheckSquare, Calendar, Rocket, FileText, Zap, HelpCircle, X, TrendingUp, Users, Palette } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 const templates = [
@@ -54,7 +54,6 @@ const templates = [
     ],
     howToUse: 'Input your project goals and phases. The AI will break them into manageable milestones and tasks. Use the board to visualize project timeline and dependencies. Save your roadmap for future reference.'
   },
-
   {
     id: 'weekly',
     name: 'Weekly Planning',
@@ -69,6 +68,79 @@ const templates = [
       { title: 'Prepare for Monday standup', status: 'todo', priority: 'medium' },
     ],
     howToUse: 'Plan your entire week by pasting your goals and commitments. AI organizes them by priority and category. Review daily, update progress, and adjust as needed. Save your plan to track weekly achievements.'
+  },
+  {
+    id: 'content',
+    name: 'Content Calendar',
+    icon: FileText,
+    description: 'Manage content creation workflow',
+    tasks: [
+      { title: 'Brainstorm content ideas', status: 'todo', priority: 'high' },
+      { title: 'Write blog post draft', status: 'todo', priority: 'high' },
+      { title: 'Create social media graphics', status: 'todo', priority: 'medium' },
+      { title: 'Schedule posts', status: 'todo', priority: 'medium' },
+      { title: 'Review analytics', status: 'todo', priority: 'low' },
+    ],
+    howToUse: 'Paste your content ideas, deadlines, and platform requirements. AI organizes them into a content calendar. Track drafts, reviews, and publishing. Perfect for marketing teams and content creators.'
+  },
+  {
+    id: 'sales',
+    name: 'Sales Pipeline',
+    icon: TrendingUp,
+    description: 'Track sales opportunities',
+    tasks: [
+      { title: 'Qualify leads', status: 'todo', priority: 'high' },
+      { title: 'Schedule demos', status: 'todo', priority: 'high' },
+      { title: 'Send proposals', status: 'in-progress', priority: 'high' },
+      { title: 'Follow up with prospects', status: 'todo', priority: 'medium' },
+      { title: 'Close deals', status: 'todo', priority: 'urgent' },
+    ],
+    howToUse: 'Input your sales leads and opportunities. AI categorizes them by stage and priority. Move prospects through your pipeline from To Do → In Progress → Done. Track conversion metrics and close rates.'
+  },
+  {
+    id: 'product',
+    name: 'Product Launch',
+    icon: Zap,
+    description: 'Coordinate product release',
+    tasks: [
+      { title: 'Finalize product features', status: 'in-progress', priority: 'urgent' },
+      { title: 'QA testing and bug fixes', status: 'in-progress', priority: 'urgent' },
+      { title: 'Prepare marketing materials', status: 'todo', priority: 'high' },
+      { title: 'Set up analytics tracking', status: 'todo', priority: 'high' },
+      { title: 'Plan launch event', status: 'todo', priority: 'medium' },
+      { title: 'Deploy to production', status: 'todo', priority: 'urgent' },
+    ],
+    howToUse: 'Paste your product launch checklist and timeline. AI organizes tasks by urgency and dependencies. Coordinate across teams (engineering, marketing, support). Track launch readiness in real-time.'
+  },
+  {
+    id: 'hr',
+    name: 'Recruitment & Onboarding',
+    icon: Users,
+    description: 'Manage hiring and new hires',
+    tasks: [
+      { title: 'Post job opening', status: 'done', priority: 'high' },
+      { title: 'Review applications', status: 'in-progress', priority: 'high' },
+      { title: 'Schedule interviews', status: 'todo', priority: 'high' },
+      { title: 'Prepare offer letter', status: 'todo', priority: 'medium' },
+      { title: 'Setup onboarding materials', status: 'todo', priority: 'medium' },
+      { title: 'Schedule first day orientation', status: 'todo', priority: 'low' },
+    ],
+    howToUse: 'Track your entire recruitment and onboarding process. Paste candidate info, interview feedback, and onboarding tasks. AI organizes by stage and priority. Ensure no candidate or new hire falls through the cracks.'
+  },
+  {
+    id: 'design',
+    name: 'Design Project',
+    icon: Palette,
+    description: 'Manage design deliverables',
+    tasks: [
+      { title: 'Gather design requirements', status: 'done', priority: 'high' },
+      { title: 'Create wireframes', status: 'in-progress', priority: 'high' },
+      { title: 'Design mockups', status: 'todo', priority: 'high' },
+      { title: 'Get stakeholder feedback', status: 'todo', priority: 'medium' },
+      { title: 'Prepare design system', status: 'todo', priority: 'medium' },
+      { title: 'Hand off to development', status: 'todo', priority: 'high' },
+    ],
+    howToUse: 'Paste design briefs, feedback, and revision requests. AI organizes design tasks by phase and priority. Track iterations, approvals, and handoffs. Collaborate with developers and stakeholders seamlessly.'
   },
 ];
 

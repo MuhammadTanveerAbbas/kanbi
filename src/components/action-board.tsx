@@ -8,15 +8,18 @@ import SaveBoardButton from "./board/save-board-button";
 import Onboarding from "./onboarding";
 import { NoTasksEmptyState } from "./empty-states";
 import { AppLoadingSkeleton } from "./loading-states";
-import { CheckCircle, AlertCircle } from "lucide-react";
+import { CheckCircle, AlertCircle, AlertTriangle } from "lucide-react";
 import { analytics } from "@/lib/analytics";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { UsageStats } from "@/lib/dashboard-types";
 
 export default function Kanbi() {
   const store = useTasksStore();
   const hasTasks = store.tasks.length > 0;
   const completedTasks = store.tasks.filter(task => task.status === 'Done').length;
   const hasTrackedUsage = useRef(false);
+  const [usage, setUsage] = useState<UsageStats | null>(null);
+  const [limitExceeded, setLimitExceeded] = useState(false);
 
   // Track app usage and board usage
   useEffect(() => {
@@ -27,6 +30,25 @@ export default function Kanbi() {
       hasTrackedUsage.current = true;
       fetch('/api/track-board-usage', { method: 'POST' }).catch(console.error);
     }
+
+    // Fetch usage stats to check limits
+    const fetchUsage = async () => {
+      try {
+        const response = await fetch('/api/usage');
+        if (response.ok) {
+          const data = await response.json();
+          setUsage(data);
+          // Check if daily board limit is exceeded
+          if (data.boardsUsedToday >= data.boardsTodayLimit) {
+            setLimitExceeded(true);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch usage stats:', error);
+      }
+    };
+
+    fetchUsage();
   }, []);
 
   const handleQuickAdd = () => {
@@ -63,6 +85,19 @@ export default function Kanbi() {
       <Onboarding hasAnyTasks={hasTasks} />
 
       <div className="w-full max-w-7xl mx-auto space-y-4 sm:space-y-6 p-2 sm:p-3 md:p-4">
+        {/* Limit Exceeded Warning */}
+        {limitExceeded && (
+          <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <h3 className="font-semibold text-red-500 mb-1">Daily Board Limit Reached</h3>
+              <p className="text-sm text-red-400">
+                You have reached your daily limit of {usage?.boardsTodayLimit} boards. You can create {Math.max(0, (usage?.boardsMonthLimit || 300) - (usage?.boardsUsedMonth || 0))} more boards this month. Upgrade to Premium for higher limits or try again tomorrow.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Header */}
         <div className="text-center space-y-2 sm:space-y-3 py-3 sm:py-4">
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent px-2">

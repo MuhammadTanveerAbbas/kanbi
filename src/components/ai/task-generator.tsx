@@ -407,11 +407,11 @@ export default function TaskGenerator({ addTask }: TaskGeneratorProps) {
 
         <Tabs defaultValue="paste" className="flex-1 flex flex-col min-h-0">
           <TabsList className="grid w-full grid-cols-5 mb-4">
-            <TabsTrigger value="paste" className="text-xs sm:text-sm flex items-center gap-1"><ClipboardPaste className="h-4 w-4" /> Paste</TabsTrigger>
-            <TabsTrigger value="pdf" className="text-xs sm:text-sm flex items-center gap-1"><FileType className="h-4 w-4" /> PDF</TabsTrigger>
-            <TabsTrigger value="notion" className="text-xs sm:text-sm flex items-center gap-1"><BookOpen className="h-4 w-4" /> Notion</TabsTrigger>
-            <TabsTrigger value="gmail" className="text-xs sm:text-sm flex items-center gap-1"><Mail className="h-4 w-4" /> Gmail</TabsTrigger>
-            <TabsTrigger value="url" className="text-xs sm:text-sm flex items-center gap-1"><LinkIcon className="h-4 w-4" /> URL</TabsTrigger>
+            <TabsTrigger value="paste" className="text-xs sm:text-sm flex items-center gap-1"><ClipboardPaste className="h-4 w-4 hidden" /> Paste</TabsTrigger>
+            <TabsTrigger value="pdf" className="text-xs sm:text-sm flex items-center gap-1"><FileType className="h-4 w-4 hidden" /> PDF</TabsTrigger>
+            <TabsTrigger value="notion" className="text-xs sm:text-sm flex items-center gap-1"><BookOpen className="h-4 w-4 hidden" /> Notion</TabsTrigger>
+            <TabsTrigger value="gmail" className="text-xs sm:text-sm flex items-center gap-1"><Mail className="h-4 w-4 hidden" /> Gmail</TabsTrigger>
+            <TabsTrigger value="url" className="text-xs sm:text-sm flex items-center gap-1"><LinkIcon className="h-4 w-4 hidden" /> URL</TabsTrigger>
           </TabsList>
 
           <TabsContent value="paste" className="flex-1 flex flex-col gap-4 mt-0 data-[state=inactive]:hidden">
