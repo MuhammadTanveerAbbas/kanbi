@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { TrendingUp } from 'lucide-react';
+import { TrendingUp, CheckCircle, AlertCircle, AlertTriangle } from 'lucide-react';
 import { Task } from '@/lib/types';
 
 interface WorkloadAnalysis {
