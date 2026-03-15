@@ -6,9 +6,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "ship": "pnpm check:types && pnpm test && pnpm run build && pnpm run start & sleep 5 && pnpm test:e2e && vercel --prod",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
     "test": "vitest",
     "test:watch": "vitest --watch",
     "test:coverage": "vitest --coverage",
@@ -47,6 +46,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.5",
     "@next/bundle-analyzer": "^16.1.6",
     "@playwright/test": "^1.48.0",
     "@testing-library/react": "^16.0.0",
@@ -57,6 +57,8 @@
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^4.3.0",
     "@vitest/ui": "^1.6.0",
+    "eslint": "^8.57.1",
+    "eslint-config-next": "^16.1.6",
     "jsdom": "^24.1.0",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",

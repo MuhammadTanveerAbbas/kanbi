@@ -11,6 +11,9 @@ const DEFAULT_TIME_ESTIMATES: Record<TaskPriority, number> = {
 // Context switching cost per task (in minutes)
 const CONTEXT_SWITCHING_COST = 15;
 
+// Default daily capacity in hours
+const DAILY_CAPACITY_HOURS = 6;
+
 /**
  * Analyze user's current workload and generate insights
  */
@@ -184,7 +187,7 @@ export class WorkloadAnalyzer {
   private static generateInsights(
     totalTasks: number,
     estimatedHours: number,
-    taskBreakdown: WorkloadAnalysis['taskBreakdown'],
+    taskBreakdown: EnhancedWorkloadAnalysis['taskBreakdown'],
     userPattern?: UserPattern
   ): string[] {
     const insights: string[] = [];
@@ -227,9 +230,9 @@ export class WorkloadAnalyzer {
    * Generate actionable suggestions
    */
   private static generateSuggestions(
-    status: WorkloadAnalysis['status'],
+    status: EnhancedWorkloadAnalysis['status'],
     overloadHours: number,
-    taskBreakdown: WorkloadAnalysis['taskBreakdown'],
+    taskBreakdown: EnhancedWorkloadAnalysis['taskBreakdown'],
     totalTasks: number
   ): string[] {
     const suggestions: string[] = [];

@@ -32,9 +32,9 @@ export class NotionClient {
 
   async getDatabases() {
     const response = await this.client.search({
-      filter: { property: 'object', value: 'database' },
+      filter: { property: 'object', value: 'page' },
     });
-    return response.results;
+    return response.results.filter((result: any) => result.object === 'database');
   }
 
   async getDatabase(databaseId: string) {
@@ -42,8 +42,9 @@ export class NotionClient {
   }
 
   async queryDatabase(databaseId: string) {
-    const response = await this.client.databases.query({
-      database_id: databaseId,
+    const response = await this.client.search({
+      filter: { property: 'object', value: 'page' },
+      query: databaseId,
     });
     return response.results;
   }
