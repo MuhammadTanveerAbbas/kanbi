@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Github, LayoutGrid } from "lucide-react";
+import { LayoutGrid } from "lucide-react";
 
 export default function Footer() {
   return (
@@ -17,15 +17,6 @@ export default function Footer() {
           <div className="flex items-center gap-6 text-xs text-muted-foreground">
             <Link href="/privacy" className="hover:text-primary transition-colors">Privacy</Link>
             <Link href="/terms" className="hover:text-primary transition-colors">Terms</Link>
-            <a 
-              href="https://github.com/MuhammadTanveerAbbas/kanbi-ActionBoard" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="flex items-center gap-1.5 hover:text-primary transition-colors"
-            >
-              <Github className="h-3.5 w-3.5" />
-              GitHub
-            </a>
           </div>
         </div>
       </div>
