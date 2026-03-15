@@ -30,10 +30,9 @@ export class ChatAssistant {
     const conversationHistory = this.formatChatHistory(chatHistory);
     
     try {
-      // Use Gemini for better conversational AI
       const response = await AIService.generate(
         `${systemPrompt}\n\n${conversationHistory}\n\nUser: ${userMessage}\n\nAssistant:`,
-        { model: 'gemini', tone: 'friendly', length: 'medium' }
+        { model: 'groq', tone: 'friendly', length: 'medium' }
       );
       
       return response.trim();
@@ -138,7 +137,6 @@ Guidelines:
       return `You've got this! 💪 Start with the smallest task to build momentum. Completing even one task will make you feel accomplished and ready for the next.`;
     }
     
-    // Default
     return `I'm here to help with your ${context.tasks.length} tasks! Ask me to prioritize, break down tasks, plan your day, or just chat about your workload.`;
   }
 
@@ -155,7 +153,6 @@ Guidelines:
       case 'prioritize':
         const urgent = tasks.filter(t => t.priority === 'Urgent');
         const high = tasks.filter(t => t.priority === 'High');
-        
         if (urgent.length > 0) {
           return `🎯 Priority Order:\n\n1. Start with ${urgent.length} urgent task${urgent.length > 1 ? 's' : ''}\n2. Then tackle ${high.length} high-priority task${high.length > 1 ? 's' : ''}\n3. Fill remaining time with medium tasks\n\nFocus on: "${urgent[0]?.title || high[0]?.title}" first!`;
         }
