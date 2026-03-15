@@ -50,7 +50,7 @@ export default function DashboardOverview() {
     };
   }, []);
 
-  const defaultUsage = {
+  const defaultUsage: UsageStats = {
     todayCount: 0,
     todayLimit: 10,
     monthCount: 0,
@@ -89,7 +89,7 @@ export default function DashboardOverview() {
       setTaskStats(taskStatsData);
     } catch (error) {
       console.error('Failed to fetch dashboard data:', error);
-      setUsage(defaultUsage);
+      setUsage(defaultUsage as UsageStats);
       setAnalytics([]);
       setSubscription({ plan: 'free', status: 'active' });
       setTaskStats({ urgent: 0, high: 0, medium: 0, low: 0, total: 0, completed: 0 });
