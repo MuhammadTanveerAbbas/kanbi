@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "ship": "pnpm check:types && pnpm test && pnpm run build && pnpm run start & sleep 5 && pnpm test:e2e && vercel --prod",
     "start": "next start",
     "lint": "next lint",
     "test": "vitest",

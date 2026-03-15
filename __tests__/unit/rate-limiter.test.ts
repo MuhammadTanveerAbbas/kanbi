@@ -1,5 +1,11 @@
-import { rateLimit, rateLimitResponse, addRateLimitHeaders } from '@/lib/rate-limiter'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { rateLimit, rateLimitResponse, addRateLimitHeaders, clearRateLimitMap } from '@/lib/rate-limiter'
 import { NextRequest, NextResponse } from 'next/server'
+
+// Mock Supabase to prevent auth calls
+vi.mock('@/lib/supabase/server', () => ({
+  createClient: vi.fn(() => Promise.reject(new Error('Auth disabled in tests'))),
+}))
 
 // Mock NextRequest
 const createMockRequest = (ip: string = '127.0.0.1', path: string = '/api/test'): NextRequest => {
@@ -14,11 +20,12 @@ const createMockRequest = (ip: string = '127.0.0.1', path: string = '/api/test')
 
 describe('Rate Limiter', () => {
   beforeEach(() => {
-    jest.useFakeTimers()
+    vi.useFakeTimers()
+    clearRateLimitMap()
   })
 
   afterEach(() => {
-    jest.useRealTimers()
+    vi.useRealTimers()
   })
 
   describe('rateLimit', () => {
@@ -32,7 +39,7 @@ describe('Rate Limiter', () => {
     })
 
     it('should track multiple requests', async () => {
-      const req = createMockRequest()
+      const req = createMockRequest('192.168.1.100')
       const options = { maxRequests: 3, windowMs: 60000 }
 
       const result1 = await rateLimit(req, options)
@@ -61,7 +68,7 @@ describe('Rate Limiter', () => {
     })
 
     it('should reset after window expires', async () => {
-      const req = createMockRequest()
+      const req = createMockRequest('192.168.1.101')
       const options = { maxRequests: 2, windowMs: 5000 }
 
       await rateLimit(req, options)
@@ -70,7 +77,7 @@ describe('Rate Limiter', () => {
       let result = await rateLimit(req, options)
       expect(result.success).toBe(false)
 
-      jest.advanceTimersByTime(5001)
+      vi.advanceTimersByTime(5001)
 
       result = await rateLimit(req, options)
       expect(result.success).toBe(true)
@@ -136,10 +143,10 @@ describe('Rate Limiter', () => {
     })
 
     it('should return reset time', async () => {
-      const req = createMockRequest()
       const now = Date.now()
-      jest.setSystemTime(now)
-
+      vi.setSystemTime(now)
+      
+      const req = createMockRequest('192.168.1.102')
       const result = await rateLimit(req, { maxRequests: 5, windowMs: 60000 })
       expect(result.reset).toBe(now + 60000)
     })
@@ -200,13 +207,13 @@ describe('Rate Limiter', () => {
     })
 
     it('should handle very short window', async () => {
-      const req = createMockRequest()
+      const req = createMockRequest('192.168.1.103')
       const options = { maxRequests: 5, windowMs: 100 }
 
       const result1 = await rateLimit(req, options)
       expect(result1.success).toBe(true)
 
-      jest.advanceTimersByTime(101)
+      vi.advanceTimersByTime(101)
 
       const result2 = await rateLimit(req, options)
       expect(result2.success).toBe(true)

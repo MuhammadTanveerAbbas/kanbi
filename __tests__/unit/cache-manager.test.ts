@@ -1,13 +1,14 @@
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { cacheManager, CACHE_KEYS, CACHE_TTL } from '@/lib/cache/cache-manager'
 
 describe('CacheManager', () => {
   beforeEach(() => {
     cacheManager.clear()
-    jest.useFakeTimers()
+    vi.useFakeTimers()
   })
 
   afterEach(() => {
-    jest.useRealTimers()
+    vi.useRealTimers()
   })
 
   describe('set and get', () => {
@@ -48,7 +49,7 @@ describe('CacheManager', () => {
       cacheManager.set(key, data, ttl)
       expect(cacheManager.get(key)).toEqual(data)
 
-      jest.advanceTimersByTime(ttl + 1)
+      vi.advanceTimersByTime(ttl + 1)
       expect(cacheManager.get(key)).toBeNull()
     })
 
@@ -58,7 +59,7 @@ describe('CacheManager', () => {
       const ttl = 10000
 
       cacheManager.set(key, data, ttl)
-      jest.advanceTimersByTime(5000)
+      vi.advanceTimersByTime(5000)
 
       expect(cacheManager.get(key)).toEqual(data)
     })
@@ -68,7 +69,7 @@ describe('CacheManager', () => {
       const data = { value: 'test' }
 
       cacheManager.set(key, data, 0)
-      jest.advanceTimersByTime(1)
+      vi.advanceTimersByTime(1)
 
       expect(cacheManager.get(key)).toBeNull()
     })
@@ -79,7 +80,7 @@ describe('CacheManager', () => {
       const ttl = 24 * 60 * 60 * 1000 // 24 hours
 
       cacheManager.set(key, data, ttl)
-      jest.advanceTimersByTime(1000)
+      vi.advanceTimersByTime(1000)
 
       expect(cacheManager.get(key)).toEqual(data)
     })

@@ -49,7 +49,7 @@ export const trackCompletionSchema = z.object({
 });
 
 export const chatSchema = z.object({
-  message: z.string().min(1, 'Message is required').max(5000, 'Message too long. Max 5,000 characters'),
+  message: z.string().min(1, 'Message is required').max(2000, 'Message too long. Max 2,000 characters'),
   tasks: z.array(z.any()).optional(),
 });
 

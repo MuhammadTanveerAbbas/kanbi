@@ -8,6 +8,10 @@ interface RateLimitRecord {
 
 const rateLimitMap = new Map<string, RateLimitRecord>();
 
+export function clearRateLimitMap() {
+  rateLimitMap.clear();
+}
+
 export async function rateLimit(
   req: NextRequest,
   options: { maxRequests: number; windowMs: number } = { maxRequests: 20, windowMs: 60000 }

@@ -1,11 +1,12 @@
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { POST } from '@/app/api/ai/analyze-workload/route'
 import { NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
-jest.mock('@/lib/supabase/server')
-jest.mock('@/lib/ai/workload-analyzer')
+vi.mock('@/lib/supabase/server')
+vi.mock('@/lib/ai/workload-analyzer')
 
-const mockCreateClient = createClient as jest.MockedFunction<typeof createClient>
+const mockCreateClient = createClient as ReturnType<typeof vi.fn>
 
 const createMockRequest = (body: any): NextRequest => {
   return {
@@ -25,46 +26,53 @@ const validTask = {
 
 describe('POST /api/ai/analyze-workload', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   describe('successful requests', () => {
     it('should return 200 with valid input', async () => {
       const mockSupabase = {
         auth: {
-          getUser: jest.fn().mockResolvedValue({
+          getUser: vi.fn().mockResolvedValue({
             data: { user: { id: 'user-123' } },
             error: null,
           }),
         },
-        from: jest.fn().mockReturnValue({
-          select: jest.fn().mockReturnThis(),
-          eq: jest.fn().mockReturnThis(),
-          order: jest.fn().mockReturnThis(),
-          limit: jest.fn().mockReturnThis(),
-          insert: jest.fn().mockResolvedValue({ data: null, error: null }),
-          upsert: jest.fn().mockResolvedValue({ data: null, error: null }),
-          update: jest.fn().mockResolvedValue({ data: null, error: null }),
+        from: vi.fn().mockReturnValue({
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          order: vi.fn().mockReturnThis(),
+          limit: vi.fn().mockReturnThis(),
+          insert: vi.fn().mockResolvedValue({ data: null, error: null }),
+          upsert: vi.fn().mockResolvedValue({ data: null, error: null }),
+          update: vi.fn().mockResolvedValue({ data: null, error: null }),
         }),
-        rpc: jest.fn().mockResolvedValue({ data: 5, error: null }),
+        rpc: vi.fn().mockResolvedValue({ data: 5, error: null }),
       }
 
       mockCreateClient.mockResolvedValue(mockSupabase as any)
 
-      const { WorkloadAnalyzer } = require('@/lib/ai/workload-analyzer')
-      WorkloadAnalyzer.analyzeWorkload = jest.fn().mockReturnValue({
+      const { WorkloadAnalyzer } = await import('@/lib/ai/workload-analyzer')
+      vi.mocked(WorkloadAnalyzer.analyzeWorkload).mockReturnValue({
         totalTasks: 5,
         taskBreakdown: { urgent: 1, high: 2, medium: 1, low: 1 },
         estimatedHours: 8,
         healthScore: 75,
+        capacityHours: 8,
+        overloadHours: 0,
         status: 'healthy',
-        burnoutRisk: { level: 'low', score: 20 },
+        burnoutRisk: { level: 'low', score: 20, consecutiveOverloadDays: 0, overloadHours: 0 },
+        deadlineClusters: [],
+        contextSwitchingCost: 0,
+        userCapacity: 8,
+        insights: [],
         suggestions: ['Focus on high priority tasks'],
       })
 
-      WorkloadAnalyzer.parseUserPattern = jest.fn().mockReturnValue({
+      vi.mocked(WorkloadAnalyzer.parseUserPattern).mockReturnValue({
         avgTasksPerDay: 5,
-        avgCompletionTimes: { High: 30, Medium: 20, Low: 10 },
+        avgCompletionTime: { Low: 10, Medium: 20, High: 30, Urgent: 45 },
+        totalCompletions: 25,
       })
 
       const request = createMockRequest({
@@ -83,36 +91,42 @@ describe('POST /api/ai/analyze-workload', () => {
     it('should calculate health score correctly', async () => {
       const mockSupabase = {
         auth: {
-          getUser: jest.fn().mockResolvedValue({
+          getUser: vi.fn().mockResolvedValue({
             data: { user: { id: 'user-123' } },
             error: null,
           }),
         },
-        from: jest.fn().mockReturnValue({
-          select: jest.fn().mockReturnThis(),
-          eq: jest.fn().mockReturnThis(),
-          order: jest.fn().mockReturnThis(),
-          limit: jest.fn().mockReturnThis(),
-          insert: jest.fn().mockResolvedValue({ data: null, error: null }),
-          upsert: jest.fn().mockResolvedValue({ data: null, error: null }),
+        from: vi.fn().mockReturnValue({
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          order: vi.fn().mockReturnThis(),
+          limit: vi.fn().mockReturnThis(),
+          insert: vi.fn().mockResolvedValue({ data: null, error: null }),
+          upsert: vi.fn().mockResolvedValue({ data: null, error: null }),
         }),
-        rpc: jest.fn().mockResolvedValue({ data: 3, error: null }),
+        rpc: vi.fn().mockResolvedValue({ data: 3, error: null }),
       }
 
       mockCreateClient.mockResolvedValue(mockSupabase as any)
 
-      const { WorkloadAnalyzer } = require('@/lib/ai/workload-analyzer')
-      WorkloadAnalyzer.analyzeWorkload = jest.fn().mockReturnValue({
+      const { WorkloadAnalyzer } = await import('@/lib/ai/workload-analyzer')
+      vi.mocked(WorkloadAnalyzer.analyzeWorkload).mockReturnValue({
         totalTasks: 10,
         taskBreakdown: { urgent: 5, high: 3, medium: 2, low: 0 },
         estimatedHours: 12,
         healthScore: 45,
+        capacityHours: 8,
+        overloadHours: 4,
         status: 'overloaded',
-        burnoutRisk: { level: 'high', score: 75 },
+        burnoutRisk: { level: 'high', score: 75, consecutiveOverloadDays: 2, overloadHours: 4 },
+        deadlineClusters: [],
+        contextSwitchingCost: 0,
+        userCapacity: 8,
+        insights: [],
         suggestions: ['Reduce workload', 'Delegate tasks'],
       })
 
-      WorkloadAnalyzer.parseUserPattern = jest.fn().mockReturnValue(undefined)
+      vi.mocked(WorkloadAnalyzer.parseUserPattern).mockReturnValue(undefined)
 
       const request = createMockRequest({
         tasks: Array(10).fill(validTask),
@@ -130,36 +144,42 @@ describe('POST /api/ai/analyze-workload', () => {
     it('should include burnout risk assessment', async () => {
       const mockSupabase = {
         auth: {
-          getUser: jest.fn().mockResolvedValue({
+          getUser: vi.fn().mockResolvedValue({
             data: { user: { id: 'user-123' } },
             error: null,
           }),
         },
-        from: jest.fn().mockReturnValue({
-          select: jest.fn().mockReturnThis(),
-          eq: jest.fn().mockReturnThis(),
-          order: jest.fn().mockReturnThis(),
-          limit: jest.fn().mockReturnThis(),
-          insert: jest.fn().mockResolvedValue({ data: null, error: null }),
-          upsert: jest.fn().mockResolvedValue({ data: null, error: null }),
+        from: vi.fn().mockReturnValue({
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          order: vi.fn().mockReturnThis(),
+          limit: vi.fn().mockReturnThis(),
+          insert: vi.fn().mockResolvedValue({ data: null, error: null }),
+          upsert: vi.fn().mockResolvedValue({ data: null, error: null }),
         }),
-        rpc: jest.fn().mockResolvedValue({ data: 0, error: null }),
+        rpc: vi.fn().mockResolvedValue({ data: 0, error: null }),
       }
 
       mockCreateClient.mockResolvedValue(mockSupabase as any)
 
-      const { WorkloadAnalyzer } = require('@/lib/ai/workload-analyzer')
-      WorkloadAnalyzer.analyzeWorkload = jest.fn().mockReturnValue({
+      const { WorkloadAnalyzer } = await import('@/lib/ai/workload-analyzer')
+      vi.mocked(WorkloadAnalyzer.analyzeWorkload).mockReturnValue({
         totalTasks: 2,
         taskBreakdown: { urgent: 0, high: 1, medium: 1, low: 0 },
         estimatedHours: 3,
         healthScore: 90,
+        capacityHours: 8,
+        overloadHours: 0,
         status: 'healthy',
-        burnoutRisk: { level: 'low', score: 10 },
+        burnoutRisk: { level: 'low', score: 10, consecutiveOverloadDays: 0, overloadHours: 0 },
+        deadlineClusters: [],
+        contextSwitchingCost: 0,
+        userCapacity: 8,
+        insights: [],
         suggestions: [],
       })
 
-      WorkloadAnalyzer.parseUserPattern = jest.fn().mockReturnValue(undefined)
+      vi.mocked(WorkloadAnalyzer.parseUserPattern).mockReturnValue(undefined)
 
       const request = createMockRequest({
         tasks: [validTask, validTask],
@@ -178,7 +198,7 @@ describe('POST /api/ai/analyze-workload', () => {
     it('should return 400 with invalid task status', async () => {
       const mockSupabase = {
         auth: {
-          getUser: jest.fn().mockResolvedValue({
+          getUser: vi.fn().mockResolvedValue({
             data: { user: { id: 'user-123' } },
             error: null,
           }),
@@ -201,7 +221,7 @@ describe('POST /api/ai/analyze-workload', () => {
     it('should return 400 with invalid priority', async () => {
       const mockSupabase = {
         auth: {
-          getUser: jest.fn().mockResolvedValue({
+          getUser: vi.fn().mockResolvedValue({
             data: { user: { id: 'user-123' } },
             error: null,
           }),
@@ -224,7 +244,7 @@ describe('POST /api/ai/analyze-workload', () => {
     it('should return 400 with invalid userCapacity', async () => {
       const mockSupabase = {
         auth: {
-          getUser: jest.fn().mockResolvedValue({
+          getUser: vi.fn().mockResolvedValue({
             data: { user: { id: 'user-123' } },
             error: null,
           }),
@@ -250,7 +270,7 @@ describe('POST /api/ai/analyze-workload', () => {
     it('should return 401 when user not authenticated', async () => {
       const mockSupabase = {
         auth: {
-          getUser: jest.fn().mockResolvedValue({
+          getUser: vi.fn().mockResolvedValue({
             data: { user: null },
             error: null,
           }),
@@ -273,7 +293,7 @@ describe('POST /api/ai/analyze-workload', () => {
     it('should return 401 with auth error', async () => {
       const mockSupabase = {
         auth: {
-          getUser: jest.fn().mockResolvedValue({
+          getUser: vi.fn().mockResolvedValue({
             data: { user: null },
             error: new Error('Auth failed'),
           }),
@@ -296,36 +316,42 @@ describe('POST /api/ai/analyze-workload', () => {
     it('should handle empty tasks array', async () => {
       const mockSupabase = {
         auth: {
-          getUser: jest.fn().mockResolvedValue({
+          getUser: vi.fn().mockResolvedValue({
             data: { user: { id: 'user-123' } },
             error: null,
           }),
         },
-        from: jest.fn().mockReturnValue({
-          select: jest.fn().mockReturnThis(),
-          eq: jest.fn().mockReturnThis(),
-          order: jest.fn().mockReturnThis(),
-          limit: jest.fn().mockReturnThis(),
-          insert: jest.fn().mockResolvedValue({ data: null, error: null }),
-          upsert: jest.fn().mockResolvedValue({ data: null, error: null }),
+        from: vi.fn().mockReturnValue({
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          order: vi.fn().mockReturnThis(),
+          limit: vi.fn().mockReturnThis(),
+          insert: vi.fn().mockResolvedValue({ data: null, error: null }),
+          upsert: vi.fn().mockResolvedValue({ data: null, error: null }),
         }),
-        rpc: jest.fn().mockResolvedValue({ data: 0, error: null }),
+        rpc: vi.fn().mockResolvedValue({ data: 0, error: null }),
       }
 
       mockCreateClient.mockResolvedValue(mockSupabase as any)
 
-      const { WorkloadAnalyzer } = require('@/lib/ai/workload-analyzer')
-      WorkloadAnalyzer.analyzeWorkload = jest.fn().mockReturnValue({
+      const { WorkloadAnalyzer } = await import('@/lib/ai/workload-analyzer')
+      vi.mocked(WorkloadAnalyzer.analyzeWorkload).mockReturnValue({
         totalTasks: 0,
         taskBreakdown: { urgent: 0, high: 0, medium: 0, low: 0 },
         estimatedHours: 0,
         healthScore: 100,
+        capacityHours: 8,
+        overloadHours: 0,
         status: 'healthy',
-        burnoutRisk: { level: 'none', score: 0 },
+        burnoutRisk: { level: 'low', score: 0, consecutiveOverloadDays: 0, overloadHours: 0 },
+        deadlineClusters: [],
+        contextSwitchingCost: 0,
+        userCapacity: 8,
+        insights: [],
         suggestions: [],
       })
 
-      WorkloadAnalyzer.parseUserPattern = jest.fn().mockReturnValue(undefined)
+      vi.mocked(WorkloadAnalyzer.parseUserPattern).mockReturnValue(undefined)
 
       const request = createMockRequest({
         tasks: [],
@@ -344,36 +370,42 @@ describe('POST /api/ai/analyze-workload', () => {
     it('should save workload snapshot', async () => {
       const mockSupabase = {
         auth: {
-          getUser: jest.fn().mockResolvedValue({
+          getUser: vi.fn().mockResolvedValue({
             data: { user: { id: 'user-123' } },
             error: null,
           }),
         },
-        from: jest.fn().mockReturnValue({
-          select: jest.fn().mockReturnThis(),
-          eq: jest.fn().mockReturnThis(),
-          order: jest.fn().mockReturnThis(),
-          limit: jest.fn().mockReturnThis(),
-          insert: jest.fn().mockResolvedValue({ data: null, error: null }),
-          upsert: jest.fn().mockResolvedValue({ data: null, error: null }),
+        from: vi.fn().mockReturnValue({
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          order: vi.fn().mockReturnThis(),
+          limit: vi.fn().mockReturnThis(),
+          insert: vi.fn().mockResolvedValue({ data: null, error: null }),
+          upsert: vi.fn().mockResolvedValue({ data: null, error: null }),
         }),
-        rpc: jest.fn().mockResolvedValue({ data: 0, error: null }),
+        rpc: vi.fn().mockResolvedValue({ data: 0, error: null }),
       }
 
       mockCreateClient.mockResolvedValue(mockSupabase as any)
 
-      const { WorkloadAnalyzer } = require('@/lib/ai/workload-analyzer')
-      WorkloadAnalyzer.analyzeWorkload = jest.fn().mockReturnValue({
+      const { WorkloadAnalyzer } = await import('@/lib/ai/workload-analyzer')
+      vi.mocked(WorkloadAnalyzer.analyzeWorkload).mockReturnValue({
         totalTasks: 1,
         taskBreakdown: { urgent: 0, high: 1, medium: 0, low: 0 },
         estimatedHours: 2,
         healthScore: 85,
+        capacityHours: 8,
+        overloadHours: 0,
         status: 'healthy',
-        burnoutRisk: { level: 'low', score: 15 },
+        burnoutRisk: { level: 'low', score: 15, consecutiveOverloadDays: 0, overloadHours: 0 },
+        deadlineClusters: [],
+        contextSwitchingCost: 0,
+        userCapacity: 8,
+        insights: [],
         suggestions: [],
       })
 
-      WorkloadAnalyzer.parseUserPattern = jest.fn().mockReturnValue(undefined)
+      vi.mocked(WorkloadAnalyzer.parseUserPattern).mockReturnValue(undefined)
 
       const request = createMockRequest({
         tasks: [validTask],

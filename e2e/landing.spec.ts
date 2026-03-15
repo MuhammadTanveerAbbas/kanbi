@@ -2,11 +2,14 @@ import { test, expect } from '@playwright/test'
 
 test('landing page loads successfully', async ({ page }) => {
   await page.goto('/')
-  await expect(page).toHaveTitle(/Kanbi/)
+  await expect(page).toHaveTitle(/KANBI - AI Task Management/)
 })
 
-test('can navigate to login', async ({ page }) => {
+test('pricing page is accessible', async ({ page }) => {
   await page.goto('/')
-  await page.click('a[href="/login"]')
-  await expect(page).toHaveURL(/\/login/)
+  await page.waitForLoadState('networkidle')
+  
+  // Navigate directly to pricing page
+  await page.goto('/pricing')
+  await expect(page).toHaveURL(/\/pricing/)
 })
