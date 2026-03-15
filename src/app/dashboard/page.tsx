@@ -1,18 +1,31 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { TrendingUp, Calendar, Zap, Crown, Sparkles } from 'lucide-react';
+import dynamic from 'next/dynamic';
+import { TrendingUp, Calendar, Zap, Crown } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { UsageStats, AnalyticsData, SubscriptionStatus } from '@/lib/dashboard-types';
-import SearchBar from '@/components/dashboard/search-bar';
-import RecentBoards from '@/components/dashboard/recent-boards';
-import KeyboardShortcuts from '@/components/dashboard/keyboard-shortcuts';
-import OnboardingTour from '@/components/dashboard/onboarding-tour';
-import TaskStatistics from '@/components/dashboard/task-statistics';
-import GoalSetting from '@/components/dashboard/goal-setting';
 import { DashboardSkeleton } from '@/components/dashboard/skeleton';
+
+// Lazy load recharts as single bundle
+const Chart = dynamic(() => import('@/components/dashboard/chart'), { ssr: false });
+
+const RecentBoards = dynamic(() => import('@/components/dashboard/recent-boards'), {
+  loading: () => <Card className="border-[#262626] bg-[#141414]"><CardContent className="p-6"><div className="animate-pulse h-32 bg-gray-800 rounded" /></CardContent></Card>,
+});
+
+const TaskStatistics = dynamic(() => import('@/components/dashboard/task-statistics'), {
+  loading: () => <Card className="border-[#262626] bg-[#141414]"><CardContent className="p-6"><div className="animate-pulse h-32 bg-gray-800 rounded" /></CardContent></Card>,
+});
+
+const GoalSetting = dynamic(() => import('@/components/dashboard/goal-setting'), {
+  loading: () => <Card className="border-[#262626] bg-[#141414]"><CardContent className="p-6"><div className="animate-pulse h-32 bg-gray-800 rounded" /></CardContent></Card>,
+});
+
+const WorkloadHealth = dynamic(() => import('@/components/dashboard/workload-health'), {
+  loading: () => <Card className="border-[#262626] bg-[#141414]"><CardContent className="p-6"><div className="animate-pulse h-32 bg-gray-800 rounded" /></CardContent></Card>,
+});
 
 export default function DashboardOverview() {
   const [usage, setUsage] = useState<UsageStats | null>(null);
@@ -24,105 +37,59 @@ export default function DashboardOverview() {
   useEffect(() => {
     fetchData();
 
-    // Listen for board saved events to refresh usage stats
     const handleBoardSaved = () => {
-      // Refresh usage data after a short delay to allow backend to update
       setTimeout(() => {
         fetchData();
       }, 1000);
     };
 
-    // Set up periodic refresh every 30 seconds to keep stats updated
-    const refreshInterval = setInterval(() => {
-      fetchData();
-    }, 30000);
-
     window.addEventListener('board-saved', handleBoardSaved);
 
     return () => {
-      clearInterval(refreshInterval);
       window.removeEventListener('board-saved', handleBoardSaved);
     };
   }, []);
 
+  const defaultUsage = {
+    todayCount: 0,
+    todayLimit: 10,
+    monthCount: 0,
+    monthLimit: 300,
+    totalGenerations: 0,
+    boardsUsedToday: 0,
+    boardsUsedMonth: 0,
+    boardsTodayLimit: 10,
+    boardsMonthLimit: 300,
+    aiUsedToday: 0,
+    aiUsedMonth: 0,
+    aiTodayLimit: 10,
+    aiMonthLimit: 300,
+    plan: 'free'
+  };
+
   const fetchData = async () => {
     try {
-      // Add cache-busting parameter to ensure fresh data
-      const cacheBuster = new Date().getTime();
       const [usageRes, analyticsRes, subscriptionRes, taskStatsRes] = await Promise.all([
-        fetch(`/api/usage?t=${cacheBuster}`, { cache: 'no-store' }),
+        fetch('/api/usage'),
         fetch('/api/analytics'),
         fetch('/api/subscription/status'),
         fetch('/api/task-stats'),
       ]);
 
-      if (usageRes.ok) {
-        const usageData = await usageRes.json();
-        console.log('Usage data received:', usageData);
-        setUsage(usageData);
-        // Update subscription from usage data if available
-        if (usageData.plan) {
-          setSubscription({ plan: usageData.plan, status: 'active' });
-        }
-      } else {
-        const errorText = await usageRes.text();
-        console.error('Usage API error:', usageRes.status, errorText);
-        setUsage({
-          todayCount: 0,
-          todayLimit: 10,
-          monthCount: 0,
-          monthLimit: 300,
-          totalGenerations: 0,
-          boardsUsedToday: 0,
-          boardsUsedMonth: 0,
-          boardsTodayLimit: 10,
-          boardsMonthLimit: 300,
-          aiUsedToday: 0,
-          aiUsedMonth: 0,
-          aiTodayLimit: 10,
-          aiMonthLimit: 300,
-          plan: 'free'
-        });
-      }
+      const usageData = usageRes.ok ? await usageRes.json() : defaultUsage;
+      setUsage(usageData);
 
-      if (analyticsRes.ok) {
-        const analyticsData = await analyticsRes.json();
-        setAnalytics(analyticsData);
-      } else {
-        setAnalytics([]);
-      }
+      const analyticsData = analyticsRes.ok ? await analyticsRes.json() : [];
+      setAnalytics(analyticsData);
 
-      if (subscriptionRes.ok) {
-        const subscriptionData = await subscriptionRes.json();
-        setSubscription(subscriptionData);
-      } else {
-        setSubscription({ plan: 'free', status: 'active' });
-      }
+      const subscriptionData = subscriptionRes.ok ? await subscriptionRes.json() : { plan: 'free', status: 'active' };
+      setSubscription(subscriptionData);
 
-      if (taskStatsRes.ok) {
-        const taskStatsData = await taskStatsRes.json();
-        setTaskStats(taskStatsData);
-      } else {
-        setTaskStats({ urgent: 0, high: 0, medium: 0, low: 0, total: 0, completed: 0 });
-      }
+      const taskStatsData = taskStatsRes.ok ? await taskStatsRes.json() : { urgent: 0, high: 0, medium: 0, low: 0, total: 0, completed: 0 };
+      setTaskStats(taskStatsData);
     } catch (error) {
       console.error('Failed to fetch dashboard data:', error);
-      setUsage({
-        todayCount: 0,
-        todayLimit: 10,
-        monthCount: 0,
-        monthLimit: 300,
-        totalGenerations: 0,
-        boardsUsedToday: 0,
-        boardsUsedMonth: 0,
-        boardsTodayLimit: 10,
-        boardsMonthLimit: 300,
-        aiUsedToday: 0,
-        aiUsedMonth: 0,
-        aiTodayLimit: 10,
-        aiMonthLimit: 300,
-        plan: 'free'
-      });
+      setUsage(defaultUsage);
       setAnalytics([]);
       setSubscription({ plan: 'free', status: 'active' });
       setTaskStats({ urgent: 0, high: 0, medium: 0, low: 0, total: 0, completed: 0 });
@@ -143,7 +110,6 @@ export default function DashboardOverview() {
   return (
     <>
       <div className="space-y-6">
-        {/* Search Bar - Removed from here, now in layout */}
         <h1 className="text-2xl font-bold text-center sm:text-left">Dashboard Overview</h1>
 
         {/* Stats Cards */}
@@ -167,7 +133,7 @@ export default function DashboardOverview() {
           <StatCard
             title="AI Used Today"
             value={`${usage?.aiUsedToday || 0}/${usage?.aiTodayLimit || 10}`}
-            icon={Sparkles}
+            icon={Zap}
             description={`${Math.max(0, (usage?.aiTodayLimit || 10) - (usage?.aiUsedToday || 0))} remaining`}
             progress={((usage?.aiUsedToday || 0) / (usage?.aiTodayLimit || 10)) * 100}
             status={getUsageStatus(usage?.aiUsedToday || 0, usage?.aiTodayLimit || 10)}
@@ -203,65 +169,28 @@ export default function DashboardOverview() {
           />
         </div>
 
-        {/* Goals and Recent Boards */}
+        {/* AI Workload Health */}
+        <WorkloadHealth />
+
+        {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <GoalSetting />
-          <RecentBoards />
+          {/* Left Column - Goals and Recent Boards */}
+          <div className="lg:col-span-2 space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <GoalSetting />
+              <RecentBoards />
+            </div>
+          </div>
         </div>
 
         {/* Usage Chart */}
-        <Card className="border-[#262626] bg-gradient-to-br from-[#1a1a1a] to-[#141414]">
+        <Card className="border-[#262626] bg-[#141414]">
           <CardHeader>
             <CardTitle>Task Activity - Last 30 Days</CardTitle>
             <CardDescription>Track your task creation activity</CardDescription>
           </CardHeader>
           <CardContent className="px-2 sm:px-6">
-            <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#6b7280" stopOpacity={0.8} />
-                    <stop offset="95%" stopColor="#6b7280" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#262626" vertical={false} />
-                <XAxis
-                  dataKey="date"
-                  stroke="#666"
-                  tick={{ fontSize: 12 }}
-                  tickLine={false}
-                  axisLine={{ stroke: '#262626' }}
-                  interval="preserveStartEnd"
-                  minTickGap={30}
-                />
-                <YAxis
-                  stroke="#666"
-                  tick={{ fontSize: 12 }}
-                  tickLine={false}
-                  axisLine={{ stroke: '#262626' }}
-                  allowDecimals={false}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#1a1a1a',
-                    border: '1px solid #333',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                  }}
-                  labelStyle={{ color: '#fff', marginBottom: '4px' }}
-                  cursor={{ stroke: '#666', strokeWidth: 1, strokeDasharray: '3 3' }}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="count"
-                  stroke="#6b7280"
-                  strokeWidth={2}
-                  fillOpacity={1}
-                  fill="url(#colorCount)"
-                  animationDuration={1000}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+            <Chart data={chartData} />
           </CardContent>
         </Card>
 
@@ -320,7 +249,7 @@ function StatCard({
   };
 
   return (
-    <Card className={`border-[#262626] bg-gradient-to-br from-[#1a1a1a] to-[#141414] ${getBorderColor()}`}>
+    <Card className={`border-[#262626] bg-[#141414] ${getBorderColor()}`}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium text-gray-400">{title}</CardTitle>
         <Icon className="h-4 w-4 text-gray-400" />
@@ -350,7 +279,7 @@ function StatCard({
         )}
         {progress !== undefined && (
           <div className="mt-3">
-            <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden">
+            <div className="h-1.5 bg-[#1a1a1a] rounded-full overflow-hidden">
               <div
                 className={`h-full ${getProgressColor()} transition-all duration-300`}
                 style={{ width: `${Math.min(progress, 100)}%` }}

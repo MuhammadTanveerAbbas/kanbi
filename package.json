@@ -1,15 +1,21 @@
 {
   "name": "kanbi",
-  "version": "3.0.0",
+  "version": "3.1.0",
+  "description": "AI-powered task management that saves 2 hours daily. Features AI workload management, burnout prevention, productivity coaching, and integrations with Google Calendar, Gmail, Slack, Notion, Todoist.",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "vitest",
+    "test:watch": "vitest --watch",
+    "test:coverage": "vitest --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
-    "@google/generative-ai": "^0.24.1",
+    "@notionhq/client": "^5.13.0",
     "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-dialog": "^1.1.6",
     "@radix-ui/react-dropdown-menu": "^2.1.16",
@@ -24,13 +30,15 @@
     "cheerio": "^1.2.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "docx": "^9.6.1",
     "framer-motion": "^12.26.2",
     "groq-sdk": "^0.37.0",
+    "jspdf": "^4.2.0",
     "lucide-react": "^0.475.0",
-    "next": "^15.5.9",
+    "next": "latest",
     "pdf-parse": "^2.4.5",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
     "recharts": "^3.6.0",
     "stripe": "^20.1.2",
     "tailwind-merge": "^3.0.1",
@@ -38,12 +46,20 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@next/bundle-analyzer": "^16.1.6",
+    "@playwright/test": "^1.48.0",
+    "@testing-library/react": "^14.1.2",
+    "@testing-library/user-event": "^14.5.1",
     "@types/cheerio": "^0.22.35",
-    "@types/node": "^20",
-    "@types/react": "^18",
-    "@types/react-dom": "^18",
+    "@types/node": "^22",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^4.3.0",
+    "@vitest/ui": "^1.6.0",
+    "jsdom": "^24.1.0",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^1.6.1"
   }
 }

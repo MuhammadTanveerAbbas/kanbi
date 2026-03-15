@@ -21,8 +21,8 @@ function isValidUrl(s: string): boolean {
 }
 
 export async function POST(request: NextRequest) {
-  const limit = rateLimit(request, { maxRequests: 15, windowMs: 60000 });
-  if (!limit.success) return rateLimitResponse();
+  const limit = await rateLimit(request, { maxRequests: 15, windowMs: 60000 });
+  if (!limit.success) return rateLimitResponse(limit.limit, limit.remaining, limit.reset);
 
   try {
     const supabase = await createClient();

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createServerClient } from '@/lib/supabase'
+import { logger } from '@/lib/logging/logger'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2026-02-25.clover',
@@ -25,14 +26,14 @@ export async function POST(request: NextRequest) {
     event = stripe.webhooks.constructEvent(body, signature, webhookSecret)
   } catch (err) {
     const error = err as Error
-    console.error('Webhook signature verification failed:', error.message)
+    logger.error('Webhook signature verification failed', { message: error.message })
     return NextResponse.json(
       { error: 'Invalid signature' },
       { status: 400 }
     )
   }
 
-  const supabase = createServerClient()
+  const supabase = await createServerClient()
 
   try {
     const { data: existing } = await supabase
@@ -51,7 +52,7 @@ export async function POST(request: NextRequest) {
         const userId = session.metadata?.supabase_user_id
 
         if (!userId) {
-          console.error('[webhook] checkout.session.completed: No user ID in checkout session metadata')
+          logger.error('[webhook] checkout.session.completed: No user ID in checkout session metadata', {})
           break
         }
 
@@ -73,9 +74,9 @@ export async function POST(request: NextRequest) {
               onConflict: 'user_id',
             })
 
-          if (upsertErr) console.error('[webhook] checkout.session.completed:', upsertErr.message)
+          if (upsertErr) logger.error('[webhook] checkout.session.completed', { message: upsertErr.message })
         } catch (err) {
-          console.error('[webhook] checkout.session.completed:', err)
+          logger.error('[webhook] checkout.session.completed', { error: err })
         }
         break
       }
@@ -102,10 +103,10 @@ export async function POST(request: NextRequest) {
                 updated_at: new Date().toISOString(),
               })
               .eq('user_id', profile.id)
-            if (updateErr) console.error('[webhook] customer.subscription.deleted:', updateErr.message)
+            if (updateErr) logger.error('[webhook] customer.subscription.deleted', { message: updateErr.message })
           }
         } catch (err) {
-          console.error('[webhook] customer.subscription.deleted:', err)
+          logger.error('[webhook] customer.subscription.deleted', { error: err })
         }
         break
       }
@@ -132,10 +133,10 @@ export async function POST(request: NextRequest) {
                 updated_at: new Date().toISOString(),
               })
               .eq('user_id', profile.id)
-            if (updateErr) console.error('[webhook] invoice.payment_failed:', updateErr.message)
+            if (updateErr) logger.error('[webhook] invoice.payment_failed', { message: updateErr.message })
           }
         } catch (err) {
-          console.error('[webhook] invoice.payment_failed:', err)
+          logger.error('[webhook] invoice.payment_failed', { error: err })
         }
         break
       }
@@ -160,16 +161,16 @@ export async function POST(request: NextRequest) {
                 updated_at: new Date().toISOString(),
               })
               .eq('user_id', profile.id)
-            if (updateErr) console.error('[webhook] customer.subscription.updated:', updateErr.message)
+            if (updateErr) logger.error('[webhook] customer.subscription.updated', { message: updateErr.message })
           }
         } catch (err) {
-          console.error('[webhook] customer.subscription.updated:', err)
+          logger.error('[webhook] customer.subscription.updated', { error: err })
         }
         break
       }
 
       default:
-        console.log(`Unhandled event type: ${event.type}`)
+        logger.info(`Unhandled event type: ${event.type}`, {})
     }
 
     try {
@@ -178,12 +179,12 @@ export async function POST(request: NextRequest) {
         .insert({ id: event.id })
     } catch (insertErr) {
       const isConflict = (insertErr as { code?: string })?.code === '23505'
-      if (!isConflict) console.error('[webhook] Failed to record processed event:', insertErr)
+      if (!isConflict) logger.error('[webhook] Failed to record processed event', { error: insertErr })
     }
 
     return NextResponse.json({ received: true })
   } catch (error) {
-    console.error('Error processing webhook:', error)
+    logger.error('Error processing webhook', { error })
     return NextResponse.json(
       { error: 'Webhook processing failed' },
       { status: 500 }

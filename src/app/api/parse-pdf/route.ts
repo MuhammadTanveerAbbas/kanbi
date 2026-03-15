@@ -8,8 +8,8 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const PDF_MIME = 'application/pdf';
 
 export async function POST(request: NextRequest) {
-  const limit = rateLimit(request, { maxRequests: 10, windowMs: 60000 });
-  if (!limit.success) return rateLimitResponse();
+  const limit = await rateLimit(request, { maxRequests: 10, windowMs: 60000 });
+  if (!limit.success) return rateLimitResponse(limit.limit, limit.remaining, limit.reset);
 
   try {
     const supabase = await createClient();

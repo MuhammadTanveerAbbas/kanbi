@@ -2,8 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { UsageStats } from '@/lib/dashboard-types';
 import { usageService } from '@/lib/services/usage-service';
+import { cacheManager, CACHE_KEYS, CACHE_TTL } from '@/lib/cache/cache-manager';
+import { rateLimit, rateLimitResponse, addRateLimitHeaders } from '@/lib/rate-limiter';
 
 export async function GET(request: NextRequest) {
+  const limitResult = await rateLimit(request, { maxRequests: 30, windowMs: 60000 });
+  if (!limitResult.success) return rateLimitResponse(limitResult.limit, limitResult.remaining, limitResult.reset);
   try {
     const supabase = await createClient();
 
@@ -41,9 +45,15 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Check for cache-busting parameter and invalidate cache if needed
+    // Check cache first
+    const cacheKey = CACHE_KEYS.USAGE(userId);
     const searchParams = request.nextUrl.searchParams;
     const forceRefresh = !!searchParams.get('t');
+    
+    if (!forceRefresh) {
+      const cached = cacheManager.get<UsageStats>(cacheKey);
+      if (cached) return NextResponse.json<UsageStats>(cached);
+    }
 
     // Use usage service to get stats and limits (with force refresh if requested)
     const [usage, limits] = await Promise.all([
@@ -59,9 +69,9 @@ export async function GET(request: NextRequest) {
 
     const response: UsageStats = {
       totalGenerations: totalCount || 0,
-      todayCount: usage.aiUsedToday, // AI usage today
+      todayCount: usage.aiUsedToday,
       todayLimit: limits.dailyAILimit,
-      monthCount: usage.aiUsedMonth, // AI usage this month
+      monthCount: usage.aiUsedMonth,
       monthLimit: limits.monthlyAILimit,
       boardsUsedToday: usage.boardsUsedToday,
       boardsUsedMonth: usage.boardsUsedMonth,
@@ -74,8 +84,9 @@ export async function GET(request: NextRequest) {
       plan: limits.plan,
     };
 
-    console.log('Usage API response:', JSON.stringify(response, null, 2));
-    return NextResponse.json<UsageStats>(response);
+    cacheManager.set(cacheKey, response, CACHE_TTL.USAGE);
+    const res = NextResponse.json<UsageStats>(response);
+    return addRateLimitHeaders(res, limitResult.limit, limitResult.remaining, limitResult.reset);
   } catch (error) {
     console.error('Usage stats error:', error);
     // Return default stats on error

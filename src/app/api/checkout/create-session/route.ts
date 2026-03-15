@@ -9,8 +9,8 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 })
 
 export async function POST(request: NextRequest) {
-  const limit = rateLimit(request, { maxRequests: 5, windowMs: 60000 });
-  if (!limit.success) return rateLimitResponse();
+  const limit = await rateLimit(request, { maxRequests: 5, windowMs: 60000 });
+  if (!limit.success) return rateLimitResponse(limit.limit, limit.remaining, limit.reset);
 
   try {
     const user = await getCurrentUser()

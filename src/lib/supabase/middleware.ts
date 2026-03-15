@@ -27,7 +27,11 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (user && !user.email_confirmed_at) {
+    return NextResponse.redirect(new URL('/verify-email', request.url))
+  }
 
   return supabaseResponse
 }

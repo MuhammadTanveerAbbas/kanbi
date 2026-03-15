@@ -18,31 +18,36 @@ const plans = [
     name: "Free",
     price: "$0",
     period: "forever",
-    description: "Try it out with real client work",
+    description: "Perfect for trying out AI-powered task management",
     features: [
-      "10 board uses per day",
+      "10 AI extractions per day",
       "300 board uses per month",
-      "AI task extraction",
+      "Smart task extraction with AI",
       "Drag and drop Kanban board",
       "Priority levels & due dates",
       "Save & sync boards",
-      "Export/Import JSON",
+      "Export to JSON, CSV, Markdown",
     ],
     cta: "Get Started Free",
     href: "/board",
   },
   {
     name: "Premium",
-    price: "$12",
+    price: "$9",
     period: "month",
-    description: "For freelance consultants",
+    description: "For professionals who need AI superpowers",
     features: [
       "50 boards per day",
       "50 AI extractions per day",
+      "AI Workload Health & Burnout Prevention",
+      "AI Chat Assistant for productivity coaching",
+      "AI Pattern Learning & Smart Insights",
+      "Google Calendar, Gmail, Slack, Notion, Todoist sync",
       "PDF, Notion, Gmail & URL extraction",
       "Cloud sync across devices",
       "Unlimited saved boards",
-      "Email support within 24h",
+      "Export to JSON, CSV, Markdown",
+      "Priority email support (24h)",
       "API access (coming soon)",
     ],
     cta: "Upgrade to Premium",
@@ -96,6 +101,33 @@ export default function PricingPage() {
       </div>
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
+        {/* Free Tier Limits Banner */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="mb-12 p-6 rounded-xl bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 border border-primary/20"
+        >
+          <div className="text-center">
+            <h3 className="text-xl font-semibold mb-3">Start Free - No Credit Card Required</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-3xl mx-auto">
+              <div className="p-4 rounded-lg bg-black/30 border border-primary/10">
+                <div className="text-3xl font-bold text-primary mb-1">10</div>
+                <div className="text-sm text-gray-400">AI extractions/day</div>
+              </div>
+              <div className="p-4 rounded-lg bg-black/30 border border-primary/10">
+                <div className="text-3xl font-bold text-primary mb-1">300</div>
+                <div className="text-sm text-gray-400">Board uses/month</div>
+              </div>
+              <div className="p-4 rounded-lg bg-black/30 border border-primary/10">
+                <div className="text-3xl font-bold text-primary mb-1">∞</div>
+                <div className="text-sm text-gray-400">Saved boards</div>
+              </div>
+            </div>
+            <p className="text-sm text-gray-400 mt-4">Perfect for freelancers and small projects. Upgrade anytime for unlimited power.</p>
+          </div>
+        </motion.div>
+
         <div className="grid md:grid-cols-2 gap-8">
           {plans.map((plan, index) => (
             <motion.div

@@ -12,6 +12,8 @@ import {
   Download,
   Trash2,
   Eye,
+  FileText,
+  FileDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -159,17 +161,27 @@ export default function SavedPage() {
     navigator.clipboard.writeText(text);
   };
 
-  const handleExport = (generation: Generation) => {
-    const content = `Title: ${generation.title || "Untitled"}\n\nInput:\n${
-      generation.input_text
-    }\n\nOutput:\n${generation.output_text}`;
-    const blob = new Blob([content], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${generation.title || "generation"}-${Date.now()}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
+  const handleExport = async (generation: Generation, format: 'docx' | 'pdf') => {
+    try {
+      const response = await fetch(`/api/boards/${generation.id}/export`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ format }),
+      });
+
+      if (!response.ok) throw new Error('Export failed');
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${generation.title || 'board'}.${format}`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Export error:', error);
+      alert('Failed to export. Please try again.');
+    }
   };
 
   const openModal = (generation: Generation) => {
@@ -354,10 +366,17 @@ export default function SavedPage() {
                 </Button>
                 <Button
                   variant="outline"
-                  onClick={() => handleExport(selectedGeneration)}
+                  onClick={() => handleExport(selectedGeneration, 'docx')}
                 >
-                  <Download className="h-4 w-4 mr-2" />
-                  Export
+                  <FileText className="h-4 w-4 mr-2" />
+                  Export DOCX
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => handleExport(selectedGeneration, 'pdf')}
+                >
+                  <FileDown className="h-4 w-4 mr-2" />
+                  Export PDF
                 </Button>
                 <Button
                   variant="destructive"
@@ -416,7 +435,7 @@ function GenerationCard({
   onToggleFavorite: (id: string, current: boolean) => void;
   onDelete: (id: string) => void;
   onCopy: (text: string) => void;
-  onExport: (gen: Generation) => void;
+  onExport: (gen: Generation, format: 'docx' | 'pdf') => void;
   onView: (gen: Generation) => void;
 }) {
   const textContent = generation.output_text || '';
@@ -470,9 +489,18 @@ function GenerationCard({
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => onExport(generation)}
+                onClick={() => onExport(generation, 'docx')}
+                title="Export DOCX"
               >
-                <Download className="h-4 w-4" />
+                <FileText className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onExport(generation, 'pdf')}
+                title="Export PDF"
+              >
+                <FileDown className="h-4 w-4" />
               </Button>
               <Button
                 variant="ghost"
@@ -538,9 +566,18 @@ function GenerationCard({
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => onExport(generation)}
+                onClick={() => onExport(generation, 'docx')}
+                title="Export DOCX"
               >
-                <Download className="h-4 w-4" />
+                <FileText className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onExport(generation, 'pdf')}
+                title="Export PDF"
+              >
+                <FileDown className="h-4 w-4" />
               </Button>
               <Button
                 variant="ghost"

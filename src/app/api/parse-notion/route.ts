@@ -30,8 +30,8 @@ function blockToText(block: { type: string; [k: string]: unknown }): string {
 }
 
 export async function POST(request: NextRequest) {
-  const limit = rateLimit(request, { maxRequests: 10, windowMs: 60000 });
-  if (!limit.success) return rateLimitResponse();
+  const limit = await rateLimit(request, { maxRequests: 10, windowMs: 60000 });
+  if (!limit.success) return rateLimitResponse(limit.limit, limit.remaining, limit.reset);
 
   try {
     const supabase = await createClient();

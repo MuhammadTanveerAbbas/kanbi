@@ -53,14 +53,14 @@ export async function GET(request: NextRequest) {
     // Build the query
     let query = supabase
       .from('saved_generations')
-      .select('*')
+      .select('id, title, content, created_at, updated_at, is_favorite, category, icon')
       .eq('user_id', user.id);
 
     // Apply search filter with sanitization
     if (search) {
       const safeSearch = search.replace(/[^a-zA-Z0-9\s\-_]/g, '').trim().slice(0, 100);
       if (safeSearch.length > 0) {
-        query = query.or(`title.ilike.%${safeSearch}%,input_text.ilike.%${safeSearch}%,output_text.ilike.%${safeSearch}%`);
+        query = query.or(`title.ilike.%${safeSearch}%,content.ilike.%${safeSearch}%`);
       }
     }
 

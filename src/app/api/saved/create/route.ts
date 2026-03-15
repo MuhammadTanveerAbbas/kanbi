@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase';
+import { createSavedGenerationSchema } from '@/lib/validation/schemas';
+import { ValidationError, AuthError, DatabaseError } from '@/lib/errors/AppError';
+import { logger } from '@/lib/logging/logger';
+import { cacheManager, CACHE_KEYS } from '@/lib/cache/cache-manager';
 
 export async function POST(request: NextRequest) {
+  const requestId = crypto.randomUUID();
+
   try {
-    const supabase = createServerClient();
+    const supabase = await createServerClient();
 
     // Get user from auth header or session
     const authHeader = request.headers.get('authorization');
@@ -19,34 +25,27 @@ export async function POST(request: NextRequest) {
     }
 
     if (!userId) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
+      throw new AuthError();
     }
 
+    logger.info('Create saved generation request', { userId, requestId });
+
+    // Validate request body
     const body = await request.json();
-    const { input_text, output_text, tone, length, format, title } = body;
-
-    if (!input_text || !output_text) {
-      return NextResponse.json(
-        { error: 'Input and output text are required' },
-        { status: 400 }
-      );
-    }
+    const validated = createSavedGenerationSchema.parse(body);
 
     // Generate title from input if not provided
-    const generatedTitle = title || input_text.substring(0, 50) + (input_text.length > 50 ? '...' : '');
+    const generatedTitle = validated.title || validated.input_text.substring(0, 50) + (validated.input_text.length > 50 ? '...' : '');
 
     const { data, error } = await supabase
       .from('saved_generations')
       .insert({
         user_id: userId,
-        input_text,
-        output_text,
-        tone: tone || null,
-        length: length || null,
-        format: format || null,
+        input_text: validated.input_text,
+        output_text: validated.output_text,
+        tone: validated.tone || null,
+        length: validated.length || null,
+        format: validated.format || null,
         title: generatedTitle,
         is_favorite: false,
       })
@@ -54,18 +53,38 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error('Save error:', error);
-      return NextResponse.json(
-        { error: 'Failed to save generation' },
-        { status: 500 }
-      );
+      logger.error('Database error saving generation', { userId, requestId, error: error.message });
+      throw new DatabaseError('Failed to save generation');
     }
 
+    logger.info('Create saved generation success', { userId, requestId, generationId: data.id });
+
+    // Invalidate caches
+    cacheManager.invalidate(CACHE_KEYS.USAGE(userId));
+    cacheManager.invalidate(CACHE_KEYS.ANALYTICS(userId));
+
     return NextResponse.json(data);
-  } catch (error) {
-    console.error('Save generation error:', error);
+  } catch (error: any) {
+    if (error.name === 'ZodError') {
+      const validationError = new ValidationError(error.errors?.[0]?.message || 'Invalid request data');
+      logger.error('Validation error', { requestId, errorId: validationError.errorId });
+      return NextResponse.json(validationError.toJSON(), { status: validationError.statusCode });
+    }
+
+    if (error instanceof AuthError || error instanceof DatabaseError) {
+      logger.error(error.message, { requestId, errorId: error.errorId });
+      return NextResponse.json(error.toJSON(), { status: error.statusCode });
+    }
+
+    logger.error('Save generation error', { requestId, error: error.message });
     return NextResponse.json(
-      { error: 'Failed to save generation' },
+      {
+        error: 'Failed to save generation',
+        code: 'INTERNAL_ERROR',
+        statusCode: 500,
+        errorId: requestId,
+        timestamp: new Date().toISOString(),
+      },
       { status: 500 }
     );
   }

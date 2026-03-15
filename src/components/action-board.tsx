@@ -4,6 +4,7 @@ import { useTasksStore } from "@/hooks/use-tasks-store";
 import TaskGenerator from "./ai/task-generator";
 import KanbanBoard from "./board/kanban-board";
 import ExportImport from "./board/export-import";
+import ExportButton from "./board/export-button";
 import SaveBoardButton from "./board/save-board-button";
 import Onboarding from "./onboarding";
 import { NoTasksEmptyState } from "./empty-states";
@@ -20,6 +21,7 @@ export default function Kanbi() {
   const hasTrackedUsage = useRef(false);
   const [usage, setUsage] = useState<UsageStats | null>(null);
   const [limitExceeded, setLimitExceeded] = useState(false);
+  const [showLimitMessage, setShowLimitMessage] = useState(false);
 
   // Track app usage and board usage
   useEffect(() => {
@@ -41,6 +43,11 @@ export default function Kanbi() {
           // Check if daily board limit is exceeded
           if (data.boardsUsedToday >= data.boardsTodayLimit) {
             setLimitExceeded(true);
+            setShowLimitMessage(true);
+            // Hide message after 5 seconds
+            setTimeout(() => {
+              setShowLimitMessage(false);
+            }, 5000);
           }
         }
       } catch (error) {
@@ -85,9 +92,9 @@ export default function Kanbi() {
       <Onboarding hasAnyTasks={hasTasks} />
 
       <div className="w-full max-w-7xl mx-auto space-y-4 sm:space-y-6 p-2 sm:p-3 md:p-4">
-        {/* Limit Exceeded Warning */}
-        {limitExceeded && (
-          <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 flex items-start gap-3">
+        {/* Limit Exceeded Warning - Auto-hide after 5 seconds */}
+        {showLimitMessage && limitExceeded && (
+          <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 flex items-start gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
             <AlertTriangle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
             <div className="flex-1">
               <h3 className="font-semibold text-red-500 mb-1">Daily Board Limit Reached</h3>
@@ -95,6 +102,13 @@ export default function Kanbi() {
                 You have reached your daily limit of {usage?.boardsTodayLimit} boards. You can create {Math.max(0, (usage?.boardsMonthLimit || 300) - (usage?.boardsUsedMonth || 0))} more boards this month. Upgrade to Premium for higher limits or try again tomorrow.
               </p>
             </div>
+            <button
+              onClick={() => setShowLimitMessage(false)}
+              className="text-red-400 hover:text-red-300 transition-colors"
+              aria-label="Close"
+            >
+              ✕
+            </button>
           </div>
         )}
 
@@ -118,6 +132,7 @@ export default function Kanbi() {
                 </span>
               )}
               <SaveBoardButton tasks={store.tasks} />
+              <ExportButton tasks={store.tasks} size="sm" />
             </div>
           )}
         </div>

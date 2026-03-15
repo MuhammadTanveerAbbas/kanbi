@@ -8,10 +8,10 @@ export type SubscriptionStatus = {
 
 export type UsageStats = {
   totalGenerations: number;
-  todayCount: number; // AI usage today (for backward compatibility)
-  todayLimit: number; // AI daily limit (for backward compatibility)
-  monthCount: number; // AI usage this month (for backward compatibility)
-  monthLimit: number; // AI monthly limit (for backward compatibility)
+  todayCount: number;
+  todayLimit: number;
+  monthCount: number;
+  monthLimit: number;
   boardsUsedToday: number;
   boardsUsedMonth: number;
   boardsTodayLimit: number;
@@ -20,7 +20,7 @@ export type UsageStats = {
   aiUsedMonth: number;
   aiTodayLimit: number;
   aiMonthLimit: number;
-  plan?: 'free' | 'premium';
+  plan: 'free' | 'premium';
 };
 
 export type Generation = {

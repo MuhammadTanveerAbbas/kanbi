@@ -1,31 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/server';
 import { SubscriptionStatus } from '@/lib/dashboard-types';
+import { rateLimit, rateLimitResponse, addRateLimitHeaders } from '@/lib/rate-limiter';
 
 export async function GET(request: NextRequest) {
+  const limitResult = await rateLimit(request, { maxRequests: 30, windowMs: 60000 });
+  if (!limitResult.success) return rateLimitResponse(limitResult.limit, limitResult.remaining, limitResult.reset);
   try {
-    const supabase = createServerClient();
+    const supabase = await createClient();
 
-    // Get user from auth header or session
-    const authHeader = request.headers.get('authorization');
-    let userId: string | null = null;
-
-    if (authHeader?.startsWith('Bearer ')) {
-      const token = authHeader.replace('Bearer ', '');
-      const { data: { user } } = await supabase.auth.getUser(token);
-      userId = user?.id || null;
-    } else {
-      // Try to get from session cookie
-      const { data: { user } } = await supabase.auth.getUser();
-      userId = user?.id || null;
-    }
+    // Get user from session
+    const { data: { user } } = await supabase.auth.getUser();
+    const userId = user?.id || null;
 
     if (!userId) {
       // Return free plan for unauthenticated users
-      return NextResponse.json<SubscriptionStatus>({
+      const response = NextResponse.json<SubscriptionStatus>({
         plan: 'free',
         status: 'active',
       });
+      return addRateLimitHeaders(response, limitResult.limit, limitResult.remaining, limitResult.reset);
     }
 
     // Check subscription in database
@@ -41,17 +35,19 @@ export async function GET(request: NextRequest) {
     }
 
     if (subscription && subscription.plan === 'premium') {
-      return NextResponse.json<SubscriptionStatus>({
+      const response = NextResponse.json<SubscriptionStatus>({
         plan: 'premium',
         status: subscription.status || 'active',
         currentPeriodEnd: subscription.current_period_end,
       });
+      return addRateLimitHeaders(response, limitResult.limit, limitResult.remaining, limitResult.reset);
     }
 
-    return NextResponse.json<SubscriptionStatus>({
+    const response = NextResponse.json<SubscriptionStatus>({
       plan: 'free',
       status: 'active',
     });
+    return addRateLimitHeaders(response, limitResult.limit, limitResult.remaining, limitResult.reset);
   } catch (error) {
     console.error('Subscription status error:', error);
     return NextResponse.json<SubscriptionStatus>(

@@ -3,71 +3,83 @@ import { AIService } from '@/lib/ai-service';
 import { createClient } from '@/lib/supabase/server';
 import { usageService } from '@/lib/services/usage-service';
 import { rateLimit, rateLimitResponse } from '@/lib/rate-limiter';
+import { parseTasksSchema } from '@/lib/validation/schemas';
+import { ValidationError, AuthError, RateLimitError, ExternalServiceError } from '@/lib/errors/AppError';
+import { logger } from '@/lib/logging/logger';
 
 export async function POST(request: NextRequest) {
-  const limit = rateLimit(request, { maxRequests: 20, windowMs: 60000 });
-  if (!limit.success) return rateLimitResponse();
+  const requestId = crypto.randomUUID();
+  const limit = await rateLimit(request, { maxRequests: 20, windowMs: 60000 });
+  if (!limit.success) {
+    logger.warn('Rate limit exceeded', { requestId });
+    return rateLimitResponse(limit.limit, limit.remaining, limit.reset);
+  }
 
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
+      throw new AuthError();
     }
+
+    logger.info('Parse tasks request', { userId: user.id, requestId });
+
+    // Validate request body
+    const body = await request.json();
+    const validated = parseTasksSchema.parse(body);
 
     // Check if user can use AI
     const canUse = await usageService.canUseAI(user.id);
     if (!canUse) {
-      return NextResponse.json(
-        {
-          error: 'AI usage limit exceeded',
-          code: 'RATE_LIMIT_EXCEEDED'
-        },
-        { status: 429 }
-      );
+      throw new RateLimitError('AI usage limit exceeded');
     }
 
-    const { notes } = await request.json();
-
-    if (!notes || typeof notes !== 'string') {
-      return NextResponse.json({ error: 'Notes are required' }, { status: 400 });
-    }
-
-    if (notes.length > 10000) {
-      return NextResponse.json(
-        { error: 'Notes too long. Max 10,000 characters.' },
-        { status: 413 }
-      );
-    }
-
-    // Use unified AI service (prefers Gemini for better task understanding)
-    const tasks = await AIService.parseTasks(notes);
+    // Parse tasks with enhanced extraction
+    const result = await AIService.parseTasks(validated.notes);
 
     // Track AI usage after successful parsing
     await usageService.incrementAIUsage(user.id).catch((error) => {
-      console.error('Failed to track AI usage:', error);
-      // Don't fail the request if tracking fails
+      logger.error('Failed to track AI usage', { userId: user.id, requestId, error: error.message });
     });
 
-    return NextResponse.json(tasks);
+    logger.info('Parse tasks success', {
+      userId: user.id,
+      requestId,
+      tasksCount: result.tasks.length,
+      duplicatesCount: result.duplicates.length,
+      qualityScore: result.qualityScore,
+    });
+
+    return NextResponse.json(result);
 
   } catch (error: any) {
-    console.error('AI parsing error:', error);
-
-    // Don't return 429 for rate limit errors from usage service
-    if (error.message?.includes('limit exceeded')) {
-      return NextResponse.json(
-        { error: 'AI usage limit exceeded', code: 'RATE_LIMIT_EXCEEDED' },
-        { status: 429 }
-      );
+    if (error.name === 'ZodError') {
+      const validationError = new ValidationError(error.errors?.[0]?.message || 'Invalid request data');
+      logger.error('Validation error', { requestId, errorId: validationError.errorId });
+      return NextResponse.json(validationError.toJSON(), { status: validationError.statusCode });
     }
 
+    if (error instanceof RateLimitError || error instanceof AuthError) {
+      logger.warn(error.message, { requestId, errorId: error.errorId });
+      return NextResponse.json(error.toJSON(), { status: error.statusCode });
+    }
+
+    if (error.message?.includes('API key not configured')) {
+      const serviceError = new ExternalServiceError('AI service unavailable');
+      logger.error('AI service error', { requestId, errorId: serviceError.errorId });
+      return NextResponse.json(serviceError.toJSON(), { status: serviceError.statusCode });
+    }
+
+    logger.error('Parse tasks error', { requestId, error: error.message });
     return NextResponse.json(
-      { error: error.message || 'AI parsing failed' },
+      {
+        error: error.message || 'AI parsing failed',
+        code: 'INTERNAL_ERROR',
+        statusCode: 500,
+        errorId: requestId,
+        timestamp: new Date().toISOString(),
+      },
       { status: 500 }
     );
   }

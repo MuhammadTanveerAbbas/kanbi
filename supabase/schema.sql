@@ -1,18 +1,18 @@
 -- ================================================
--- KANBI - Complete Database Schema
+-- KANBI - Complete Unified Database Schema
 -- ================================================
+-- AI-Powered Task Management SaaS Platform
 -- Run this ONCE in Supabase SQL Editor
--- Works for both new and existing databases
 -- ================================================
 
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- ================================================
--- TABLES
+-- CORE TABLES
 -- ================================================
 
--- Profiles table
+-- User profiles
 CREATE TABLE IF NOT EXISTS profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   email TEXT NOT NULL,
@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS profiles (
 
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS has_seen_onboarding BOOLEAN DEFAULT FALSE;
 
--- Subscriptions table
+-- Subscription management
 CREATE TABLE IF NOT EXISTS subscriptions (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS subscriptions (
   UNIQUE(user_id)
 );
 
--- Usage tracking table
+-- Usage tracking and limits
 CREATE TABLE IF NOT EXISTS usage_tracking (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
@@ -54,7 +54,7 @@ CREATE TABLE IF NOT EXISTS usage_tracking (
 ALTER TABLE usage_tracking ADD COLUMN IF NOT EXISTS boards_used_count INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE usage_tracking ADD COLUMN IF NOT EXISTS ai_used_count INTEGER NOT NULL DEFAULT 0;
 
--- Saved boards table
+-- Saved boards
 CREATE TABLE IF NOT EXISTS saved_generations (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
@@ -72,7 +72,7 @@ ALTER TABLE saved_generations ADD COLUMN IF NOT EXISTS category VARCHAR(50) DEFA
 ALTER TABLE saved_generations ADD COLUMN IF NOT EXISTS icon VARCHAR(50) DEFAULT 'file';
 ALTER TABLE saved_generations ADD COLUMN IF NOT EXISTS is_favorite BOOLEAN DEFAULT FALSE;
 
--- Board tags table
+-- Board tags
 CREATE TABLE IF NOT EXISTS board_tags (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   board_id UUID NOT NULL REFERENCES saved_generations(id) ON DELETE CASCADE,
@@ -81,7 +81,7 @@ CREATE TABLE IF NOT EXISTS board_tags (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Task statistics table
+-- Task statistics
 CREATE TABLE IF NOT EXISTS task_stats (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
@@ -97,16 +97,144 @@ CREATE TABLE IF NOT EXISTS task_stats (
   UNIQUE(user_id, date)
 );
 
--- Webhook events table (Stripe idempotency)
+-- Webhook events (Stripe idempotency)
 CREATE TABLE IF NOT EXISTS processed_webhook_events (
   id TEXT PRIMARY KEY,
   processed_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- ================================================
+-- INTEGRATIONS TABLE
+-- ================================================
+
+-- Integrations table for storing OAuth tokens
+CREATE TABLE IF NOT EXISTS integrations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  provider TEXT NOT NULL,
+  access_token TEXT NOT NULL,
+  refresh_token TEXT,
+  expires_at TIMESTAMPTZ,
+  connected_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id, provider)
+);
+
+-- ================================================
+-- AI WORKLOAD MANAGEMENT TABLES
+-- ================================================
+
+-- Task completion tracking for AI learning
+CREATE TABLE IF NOT EXISTS task_completions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  task_title TEXT NOT NULL,
+  task_priority TEXT CHECK (task_priority IN ('Low', 'Medium', 'High', 'Urgent')),
+  time_spent_minutes INTEGER DEFAULT 60,
+  completed_at TIMESTAMPTZ DEFAULT NOW(),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- AI-generated insights
+CREATE TABLE IF NOT EXISTS ai_insights (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  insight_type TEXT NOT NULL CHECK (insight_type IN ('workload', 'pattern', 'suggestion', 'warning')),
+  message TEXT NOT NULL,
+  metadata JSONB DEFAULT '{}',
+  is_read BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Daily workload snapshots
+CREATE TABLE IF NOT EXISTS workload_snapshots (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  date DATE NOT NULL DEFAULT CURRENT_DATE,
+  total_tasks INTEGER DEFAULT 0,
+  urgent_tasks INTEGER DEFAULT 0,
+  high_tasks INTEGER DEFAULT 0,
+  medium_tasks INTEGER DEFAULT 0,
+  low_tasks INTEGER DEFAULT 0,
+  estimated_hours DECIMAL(5,2) DEFAULT 0,
+  health_score INTEGER DEFAULT 100,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id, date)
+);
+
+-- AI chat assistant messages
+CREATE TABLE IF NOT EXISTS chat_messages (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  role TEXT NOT NULL CHECK (role IN ('user', 'assistant')),
+  message TEXT NOT NULL,
+  task_context JSONB DEFAULT '{}',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ================================================
+-- AI AUTOPILOT TABLES
+-- ================================================
+
+-- Morning briefings
+CREATE TABLE IF NOT EXISTS morning_briefings (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  date DATE NOT NULL,
+  summary TEXT NOT NULL,
+  priorities JSONB NOT NULL,
+  schedule JSONB NOT NULL,
+  warnings JSONB,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id, date)
+);
+
+-- Auto-scheduled tasks
+CREATE TABLE IF NOT EXISTS auto_schedule (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  task_id TEXT NOT NULL,
+  task_title TEXT NOT NULL,
+  scheduled_date DATE NOT NULL,
+  time_block TEXT NOT NULL,
+  priority TEXT NOT NULL,
+  estimated_duration INTEGER NOT NULL,
+  auto_adjusted BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Autopilot adjustments log
+CREATE TABLE IF NOT EXISTS autopilot_adjustments (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  adjustment_type TEXT NOT NULL CHECK (adjustment_type IN ('reschedule', 'reprioritize', 'delegate', 'defer')),
+  task_id TEXT NOT NULL,
+  reason TEXT NOT NULL,
+  old_value JSONB,
+  new_value JSONB,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Autopilot user settings
+CREATE TABLE IF NOT EXISTS autopilot_settings (
+  user_id UUID PRIMARY KEY REFERENCES profiles(id) ON DELETE CASCADE,
+  enabled BOOLEAN DEFAULT TRUE,
+  work_hours_start TIME DEFAULT '09:00',
+  work_hours_end TIME DEFAULT '17:00',
+  break_duration INTEGER DEFAULT 15,
+  max_daily_tasks INTEGER DEFAULT 8,
+  auto_reschedule BOOLEAN DEFAULT TRUE,
+  auto_prioritize BOOLEAN DEFAULT TRUE,
+  briefing_time TIME DEFAULT '08:00',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ================================================
 -- INDEXES
 -- ================================================
 
+-- Core indexes
 CREATE INDEX IF NOT EXISTS idx_subscriptions_user_id ON subscriptions(user_id);
 CREATE INDEX IF NOT EXISTS idx_subscriptions_stripe_subscription_id ON subscriptions(stripe_subscription_id);
 CREATE INDEX IF NOT EXISTS idx_usage_tracking_user_id ON usage_tracking(user_id);
@@ -118,6 +246,27 @@ CREATE INDEX IF NOT EXISTS idx_saved_generations_favorite ON saved_generations(u
 CREATE INDEX IF NOT EXISTS idx_saved_generations_category ON saved_generations(user_id, category);
 CREATE INDEX IF NOT EXISTS idx_board_tags_board_id ON board_tags(board_id);
 CREATE INDEX IF NOT EXISTS idx_task_stats_user_date ON task_stats(user_id, date);
+
+-- Integration indexes
+CREATE INDEX IF NOT EXISTS idx_integrations_user_id ON integrations(user_id);
+CREATE INDEX IF NOT EXISTS idx_integrations_provider ON integrations(provider);
+
+-- AI indexes
+CREATE INDEX IF NOT EXISTS idx_task_completions_user_id ON task_completions(user_id);
+CREATE INDEX IF NOT EXISTS idx_task_completions_completed_at ON task_completions(completed_at);
+CREATE INDEX IF NOT EXISTS idx_task_completions_user_date ON task_completions(user_id, completed_at);
+CREATE INDEX IF NOT EXISTS idx_ai_insights_user_id ON ai_insights(user_id);
+CREATE INDEX IF NOT EXISTS idx_ai_insights_created_at ON ai_insights(created_at);
+CREATE INDEX IF NOT EXISTS idx_ai_insights_unread ON ai_insights(user_id, is_read);
+CREATE INDEX IF NOT EXISTS idx_workload_snapshots_user_date ON workload_snapshots(user_id, date);
+CREATE INDEX IF NOT EXISTS idx_chat_messages_user_id ON chat_messages(user_id);
+CREATE INDEX IF NOT EXISTS idx_chat_messages_created_at ON chat_messages(created_at);
+CREATE INDEX IF NOT EXISTS idx_chat_messages_user_date ON chat_messages(user_id, created_at);
+
+-- Autopilot indexes
+CREATE INDEX IF NOT EXISTS idx_morning_briefings_user_date ON morning_briefings(user_id, date DESC);
+CREATE INDEX IF NOT EXISTS idx_auto_schedule_user_date ON auto_schedule(user_id, scheduled_date);
+CREATE INDEX IF NOT EXISTS idx_autopilot_adjustments_user ON autopilot_adjustments(user_id, created_at DESC);
 
 -- ================================================
 -- FUNCTIONS
@@ -133,7 +282,7 @@ BEGIN
     generations_count = usage_tracking.generations_count + 1,
     updated_at = NOW();
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SET search_path = public;
 
 -- Increment board usage
 CREATE OR REPLACE FUNCTION increment_board_usage(p_user_id UUID, p_date DATE)
@@ -145,7 +294,7 @@ BEGIN
     boards_used_count = usage_tracking.boards_used_count + 1,
     updated_at = NOW();
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SET search_path = public;
 
 -- Increment AI usage
 CREATE OR REPLACE FUNCTION increment_ai_usage(p_user_id UUID, p_date DATE)
@@ -157,15 +306,63 @@ BEGIN
     ai_used_count = usage_tracking.ai_used_count + 1,
     updated_at = NOW();
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SET search_path = public;
 
--- Reset daily usage (cleanup old records)
-CREATE OR REPLACE FUNCTION reset_daily_usage()
+-- Calculate average completion time by priority
+CREATE OR REPLACE FUNCTION get_avg_completion_time(p_user_id UUID, p_priority TEXT)
+RETURNS INTEGER AS $$
+DECLARE
+  avg_time INTEGER;
+BEGIN
+  SELECT COALESCE(AVG(time_spent_minutes)::INTEGER, 
+    CASE p_priority
+      WHEN 'Urgent' THEN 120
+      WHEN 'High' THEN 90
+      WHEN 'Medium' THEN 60
+      WHEN 'Low' THEN 30
+      ELSE 60
+    END
+  ) INTO avg_time
+  FROM task_completions
+  WHERE user_id = p_user_id 
+    AND task_priority = p_priority
+    AND completed_at > NOW() - INTERVAL '30 days';
+  
+  RETURN avg_time;
+END;
+$$ LANGUAGE plpgsql SET search_path = public;
+
+-- Get daily task completion average
+CREATE OR REPLACE FUNCTION get_daily_task_average(p_user_id UUID)
+RETURNS DECIMAL AS $$
+DECLARE
+  avg_tasks DECIMAL;
+BEGIN
+  SELECT COALESCE(AVG(daily_count), 0) INTO avg_tasks
+  FROM (
+    SELECT DATE(completed_at) as completion_date, COUNT(*) as daily_count
+    FROM task_completions
+    WHERE user_id = p_user_id
+      AND completed_at > NOW() - INTERVAL '30 days'
+    GROUP BY DATE(completed_at)
+  ) daily_stats;
+  
+  RETURN avg_tasks;
+END;
+$$ LANGUAGE plpgsql SET search_path = public;
+
+-- Cleanup old data
+CREATE OR REPLACE FUNCTION cleanup_old_ai_data()
 RETURNS VOID AS $$
 BEGIN
-  DELETE FROM usage_tracking WHERE date < CURRENT_DATE;
+  DELETE FROM task_completions WHERE completed_at < NOW() - INTERVAL '90 days';
+  DELETE FROM ai_insights WHERE is_read = TRUE AND created_at < NOW() - INTERVAL '30 days';
+  DELETE FROM workload_snapshots WHERE date < CURRENT_DATE - INTERVAL '60 days';
+  DELETE FROM chat_messages WHERE created_at < NOW() - INTERVAL '30 days';
+  DELETE FROM usage_tracking WHERE date < CURRENT_DATE - INTERVAL '90 days';
+  DELETE FROM autopilot_adjustments WHERE created_at < NOW() - INTERVAL '60 days';
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SET search_path = public;
 
 -- Handle new user creation
 CREATE OR REPLACE FUNCTION handle_new_user()
@@ -181,6 +378,10 @@ BEGIN
   INSERT INTO public.subscriptions (user_id, plan, status)
   VALUES (NEW.id, 'free', 'active')
   ON CONFLICT (user_id) DO UPDATE SET updated_at = NOW();
+
+  INSERT INTO public.autopilot_settings (user_id)
+  VALUES (NEW.id)
+  ON CONFLICT (user_id) DO NOTHING;
 
   RETURN NEW;
 EXCEPTION WHEN OTHERS THEN
@@ -257,6 +458,89 @@ CREATE POLICY "Users can insert own task stats" ON task_stats FOR INSERT WITH CH
 DROP POLICY IF EXISTS "Users can update own task stats" ON task_stats;
 CREATE POLICY "Users can update own task stats" ON task_stats FOR UPDATE USING (auth.uid() = user_id);
 
+-- Integrations
+ALTER TABLE integrations ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can view their own integrations" ON integrations;
+CREATE POLICY "Users can view their own integrations" ON integrations FOR SELECT USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can insert their own integrations" ON integrations;
+CREATE POLICY "Users can insert their own integrations" ON integrations FOR INSERT WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can update their own integrations" ON integrations;
+CREATE POLICY "Users can update their own integrations" ON integrations FOR UPDATE USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can delete their own integrations" ON integrations;
+CREATE POLICY "Users can delete their own integrations" ON integrations FOR DELETE USING (auth.uid() = user_id);
+
+-- Task Completions
+ALTER TABLE task_completions ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can view own completions" ON task_completions;
+CREATE POLICY "Users can view own completions" ON task_completions FOR SELECT USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can insert own completions" ON task_completions;
+CREATE POLICY "Users can insert own completions" ON task_completions FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- AI Insights
+ALTER TABLE ai_insights ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can view own insights" ON ai_insights;
+CREATE POLICY "Users can view own insights" ON ai_insights FOR SELECT USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can insert own insights" ON ai_insights;
+CREATE POLICY "Users can insert own insights" ON ai_insights FOR INSERT WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can update own insights" ON ai_insights;
+CREATE POLICY "Users can update own insights" ON ai_insights FOR UPDATE USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can delete own insights" ON ai_insights;
+CREATE POLICY "Users can delete own insights" ON ai_insights FOR DELETE USING (auth.uid() = user_id);
+
+-- Workload Snapshots
+ALTER TABLE workload_snapshots ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can view own snapshots" ON workload_snapshots;
+CREATE POLICY "Users can view own snapshots" ON workload_snapshots FOR SELECT USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can insert own snapshots" ON workload_snapshots;
+CREATE POLICY "Users can insert own snapshots" ON workload_snapshots FOR INSERT WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can update own snapshots" ON workload_snapshots;
+CREATE POLICY "Users can update own snapshots" ON workload_snapshots FOR UPDATE USING (auth.uid() = user_id);
+
+-- Chat Messages
+ALTER TABLE chat_messages ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can view own messages" ON chat_messages;
+CREATE POLICY "Users can view own messages" ON chat_messages FOR SELECT USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can insert own messages" ON chat_messages;
+CREATE POLICY "Users can insert own messages" ON chat_messages FOR INSERT WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can delete own messages" ON chat_messages;
+CREATE POLICY "Users can delete own messages" ON chat_messages FOR DELETE USING (auth.uid() = user_id);
+
+-- Morning Briefings
+ALTER TABLE morning_briefings ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can view own briefings" ON morning_briefings;
+CREATE POLICY "Users can view own briefings" ON morning_briefings FOR SELECT USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can insert own briefings" ON morning_briefings;
+CREATE POLICY "Users can insert own briefings" ON morning_briefings FOR INSERT WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can update own briefings" ON morning_briefings;
+CREATE POLICY "Users can update own briefings" ON morning_briefings FOR UPDATE USING (auth.uid() = user_id);
+
+-- Auto Schedule
+ALTER TABLE auto_schedule ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can view own schedule" ON auto_schedule;
+CREATE POLICY "Users can view own schedule" ON auto_schedule FOR SELECT USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can insert own schedule" ON auto_schedule;
+CREATE POLICY "Users can insert own schedule" ON auto_schedule FOR INSERT WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can update own schedule" ON auto_schedule;
+CREATE POLICY "Users can update own schedule" ON auto_schedule FOR UPDATE USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can delete own schedule" ON auto_schedule;
+CREATE POLICY "Users can delete own schedule" ON auto_schedule FOR DELETE USING (auth.uid() = user_id);
+
+-- Autopilot Adjustments
+ALTER TABLE autopilot_adjustments ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can view own adjustments" ON autopilot_adjustments;
+CREATE POLICY "Users can view own adjustments" ON autopilot_adjustments FOR SELECT USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can insert own adjustments" ON autopilot_adjustments;
+CREATE POLICY "Users can insert own adjustments" ON autopilot_adjustments FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- Autopilot Settings
+ALTER TABLE autopilot_settings ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can view own settings" ON autopilot_settings;
+CREATE POLICY "Users can view own settings" ON autopilot_settings FOR SELECT USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can insert own settings" ON autopilot_settings;
+CREATE POLICY "Users can insert own settings" ON autopilot_settings FOR INSERT WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can update own settings" ON autopilot_settings;
+CREATE POLICY "Users can update own settings" ON autopilot_settings FOR UPDATE USING (auth.uid() = user_id);
+
 -- Webhook Events
 ALTER TABLE processed_webhook_events ENABLE ROW LEVEL SECURITY;
 
@@ -275,3 +559,22 @@ CREATE POLICY "Users can view own files" ON storage.objects FOR SELECT
 DROP POLICY IF EXISTS "Users can delete own files" ON storage.objects;
 CREATE POLICY "Users can delete own files" ON storage.objects FOR DELETE
   USING (bucket_id = 'files' AND auth.uid()::text = (storage.foldername(name))[1]);
+
+-- ================================================
+-- SUCCESS MESSAGE
+-- ================================================
+
+DO $$
+BEGIN
+  RAISE NOTICE '✅ KANBI Database Schema Created Successfully!';
+  RAISE NOTICE '';
+  RAISE NOTICE '📊 Core Tables: profiles, subscriptions, usage_tracking, saved_generations, board_tags, task_stats';
+  RAISE NOTICE '🔗 Integration Tables: integrations';
+  RAISE NOTICE '🤖 AI Tables: task_completions, ai_insights, workload_snapshots, chat_messages';
+  RAISE NOTICE '🚀 Autopilot Tables: morning_briefings, auto_schedule, autopilot_adjustments, autopilot_settings';
+  RAISE NOTICE '🔒 Row Level Security: Enabled on all tables';
+  RAISE NOTICE '⚡ Functions: Usage tracking, AI learning, cleanup utilities';
+  RAISE NOTICE '📁 Storage: File bucket configured';
+  RAISE NOTICE '';
+  RAISE NOTICE '🎉 Your KANBI database is ready to use!';
+END $$;

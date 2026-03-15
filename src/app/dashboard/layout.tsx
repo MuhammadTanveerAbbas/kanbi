@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { LayoutDashboard, Bookmark, Compass, LogOut, User, Settings, LayoutGrid } from 'lucide-react';
+import { LayoutDashboard, Bookmark, Compass, LogOut, User, Settings, LayoutGrid, MessageSquare, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import Link from 'next/link';
@@ -14,6 +14,8 @@ import OnboardingTour from '@/components/dashboard/onboarding-tour';
 const navItems = [
   { href: '/dashboard', label: 'Overview', icon: LayoutDashboard },
   { href: '/dashboard/board', label: 'Board', icon: Compass },
+  { href: '/dashboard/autopilot', label: 'Autopilot', icon: Sparkles },
+  { href: '/dashboard/chat', label: 'AI Chat', icon: MessageSquare },
   { href: '/dashboard/saved', label: 'Saved', icon: Bookmark },
 ];
 

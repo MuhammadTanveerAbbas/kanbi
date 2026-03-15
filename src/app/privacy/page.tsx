@@ -59,9 +59,8 @@ export default function PrivacyPage() {
               </h3>
               <p>
                 When you use our AI task extraction feature, your note content
-                is sent to Google Gemini API and/or Groq API for processing.
-                These services process your data according to their own privacy
-                policies. We do not store the raw notes sent to AI services;
+                is sent to Groq API for processing. This service processes your data according to its own privacy
+                policy. We do not store the raw notes sent to AI services;
                 only the extracted tasks are saved.
               </p>
             </div>
@@ -138,10 +137,10 @@ export default function PrivacyPage() {
                 4.2 AI Services
               </h3>
               <p>
-                Google Gemini and Groq process your notes for task extraction.
-                These services may retain data according to their privacy
-                policies. We recommend reviewing their privacy policies at
-                google.com/privacy and groq.com/privacy.
+                Groq processes your notes for task extraction.
+                This service may retain data according to its privacy
+                policy. We recommend reviewing their privacy policy at
+                groq.com/privacy.
               </p>
             </div>
             <div>

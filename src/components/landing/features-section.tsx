@@ -16,49 +16,49 @@ const features = [
     icon: (
       <Bot className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 text-primary" />
     ),
-    title: "Real AI extraction",
+    title: "AI that saves you 2 hours per day",
     description:
-      "Not keyword matching actual understanding of what needs to happen, who owns it, and when.",
+      "Stop manually creating tasks. AI extracts action items, assigns priorities, and detects deadlines from your messy notes in seconds. What took 30 minutes now takes 10 seconds.",
   },
   {
     icon: (
       <FileText className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 text-primary" />
     ),
-    title: "5 ways to get your notes in",
+    title: "Works with everything you use",
     description:
-      "Paste text, upload a PDF, import a Notion page, paste an email thread, or drop in a URL. Kanbi reads them all.",
+      "Paste text, upload PDFs, import Notion pages, forward emails, or drop URLs. AI reads them all and extracts tasks instantly. No copy-pasting between 5 different tools.",
   },
   {
     icon: (
       <Target className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 text-primary" />
     ),
-    title: "Priorities set automatically",
+    title: "AI prevents burnout before it happens",
     description:
-      "AI reads deadlines in context. 'By Friday' becomes Urgent. 'Next sprint' becomes Medium. No manual tagging.",
+      "Real-time workload health scoring analyzes your task load and warns you when you're overcommitted. Get smart suggestions to rebalance work before you crash.",
   },
   {
     icon: (
       <Clipboard className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 text-primary" />
     ),
-    title: "Kanban board, ready instantly",
+    title: "AI Chat that knows your work",
     description:
-      "Tasks land in To Do, In Progress, or Done. Drag to move. Everything saves to your account automatically.",
+      "Talk to an AI productivity coach that understands your tasks, deadlines, and patterns. Get instant help prioritizing, planning, and staying on track.",
   },
   {
     icon: (
       <BarChart3 className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 text-primary" />
     ),
-    title: "Track what's actually shipped",
+    title: "AI learns your productivity patterns",
     description:
-      "Dashboard shows task completion trends, AI usage, and board history. Know your productivity at a glance.",
+      "Track completion trends, identify bottlenecks, and get personalized insights. AI learns when you're most productive and suggests optimal task scheduling.",
   },
   {
     icon: (
       <Lock className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 text-primary" />
     ),
-    title: "Your client data stays yours",
+    title: "Integrations that work for you",
     description:
-      "Supabase row level security means no one else can see your boards. Export anytime as JSON.",
+      "Sync with Google Calendar, Gmail, Slack, Notion, and Todoist. Export to JSON, CSV, or Markdown. Your data, your way, always secure with enterprise-grade encryption.",
   },
 ];
 
@@ -77,11 +77,10 @@ export default function FeaturesSection() {
           className="text-center mb-8 sm:mb-12 md:mb-16"
         >
           <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight mb-3 sm:mb-4 md:mb-6 px-2">
-            Built for how you work
+            AI That Actually Saves You Time
           </h2>
           <p className="text-xs sm:text-sm md:text-base lg:text-lg text-muted-foreground max-w-2xl mx-auto px-2">
-            One tool for notes, emails, PDFs, and Notion. One Kanban board. One
-            less thing to remember.
+            Stop wasting hours on task management. Let AI do the heavy lifting while you focus on getting work done.
           </p>
         </motion.div>
 

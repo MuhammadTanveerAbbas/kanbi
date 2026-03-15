@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase';
 import { AnalyticsData } from '@/lib/dashboard-types';
+import { cacheManager, CACHE_KEYS, CACHE_TTL } from '@/lib/cache/cache-manager';
+import { rateLimit, rateLimitResponse, addRateLimitHeaders } from '@/lib/rate-limiter';
 
 export async function GET(request: NextRequest) {
+  const limitResult = await rateLimit(request, { maxRequests: 30, windowMs: 60000 });
+  if (!limitResult.success) return rateLimitResponse(limitResult.limit, limitResult.remaining, limitResult.reset);
   try {
-    const supabase = createServerClient();
+    const supabase = await createServerClient();
 
     // Get user from auth header or session
     const authHeader = request.headers.get('authorization');
@@ -20,7 +24,6 @@ export async function GET(request: NextRequest) {
     }
 
     if (!userId) {
-      // Return empty data for unauthenticated users
       const last30Days: AnalyticsData = [];
       const today = new Date();
       for (let i = 29; i >= 0; i--) {
@@ -34,6 +37,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json<AnalyticsData>(last30Days);
     }
 
+    // Check cache
+    const cacheKey = CACHE_KEYS.ANALYTICS(userId);
+    const cached = cacheManager.get<AnalyticsData>(cacheKey);
+    if (cached) return NextResponse.json<AnalyticsData>(cached);
+
     // Get last 30 days of data
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -44,7 +52,8 @@ export async function GET(request: NextRequest) {
       .select('created_at')
       .eq('user_id', userId)
       .gte('created_at', thirtyDaysAgo.toISOString())
-      .order('created_at', { ascending: true });
+      .order('created_at', { ascending: true })
+      .limit(1000);
 
     if (error) {
       console.error('Analytics query error:', error);
@@ -71,13 +80,14 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Convert to array format
     const result: AnalyticsData = Array.from(dateMap.entries()).map(([date, count]) => ({
       date,
       count,
     }));
 
-    return NextResponse.json<AnalyticsData>(result);
+    cacheManager.set(cacheKey, result, CACHE_TTL.ANALYTICS);
+    const res = NextResponse.json<AnalyticsData>(result);
+    return addRateLimitHeaders(res, limitResult.limit, limitResult.remaining, limitResult.reset);
   } catch (error) {
     console.error('Analytics error:', error);
     // Return empty data on error

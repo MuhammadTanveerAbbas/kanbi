@@ -24,7 +24,7 @@ const faqs = [
   {
     question: "What's the difference between Free and Pro?",
     answer:
-      "Free gives you 10 AI extractions per day enough to test with real client work. Premium ($12/month) gives you 50/day plus PDF upload, Notion import, Gmail extraction, and URL crawling.",
+      "Free gives you 10 AI extractions per day enough to test with real client work. Premium ($9/month) gives you 50/day plus PDF upload, Notion import, Gmail extraction, and URL crawling.",
   },
   {
     question: "Can I export my tasks to other tools?",

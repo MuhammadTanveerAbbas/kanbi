@@ -10,10 +10,7 @@ export default function RecentBoards() {
 
   useEffect(() => {
     fetch('/api/saved?limit=5')
-      .then(res => {
-        if (!res.ok) throw new Error('Failed');
-        return res.json();
-      })
+      .then(res => res.json())
       .then(data => {
         // API returns array directly, not wrapped in boards property
         setBoards(Array.isArray(data) ? data : []);

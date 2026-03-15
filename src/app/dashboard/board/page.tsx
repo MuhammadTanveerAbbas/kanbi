@@ -1,14 +1,22 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { Suspense } from 'react';
-import ActionBoard from '@/components/action-board';
+import dynamic from 'next/dynamic';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { FileText } from 'lucide-react';
-import BoardTemplates from '@/components/dashboard/board-templates';
 import { Task, TaskStatus, TaskPriority } from '@/lib/types';
+
+// Lazy load heavy components
+const ActionBoard = dynamic(() => import('@/components/action-board'), {
+  loading: () => <BoardSkeleton />,
+});
+
+const BoardTemplates = dynamic(() => import('@/components/dashboard/board-templates'), {
+  ssr: false,
+});
 
 function BoardSkeleton() {
   return (
@@ -47,7 +55,6 @@ export default function DashboardBoardPage() {
   const [templateTasks, setTemplateTasks] = useState<Task[] | null>(null);
 
   const handleTemplateSelect = (template: any) => {
-    // Convert template tasks to proper Task objects
     const tasks: Task[] = template.tasks.map((t: any, index: number) => ({
       id: `task-${Date.now()}-${index}-${Math.random().toString(36).substr(2, 9)}`,
       title: t.title,
@@ -57,19 +64,15 @@ export default function DashboardBoardPage() {
       createdAt: new Date().toISOString(),
     }));
 
-    // Store tasks in localStorage to be picked up by the board
     localStorage.setItem('kanbi-tasks', JSON.stringify(tasks));
-
-    // Force a page reload to load the new tasks
     window.location.reload();
-
     setShowTemplates(false);
   };
 
   return (
     <ErrorBoundary>
       <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-4">
+        <div className="flex justify-between items-center mb-4 gap-2">
           <h1 className="text-2xl font-bold">Kanban Board</h1>
           <Button onClick={() => setShowTemplates(true)} variant="outline">
             <FileText className="h-4 w-4 mr-2" />

@@ -3,89 +3,132 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Task, TaskStatus, TaskPriority } from '@/lib/types';
 import { analytics } from '@/lib/analytics';
+import { createClient } from '@/lib/supabase/client';
+import { RealtimeService } from '@/lib/services/realtime-service';
 
 export function useTasksStore() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [currentBoardId, setCurrentBoardId] = useState<string | null>(null);
   const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const supabase = createClient();
 
-  // Sync task stats to Supabase (debounced)
-  const syncToSupabase = useCallback((currentTasks: Task[]) => {
-    // Clear any pending sync
-    if (syncTimeoutRef.current) {
-      clearTimeout(syncTimeoutRef.current);
+  // Auto-save to Supabase (debounced 3 seconds)
+  const autoSaveToSupabase = useCallback(async (currentTasks: Task[]) => {
+    if (autoSaveTimeoutRef.current) {
+      clearTimeout(autoSaveTimeoutRef.current);
     }
 
-    // Debounce sync to avoid too many API calls
-    syncTimeoutRef.current = setTimeout(async () => {
+    autoSaveTimeoutRef.current = setTimeout(async () => {
       try {
-        const stats = {
-          urgent: currentTasks.filter(t => t.priority === 'Urgent').length,
-          high: currentTasks.filter(t => t.priority === 'High').length,
-          medium: currentTasks.filter(t => t.priority === 'Medium').length,
-          low: currentTasks.filter(t => t.priority === 'Low').length,
-          total: currentTasks.length,
-          completed: currentTasks.filter(t => t.status === 'Done').length,
-        };
+        if (!currentBoardId) return;
 
-        await fetch('/api/sync-task-stats', {
-          method: 'POST',
+        const response = await fetch(`/api/boards/${currentBoardId}`, {
+          method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(stats),
+          body: JSON.stringify({ content: JSON.stringify(currentTasks) }),
         });
+
+        if (!response.ok) throw new Error('Auto-save failed');
+        setSaveError(null);
       } catch (error) {
-        console.error('Failed to sync stats to Supabase:', error);
+        console.error('Auto-save error:', error);
+        setSaveError('Auto-save failed');
       }
-    }, 500);
+    }, 3000);
+  }, [currentBoardId]);
+
+  // Sync task stats to Supabase
+  const syncTaskStats = useCallback(async (currentTasks: Task[]) => {
+    try {
+      const stats = {
+        urgent: currentTasks.filter(t => t.priority === 'Urgent').length,
+        high: currentTasks.filter(t => t.priority === 'High').length,
+        medium: currentTasks.filter(t => t.priority === 'Medium').length,
+        low: currentTasks.filter(t => t.priority === 'Low').length,
+        total: currentTasks.length,
+        completed: currentTasks.filter(t => t.status === 'Done').length,
+      };
+
+      await fetch('/api/sync-task-stats', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(stats),
+      });
+    } catch (error) {
+      console.error('Failed to sync stats:', error);
+    }
   }, []);
 
-  // Load tasks from localStorage on mount
+  // Setup real-time sync for multi-tab updates
+  useEffect(() => {
+    if (typeof window === 'undefined' || !currentBoardId) return;
+
+    const unsubscribe = RealtimeService.subscribeToBoardChanges((payload) => {
+      if (payload.eventType === 'UPDATE' && payload.new.id === currentBoardId) {
+        try {
+          const updatedTasks = JSON.parse(payload.new.content || '[]');
+          setTasks(updatedTasks);
+        } catch (error) {
+          console.error('Failed to parse real-time update:', error);
+        }
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [currentBoardId]);
+
+  // Load tasks from localStorage on mount (fallback)
   useEffect(() => {
     const loadTasks = () => {
       try {
+        const storedBoardId = localStorage.getItem('kanbi-current-board-id');
         const storedTasks = localStorage.getItem('kanbi-tasks');
+        
+        if (storedBoardId) {
+          setCurrentBoardId(storedBoardId);
+        }
+        
         if (storedTasks) {
           const parsedTasks = JSON.parse(storedTasks);
-          // Validate task structure
           if (Array.isArray(parsedTasks)) {
             setTasks(parsedTasks);
             analytics.track('tasks_loaded', { count: parsedTasks.length });
-            // Sync initial stats
-            syncToSupabase(parsedTasks);
+            syncTaskStats(parsedTasks);
           }
         }
       } catch (error) {
         console.error('Failed to load tasks:', error);
         analytics.trackError('Failed to load tasks from localStorage');
-        // Don't show error to user for loading - just start fresh
       }
       setIsInitialized(true);
     };
 
-    // Use requestIdleCallback for better performance
     if ('requestIdleCallback' in window) {
       requestIdleCallback(loadTasks);
     } else {
       setTimeout(loadTasks, 0);
     }
-  }, [syncToSupabase]);
+  }, [syncTaskStats]);
 
-  // Save tasks to localStorage when tasks change
+  // Auto-save tasks when they change
   useEffect(() => {
-    if (isInitialized) {
+    if (isInitialized && tasks.length > 0) {
       try {
         localStorage.setItem('kanbi-tasks', JSON.stringify(tasks));
-        setSaveError(null);
-        // Sync to Supabase
-        syncToSupabase(tasks);
+        autoSaveToSupabase(tasks);
+        syncTaskStats(tasks);
       } catch (error) {
         console.error('Failed to save tasks:', error);
-        setSaveError('Unable to save changes. Storage may be full.');
-        analytics.trackError('Failed to save tasks to localStorage');
+        setSaveError('Unable to save changes');
+        analytics.trackError('Failed to save tasks');
       }
     }
-  }, [tasks, isInitialized, syncToSupabase]);
+  }, [tasks, isInitialized, autoSaveToSupabase, syncTaskStats]);
 
   const addTask = useCallback((task: Omit<Task, 'id' | 'status' | 'createdAt'>) => {
     try {

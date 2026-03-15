@@ -78,7 +78,7 @@ export default function TermsPage() {
             <div>
               <h3 className="text-base sm:text-lg font-semibold mb-2 text-foreground">8.1 Subscription Plans</h3>
               <p>
-                KANBI offers subscription plans at $12/month for premium features. Subscriptions are billed monthly on a recurring basis unless cancelled.
+                KANBI offers subscription plans at $9/month for premium features. Subscriptions are billed monthly on a recurring basis unless cancelled.
               </p>
             </div>
             <div>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,6 +10,11 @@ import { Label } from '@/components/ui/label';
 import { User, Bell, Shield, CreditCard, Loader2, CheckCircle2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
+
+// Lazy load heavy components
+const IntegrationsCard = dynamic(() => import('@/components/dashboard/integrations-card'), {
+  loading: () => <Card className="border-[#262626] bg-[#141414]"><CardContent className="p-6"><div className="animate-pulse h-32 bg-gray-800 rounded" /></CardContent></Card>,
+});
 
 export default function SettingsPage() {
   const [loading, setLoading] = useState(false);
@@ -249,11 +255,20 @@ export default function SettingsPage() {
           </Card>
         </motion.div>
 
-        {/* Notifications Settings */}
+        {/* Integrations */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.4 }}
+        >
+          <IntegrationsCard />
+        </motion.div>
+
+        {/* Notifications Settings */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.5 }}
         >
           <Card className="border-[#262626] bg-gradient-to-br from-[#1a1a1a] to-[#141414] hover:border-[#3a3a3a] transition-colors">
             <CardHeader>

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { z } from 'zod';
-import { rateLimit, rateLimitResponse } from '@/lib/rate-limiter';
+import { rateLimit, rateLimitResponse, addRateLimitHeaders } from '@/lib/rate-limiter';
+import { cacheManager, CACHE_KEYS } from '@/lib/cache/cache-manager';
 
 const UpdateBoardSchema = z.object({
   title: z.string().min(1).max(200).optional(),
@@ -17,8 +18,8 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const limit = rateLimit(request, { maxRequests: 30, windowMs: 60000 });
-  if (!limit.success) return rateLimitResponse();
+  const limitResult = await rateLimit(request, { maxRequests: 30, windowMs: 60000 });
+  if (!limitResult.success) return rateLimitResponse(limitResult.limit, limitResult.remaining, limitResult.reset);
 
   try {
     const supabase = await createClient();
@@ -47,7 +48,13 @@ export async function DELETE(
       );
     }
 
-    return NextResponse.json({ success: true });
+    // Invalidate caches
+    cacheManager.invalidate(CACHE_KEYS.USAGE(user.id));
+    cacheManager.invalidate(CACHE_KEYS.ANALYTICS(user.id));
+    cacheManager.invalidate(CACHE_KEYS.TASK_STATS(user.id));
+
+    const response = NextResponse.json({ success: true });
+    return addRateLimitHeaders(response, limitResult.limit, limitResult.remaining, limitResult.reset);
   } catch (error) {
     console.error('Delete generation error:', error);
     return NextResponse.json(
@@ -61,8 +68,8 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const limit = rateLimit(request, { maxRequests: 30, windowMs: 60000 });
-  if (!limit.success) return rateLimitResponse();
+  const limitResult = await rateLimit(request, { maxRequests: 30, windowMs: 60000 });
+  if (!limitResult.success) return rateLimitResponse(limitResult.limit, limitResult.remaining, limitResult.reset);
 
   try {
     const supabase = await createClient();
@@ -103,7 +110,8 @@ export async function PATCH(
       );
     }
 
-    return NextResponse.json(data);
+    const response = NextResponse.json(data);
+    return addRateLimitHeaders(response, limitResult.limit, limitResult.remaining, limitResult.reset);
   } catch (error) {
     console.error('Update generation error:', error);
     return NextResponse.json(

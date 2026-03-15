@@ -3,8 +3,8 @@ import { createClient } from '@/lib/supabase/server';
 import { rateLimit, rateLimitResponse } from '@/lib/rate-limiter';
 
 export async function GET(request: NextRequest) {
-  const limit = rateLimit(request, { maxRequests: 30, windowMs: 60000 });
-  if (!limit.success) return rateLimitResponse();
+  const limit = await rateLimit(request, { maxRequests: 30, windowMs: 60000 });
+  if (!limit.success) return rateLimitResponse(limit.limit, limit.remaining, limit.reset);
 
   try {
     const supabase = await createClient();

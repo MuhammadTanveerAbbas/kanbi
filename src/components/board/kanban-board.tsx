@@ -55,7 +55,16 @@ export default function KanbanBoard({ store }: KanbanBoardProps) {
     setDragOverColumn(null);
     if (draggedTask) {
       try {
+        const task = store.tasks.find(t => t.id === draggedTask);
+        const wasCompleted = task?.status === 'Done';
+        const isNowCompleted = status === 'Done';
+        
         store.moveTask(draggedTask, status);
+        
+        // Track completion when task moves to Done
+        if (!wasCompleted && isNowCompleted && task) {
+          trackTaskCompletion(task);
+        }
       } catch (error) {
         setError('Could not move task');
         setTimeout(() => setError(null), 3000);
@@ -115,6 +124,22 @@ export default function KanbanBoard({ store }: KanbanBoardProps) {
   const isOverdue = (dueDate?: string) => {
     if (!dueDate) return false;
     return new Date(dueDate) < new Date();
+  };
+
+  const trackTaskCompletion = async (task: Task) => {
+    try {
+      await fetch('/api/ai/track-completion', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          taskTitle: task.title,
+          taskPriority: task.priority || 'Medium',
+          timeSpentMinutes: 60, // Default estimate, can be enhanced later
+        }),
+      });
+    } catch (error) {
+      console.error('Failed to track completion:', error);
+    }
   };
 
   return (
@@ -190,7 +215,7 @@ export default function KanbanBoard({ store }: KanbanBoardProps) {
                           <Button variant="ghost" size="sm" onClick={() => store.moveTask(task.id, 'In Progress')} className="h-6 w-6 p-0 text-blue-600" title="Start">▶</Button>
                         )}
                         {status !== 'Done' && (
-                          <Button variant="ghost" size="sm" onClick={() => store.moveTask(task.id, 'Done')} className="h-6 w-6 p-0 text-green-600" title="Done">✓</Button>
+                          <Button variant="ghost" size="sm" onClick={() => { store.moveTask(task.id, 'Done'); trackTaskCompletion(task); }} className="h-6 w-6 p-0 text-green-600" title="Done">✓</Button>
                         )}
                         <Button variant="ghost" size="sm" onClick={() => { setEditingTask(task); setEditDialogOpen(true); }} className="h-6 w-6 p-0" title="Edit">
                           <Edit className="h-3 w-3" />

@@ -127,7 +127,12 @@ export default function TaskGenerator({ addTask }: TaskGeneratorProps) {
         body: JSON.stringify({ notes: notes.trim() }),
       });
 
-      const data = await res.json().catch(() => ({}));
+      let data: any;
+      try {
+        data = await res.json();
+      } catch {
+        data = {};
+      }
 
       if (res.status === 500) {
         const parsedTasks = parseTasksIntelligently(notes);
@@ -208,7 +213,12 @@ export default function TaskGenerator({ addTask }: TaskGeneratorProps) {
       const formData = new FormData();
       formData.set("file", pdfFile);
       const res = await fetch("/api/parse-pdf", { method: "POST", body: formData });
-      const data = await res.json().catch(() => ({}));
+      let data: any;
+      try {
+        data = await res.json();
+      } catch {
+        data = {};
+      }
 
       if (!res.ok) {
         setError(data.error || "Failed to extract tasks from PDF.");
@@ -256,7 +266,12 @@ export default function TaskGenerator({ addTask }: TaskGeneratorProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ emailContent: emailContent.trim() }),
       });
-      const data = await res.json().catch(() => ({}));
+      let data: any;
+      try {
+        data = await res.json();
+      } catch {
+        data = {};
+      }
       if (!res.ok) {
         setError(data.error || "Failed to extract tasks from email.");
         return;
@@ -288,7 +303,12 @@ export default function TaskGenerator({ addTask }: TaskGeneratorProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url: urlInput.trim() }),
       });
-      const data = await res.json().catch(() => ({}));
+      let data: any;
+      try {
+        data = await res.json();
+      } catch {
+        data = {};
+      }
       if (!res.ok) {
         setError(data.error || "Failed to extract tasks from URL.");
         return;
@@ -321,7 +341,12 @@ export default function TaskGenerator({ addTask }: TaskGeneratorProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ pageUrl: notionUrl.trim(), accessToken: notionToken.trim() }),
       });
-      const data = await res.json().catch(() => ({}));
+      let data: any;
+      try {
+        data = await res.json();
+      } catch {
+        data = {};
+      }
       if (!res.ok) {
         setError(data.error || "Failed to import from Notion.");
         return;
@@ -355,10 +380,17 @@ export default function TaskGenerator({ addTask }: TaskGeneratorProps) {
           });
 
           if (response.ok) {
-            const { example } = await response.json();
-            setNotes(example);
-            setIsGenerating(false);
-            return;
+            let data: any;
+            try {
+              data = await response.json();
+            } catch {
+              data = {};
+            }
+            if (data.example) {
+              setNotes(data.example);
+              setIsGenerating(false);
+              return;
+            }
           }
         } catch (aiError) {
           console.log("AI example generation failed, using fallback");
@@ -407,11 +439,26 @@ export default function TaskGenerator({ addTask }: TaskGeneratorProps) {
 
         <Tabs defaultValue="paste" className="flex-1 flex flex-col min-h-0">
           <TabsList className="grid w-full grid-cols-5 mb-4">
-            <TabsTrigger value="paste" className="text-xs sm:text-sm flex items-center gap-1"><ClipboardPaste className="h-4 w-4 hidden" /> Paste</TabsTrigger>
-            <TabsTrigger value="pdf" className="text-xs sm:text-sm flex items-center gap-1"><FileType className="h-4 w-4 hidden" /> PDF</TabsTrigger>
-            <TabsTrigger value="notion" className="text-xs sm:text-sm flex items-center gap-1"><BookOpen className="h-4 w-4 hidden" /> Notion</TabsTrigger>
-            <TabsTrigger value="gmail" className="text-xs sm:text-sm flex items-center gap-1"><Mail className="h-4 w-4 hidden" /> Gmail</TabsTrigger>
-            <TabsTrigger value="url" className="text-xs sm:text-sm flex items-center gap-1"><LinkIcon className="h-4 w-4 hidden" /> URL</TabsTrigger>
+            <TabsTrigger value="paste" className="text-xs sm:text-sm flex items-center gap-1 sm:gap-2">
+              <ClipboardPaste className="h-4 w-4" />
+              <span className="hidden sm:inline">Paste</span>
+            </TabsTrigger>
+            <TabsTrigger value="pdf" className="text-xs sm:text-sm flex items-center gap-1 sm:gap-2">
+              <FileType className="h-4 w-4" />
+              <span className="hidden sm:inline">PDF</span>
+            </TabsTrigger>
+            <TabsTrigger value="notion" className="text-xs sm:text-sm flex items-center gap-1 sm:gap-2">
+              <BookOpen className="h-4 w-4" />
+              <span className="hidden sm:inline">Notion</span>
+            </TabsTrigger>
+            <TabsTrigger value="gmail" className="text-xs sm:text-sm flex items-center gap-1 sm:gap-2">
+              <Mail className="h-4 w-4" />
+              <span className="hidden sm:inline">Gmail</span>
+            </TabsTrigger>
+            <TabsTrigger value="url" className="text-xs sm:text-sm flex items-center gap-1 sm:gap-2">
+              <LinkIcon className="h-4 w-4" />
+              <span className="hidden sm:inline">URL</span>
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="paste" className="flex-1 flex flex-col gap-4 mt-0 data-[state=inactive]:hidden">

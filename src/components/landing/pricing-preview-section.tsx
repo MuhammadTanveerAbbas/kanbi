@@ -24,7 +24,7 @@ const plans = [
   },
   {
     name: "Premium",
-    price: "$12",
+    price: "$9",
     period: "month",
     description: "For freelance consultants",
     features: [

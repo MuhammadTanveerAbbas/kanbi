@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { cacheManager, CACHE_KEYS } from '@/lib/cache/cache-manager';
 
 export async function POST(request: NextRequest) {
     try {
@@ -36,6 +37,9 @@ export async function POST(request: NextRequest) {
             console.error('Error syncing task stats:', error);
             return NextResponse.json({ error: 'Failed to sync stats' }, { status: 500 });
         }
+
+        // Invalidate task stats cache
+        cacheManager.invalidate(CACHE_KEYS.TASK_STATS(user.id));
 
         return NextResponse.json({ success: true });
     } catch (error) {
