@@ -209,9 +209,9 @@ Return ONLY valid JSON array, no markdown.`;
           isSubtask: item.isSubtask === true,
           parentTask: item.parentTask ? item.parentTask.toString().trim() : undefined,
           dependencies: Array.isArray(item.dependencies) ? item.dependencies.map((d: any) => d.toString().trim()) : [],
-        };
+        } as ExtractedTask;
       })
-      .filter((t): t is ExtractedTask => t !== null && t.task.length > 0);
+      .filter((t): t is ExtractedTask => t !== null);
   }
 
   /**
