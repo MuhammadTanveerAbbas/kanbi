@@ -60,10 +60,42 @@ export default function RootLayout({
           <script
             dangerouslySetInnerHTML={{
               __html: `
-                if (typeof window !== 'undefined') {
-                  window.__REACT_DEVTOOLS_GLOBAL_HOOK__ = window.__REACT_DEVTOOLS_GLOBAL_HOOK__ || {};
-                  window.__REACT_DEVTOOLS_GLOBAL_HOOK__.inject = function() {};
-                }
+                (function() {
+                  const noop = () => {};
+                  
+                  window.__REACT_DEVTOOLS_GLOBAL_HOOK__ = {
+                    checkDCE: noop,
+                    supportsFiber: true,
+                    renderers: new Map(),
+                    onCommitFiberRoot: noop,
+                    onCommitFiberUnmount: noop,
+                    inject: noop,
+                  };
+                  
+                  const originalError = console.error;
+                  const originalWarn = console.warn;
+                  
+                  console.error = (...args) => {
+                    const msg = args[0]?.toString() || '';
+                    if (
+                      msg.includes('Promised response') ||
+                      msg.includes('out of scope') ||
+                      msg.includes('spoofer') ||
+                      msg.includes('forEach') ||
+                      msg.includes('onMessage')
+                    ) return;
+                    originalError.apply(console, args);
+                  };
+                  
+                  console.warn = (...args) => {
+                    const msg = args[0]?.toString() || '';
+                    if (
+                      msg.includes('preload') ||
+                      msg.includes('not used within')
+                    ) return;
+                    originalWarn.apply(console, args);
+                  };
+                })();
               `,
             }}
           />
