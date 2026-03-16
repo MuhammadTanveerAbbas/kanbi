@@ -28,7 +28,8 @@ const productionSecurityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
-  reactStrictMode: false, // Disabled to prevent Supabase auth lock issues
+  reactStrictMode: false,
+  output: 'standalone',
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production',
     styledComponents: true,
