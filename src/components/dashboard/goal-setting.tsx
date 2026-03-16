@@ -4,12 +4,13 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Target, Trophy } from 'lucide-react';
+import { Target, Trophy, Flame } from 'lucide-react';
 
 export default function GoalSetting() {
   const [dailyGoal, setDailyGoal] = useState(5);
   const [weeklyGoal, setWeeklyGoal] = useState(30);
   const [progress, setProgress] = useState({ daily: 0, weekly: 0 });
+  const [streak, setStreak] = useState(0);
   const [editing, setEditing] = useState(false);
 
   useEffect(() => {
@@ -18,6 +19,21 @@ export default function GoalSetting() {
       const goals = JSON.parse(saved);
       setDailyGoal(goals.daily);
       setWeeklyGoal(goals.weekly);
+    }
+    
+    const streakData = localStorage.getItem('goalStreak');
+    if (streakData) {
+      const { count, lastDate } = JSON.parse(streakData);
+      const today = new Date().toDateString();
+      const yesterday = new Date(Date.now() - 86400000).toDateString();
+      
+      if (lastDate === today) {
+        setStreak(count);
+      } else if (lastDate === yesterday) {
+        setStreak(count);
+      } else {
+        setStreak(0);
+      }
     }
     
     fetch('/api/usage')
@@ -36,8 +52,43 @@ export default function GoalSetting() {
 
   const saveGoals = () => {
     localStorage.setItem('goals', JSON.stringify({ daily: dailyGoal, weekly: weeklyGoal }));
+    
+    const today = new Date().toDateString();
+    const streakData = localStorage.getItem('goalStreak');
+    let newStreak = 1;
+    
+    if (streakData) {
+      const { count, lastDate } = JSON.parse(streakData);
+      const yesterday = new Date(Date.now() - 86400000).toDateString();
+      newStreak = lastDate === yesterday ? count + 1 : 1;
+    }
+    
+    localStorage.setItem('goalStreak', JSON.stringify({ count: newStreak, lastDate: today }));
+    setStreak(newStreak);
     setEditing(false);
   };
+
+  const updateStreakOnGoalMet = () => {
+    const today = new Date().toDateString();
+    const streakData = localStorage.getItem('goalStreak');
+    
+    if (streakData) {
+      const { count, lastDate } = JSON.parse(streakData);
+      if (lastDate !== today && progress.daily >= dailyGoal) {
+        const yesterday = new Date(Date.now() - 86400000).toDateString();
+        const newStreak = lastDate === yesterday ? count + 1 : 1;
+        localStorage.setItem('goalStreak', JSON.stringify({ count: newStreak, lastDate: today }));
+        setStreak(newStreak);
+      }
+    } else if (progress.daily >= dailyGoal) {
+      localStorage.setItem('goalStreak', JSON.stringify({ count: 1, lastDate: today }));
+      setStreak(1);
+    }
+  };
+
+  useEffect(() => {
+    updateStreakOnGoalMet();
+  }, [progress.daily, dailyGoal]);
 
   const dailyPercent = Math.min((progress.daily / dailyGoal) * 100, 100);
   const weeklyPercent = Math.min((progress.weekly / weeklyGoal) * 100, 100);
@@ -108,6 +159,12 @@ export default function GoalSetting() {
               <div className="flex items-center gap-2 p-3 bg-primary/10 rounded-lg border border-primary/20">
                 <Trophy className="h-5 w-5 text-yellow-400" />
                 <span className="text-sm">Daily goal achieved! 🎉</span>
+              </div>
+            )}
+            {streak > 0 && (
+              <div className="flex items-center gap-2 p-3 bg-orange-500/10 rounded-lg border border-orange-500/20">
+                <Flame className="h-5 w-5 text-orange-400" />
+                <span className="text-sm font-medium">{streak} day streak!</span>
               </div>
             )}
           </>

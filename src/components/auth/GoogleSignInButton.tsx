@@ -12,13 +12,23 @@ export function GoogleSignInButton() {
   const handleClick = async () => {
     setLoading(true);
     try {
-      await supabase.auth.signInWithOAuth({
+      const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: `${window.location.origin}/auth/callback`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
         },
       });
-    } finally {
+      
+      if (error) {
+        console.error('OAuth error:', error);
+        setLoading(false);
+      }
+    } catch (err) {
+      console.error('OAuth exception:', err);
       setLoading(false);
     }
   };

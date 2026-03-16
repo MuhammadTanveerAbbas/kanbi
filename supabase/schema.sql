@@ -1,7 +1,7 @@
 -- ================================================
 -- KANBI - Complete Unified Database Schema
 -- ================================================
--- AI-Powered Task Management SaaS Platform
+-- AI powered Task Management SaaS Platform
 -- Run this ONCE in Supabase SQL Editor
 -- ================================================
 
@@ -207,7 +207,7 @@ CREATE TABLE IF NOT EXISTS auto_schedule (
 CREATE TABLE IF NOT EXISTS autopilot_adjustments (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-  adjustment_type TEXT NOT NULL CHECK (adjustment_type IN ('reschedule', 'reprioritize', 'delegate', 'defer')),
+  adjustment_type TEXT NOT NULL CHECK (adjustment_type IN ('reschedule', 'reprioritize', 'delegate', 'defer', 'break_down', 'add_break')),
   task_id TEXT NOT NULL,
   reason TEXT NOT NULL,
   old_value JSONB,
@@ -314,7 +314,7 @@ RETURNS INTEGER AS $$
 DECLARE
   avg_time INTEGER;
 BEGIN
-  SELECT COALESCE(AVG(time_spent_minutes)::INTEGER, 
+  SELECT COALESCE(AVG(time_spent_minutes)::INTEGER,
     CASE p_priority
       WHEN 'Urgent' THEN 120
       WHEN 'High' THEN 90
@@ -324,10 +324,10 @@ BEGIN
     END
   ) INTO avg_time
   FROM task_completions
-  WHERE user_id = p_user_id 
+  WHERE user_id = p_user_id
     AND task_priority = p_priority
     AND completed_at > NOW() - INTERVAL '30 days';
-  
+
   RETURN avg_time;
 END;
 $$ LANGUAGE plpgsql SET search_path = public;
@@ -346,7 +346,7 @@ BEGIN
       AND completed_at > NOW() - INTERVAL '30 days'
     GROUP BY DATE(completed_at)
   ) daily_stats;
-  
+
   RETURN avg_tasks;
 END;
 $$ LANGUAGE plpgsql SET search_path = public;
@@ -361,6 +361,16 @@ BEGIN
   DELETE FROM chat_messages WHERE created_at < NOW() - INTERVAL '30 days';
   DELETE FROM usage_tracking WHERE date < CURRENT_DATE - INTERVAL '90 days';
   DELETE FROM autopilot_adjustments WHERE created_at < NOW() - INTERVAL '60 days';
+END;
+$$ LANGUAGE plpgsql SET search_path = public;
+
+-- Reset daily usage
+CREATE OR REPLACE FUNCTION reset_daily_usage()
+RETURNS VOID AS $$
+BEGIN
+  UPDATE usage_tracking
+  SET generations_count = 0, boards_used_count = 0, ai_used_count = 0
+  WHERE date < CURRENT_DATE;
 END;
 $$ LANGUAGE plpgsql SET search_path = public;
 
@@ -543,6 +553,8 @@ CREATE POLICY "Users can update own settings" ON autopilot_settings FOR UPDATE U
 
 -- Webhook Events
 ALTER TABLE processed_webhook_events ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow all webhook events" ON processed_webhook_events;
+CREATE POLICY "Allow all webhook events" ON processed_webhook_events FOR ALL USING (true);
 
 -- ================================================
 -- STORAGE

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutGrid, UserPlus, User, Settings, LogOut } from "lucide-react";
+import { LayoutGrid, UserPlus, LogOut, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
@@ -57,28 +57,29 @@ export default function Navbar() {
           {/* Actions */}
           <div className="flex items-center space-x-3 ml-auto">
             {user ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-10 sm:w-10 rounded-full focus-visible:ring-0 focus-visible:ring-offset-0">
-                    <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-gradient-to-br from-[#1f1f1f] to-[#2a2a2a] flex items-center justify-center border border-[#262626]">
-                      <User className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                    </div>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem asChild>
-                    <Link href="/dashboard/settings" className="cursor-pointer">
-                      <Settings className="mr-2 h-4 w-4" />
-                      Settings
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-red-500">
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Logout
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <>
+                <Button asChild variant="outline" size="sm" className="h-9 sm:min-h-[44px] text-xs sm:text-sm px-2 sm:px-4">
+                  <Link href="/dashboard" className="flex items-center gap-1.5 sm:gap-2">
+                    <LayoutDashboard className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                    Dashboard
+                  </Link>
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-10 sm:w-10 rounded-full focus-visible:ring-0 focus-visible:ring-offset-0">
+                      <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-gradient-to-br from-[#1f1f1f] to-[#2a2a2a] flex items-center justify-center border border-[#262626]">
+                        <LogOut className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                      </div>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-red-500">
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Logout
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </>
             ) : (
               <Button asChild className="h-9 sm:min-h-[44px] text-[9px] sm:text-sm px-1.5 sm:px-4">
                 <Link href="/sign-up" className="flex items-center gap-0.5 sm:gap-2">

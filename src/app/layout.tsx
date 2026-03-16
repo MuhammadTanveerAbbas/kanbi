@@ -1,21 +1,21 @@
+import { ErrorBoundaryWrapper } from "@/components/error-boundary-wrapper";
+import LayoutWrapper from "@/components/layout-wrapper";
+import "@/lib/console-suppressor";
+import { cn } from "@/lib/utils";
 import type { Metadata } from "next";
 import { Space_Grotesk } from "next/font/google";
 import "./globals.css";
-import { cn } from "@/lib/utils";
-import LayoutWrapper from "@/components/layout-wrapper";
-import { ErrorBoundaryWrapper } from "@/components/error-boundary-wrapper";
-import "@/lib/console-suppressor";
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
   variable: "--font-space-grotesk",
-  display: 'swap',
+  display: "swap",
 });
 
 export const metadata: Metadata = {
   title: "KANBI - AI Task Management That Saves 2 Hours Daily",
   description:
-    "AI-powered task management that turns messy notes into organized Kanban boards in 10 seconds. Features AI workload management, burnout prevention, productivity coaching, and Notion integration. Export to DOCX, PDF. $9/month.",
+    "AI powered task management that turns messy notes into organized Kanban boards in 10 seconds. Features AI workload management, burnout prevention, productivity coaching, and Notion integration. Export to DOCX, PDF. $9/month.",
   keywords:
     "AI task management, kanban board, productivity app, AI workload management, burnout prevention, AI productivity coach, Notion integration, task automation, AI assistant, project management, free kanban, AI productivity tool, Groq AI",
   authors: [{ name: "Muhammad Tanveer Abbas" }],
@@ -26,19 +26,18 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_US",
     url: "https://kanbi.vercel.app",
-    title: "KANBI - AI Task Management That Saves 2 Hours Daily",
+    title: "KANBI - Task Management",
     description:
-      "AI turns 2 hours of task planning into 10 seconds. Smart workload management prevents burnout. Notion integration for seamless sync. Only $9/month.",
+      "Turns hours of task planning into 10 seconds. Smart workload management prevents burnout. Notion integration for seamless sync. Only $9/month.",
     siteName: "KANBI",
   },
   twitter: {
     card: "summary_large_image",
     title: "KANBI - AI Task Management That Saves 2 Hours Daily",
     description:
-      "AI-powered task management with burnout prevention, productivity coaching, and Notion integration. $9/month.",
+      "AI powered task management with burnout prevention, productivity coaching, and Notion integration. $9/month.",
     creator: "@yourtwitterhandle",
   },
-
 };
 
 export const viewport = {
@@ -56,13 +55,13 @@ export default function RootLayout({
   return (
     <html lang="en" className="scroll-smooth" suppressHydrationWarning>
       <head>
-        {process.env.NODE_ENV === 'development' && (
+        {process.env.NODE_ENV === "development" && (
           <script
             dangerouslySetInnerHTML={{
               __html: `
                 (function() {
                   const noop = () => {};
-                  
+
                   window.__REACT_DEVTOOLS_GLOBAL_HOOK__ = {
                     checkDCE: noop,
                     supportsFiber: true,
@@ -71,10 +70,10 @@ export default function RootLayout({
                     onCommitFiberUnmount: noop,
                     inject: noop,
                   };
-                  
+
                   const originalError = console.error;
                   const originalWarn = console.warn;
-                  
+
                   console.error = (...args) => {
                     const msg = args[0]?.toString() || '';
                     if (
@@ -86,7 +85,7 @@ export default function RootLayout({
                     ) return;
                     originalError.apply(console, args);
                   };
-                  
+
                   console.warn = (...args) => {
                     const msg = args[0]?.toString() || '';
                     if (
@@ -102,10 +101,7 @@ export default function RootLayout({
         )}
       </head>
       <body
-        className={cn(
-          "antialiased font-sans",
-          spaceGrotesk.variable
-        )}
+        className={cn("antialiased font-sans", spaceGrotesk.variable)}
         suppressHydrationWarning
       >
         <ErrorBoundaryWrapper>

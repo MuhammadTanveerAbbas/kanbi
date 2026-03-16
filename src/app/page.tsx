@@ -10,7 +10,6 @@ const ProblemSection = dynamic(() => import('@/components/landing/problem-sectio
 const FeaturesSection = dynamic(() => import('@/components/landing/features-section'), { ssr: false });
 const DemoPreviewSection = dynamic(() => import('@/components/landing/demo-preview-section'), { ssr: false });
 const HowItWorksSection = dynamic(() => import('@/components/landing/how-it-works-section'), { ssr: false });
-const PricingPreviewSection = dynamic(() => import('@/components/landing/pricing-preview-section'), { ssr: false });
 const ComparisonTableSection = dynamic(() => import('@/components/landing/comparison-table-section'), { ssr: false });
 const FaqSection = dynamic(() => import('@/components/landing/faq-section'), { ssr: false });
 const StatsSection = dynamic(() => import('@/components/landing/stats-section'), { ssr: false });
@@ -56,7 +55,6 @@ export default function Home() {
         <FeaturesSection />
         <DemoPreviewSection />
         <HowItWorksSection />
-        <PricingPreviewSection />
         <ComparisonTableSection />
         <FaqSection />
         <StatsSection />

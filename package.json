@@ -1,7 +1,7 @@
 {
   "name": "kanbi",
   "version": "3.1.0",
-  "description": "AI-powered task management that saves 2 hours daily. Features AI workload management, burnout prevention, productivity coaching, and integrations with Google Calendar, Gmail, Slack, Notion, Todoist.",
+  "description": "AI powered task management that saves 2 hours daily. Features AI workload management, burnout prevention, productivity coaching, and integrations with Google Calendar, Gmail, Slack, Notion, Todoist.",
   "private": true,
   "scripts": {
     "dev": "next dev",

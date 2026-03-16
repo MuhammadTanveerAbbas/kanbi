@@ -94,7 +94,7 @@ export default function WorkloadHealth({ tasks = [] }: WorkloadHealthProps) {
   };
 
   const getScoreColor = () => {
-    if (analysis.healthScore >= 80) return 'text-green-500';
+    if (analysis.healthScore >= 80) return 'text-gray-400';
     if (analysis.healthScore >= 50) return 'text-yellow-500';
     if (analysis.healthScore >= 25) return 'text-orange-500';
     return 'text-red-500';
@@ -124,7 +124,7 @@ export default function WorkloadHealth({ tasks = [] }: WorkloadHealthProps) {
             <div
               className={`h-full transition-all duration-500 ${
                 analysis.healthScore >= 80
-                  ? 'bg-green-500'
+                  ? 'bg-gray-500'
                   : analysis.healthScore >= 50
                   ? 'bg-yellow-500'
                   : analysis.healthScore >= 25
@@ -145,18 +145,6 @@ export default function WorkloadHealth({ tasks = [] }: WorkloadHealthProps) {
             </p>
           ))}
         </div>
-
-        {/* Suggestions */}
-        {analysis.suggestions.length > 0 && (
-          <div className="pt-3 border-t border-gray-800 space-y-2">
-            <p className="text-sm font-medium">💡 Suggestions:</p>
-            {analysis.suggestions.map((suggestion, index) => (
-              <p key={index} className="text-sm text-muted-foreground pl-4">
-                {suggestion}
-              </p>
-            ))}
-          </div>
-        )}
 
         {/* Task Breakdown */}
         <div className="pt-3 border-t border-gray-800">

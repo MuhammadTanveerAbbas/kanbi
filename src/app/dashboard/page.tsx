@@ -11,9 +11,7 @@ import { DashboardSkeleton } from '@/components/dashboard/skeleton';
 // Lazy load recharts as single bundle
 const Chart = dynamic(() => import('@/components/dashboard/chart'), { ssr: false });
 
-const RecentBoards = dynamic(() => import('@/components/dashboard/recent-boards'), {
-  loading: () => <Card className="border-[#262626] bg-[#141414]"><CardContent className="p-6"><div className="animate-pulse h-32 bg-gray-800 rounded" /></CardContent></Card>,
-});
+
 
 const TaskStatistics = dynamic(() => import('@/components/dashboard/task-statistics'), {
   loading: () => <Card className="border-[#262626] bg-[#141414]"><CardContent className="p-6"><div className="animate-pulse h-32 bg-gray-800 rounded" /></CardContent></Card>,
@@ -169,18 +167,10 @@ export default function DashboardOverview() {
           />
         </div>
 
-        {/* AI Workload Health */}
-        <WorkloadHealth />
-
-        {/* Main Content Grid */}
+        {/* AI Workload Health and Goals */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Left Column - Goals and Recent Boards */}
-          <div className="lg:col-span-2 space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <GoalSetting />
-              <RecentBoards />
-            </div>
-          </div>
+          <WorkloadHealth />
+          <GoalSetting />
         </div>
 
         {/* Usage Chart */}

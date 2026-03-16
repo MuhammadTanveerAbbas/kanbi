@@ -42,7 +42,7 @@ export default function DashboardLayout({
       
       <div className="min-h-screen bg-[#141414] text-white flex flex-col">
       {/* Pill Navbar */}
-      <nav className="sticky top-0 z-40 border-b border-[#262626] bg-[#141414]/95 backdrop-blur-sm py-4">
+      <nav className="sticky top-0 z-40 border-b border-[#262626] bg-[#141414]/95 backdrop-blur-sm py-3 sm:py-4">
         <div className="px-4 sm:px-6 flex items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2">
@@ -131,7 +131,7 @@ export default function DashboardLayout({
       </nav>
 
       {/* Page Content */}
-      <main className="flex-1 p-4 sm:p-6 lg:p-8 pb-20 md:pb-8">
+      <main className="flex-1 px-4 sm:px-6 lg:px-8 pb-20 md:pb-8">
         {children}
       </main>
     </div>

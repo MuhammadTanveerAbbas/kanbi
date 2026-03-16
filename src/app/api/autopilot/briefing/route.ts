@@ -86,7 +86,8 @@ export async function POST(request: NextRequest) {
         adjustment_type: adj.type,
         task_id: adj.task,
         reason: adj.reason,
-        new_value: { suggestion: adj.suggestion }
+        new_value: { suggestion: adj.suggestion },
+        old_value: {}
       });
     }
 
@@ -134,7 +135,14 @@ export async function GET(request: NextRequest) {
       .order('created_at', { ascending: false })
       .limit(10);
 
-    return NextResponse.json({ briefing, schedule, adjustments });
+    const formattedAdjustments = adjustments?.map(adj => ({
+      ...adj,
+      type: adj.adjustment_type,
+      task: adj.task_id,
+      new_value: adj.new_value || { suggestion: '' }
+    })) || [];
+
+    return NextResponse.json({ briefing, schedule, adjustments: formattedAdjustments });
   } catch (error) {
     console.error('Fetch briefing error:', error);
     return NextResponse.json({ error: 'Failed to fetch briefing' }, { status: 500 });

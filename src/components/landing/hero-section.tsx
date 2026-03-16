@@ -72,7 +72,7 @@ export default function HeroSection({ setIsLoading }: HeroSectionProps) {
           {/* Headline */}
           <h1 className="text-3xl xs:text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight mb-6 leading-tight">
             <span className="block text-white mb-2">
-              AI turns 2 hours of task planning
+              Turns hours of task planning
             </span>
             <span className="block bg-gradient-to-r from-gray-200 via-gray-400 to-gray-600 bg-clip-text text-transparent">
               into 10 seconds
@@ -80,8 +80,8 @@ export default function HeroSection({ setIsLoading }: HeroSectionProps) {
           </h1>
 
           {/* Subtext */}
-          <p className="text-sm xs:text-base sm:text-lg md:text-xl text-gray-400 max-w-2xl mx-auto mb-8 leading-relaxed px-2">
-            Stop manually organizing tasks. Kanbi's AI reads your notes, emails, PDFs, and Notion docs then instantly creates a prioritized Kanban board. Plus AI workload management prevents burnout before it happens.
+          <p className="text-sm xs:text-base sm:text-lg text-gray-400 max-w-2xl mx-auto mb-8 leading-relaxed px-2">
+            Paste your notes. AI extracts tasks, prioritizes them, and prevents burnout. Works with emails, PDFs, and Notion. Get organized in seconds, not hours.
           </p>
 
           {/* CTAs */}
@@ -116,26 +116,7 @@ export default function HeroSection({ setIsLoading }: HeroSectionProps) {
             </Button>
           </div>
 
-          {/* Free Tier Stats */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.3 }}
-            className="flex flex-wrap items-center justify-center gap-6 text-sm text-gray-400"
-          >
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-green-500"></div>
-              <span>10 AI extractions/day free</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-green-500"></div>
-              <span>300 boards/month free</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-green-500"></div>
-              <span>No credit card required</span>
-            </div>
-          </motion.div>
+
         </motion.div>
       </div>
     </section>

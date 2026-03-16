@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { User, Bell, Shield, CreditCard, Loader2, CheckCircle2 } from 'lucide-react';
+import { User, Shield, CreditCard, Loader2, CheckCircle2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 
@@ -264,26 +264,7 @@ export default function SettingsPage() {
           <IntegrationsCard />
         </motion.div>
 
-        {/* Notifications Settings */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.5 }}
-        >
-          <Card className="border-[#262626] bg-gradient-to-br from-[#1a1a1a] to-[#141414] hover:border-[#3a3a3a] transition-colors">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
-                <Bell className="h-5 w-5" />
-                Notifications
-              </CardTitle>
-              <CardDescription className="text-sm">Manage your notification preferences</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-gray-400">Email notifications are currently enabled for important account updates.</p>
-              <div className="text-xs text-gray-500">More notification options coming soon.</div>
-            </CardContent>
-          </Card>
-        </motion.div>
+
       </div>
     </div>
   );

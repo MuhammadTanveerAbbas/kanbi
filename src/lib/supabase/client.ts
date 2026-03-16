@@ -10,13 +10,6 @@ export function createClient() {
         detectSessionInUrl: true,
         persistSession: true,
         autoRefreshToken: true,
-        storage: typeof window !== 'undefined' ? window.localStorage : undefined,
-        storageKey: 'sb-auth-token',
-      },
-      global: {
-        headers: {
-          'x-client-info': 'kanbi-web',
-        },
       },
     }
   )
