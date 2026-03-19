@@ -3,7 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plug2, Zap } from 'lucide-react';
+import { Plug2, Zap, RefreshCw } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 const integrations = [
@@ -24,17 +24,39 @@ export default function IntegrationsCard() {
 
   useEffect(() => {
     fetchIntegrationStatus();
+    
+    // Listen for URL changes to refresh status after OAuth
+    const handleFocus = () => {
+      fetchIntegrationStatus();
+    };
+    
+    // Check for success parameter in URL and refresh status
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('success') === 'notion_connected') {
+      // Delay to ensure database has been updated
+      setTimeout(() => {
+        fetchIntegrationStatus();
+      }, 1000);
+    }
+    
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
   }, []);
 
   const fetchIntegrationStatus = async () => {
     try {
+      setLoading(true);
       const response = await fetch('/api/integrations/status');
+      
       if (response.ok) {
         const data = await response.json();
         setConnected(data.connected || {});
+      } else {
+        setConnected({});
       }
     } catch (error) {
       console.error('Failed to fetch integration status:', error);
+      setConnected({});
     } finally {
       setLoading(false);
     }
@@ -77,13 +99,26 @@ export default function IntegrationsCard() {
   return (
     <Card className="border-[#262626] bg-gradient-to-br from-[#1a1a1a] to-[#141414] hover:border-[#3a3a3a] transition-colors">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
-          <Plug2 className="h-5 w-5" />
-          Integrations
-        </CardTitle>
-        <CardDescription className="text-sm">
-          Connect your favorite tools to supercharge your workflow
-        </CardDescription>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+              <Plug2 className="h-5 w-5" />
+              Integrations
+            </CardTitle>
+            <CardDescription className="text-sm">
+              Connect your favorite tools to supercharge your workflow
+            </CardDescription>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={fetchIntegrationStatus}
+            disabled={loading}
+            className="h-8 w-8 p-0"
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         {integrations.map((integration) => {

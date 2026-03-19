@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ connected: {} }, { status: 200 });
     }
 
     const { data: integrations } = await supabase
@@ -20,9 +20,8 @@ export async function GET(request: NextRequest) {
       return acc;
     }, {} as Record<string, boolean>);
 
-    return NextResponse.json({ connected });
+    return NextResponse.json({ connected }, { status: 200 });
   } catch (error) {
-    console.error('Integration status error:', error);
-    return NextResponse.json({ error: 'Failed to fetch status' }, { status: 500 });
+    return NextResponse.json({ connected: {} }, { status: 200 });
   }
 }
