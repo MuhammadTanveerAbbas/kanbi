@@ -7,22 +7,19 @@ export async function GET(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
-      const baseUrl = request.nextUrl.origin;
-      return NextResponse.redirect(`${baseUrl}/login?error=unauthorized`);
+      return NextResponse.redirect('/login?error=unauthorized');
     }
 
     const searchParams = request.nextUrl.searchParams;
     const code = searchParams.get('code');
     const error = searchParams.get('error');
 
-    const baseUrl = request.nextUrl.origin;
-
     if (error) {
-      return NextResponse.redirect(`${baseUrl}/dashboard/settings?error=${error}`);
+      return NextResponse.redirect(`/dashboard/settings?error=${error}`);
     }
 
     if (!code) {
-      return NextResponse.redirect(`${baseUrl}/dashboard/settings?error=no_code`);
+      return NextResponse.redirect('/dashboard/settings?error=no_code');
     }
 
     const clientId = process.env.NOTION_CLIENT_ID;
@@ -30,7 +27,7 @@ export async function GET(request: NextRequest) {
     const redirectUri = process.env.NOTION_REDIRECT_URI;
 
     if (!clientId || !clientSecret || !redirectUri) {
-      return NextResponse.redirect(`${baseUrl}/dashboard/settings?error=config_missing`);
+      return NextResponse.redirect('/dashboard/settings?error=config_missing');
     }
 
     const auth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
@@ -51,39 +48,27 @@ export async function GET(request: NextRequest) {
     if (!tokenResponse.ok) {
       const errorData = await tokenResponse.json();
       console.error('Notion token error:', errorData);
-      return NextResponse.redirect(`${baseUrl}/dashboard/settings?error=token_failed`);
+      return NextResponse.redirect('/dashboard/settings?error=token_failed');
     }
 
     const tokenData = await tokenResponse.json();
 
-    console.log('Notion token data received:', {
-      workspace_id: tokenData.workspace_id,
-      workspace_name: tokenData.workspace_name,
-      bot_id: tokenData.bot_id,
-      has_access_token: !!tokenData.access_token
-    });
-
-    const { data, error: dbError } = await supabase.from('integrations').upsert({
+    await supabase.from('integrations').upsert({
       user_id: user.id,
       provider: 'notion',
       access_token: tokenData.access_token,
       refresh_token: tokenData.refresh_token || null,
       expires_at: null,
-      connected_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+      metadata: {
+        workspace_id: tokenData.workspace_id,
+        workspace_name: tokenData.workspace_name,
+        bot_id: tokenData.bot_id,
+      },
     });
 
-    if (dbError) {
-      console.error('Database upsert error:', dbError);
-      return NextResponse.redirect(`${baseUrl}/dashboard/settings?error=database_error`);
-    }
-
-    console.log('Integration saved successfully for user:', user.id);
-
-    return NextResponse.redirect(`${baseUrl}/dashboard/settings?success=notion_connected`);
+    return NextResponse.redirect('/dashboard/settings?success=notion_connected');
   } catch (error: any) {
     console.error('Notion callback error:', error);
-    const baseUrl = request.nextUrl.origin;
-    return NextResponse.redirect(`${baseUrl}/dashboard/settings?error=callback_failed`);
+    return NextResponse.redirect('/dashboard/settings?error=callback_failed');
   }
 }

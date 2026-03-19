@@ -16,14 +16,10 @@ export async function middleware(request: NextRequest) {
   response.headers.set('X-Frame-Options', 'DENY');
   response.headers.set('X-Content-Type-Options', 'nosniff');
   response.headers.set('Referrer-Policy', 'strict-origin');
-  
-  // More permissive CSP for development
-  const isDev = process.env.NODE_ENV === 'development';
-  const csp = isDev 
-    ? `default-src 'self' 'unsafe-eval' 'unsafe-inline'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://*.supabase.co https://api.groq.com https://generativelanguage.googleapis.com ws://localhost:*;`
-    : `default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://*.supabase.co https://api.groq.com https://generativelanguage.googleapis.com;`;
-  
-  response.headers.set('Content-Security-Policy', csp);
+  response.headers.set(
+    'Content-Security-Policy',
+    `default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://*.supabase.co https://api.groq.com https://generativelanguage.googleapis.com;`
+  );
 
   // CORS for API routes
   if (pathname.startsWith('/api/')) {

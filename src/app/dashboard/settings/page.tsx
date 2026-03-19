@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { User, Shield, CreditCard, Loader2, CheckCircle2, LogOut } from 'lucide-react';
+import { User, Shield, CreditCard, Loader2, CheckCircle2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 
@@ -25,38 +25,11 @@ export default function SettingsPage() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
-  const [errorMessage, setErrorMessage] = useState('');
   const supabase = createClient();
   const router = useRouter();
 
   useEffect(() => {
     fetchUser();
-    
-    // Check for URL parameters
-    const urlParams = new URLSearchParams(window.location.search);
-    const success = urlParams.get('success');
-    const error = urlParams.get('error');
-    
-    if (success === 'notion_connected') {
-      setSuccessMessage('Notion connected successfully!');
-      setTimeout(() => setSuccessMessage(''), 5000);
-      // Clean URL
-      window.history.replaceState({}, '', '/dashboard/settings');
-    }
-    
-    if (error) {
-      const errorMessages: Record<string, string> = {
-        'unauthorized': 'Please log in to connect integrations',
-        'no_code': 'Authorization code missing from Notion',
-        'config_missing': 'Notion integration not properly configured',
-        'token_failed': 'Failed to get access token from Notion',
-        'callback_failed': 'Integration callback failed'
-      };
-      setErrorMessage(errorMessages[error] || 'Integration failed');
-      setTimeout(() => setErrorMessage(''), 5000);
-      // Clean URL
-      window.history.replaceState({}, '', '/dashboard/settings');
-    }
   }, []);
 
   const fetchUser = async () => {
@@ -66,11 +39,6 @@ export default function SettingsPage() {
       setEmail(user.email || '');
       setFullName(user.user_metadata?.full_name || '');
     }
-  };
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push('/');
   };
 
   const handleUpdateProfile = async () => {
@@ -159,18 +127,6 @@ export default function SettingsPage() {
         >
           <CheckCircle2 className="h-5 w-5" />
           <span className="text-sm">{successMessage}</span>
-        </motion.div>
-      )}
-
-      {/* Error Message */}
-      {errorMessage && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0 }}
-          className="flex items-center gap-2 p-4 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400"
-        >
-          <span className="text-sm">{errorMessage}</span>
         </motion.div>
       )}
 
@@ -306,34 +262,6 @@ export default function SettingsPage() {
           transition={{ duration: 0.3, delay: 0.4 }}
         >
           <IntegrationsCard />
-        </motion.div>
-
-        {/* Account Actions */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.5 }}
-        >
-          <Card className="border-[#262626] bg-gradient-to-br from-[#1a1a1a] to-[#141414] hover:border-[#3a3a3a] transition-colors">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
-                <LogOut className="h-5 w-5" />
-                Account
-              </CardTitle>
-              <CardDescription className="text-sm">Account management and logout</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-gray-400">Sign out of your account and return to the homepage.</p>
-              <Button 
-                onClick={handleLogout}
-                variant="destructive"
-                className="w-full sm:w-auto"
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                Logout
-              </Button>
-            </CardContent>
-          </Card>
         </motion.div>
 
 
