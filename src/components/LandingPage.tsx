@@ -42,8 +42,15 @@ function Styles({theme}:{theme:Theme}){return <style suppressHydrationWarning>{`
     .cr a,.cr button{justify-content:center!important}
     .fg{grid-template-columns:1fr 1fr!important}
     .tsc{overflow-x:auto;-webkit-overflow-scrolling:touch}
+    .hero-badge{padding:5px 10px!important}
+    .badge-text{font-size:10px!important;white-space:normal!important;text-align:center!important;line-height:1.3!important}
+    .cmp-table{overflow-x:auto!important}
   }
-  @media(max-width:480px){.g3,.g4,.fg,.sg{grid-template-columns:1fr!important}}
+  @media(max-width:480px){.g3,.g4,.fg,.sg{grid-template-columns:1fr!important}
+    .cmp-table>div{grid-template-columns:1fr!important}
+    .cmp-table>div>div{border-left:none!important;border-bottom:1px solid var(--br)!important}
+    .cmp-table>div>div:last-child{border-bottom:none!important}
+  }
 `}</style>;}
 
 function useInView(ref:React.RefObject<HTMLElement|null>,thr=0.12){
@@ -110,13 +117,8 @@ function Navbar(){
   const [mob,setMob]=useState(false);
   const [scrolled,setScrolled]=useState(false);
   const prog=useScrollP();
-  const handleProClick=async()=>{
-    const supabase=createClient();
-    const {data:{session}}=await supabase.auth.getSession();
-    if(!session){window.location.href='/sign-up?plan=pro';return;}
-    const response=await fetch('/api/stripe/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:session.user.id})});
-    const {url}=await response.json();
-    window.location.href=url;
+  const handleGetStarted=()=>{
+    window.location.href='/sign-up';
   };
   useEffect(()=>{const fn=()=>setScrolled(window.scrollY>24);window.addEventListener("scroll",fn,{passive:true});return()=>window.removeEventListener("scroll",fn);},[]);
   const links=[["Features","#features"],["How It Works","#how-it-works"],["Product","#showcase"],["Pricing","#pricing"],["FAQ","#faq"]];
@@ -136,7 +138,7 @@ function Navbar(){
             {theme==="dark"?<IC.Sun size={14}/>:<IC.Moon size={14}/>}
           </button>
           <a href="/sign-in" className="na xlh" style={{fontSize:13,color:"var(--tx2)",transition:"color .15s"}}>Sign in</a>
-          <button onClick={handleProClick} style={{height:34,padding:"0 15px",borderRadius:8,background:"var(--inv)",color:"var(--inv2)",fontSize:13,fontWeight:600,display:"inline-flex",alignItems:"center",transition:"opacity .15s",border:"none"}} onMouseOver={e=>(e.currentTarget.style.opacity=".88")} onMouseOut={e=>(e.currentTarget.style.opacity="1")}>Get Started Free</button>
+          <button onClick={handleGetStarted} style={{height:34,padding:"0 15px",borderRadius:8,background:"var(--inv)",color:"var(--inv2)",fontSize:13,fontWeight:600,display:"inline-flex",alignItems:"center",transition:"opacity .15s",border:"none"}} onMouseOver={e=>(e.currentTarget.style.opacity=".88")} onMouseOut={e=>(e.currentTarget.style.opacity="1")}>Get Started Free</button>
           <button className="ms" onClick={()=>setMob(!mob)} style={{display:"none",background:"none",border:"none",color:"var(--tx2)",padding:4}}>{mob?<IC.X/>:<IC.Menu/>}</button>
         </div>
       </div>
@@ -151,31 +153,26 @@ function Navbar(){
 function Hero(){
   const ref=useRef<HTMLDivElement>(null);
   const v=useInView(ref as React.RefObject<HTMLElement>);
-  const handleProClick=async()=>{
-    const supabase=createClient();
-    const {data:{session}}=await supabase.auth.getSession();
-    if(!session){window.location.href='/sign-up?plan=pro';return;}
-    const response=await fetch('/api/stripe/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:session.user.id})});
-    const {url}=await response.json();
-    window.location.href=url;
+  const handleGetStarted=()=>{
+    window.location.href='/sign-up';
   };
   return(
     <section style={{padding:"148px 0 80px",position:"relative",overflow:"hidden"}}>
       <div style={{position:"absolute",inset:0,pointerEvents:"none",backgroundImage:"linear-gradient(var(--br) 1px,transparent 1px),linear-gradient(90deg,var(--br) 1px,transparent 1px)",backgroundSize:"72px 72px"}}/>
       <div style={{position:"absolute",top:-60,left:"50%",transform:"translateX(-50%)",width:800,height:520,background:"radial-gradient(ellipse,var(--ag) 0%,transparent 68%)",pointerEvents:"none"}}/>
       <div style={{maxWidth:1140,margin:"0 auto",padding:"0 24px",textAlign:"center",position:"relative"}}>
-        <div style={{display:"inline-flex",alignItems:"center",gap:8,padding:"5px 14px 5px 10px",borderRadius:100,border:"1px solid var(--ag)",background:"var(--as)",marginBottom:28}}>
-          <div style={{width:20,height:20,borderRadius:6,background:"var(--as)",display:"flex",alignItems:"center",justifyContent:"center",color:"var(--ac)"}}><IC.Spark size={13}/></div>
-          <span style={{fontSize:12,color:"var(--ac)",fontWeight:500}}>Groq AI · Notion Sync · Google Calendar · Burnout Prevention</span>
+        <div className="hero-badge" style={{display:"inline-flex",alignItems:"center",gap:8,padding:"5px 14px 5px 10px",borderRadius:100,border:"1px solid var(--ag)",background:"var(--as)",marginBottom:28}}>
+          <div style={{width:20,height:20,borderRadius:6,background:"var(--as)",display:"flex",alignItems:"center",justifyContent:"center",color:"var(--ac)",flexShrink:0}}><IC.Spark size={13}/></div>
+          <span className="badge-text" style={{fontSize:12,color:"var(--ac)",fontWeight:500,whiteSpace:"nowrap"}}>Groq AI · Notion Sync · Google Calendar · Burnout Prevention</span>
         </div>
         <h1 className="hh" style={{fontSize:"clamp(44px,7.5vw,86px)",fontWeight:800,letterSpacing:"-0.048em",lineHeight:1.04,color:"var(--tx)",marginBottom:24}}>
           <ST text="Turn hours of task" delay={0}/>{" "}
-          <span style={{position:"relative",display:"inline-block"}}><Wavy/><ST text="planning" delay={0.34} style={{color:"transparent",backgroundImage:"linear-gradient(135deg,var(--tx),var(--tx2))",WebkitBackgroundClip:"text",backgroundClip:"text"} as React.CSSProperties}/></span>
+          <span style={{position:"relative",display:"inline-block"}}><Wavy/><ST text="planning" delay={0.34} style={{color:"var(--ac)",fontWeight:800} as React.CSSProperties}/></span>
           <br/>{"into "}<span className="shimmer"><ST text="10 seconds" delay={0.56}/></span>
         </h1>
         <p style={{fontSize:17,color:"var(--tx2)",maxWidth:540,margin:"0 auto 40px",lineHeight:1.7}}>Paste notes, emails, or PDFs. Kanbi's Groq AI extracts every task, prioritizes intelligently, prevents burnout   and syncs with your calendar. <strong style={{color:"var(--tx)",fontWeight:500}}>2+ hours saved every day.</strong></p>
         <div className="cr" style={{display:"flex",gap:12,justifyContent:"center",flexWrap:"wrap"}}>
-          <button onClick={handleProClick} style={{height:48,padding:"0 26px",borderRadius:10,background:"var(--ac)",color:"#fff",fontSize:14,fontWeight:600,display:"inline-flex",alignItems:"center",gap:9,boxShadow:"0 0 0 1px var(--ag),0 10px 38px var(--ag)",transition:"background .15s",border:"none"}} onMouseOver={e=>(e.currentTarget.style.background="var(--ach)")} onMouseOut={e=>(e.currentTarget.style.background="var(--ac)")}>Start for Free <IC.Arrow size={15}/></button>
+          <button onClick={handleGetStarted} style={{height:48,padding:"0 26px",borderRadius:10,background:"var(--ac)",color:"#fff",fontSize:14,fontWeight:600,display:"inline-flex",alignItems:"center",gap:9,boxShadow:"0 0 0 1px var(--ag),0 10px 38px var(--ag)",transition:"background .15s",border:"none"}} onMouseOver={e=>(e.currentTarget.style.background="var(--ach)")} onMouseOut={e=>(e.currentTarget.style.background="var(--ac)")}>Start for Free <IC.Arrow size={15}/></button>
           <a href="#showcase" style={{height:48,padding:"0 22px",borderRadius:10,border:"1px solid var(--br)",fontSize:14,color:"var(--tx2)",display:"inline-flex",alignItems:"center",gap:6,transition:"all .15s"}} onMouseOver={e=>{e.currentTarget.style.borderColor="var(--brh)";e.currentTarget.style.color="var(--tx)"}} onMouseOut={e=>{e.currentTarget.style.borderColor="var(--br)";e.currentTarget.style.color="var(--tx2)"}}>See product <IC.ChevD size={14}/></a>
         </div>
         <p style={{marginTop:14,fontSize:12,color:"var(--tx3)"}}>No credit card · Free plan forever · Cancel Pro anytime</p>
@@ -480,26 +477,34 @@ function HowItWorks(){
   );
 }
 
-function StatN({target,suffix=""}:{target:number;suffix?:string}){
-  const ref=useRef<HTMLDivElement>(null);const v=useInView(ref as React.RefObject<HTMLElement>);const n=useCountUp(target,v);
-  return <div ref={ref} style={{display:"inline"}}>{n.toLocaleString()}{suffix}</div>;
-}
-function StatsWall(){
-  const stats=[{l:"Active Users",v:14000,s:"+"},{l:"Tasks Extracted",v:2400000,s:"+",n:"since launch"},{l:"Hours Saved",v:4800000,s:"+",n:"by our users"},{l:"Avg Health Score",v:84,s:"/100",n:"across all users"},{l:"Time Saved/Day",v:2,s:"+ hrs",n:"per freelancer"},{l:"Uptime",v:99,s:".9%",n:"last 12 months"}];
+function ComparisonTable(){
+  const features=[
+    {f:"Task extraction speed",old:"Manual (2+ hours)",kanbi:"AI (< 2 seconds)"},
+    {f:"Burnout detection",old:"None",kanbi:"Real-time health score"},
+    {f:"Calendar integration",old:"Manual copy-paste",kanbi:"One-click sync"},
+    {f:"AI coaching",old:"Not available",kanbi:"24/7 chat assistant"},
+    {f:"Pattern learning",old:"None",kanbi:"Adapts to your habits"},
+    {f:"Daily briefings",old:"Manual planning",kanbi:"AI-generated"},
+  ];
   return(
     <section style={{padding:"96px 0",borderTop:"1px solid var(--br)"}}>
       <div style={{maxWidth:1140,margin:"0 auto",padding:"0 24px"}}>
         <div style={{textAlign:"center",marginBottom:48}}>
-          <p style={{fontSize:11,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",color:"var(--ac)",marginBottom:14}}>By The Numbers</p>
-          <h2 style={{fontSize:"clamp(26px,4vw,44px)",fontWeight:700,letterSpacing:"-0.035em",color:"var(--tx)",marginBottom:14}}><ST text="Built for real freelancers"/></h2>
-          <p style={{fontSize:15,color:"var(--tx2)",maxWidth:420,margin:"0 auto"}}>Real numbers from freelancers using Kanbi every day.</p>
+          <p style={{fontSize:11,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",color:"var(--ac)",marginBottom:14}}>Why Kanbi</p>
+          <h2 style={{fontSize:"clamp(26px,4vw,44px)",fontWeight:700,letterSpacing:"-0.035em",color:"var(--tx)",marginBottom:14}}><ST text="Traditional tools vs Kanbi"/></h2>
+          <p style={{fontSize:15,color:"var(--tx2)",maxWidth:480,margin:"0 auto"}}>See the difference AI-powered task management makes.</p>
         </div>
-        <div className="sg" style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:14}}>
-          {stats.map(s=>(
-            <div key={s.l} className="sc" style={{borderRadius:14,border:"1px solid var(--br)",background:"var(--bg1)",padding:"24px",cursor:"default"}}>
-              <div style={{fontSize:"clamp(28px,4vw,42px)",fontWeight:700,letterSpacing:"-0.04em",color:"var(--tx)",marginBottom:5}}><StatN target={s.v} suffix={s.s}/></div>
-              <p style={{fontSize:14,fontWeight:500,color:"var(--tx2)",marginBottom:s.n?3:0}}>{s.l}</p>
-              {s.n&&<p style={{fontSize:12,color:"var(--tx3)"}}>{s.n}</p>}
+        <div className="cmp-table" style={{borderRadius:14,border:"1px solid var(--br)",background:"var(--bg1)",overflow:"hidden"}}>
+          <div style={{display:"grid",gridTemplateColumns:"2fr 1.5fr 1.5fr",borderBottom:"1px solid var(--br)",background:"var(--bg2)"}}>
+            <div style={{padding:"14px 20px",fontSize:12,fontWeight:700,color:"var(--tx3)",textTransform:"uppercase",letterSpacing:"0.06em"}}>Feature</div>
+            <div style={{padding:"14px 20px",fontSize:12,fontWeight:700,color:"var(--tx3)",textTransform:"uppercase",letterSpacing:"0.06em",borderLeft:"1px solid var(--br)"}}>Traditional Tools</div>
+            <div style={{padding:"14px 20px",fontSize:12,fontWeight:700,color:"var(--ac)",textTransform:"uppercase",letterSpacing:"0.06em",borderLeft:"1px solid var(--br)",display:"flex",alignItems:"center",gap:6}}><IC.Zap size={13}/>Kanbi</div>
+          </div>
+          {features.map((row,i)=>(
+            <div key={row.f} style={{display:"grid",gridTemplateColumns:"2fr 1.5fr 1.5fr",borderBottom:i<features.length-1?"1px solid var(--br)":"none"}}>
+              <div style={{padding:"16px 20px",fontSize:13.5,color:"var(--tx)",fontWeight:500}}>{row.f}</div>
+              <div style={{padding:"16px 20px",fontSize:13,color:"var(--tx3)",borderLeft:"1px solid var(--br)"}}>{row.old}</div>
+              <div style={{padding:"16px 20px",fontSize:13,color:"var(--tx)",fontWeight:500,borderLeft:"1px solid var(--br)",background:"var(--as)"}}>{row.kanbi}</div>
             </div>
           ))}
         </div>
@@ -517,13 +522,8 @@ function StatsWall(){
 }
 
 function Pricing(){
-  const handleProClick=async()=>{
-    const supabase=createClient();
-    const {data:{session}}=await supabase.auth.getSession();
-    if(!session){window.location.href='/sign-up?plan=pro';return;}
-    const response=await fetch('/api/stripe/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:session.user.id})});
-    const {url}=await response.json();
-    window.location.href=url;
+  const handleProClick=()=>{
+    window.location.href='/sign-up?plan=pro';
   };
   const freeF=[{t:"30 AI task extractions/month",ok:true},{t:"Full Kanban board",ok:true},{t:"Email import",ok:true},{t:"Basic prioritization",ok:true},{t:"PDF + Notion import",ok:false},{t:"AI Chat Coach",ok:false},{t:"Google Calendar sync",ok:false},{t:"Burnout alerts",ok:false}];
   const proF=["Unlimited AI task extractions","PDF + Notion two-way sync","AI Chat Coach (board-aware)","Google Calendar reminders","Burnout prevention & health scoring","Pattern learning & smart scheduling","DOCX & PDF export","Board templates (5 workflows)","Daily AI briefings","Priority support"];
@@ -608,13 +608,8 @@ function FAQ(){
 }
 
 function CTABanner(){
-  const handleProClick=async()=>{
-    const supabase=createClient();
-    const {data:{session}}=await supabase.auth.getSession();
-    if(!session){window.location.href='/sign-up?plan=pro';return;}
-    const response=await fetch('/api/stripe/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:session.user.id})});
-    const {url}=await response.json();
-    window.location.href=url;
+  const handleGetStarted=()=>{
+    window.location.href='/sign-up';
   };
   return(
   <section style={{padding:"96px 0",borderTop:"1px solid var(--br)"}}>
@@ -625,7 +620,7 @@ function CTABanner(){
           <h2 style={{fontSize:"clamp(28px,5vw,56px)",fontWeight:700,letterSpacing:"-0.038em",color:"var(--tx)",marginBottom:16}}><ST text="Ready to save 2 hours daily?"/></h2>
           <p style={{fontSize:15,color:"var(--tx2)",maxWidth:460,margin:"0 auto 34px",lineHeight:1.65}}>Join 14,000+ freelancers who've transformed how they manage tasks with Kanbi.</p>
           <div className="cr" style={{display:"flex",gap:12,justifyContent:"center",flexWrap:"wrap"}}>
-            <button onClick={handleProClick} style={{height:48,padding:"0 28px",borderRadius:10,background:"var(--inv)",color:"var(--inv2)",fontSize:14,fontWeight:700,display:"inline-flex",alignItems:"center",gap:9,transition:"opacity .15s",border:"none"}} onMouseOver={e=>(e.currentTarget.style.opacity=".88")} onMouseOut={e=>(e.currentTarget.style.opacity="1")}>Start Free   No Card Needed <IC.Arrow size={15}/></button>
+            <button onClick={handleGetStarted} style={{height:48,padding:"0 28px",borderRadius:10,background:"var(--inv)",color:"var(--inv2)",fontSize:14,fontWeight:700,display:"inline-flex",alignItems:"center",gap:9,transition:"opacity .15s",border:"none"}} onMouseOver={e=>(e.currentTarget.style.opacity=".88")} onMouseOut={e=>(e.currentTarget.style.opacity="1")}>Start Free   No Card Needed <IC.Arrow size={15}/></button>
             <a href="#pricing" style={{height:48,padding:"0 22px",borderRadius:10,border:"1px solid var(--brh)",fontSize:14,color:"var(--tx2)",display:"inline-flex",alignItems:"center",transition:"all .15s"}} onMouseOver={e=>{e.currentTarget.style.borderColor="var(--ag)";e.currentTarget.style.color="var(--tx)"}} onMouseOut={e=>{e.currentTarget.style.borderColor="var(--brh)";e.currentTarget.style.color="var(--tx2)"}}>View Pricing →</a>
           </div>
         </div>
@@ -694,7 +689,7 @@ export default function LandingPage(){
       <Styles theme={theme}/>
       <div style={{minHeight:"100vh",background:"var(--bg)",color:"var(--tx)"}}>
         <Navbar/>
-        <main><Hero/><Strip/><Showcase/><Features/><HowItWorks/><Pricing/><StatsWall/><FAQ/><CTABanner/></main>
+        <main><Hero/><Strip/><Showcase/><Features/><HowItWorks/><Pricing/><ComparisonTable/><FAQ/><CTABanner/></main>
         <Footer/>
       </div>
     </ThemeCtx.Provider>
