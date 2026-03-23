@@ -25,6 +25,34 @@ CREATE TABLE IF NOT EXISTS profiles (
 
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS has_seen_onboarding BOOLEAN DEFAULT FALSE;
 
+-- Kanban boards
+CREATE TABLE IF NOT EXISTS boards (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  folder TEXT NOT NULL DEFAULT 'General',
+  task_count INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Tasks within boards
+CREATE TABLE IF NOT EXISTS tasks (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  board_id UUID NOT NULL REFERENCES boards(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  priority TEXT NOT NULL DEFAULT 'medium' CHECK (priority IN ('urgent', 'high', 'medium', 'low')),
+  status TEXT NOT NULL DEFAULT 'todo' CHECK (status IN ('todo', 'wip', 'done')),
+  label TEXT DEFAULT '',
+  due_date DATE,
+  estimate TEXT,
+  gcal_set BOOLEAN DEFAULT FALSE,
+  gcal_event_id TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- Subscription management
 CREATE TABLE IF NOT EXISTS subscriptions (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -115,10 +143,13 @@ CREATE TABLE IF NOT EXISTS integrations (
   access_token TEXT NOT NULL,
   refresh_token TEXT,
   expires_at TIMESTAMPTZ,
+  metadata JSONB DEFAULT '{}',
   connected_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(user_id, provider)
 );
+
+ALTER TABLE integrations ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT '{}';
 
 -- ================================================
 -- AI WORKLOAD MANAGEMENT TABLES
@@ -235,6 +266,10 @@ CREATE TABLE IF NOT EXISTS autopilot_settings (
 -- ================================================
 
 -- Core indexes
+CREATE INDEX IF NOT EXISTS idx_boards_user_id ON boards(user_id);
+CREATE INDEX IF NOT EXISTS idx_boards_updated_at ON boards(updated_at);
+CREATE INDEX IF NOT EXISTS idx_tasks_board_id ON tasks(board_id);
+CREATE INDEX IF NOT EXISTS idx_tasks_user_id ON tasks(user_id);
 CREATE INDEX IF NOT EXISTS idx_subscriptions_user_id ON subscriptions(user_id);
 CREATE INDEX IF NOT EXISTS idx_subscriptions_stripe_subscription_id ON subscriptions(stripe_subscription_id);
 CREATE INDEX IF NOT EXISTS idx_usage_tracking_user_id ON usage_tracking(user_id);
@@ -419,6 +454,28 @@ DROP POLICY IF EXISTS "Users can view own profile" ON profiles;
 CREATE POLICY "Users can view own profile" ON profiles FOR SELECT USING (auth.uid() = id);
 DROP POLICY IF EXISTS "Users can update own profile" ON profiles;
 CREATE POLICY "Users can update own profile" ON profiles FOR UPDATE USING (auth.uid() = id);
+
+-- Boards
+ALTER TABLE boards ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can view own boards" ON boards;
+CREATE POLICY "Users can view own boards" ON boards FOR SELECT USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can insert own boards" ON boards;
+CREATE POLICY "Users can insert own boards" ON boards FOR INSERT WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can update own boards" ON boards;
+CREATE POLICY "Users can update own boards" ON boards FOR UPDATE USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can delete own boards" ON boards;
+CREATE POLICY "Users can delete own boards" ON boards FOR DELETE USING (auth.uid() = user_id);
+
+-- Tasks
+ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can view own tasks" ON tasks;
+CREATE POLICY "Users can view own tasks" ON tasks FOR SELECT USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can insert own tasks" ON tasks;
+CREATE POLICY "Users can insert own tasks" ON tasks FOR INSERT WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can update own tasks" ON tasks;
+CREATE POLICY "Users can update own tasks" ON tasks FOR UPDATE USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can delete own tasks" ON tasks;
+CREATE POLICY "Users can delete own tasks" ON tasks FOR DELETE USING (auth.uid() = user_id);
 
 -- Subscriptions
 ALTER TABLE subscriptions ENABLE ROW LEVEL SECURITY;

@@ -33,10 +33,10 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const supabase = await createServerClient()
+  const supabaseClient = await createServerClient()
 
   try {
-    const { data: existing } = await supabase
+    const { data: existing } = await supabaseClient
       .from('processed_webhook_events')
       .select('id')
       .eq('id', event.id)
@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
             session.subscription as string
           )
 
-          const { error: upsertErr } = await supabase
+          const { error: upsertErr } = await supabaseClient
             .from('subscriptions')
             .upsert({
               user_id: userId,
@@ -86,14 +86,14 @@ export async function POST(request: NextRequest) {
         const customerId = subscription.customer as string
 
         try {
-          const { data: profile } = await supabase
+          const { data: profile } = await supabaseClient
             .from('profiles')
             .select('id')
             .eq('stripe_customer_id', customerId)
             .single()
 
           if (profile) {
-            const { error: updateErr } = await supabase
+            const { error: updateErr } = await supabaseClient
               .from('subscriptions')
               .update({
                 plan: 'free',
@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
         const customerId = invoice.customer as string
 
         try {
-          const { data: profile } = await supabase
+          const { data: profile } = await supabaseClient
             .from('profiles')
             .select('id')
             .eq('stripe_customer_id', customerId)
@@ -126,7 +126,7 @@ export async function POST(request: NextRequest) {
             const subscriptionData = await stripe.subscriptions.retrieve(
               (invoice as any).subscription as string
             )
-            const { error: updateErr } = await supabase
+            const { error: updateErr } = await supabaseClient
               .from('subscriptions')
               .update({
                 status: subscriptionData.status === 'past_due' ? 'past_due' : 'canceled',
@@ -146,14 +146,14 @@ export async function POST(request: NextRequest) {
         const customerId = subscriptionData.customer as string
 
         try {
-          const { data: profile } = await supabase
+          const { data: profile } = await supabaseClient
             .from('profiles')
             .select('id')
             .eq('stripe_customer_id', customerId)
             .single()
 
           if (profile) {
-            const { error: updateErr } = await supabase
+            const { error: updateErr } = await supabaseClient
               .from('subscriptions')
               .update({
                 status: subscriptionData.status === 'active' ? 'active' : 'canceled',
@@ -174,7 +174,7 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      await supabase
+      await supabaseClient
         .from('processed_webhook_events')
         .insert({ id: event.id })
     } catch (insertErr) {

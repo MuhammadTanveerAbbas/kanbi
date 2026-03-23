@@ -7,28 +7,22 @@ import { createClient } from '@/lib/supabase/client';
 
 export function GoogleSignInButton() {
   const [loading, setLoading] = useState(false);
-  const supabase = createClient();
 
   const handleClick = async () => {
     setLoading(true);
+    const supabase = createClient();
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
+      await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
           },
         },
       });
-      
-      if (error) {
-        console.error('OAuth error:', error);
-        setLoading(false);
-      }
-    } catch (err) {
-      console.error('OAuth exception:', err);
+    } catch (_error: unknown) {
       setLoading(false);
     }
   };

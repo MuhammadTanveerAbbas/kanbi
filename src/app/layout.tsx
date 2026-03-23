@@ -22,14 +22,23 @@ export const metadata: Metadata = {
   creator: "Muhammad Tanveer Abbas",
   publisher: "KANBI",
   robots: "index, follow",
+  metadataBase: new URL('https://kanbi.vercel.app'),
   openGraph: {
     type: "website",
     locale: "en_US",
     url: "https://kanbi.vercel.app",
-    title: "KANBI - Task Management",
+    title: "KANBI - AI Task Management That Saves 2 Hours Daily",
     description:
       "Turns hours of task planning into 10 seconds. Smart workload management prevents burnout. Notion integration for seamless sync. Only $9/month.",
     siteName: "KANBI",
+    images: [
+      {
+        url: '/opengraph-image',
+        width: 1200,
+        height: 630,
+        alt: 'Kanbi - AI Task Management',
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
@@ -37,6 +46,11 @@ export const metadata: Metadata = {
     description:
       "AI powered task management with burnout prevention, productivity coaching, and Notion integration. $9/month.",
     creator: "@yourtwitterhandle",
+    images: ['/twitter-image'],
+  },
+  icons: {
+    icon: '/icon',
+    apple: '/apple-icon',
   },
 };
 
@@ -54,52 +68,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="scroll-smooth" suppressHydrationWarning>
-      <head>
-        {process.env.NODE_ENV === "development" && (
-          <script
-            dangerouslySetInnerHTML={{
-              __html: `
-                (function() {
-                  const noop = () => {};
-
-                  window.__REACT_DEVTOOLS_GLOBAL_HOOK__ = {
-                    checkDCE: noop,
-                    supportsFiber: true,
-                    renderers: new Map(),
-                    onCommitFiberRoot: noop,
-                    onCommitFiberUnmount: noop,
-                    inject: noop,
-                  };
-
-                  const originalError = console.error;
-                  const originalWarn = console.warn;
-
-                  console.error = (...args) => {
-                    const msg = args[0]?.toString() || '';
-                    if (
-                      msg.includes('Promised response') ||
-                      msg.includes('out of scope') ||
-                      msg.includes('spoofer') ||
-                      msg.includes('forEach') ||
-                      msg.includes('onMessage')
-                    ) return;
-                    originalError.apply(console, args);
-                  };
-
-                  console.warn = (...args) => {
-                    const msg = args[0]?.toString() || '';
-                    if (
-                      msg.includes('preload') ||
-                      msg.includes('not used within')
-                    ) return;
-                    originalWarn.apply(console, args);
-                  };
-                })();
-              `,
-            }}
-          />
-        )}
-      </head>
       <body
         className={cn("antialiased font-sans", spaceGrotesk.variable)}
         suppressHydrationWarning

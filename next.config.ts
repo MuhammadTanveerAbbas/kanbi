@@ -29,7 +29,6 @@ const productionSecurityHeaders = [
 
 const nextConfig: NextConfig = {
   reactStrictMode: false,
-  output: 'standalone',
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production',
     styledComponents: true,
@@ -41,9 +40,7 @@ const nextConfig: NextConfig = {
   turbopack: {
     resolveAlias: {},
   },
-  experimental: {
-    proxyTimeout: 30_000,
-  },
+  experimental: {},
   webpack: (config, { isServer }) => {
     if (isServer) {
       config.ignoreWarnings = [
@@ -64,12 +61,15 @@ const nextConfig: NextConfig = {
     return config;
   },
   async headers() {
-    return [
-      {
-        source: '/(.*)',
-        headers: process.env.NODE_ENV === 'production' ? productionSecurityHeaders : securityHeaders,
-      },
-    ];
+    if (process.env.NODE_ENV === 'production') {
+      return [
+        {
+          source: '/(.*)',
+          headers: productionSecurityHeaders,
+        },
+      ];
+    }
+    return [];
   },
 };
 

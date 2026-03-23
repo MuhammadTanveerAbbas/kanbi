@@ -58,12 +58,6 @@
   * {
     @apply border-border;
   }
-  body {
-    @apply bg-background text-foreground;
-    font-feature-settings: 'kern' 1;
-    text-rendering: optimizeSpeed;
-    -webkit-font-smoothing: antialiased;
-  }
   
   /* Focus styles for accessibility */
   *:focus-visible {
@@ -83,16 +77,6 @@
   html {
     scrollbar-width: none;  /* Firefox */
     overflow-x: hidden;
-  }
-  body {
-    overflow-x: hidden;
-  }
-  
-  /* Mobile responsive base */
-  @media (max-width: 640px) {
-    html {
-      font-size: 14px;
-    }
   }
 }
 

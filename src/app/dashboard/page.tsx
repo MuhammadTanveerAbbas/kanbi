@@ -1,286 +1,2635 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import dynamic from 'next/dynamic';
-import { TrendingUp, Calendar, Zap, Crown } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { UsageStats, AnalyticsData, SubscriptionStatus } from '@/lib/dashboard-types';
-import { DashboardSkeleton } from '@/components/dashboard/skeleton';
+/*
+ ██╗  ██╗ █████╗ ███╗   ██╗██████╗ ██╗
+ ██║ ██╔╝██╔══██╗████╗  ██║██╔══██╗██║
+ █████╔╝ ███████║██╔██╗ ██║██████╔╝██║
+ ██╔═██╗ ██╔══██║██║╚██╗██║██╔══██╗██║
+ ██║  ██╗██║  ██║██║ ╚████║██████╔╝██║
+ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═══╝╚═════╝ ╚═╝
+ Enhanced Dashboard v2 — Supabase Edition
+ 
+ ┌──────────────────────────────────────────────────────────────┐
+ │  BACKEND INTEGRATION GUIDE                                   │
+ │  Search "// 🔌 BACKEND:" to find every wiring point         │
+ │  All mock data labeled "// 🚧 MOCK:" — replace with real    │
+ │  Supabase hooks are pre-wired, just uncomment + add client   │
+ └──────────────────────────────────────────────────────────────┘
+*/
 
-// Lazy load recharts as single bundle
-const Chart = dynamic(() => import('@/components/dashboard/chart'), { ssr: false });
+import {
+  useState, useEffect, useRef, useCallback,
+  createContext, useContext, type ReactNode,
+} from "react";
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   SUPABASE CLIENT
+   🔌 BACKEND: Import your Supabase client here
+   import { createClient } from "@supabase/supabase-js";
+   import { supabase } from "@/lib/supabase"; // or wherever your client lives
+   
+   The hooks below are pre-written and commented — just uncomment when wiring.
+═══════════════════════════════════════════════════════════════════════════ */
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   DESIGN TOKENS  ·  Dark / Light
+═══════════════════════════════════════════════════════════════════════════ */
+const DARK_VARS = `
+  --bg:#06060a; --bg1:#0c0c12; --bg2:#101018; --bg3:#141420;
+  --br:rgba(255,255,255,0.065); --brh:rgba(255,255,255,0.12);
+  --tx:#e4e4f0; --tx2:#7272a0; --tx3:#38384e;
+  --nb:rgba(6,6,10,0.92); --sb:#0c0c12;
+  --sh:rgba(0,0,0,0.55); --inp:#101018;
+  --card-glow:rgba(94,111,232,0.04);
+`;
+const LIGHT_VARS = `
+  --bg:#f0f1fa; --bg1:#ffffff; --bg2:#e8eaf6; --bg3:#dde0f2;
+  --br:rgba(0,0,0,0.068); --brh:rgba(0,0,0,0.13);
+  --tx:#080818; --tx2:#46467a; --tx3:#9090b8;
+  --nb:rgba(240,241,250,0.94); --sb:#ffffff;
+  --sh:rgba(0,0,0,0.07); --inp:#e8eaf6;
+  --card-glow:rgba(94,111,232,0.03);
+`;
 
-const TaskStatistics = dynamic(() => import('@/components/dashboard/task-statistics'), {
-  loading: () => <Card className="border-[#262626] bg-[#141414]"><CardContent className="p-6"><div className="animate-pulse h-32 bg-gray-800 rounded" /></CardContent></Card>,
-});
-
-const GoalSetting = dynamic(() => import('@/components/dashboard/goal-setting'), {
-  loading: () => <Card className="border-[#262626] bg-[#141414]"><CardContent className="p-6"><div className="animate-pulse h-32 bg-gray-800 rounded" /></CardContent></Card>,
-});
-
-const WorkloadHealth = dynamic(() => import('@/components/dashboard/workload-health'), {
-  loading: () => <Card className="border-[#262626] bg-[#141414]"><CardContent className="p-6"><div className="animate-pulse h-32 bg-gray-800 rounded" /></CardContent></Card>,
-});
-
-export default function DashboardOverview() {
-  const [usage, setUsage] = useState<UsageStats | null>(null);
-  const [analytics, setAnalytics] = useState<AnalyticsData>([]);
-  const [subscription, setSubscription] = useState<SubscriptionStatus | null>(null);
-  const [taskStats, setTaskStats] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchData();
-
-    const handleBoardSaved = () => {
-      setTimeout(() => {
-        fetchData();
-      }, 1000);
-    };
-
-    window.addEventListener('board-saved', handleBoardSaved);
-
-    return () => {
-      window.removeEventListener('board-saved', handleBoardSaved);
-    };
-  }, []);
-
-  const defaultUsage: UsageStats = {
-    todayCount: 0,
-    todayLimit: 10,
-    monthCount: 0,
-    monthLimit: 300,
-    totalGenerations: 0,
-    boardsUsedToday: 0,
-    boardsUsedMonth: 0,
-    boardsTodayLimit: 10,
-    boardsMonthLimit: 300,
-    aiUsedToday: 0,
-    aiUsedMonth: 0,
-    aiTodayLimit: 10,
-    aiMonthLimit: 300,
-    plan: 'free'
-  };
-
-  const fetchData = async () => {
-    try {
-      const [usageRes, analyticsRes, subscriptionRes, taskStatsRes] = await Promise.all([
-        fetch('/api/usage'),
-        fetch('/api/analytics'),
-        fetch('/api/subscription/status'),
-        fetch('/api/task-stats'),
-      ]);
-
-      const usageData = usageRes.ok ? await usageRes.json() : defaultUsage;
-      setUsage(usageData);
-
-      const analyticsData = analyticsRes.ok ? await analyticsRes.json() : [];
-      setAnalytics(analyticsData);
-
-      const subscriptionData = subscriptionRes.ok ? await subscriptionRes.json() : { plan: 'free', status: 'active' };
-      setSubscription(subscriptionData);
-
-      const taskStatsData = taskStatsRes.ok ? await taskStatsRes.json() : { urgent: 0, high: 0, medium: 0, low: 0, total: 0, completed: 0 };
-      setTaskStats(taskStatsData);
-    } catch (error) {
-      console.error('Failed to fetch dashboard data:', error);
-      setUsage(defaultUsage as UsageStats);
-      setAnalytics([]);
-      setSubscription({ plan: 'free', status: 'active' });
-      setTaskStats({ urgent: 0, high: 0, medium: 0, low: 0, total: 0, completed: 0 });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const chartData = analytics.map((item) => ({
-    date: new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-    count: item.count,
-  }));
-
-  if (loading) {
-    return <DashboardSkeleton />;
-  }
-
+function GlobalStyles({ theme }: { theme: "dark" | "light" }) {
   return (
-    <>
-      <div className="space-y-6">
-        <h1 className="text-2xl font-bold text-center sm:text-left">Dashboard Overview</h1>
+    <style suppressHydrationWarning>{`
+      @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard
-            title="Boards Used Today"
-            value={`${usage?.boardsUsedToday || 0}/${usage?.boardsTodayLimit || 10}`}
-            icon={Zap}
-            description={`${Math.max(0, (usage?.boardsTodayLimit || 10) - (usage?.boardsUsedToday || 0))} remaining`}
-            progress={((usage?.boardsUsedToday || 0) / (usage?.boardsTodayLimit || 10)) * 100}
-            status={getUsageStatus(usage?.boardsUsedToday || 0, usage?.boardsTodayLimit || 10)}
-          />
-          <StatCard
-            title="Boards This Month"
-            value={`${usage?.boardsUsedMonth || 0}/${usage?.boardsMonthLimit || 300}`}
-            icon={Calendar}
-            description={`${Math.max(0, (usage?.boardsMonthLimit || 300) - (usage?.boardsUsedMonth || 0))} remaining`}
-            progress={((usage?.boardsUsedMonth || 0) / (usage?.boardsMonthLimit || 300)) * 100}
-            status={getUsageStatus(usage?.boardsUsedMonth || 0, usage?.boardsMonthLimit || 300)}
-          />
-          <StatCard
-            title="AI Used Today"
-            value={`${usage?.aiUsedToday || 0}/${usage?.aiTodayLimit || 10}`}
-            icon={Zap}
-            description={`${Math.max(0, (usage?.aiTodayLimit || 10) - (usage?.aiUsedToday || 0))} remaining`}
-            progress={((usage?.aiUsedToday || 0) / (usage?.aiTodayLimit || 10)) * 100}
-            status={getUsageStatus(usage?.aiUsedToday || 0, usage?.aiTodayLimit || 10)}
-          />
-          <StatCard
-            title="AI This Month"
-            value={`${usage?.aiUsedMonth || 0}/${usage?.aiMonthLimit || 300}`}
-            icon={TrendingUp}
-            description={`${Math.max(0, (usage?.aiMonthLimit || 300) - (usage?.aiUsedMonth || 0))} remaining`}
-            progress={((usage?.aiUsedMonth || 0) / (usage?.aiMonthLimit || 300)) * 100}
-            status={getUsageStatus(usage?.aiUsedMonth || 0, usage?.aiMonthLimit || 300)}
-          />
-        </div>
+      *,*::before,*::after { box-sizing:border-box; margin:0; padding:0 }
+      html { font-size:16px }
 
-        {/* Plan Status Card */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <StatCard
-            title="Plan Status"
-            value={subscription?.plan === 'premium' || usage?.plan === 'premium' ? 'Premium' : 'Free'}
-            icon={Crown}
-            description={
-              subscription?.plan === 'premium' || usage?.plan === 'premium'
-                ? `${usage?.boardsTodayLimit || 50} boards/day, ${usage?.boardsMonthLimit || 1500}/month`
-                : `${usage?.boardsTodayLimit || 10} boards/day, ${usage?.boardsMonthLimit || 300}/month`
-            }
-            badge={subscription?.plan === 'premium' || usage?.plan === 'premium' ? 'premium' : 'free'}
-          />
-          <StatCard
-            title="Total Tasks"
-            value={usage?.totalGenerations || 0}
-            icon={TrendingUp}
-            description="All time"
-          />
-        </div>
+      :root {
+        ${theme === "dark" ? DARK_VARS : LIGHT_VARS}
+        --ac:#6366f1; --ach:#818cf8; --as:rgba(99,102,241,0.10); --ag:rgba(99,102,241,0.20);
+        --gr:#10b981; --am:#f59e0b; --rd:#ef4444; --pu:#a78bfa; --ur:#f97316;
+        --inv:${theme==="dark"?"#fff":"#06060a"}; --inv2:${theme==="dark"?"#06060a":"#fff"};
+        --radius-sm:7px; --radius-md:11px; --radius-lg:16px; --radius-xl:22px;
+        --font-display:'Syne',sans-serif;
+        --font-body:'DM Sans',-apple-system,sans-serif;
+        --font-mono:'DM Mono',monospace;
+      }
 
-        {/* AI Workload Health and Goals */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <WorkloadHealth />
-          <GoalSetting />
-        </div>
+      body {
+        font-family: var(--font-body);
+        background: var(--bg);
+        color: var(--tx);
+        -webkit-font-smoothing: antialiased;
+        overflow: hidden;
+        height: 100vh;
+        transition: background .25s, color .25s;
+      }
 
-        {/* Usage Chart */}
-        <Card className="border-[#262626] bg-[#141414]">
-          <CardHeader>
-            <CardTitle>Task Activity - Last 30 Days</CardTitle>
-            <CardDescription>Track your task creation activity</CardDescription>
-          </CardHeader>
-          <CardContent className="px-2 sm:px-6">
-            <Chart data={chartData} />
-          </CardContent>
-        </Card>
+      a { text-decoration:none; color:inherit }
+      button { font-family:var(--font-body); cursor:pointer }
+      textarea,input,select { font-family:var(--font-body) }
 
-        {/* Task Statistics */}
-        <TaskStatistics stats={taskStats} />
-      </div>
-    </>
+      ::-webkit-scrollbar { width:3px; height:3px }
+      ::-webkit-scrollbar-track { background:transparent }
+      ::-webkit-scrollbar-thumb { background:var(--br); border-radius:3px }
+      ::-webkit-scrollbar-thumb:hover { background:var(--brh) }
+
+      /* ── Keyframes ── */
+      @keyframes fadeUp    { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+      @keyframes fadeIn    { from{opacity:0} to{opacity:1} }
+      @keyframes scaleIn   { from{opacity:0;transform:scale(.94)} to{opacity:1;transform:scale(1)} }
+      @keyframes pulse     { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.35;transform:scale(.55)} }
+      @keyframes spin      { from{transform:rotate(0)} to{transform:rotate(360deg)} }
+      @keyframes slideR    { from{transform:translateX(-14px);opacity:0} to{transform:translateX(0);opacity:1} }
+      @keyframes modalIn   { from{opacity:0;transform:scale(.95) translateY(10px)} to{opacity:1;transform:scale(1) translateY(0)} }
+      @keyframes shimmer   { from{background-position:-200% 0} to{background-position:200% 0} }
+      @keyframes countUp   { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+      @keyframes glowPulse { 0%,100%{box-shadow:0 0 0 0 rgba(99,102,241,0)} 50%{box-shadow:0 0 20px 2px rgba(99,102,241,0.2)} }
+
+      /* ── Utility classes ── */
+      .fade-up   { animation: fadeUp .38s cubic-bezier(.22,1,.36,1) both }
+      .fade-in   { animation: fadeIn .28s ease both }
+      .scale-in  { animation: scaleIn .32s cubic-bezier(.22,1,.36,1) both }
+      .pulse     { animation: pulse 2.4s ease-in-out infinite }
+      .spin      { animation: spin .72s linear infinite }
+      .slide-r   { animation: slideR .3s cubic-bezier(.22,1,.36,1) both }
+
+      /* Stagger delays for child elements */
+      .stagger > *:nth-child(1) { animation-delay:.04s }
+      .stagger > *:nth-child(2) { animation-delay:.08s }
+      .stagger > *:nth-child(3) { animation-delay:.12s }
+      .stagger > *:nth-child(4) { animation-delay:.16s }
+      .stagger > *:nth-child(5) { animation-delay:.20s }
+      .stagger > *:nth-child(6) { animation-delay:.24s }
+
+      /* ── Interactive ── */
+      .nav-btn   { transition: background .15s, color .15s, border-color .15s, transform .12s }
+      .nav-btn:hover { background:rgba(255,255,255,0.045) !important; color:var(--tx) !important }
+      .nav-btn:active { transform: scale(.97) }
+
+      .card {
+        transition: border-color .18s, background .18s, transform .2s, box-shadow .2s;
+        position: relative;
+        overflow: hidden;
+      }
+      .card::before {
+        content:'';
+        position:absolute;
+        inset:0;
+        background:var(--card-glow);
+        opacity:0;
+        transition:opacity .2s;
+        pointer-events:none;
+        border-radius:inherit;
+      }
+      .card:hover { border-color:var(--brh) !important; transform:translateY(-2px); box-shadow:0 8px 32px var(--sh) }
+      .card:hover::before { opacity:1 }
+
+      .task-card { transition: border-color .15s, background .15s, transform .15s }
+      .task-card:hover { border-color:var(--brh) !important; background:var(--bg2) !important; transform:translateX(2px) }
+
+      .ghost  { transition: background .15s, color .15s, border-color .15s }
+      .ghost:hover { background:rgba(255,255,255,0.055) !important }
+
+      .btn-primary {
+        transition: background .15s, transform .12s, box-shadow .15s, opacity .15s;
+      }
+      .btn-primary:hover { filter:brightness(1.1); box-shadow:0 4px 20px rgba(99,102,241,0.35) }
+      .btn-primary:active { transform:scale(.97) }
+
+      .input-focus {
+        transition: border-color .15s, box-shadow .15s;
+        outline: none;
+      }
+      .input-focus:focus { border-color: var(--ac) !important; box-shadow: 0 0 0 3px rgba(99,102,241,0.12) }
+
+      /* Skeleton shimmer for loading states */
+      .skeleton {
+        background: linear-gradient(90deg, var(--bg2) 25%, var(--bg3) 50%, var(--bg2) 75%);
+        background-size: 200% 100%;
+        animation: shimmer 1.6s infinite;
+        border-radius: var(--radius-sm);
+      }
+
+      /* ── Responsive ── */
+      @media(max-width:1024px) {
+        .xl-hide { display:none !important }
+        .main-grid-3 { grid-template-columns:1fr 1fr !important }
+      }
+      @media(max-width:768px) {
+        .sidebar { display:none !important }
+        .main-wrap { margin-left:0 !important }
+        .bottom-nav { display:flex !important }
+        body { overflow:auto }
+        .main-grid-2 { grid-template-columns:1fr !important }
+        .main-grid-3 { grid-template-columns:1fr !important }
+        .main-grid-4 { grid-template-columns:1fr 1fr !important }
+        .page-pad { padding:20px 16px !important }
+        .kanban-grid { grid-template-columns:1fr !important; overflow-x:auto }
+        .chat-sidebar { display:none !important }
+        .settings-grid { grid-template-columns:1fr !important }
+        .saved-grid { grid-template-columns:1fr 1fr !important }
+      }
+      @media(max-width:480px) {
+        .main-grid-4 { grid-template-columns:1fr !important }
+        .saved-grid { grid-template-columns:1fr !important }
+        .autopilot-grid { grid-template-columns:1fr !important }
+      }
+
+      /* ── Focus visible for a11y ── */
+      :focus-visible {
+        outline: 2px solid var(--ac);
+        outline-offset: 2px;
+        border-radius: var(--radius-sm);
+      }
+    `}</style>
   );
 }
 
-function getUsageStatus(used: number, limit: number): 'normal' | 'warning' | 'error' {
-  if (limit === 0) return 'normal';
-  const percentage = (used / limit) * 100;
-  if (percentage >= 100) return 'error';
-  if (percentage >= 90) return 'warning';
-  return 'normal';
+/* ═══════════════════════════════════════════════════════════════════════════
+   TYPES
+═══════════════════════════════════════════════════════════════════════════ */
+type Page        = "overview" | "board" | "chat" | "autopilot" | "saved" | "settings";
+type Priority    = "urgent" | "high" | "medium" | "low";
+type TaskStatus  = "todo" | "wip" | "done";
+type Theme       = "dark" | "light";
+type InputMode   = "paste" | "pdf" | "notion" | "template";
+type BoardView   = "input" | "kanban";
+
+interface Task {
+  id: string; title: string; priority: Priority;
+  label: string; dueDate?: string; estimate?: string;
+  status: TaskStatus; gcalSet?: boolean;
+}
+interface SavedBoard {
+  id: string; name: string; taskCount: number;
+  folder: string; lastEdited: string; tasks: Task[];
+}
+interface ChatMsg { id: string; role: "user" | "ai"; content: string; ts: string; }
+interface Briefing {
+  id: string; date: string; summary: string;
+  schedule: { time: string; task: string; duration: string }[];
+  healthNote: string;
+}
+interface BurnoutAlert { id: string; date: string; score: number; message: string; }
+
+/* 🔌 BACKEND: Your Supabase user shape — adjust to match your auth.users/profiles table */
+interface AuthUser {
+  id: string;
+  email: string;
+  full_name?: string;
+  avatar_url?: string;
+  plan?: "free" | "pro";
+  boards_used_today?: number;
+  ai_uses_this_month?: number;
 }
 
-function StatCard({
-  title,
-  value,
-  icon: Icon,
-  description,
-  progress,
-  badge,
-  status = 'normal',
-}: {
-  title: string;
-  value: string | number;
-  icon: any;
-  description?: string;
-  progress?: number;
-  badge?: 'free' | 'premium';
-  status?: 'normal' | 'warning' | 'error';
+/* ═══════════════════════════════════════════════════════════════════════════
+   GLOBAL STATE CONTEXT
+═══════════════════════════════════════════════════════════════════════════ */
+interface AppState {
+  tasks: Task[];
+  setTasks: (t: Task[] | ((p: Task[]) => Task[])) => void;
+  savedBoards: SavedBoard[];
+  setSavedBoards: (b: SavedBoard[] | ((p: SavedBoard[]) => SavedBoard[])) => void;
+  chatMessages: ChatMsg[];
+  setChatMessages: (m: ChatMsg[] | ((p: ChatMsg[]) => ChatMsg[])) => void;
+  briefings: Briefing[];
+  setBriefings: (b: Briefing[] | ((p: Briefing[]) => Briefing[])) => void;
+  burnoutAlerts: BurnoutAlert[];
+  gcalConnected: boolean;
+  setGcalConnected: (v: boolean) => void;
+  dailyGoal: number; weeklyGoal: number;
+  boardView: BoardView; setBoardView: (v: BoardView) => void;
+  navigate: (p: Page) => void;
+  user: AuthUser | null;
+  isLoading: boolean;
+}
+
+const AppCtx = createContext<AppState>({} as AppState);
+const useApp = () => useContext(AppCtx);
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ICONS  (stroke-based SVG, all custom)
+═══════════════════════════════════════════════════════════════════════════ */
+type IC = { size?: number; style?: React.CSSProperties };
+const Ic = (d: string | string[], s = 16, sw = "1.75", fill = "none") =>
+  ({ size = s, style }: IC) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={fill} stroke="currentColor"
+      strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round" style={style}>
+      {(Array.isArray(d) ? d : [d]).map((p, i) => <path key={i} d={p} />)}
+    </svg>
+  );
+
+const Icons = {
+  Overview:   Ic(["M3 3h7v7H3z","M14 3h7v7h-7z","M3 14h7v7H3z","M14 14h7v7h-7z"]),
+  Board:      Ic(["M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18"]),
+  Chat:       Ic("M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"),
+  Autopilot:  Ic("M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .962 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.962 0z"),
+  Saved:      Ic("M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"),
+  Settings:   Ic(["M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z","M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"]),
+  Zap:        Ic("M13 2L3 14h9l-1 8 10-12h-9l1-8z", 14, "2.2"),
+  Send:       Ic("M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"),
+  Plus:       Ic("M12 5v14M5 12h14", 14, "2.2"),
+  Check:      Ic("M20 6L9 17l-5-5", 13, "2.5"),
+  ChevD:      Ic("M6 9l6 6 6-6", 14, "2"),
+  ChevR:      Ic("M9 18l6-6-6-6", 12, "2"),
+  X:          Ic("M18 6L6 18M6 6l12 12", 14, "2.2"),
+  Search:     Ic(["M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16z","M21 21l-4.35-4.35"]),
+  Folder:     Ic("M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"),
+  Calendar:   Ic(["M19 4H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z","M16 2v4M8 2v4M3 10h18"]),
+  Clock:      Ic(["M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z","M12 6v6l4 2"]),
+  Sun:        Ic("M12 7a5 5 0 1 0 0 10A5 5 0 0 0 12 7zm0-4v2M12 19v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"),
+  Moon:       Ic("M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"),
+  Trash:      Ic(["M3 6h18","M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6","M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"]),
+  Crown:      Ic("M2 20h20M5 20V9l7-5 7 5v11"),
+  Logout:     Ic(["M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4","M16 17l5-5-5-5","M21 12H9"]),
+  Shield:     Ic("M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"),
+  Card:       Ic(["M1 4h22v16H1z","M1 9h22"]),
+  Notion:     Ic(["M4 4h16v16H4z","M8 9h8M8 13h5"]),
+  Pdf:        Ic(["M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z","M14 2v6h6"]),
+  Paste:      Ic(["M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2","M15 2H9a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1z"]),
+  Template:   Ic(["M4 3h16a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z","M4 11h6v10H4z","M14 11h6v10h-6z"]),
+  Target:     Ic(["M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z","M12 18a6 6 0 1 0 0-12 6 6 0 0 0 0 12z","M12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"]),
+  Trending:   Ic("M23 6l-9.5 9.5-5-5L1 18"),
+  Upload:     Ic(["M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4","M17 8l-5-5-5 5","M12 3v12"]),
+  Bell:       Ic(["M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9","M13.73 21a2 2 0 0 1-3.46 0"]),
+  Google:     Ic(["M21.35 11.1h-9.2v3h5.3c-.5 2.4-2.6 4-5.3 4a6 6 0 1 1 0-12c1.6 0 3 .6 4.1 1.5l2.2-2.2A9.9 9.9 0 0 0 12 3a10 10 0 1 0 0 20c5.5 0 9.7-3.9 9.7-9.5 0-.6-.1-1.3-.35-2.4z"]),
+  Edit:       Ic(["M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7","M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"]),
+  Brain:      Ic("M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.46 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"),
+  AlertTri:  Ic(["M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z","M12 9v4M12 17h.01"]),
+  Copy:       Ic(["M20 9h-9a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2z","M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"]),
+  MoveFolder: Ic(["M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z","M12 11v6M9 14l3 3 3-3"]),
+  Sparkle:    Ic(["M5 3l.5 2L8 5.5 5.5 6 5 8l-.5-2L2 5.5 4.5 5z","M12 2l1 4 4 1-4 1-1 4-1-4-4-1 4-1z","M19 13l.5 2 2 .5-2 .5-.5 2-.5-2-2-.5 2-.5z"]),
+  ArrowR:     Ic("M5 12h14M12 5l7 7-7 7"),
+  Layers:     Ic(["M12 2L2 7l10 5 10-5-10-5z","M2 17l10 5 10-5","M2 12l10 5 10-5"]),
+  Activity:   Ic("M22 12h-4l-3 9L9 3l-3 9H2"),
+};
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SHARED UI ATOMS
+═══════════════════════════════════════════════════════════════════════════ */
+const PRI: Record<Priority, { label: string; color: string; bg: string }> = {
+  urgent: { label:"Urgent", color:"var(--ur)",  bg:"rgba(249,115,22,0.11)" },
+  high:   { label:"High",   color:"var(--rd)",  bg:"rgba(239,68,68,0.11)"  },
+  medium: { label:"Med",    color:"var(--am)",  bg:"rgba(245,158,11,0.11)" },
+  low:    { label:"Low",    color:"var(--tx3)", bg:"rgba(255,255,255,0.04)"},
+};
+
+function PriBadge({ p }: { p: Priority }) {
+  const c = PRI[p];
+  return (
+    <span style={{
+      fontSize: 9.5, fontWeight: 700, letterSpacing: "0.05em",
+      padding: "2px 7px", borderRadius: 4,
+      background: c.bg, color: c.color,
+      textTransform: "uppercase", whiteSpace: "nowrap",
+      fontFamily: "var(--font-mono)",
+    }}>
+      {c.label}
+    </span>
+  );
+}
+
+/* Avatar — pulls from AuthUser or generates initials */
+function Avt({ name, size = 28, avatarUrl }: { name: string; size?: number; avatarUrl?: string }) {
+  const init = name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
+  if (avatarUrl) {
+    return (
+      <img src={avatarUrl} alt={name} width={size} height={size}
+        style={{ borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+    );
+  }
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: "50%",
+      background: "linear-gradient(135deg, var(--ac), var(--pu))",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      fontSize: size * 0.35, fontWeight: 700, color: "#fff", flexShrink: 0,
+      fontFamily: "var(--font-display)",
+      boxShadow: "0 2px 8px rgba(99,102,241,0.25)",
+    }}>
+      {init}
+    </div>
+  );
+}
+
+function PBar({ value, color = "var(--ac)", h = 4, animated = true }: {
+  value: number; color?: string; h?: number; animated?: boolean
 }) {
-  const getProgressColor = () => {
-    switch (status) {
-      case 'error':
-        return 'bg-gradient-to-r from-red-600 to-red-700';
-      case 'warning':
-        return 'bg-gradient-to-r from-yellow-600 to-yellow-700';
-      default:
-        return 'bg-gradient-to-r from-gray-600 to-gray-700';
-    }
+  return (
+    <div style={{ height: h, borderRadius: h, background: "var(--br)", overflow: "hidden", position: "relative" }}>
+      <div style={{
+        height: "100%",
+        width: `${Math.min(value, 100)}%`,
+        background: color,
+        borderRadius: h,
+        transition: animated ? "width .9s cubic-bezier(.4,0,.2,1)" : "none",
+        position: "relative",
+      }}>
+        {/* Subtle shine */}
+        <div style={{
+          position: "absolute", inset: 0,
+          background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent)",
+          borderRadius: "inherit",
+        }}/>
+      </div>
+    </div>
+  );
+}
+
+function Toggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
+  return (
+    <div onClick={onToggle} style={{
+      width: 40, height: 22, borderRadius: 11,
+      background: on ? "var(--ac)" : "var(--bg3)",
+      cursor: "pointer", position: "relative",
+      transition: "background .22s", flexShrink: 0,
+      boxShadow: on ? "0 0 12px rgba(99,102,241,0.3)" : "none",
+    }}>
+      <div style={{
+        position: "absolute", top: 3,
+        left: on ? 21 : 3, width: 16, height: 16,
+        borderRadius: "50%", background: "#fff",
+        transition: "left .22s cubic-bezier(.34,1.56,.64,1)",
+        boxShadow: "0 1px 4px rgba(0,0,0,.3)",
+      }}/>
+    </div>
+  );
+}
+
+/* Skeleton loader for async states */
+function Skeleton({ w = "100%", h = 16, style }: { w?: string|number; h?: number; style?: React.CSSProperties }) {
+  return <div className="skeleton" style={{ width: w, height: h, ...style }}/>;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   GOOGLE CALENDAR REMINDER MODAL
+═══════════════════════════════════════════════════════════════════════════ */
+interface GCalModalProps {
+  task?: Task | null; bulkTasks?: Task[];
+  onClose: () => void;
+  onSave: (taskIds: string[], date: string, time: string, note: string) => void;
+  gcalConnected: boolean; onConnect: () => void;
+}
+
+function GCalModal({ task, bulkTasks, onClose, onSave, gcalConnected, onConnect }: GCalModalProps) {
+  const tasks = bulkTasks ?? (task ? [task] : []);
+  const isBulk = !!bulkTasks;
+  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [time, setTime] = useState("09:00");
+  const [note, setNote] = useState("");
+  const today = new Date().toISOString().slice(0, 10);
+
+  return (
+    <div
+      style={{ position:"fixed", inset:0, zIndex:999, background:"rgba(0,0,0,0.72)",
+        display:"flex", alignItems:"center", justifyContent:"center", padding:16,
+        backdropFilter:"blur(4px)", }}
+      onClick={onClose}
+    >
+      <div
+        style={{ width:"100%", maxWidth:480, borderRadius:20, border:"1px solid var(--brh)",
+          background:"var(--bg1)", boxShadow:"0 40px 96px rgba(0,0,0,0.65)", animation:"modalIn .28s ease both" }}
+        onClick={e => e.stopPropagation()}
+      >
+        <div style={{ padding:"20px 24px 16px", borderBottom:"1px solid var(--br)", display:"flex", alignItems:"center", gap:13 }}>
+          <div style={{ width:38, height:38, borderRadius:11, background:"rgba(66,133,244,0.12)",
+            display:"flex", alignItems:"center", justifyContent:"center", color:"#4285f4", flexShrink:0 }}>
+            <Icons.Google size={18}/>
+          </div>
+          <div style={{ flex:1 }}>
+            <p style={{ fontSize:14, fontWeight:700, color:"var(--tx)", fontFamily:"var(--font-display)" }}>Set Google Calendar Reminder</p>
+            <p style={{ fontSize:11, color:"var(--tx3)" }}>{isBulk ? `${tasks.length} tasks` : task?.title}</p>
+          </div>
+          <button onClick={onClose} className="ghost"
+            style={{ width:30, height:30, borderRadius:8, border:"1px solid var(--br)", background:"transparent", color:"var(--tx3)", display:"flex", alignItems:"center", justifyContent:"center" }}>
+            <Icons.X size={13}/>
+          </button>
+        </div>
+
+        <div style={{ padding:"20px 24px" }}>
+          {!gcalConnected ? (
+            <div style={{ textAlign:"center", padding:"28px 0" }}>
+              <div style={{ width:60, height:60, borderRadius:16, background:"rgba(66,133,244,0.08)",
+                display:"flex", alignItems:"center", justifyContent:"center", color:"#4285f4", margin:"0 auto 18px" }}>
+                <Icons.Google size={28}/>
+              </div>
+              <p style={{ fontSize:15, fontWeight:700, color:"var(--tx)", marginBottom:8, fontFamily:"var(--font-display)" }}>Connect Google Calendar</p>
+              <p style={{ fontSize:12.5, color:"var(--tx2)", marginBottom:22, lineHeight:1.65 }}>
+                Connect your Google account to set reminders directly from Kanbi.
+              </p>
+              {/* 🔌 BACKEND: Replace onClick with your Supabase OAuth flow:
+                  supabase.auth.signInWithOAuth({ provider:'google', options:{ scopes:'https://www.googleapis.com/auth/calendar' }})
+              */}
+              <button onClick={onConnect} className="btn-primary"
+                style={{ height:40, padding:"0 22px", borderRadius:10, background:"#4285f4", border:"none",
+                  color:"#fff", fontSize:13, fontWeight:600, display:"inline-flex", alignItems:"center", gap:9 }}>
+                <Icons.Google size={14}/> Connect Google Calendar
+              </button>
+            </div>
+          ) : (
+            <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+              {isBulk && (
+                <div style={{ maxHeight:120, overflowY:"auto", display:"flex", flexDirection:"column", gap:6 }}>
+                  {tasks.map(t => (
+                    <div key={t.id} style={{ display:"flex", alignItems:"center", gap:8, padding:"7px 11px",
+                      borderRadius:8, background:"var(--bg2)", border:"1px solid var(--br)" }}>
+                      <PriBadge p={t.priority}/>
+                      <span style={{ fontSize:12, color:"var(--tx)", flex:1, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{t.title}</span>
+                      {t.estimate && <span style={{ fontSize:10, color:"var(--tx3)", fontFamily:"var(--font-mono)" }}>{t.estimate}</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+                {[{label:"Date",type:"date",value:date,min:today,onChange:(v:string)=>setDate(v)},
+                  {label:"Time",type:"time",value:time,onChange:(v:string)=>setTime(v)}].map(f=>(
+                  <div key={f.label}>
+                    <label style={{ fontSize:11, fontWeight:600, color:"var(--tx2)", display:"block", marginBottom:6 }}>{f.label}</label>
+                    <input type={f.type} value={f.value} min={f.min} onChange={e=>f.onChange(e.target.value)}
+                      className="input-focus"
+                      style={{ width:"100%", background:"var(--inp)", border:"1px solid var(--br)", borderRadius:9,
+                        padding:"10px 13px", fontSize:13, color:"var(--tx)", colorScheme:"dark" }}/>
+                  </div>
+                ))}
+              </div>
+              {!isBulk && task?.estimate && (
+                <div style={{ display:"flex", alignItems:"center", gap:9, padding:"9px 13px",
+                  borderRadius:9, background:"var(--as)", border:"1px solid var(--ag)" }}>
+                  <Icons.Clock size={12} style={{ color:"var(--ac)" }}/>
+                  <span style={{ fontSize:12, color:"var(--ac)" }}>Duration auto-set: <strong>{task.estimate}</strong></span>
+                </div>
+              )}
+              <div>
+                <label style={{ fontSize:11, fontWeight:600, color:"var(--tx2)", display:"block", marginBottom:6 }}>Note (optional)</label>
+                <textarea value={note} onChange={e=>setNote(e.target.value)} placeholder="Add a note to your calendar event..."
+                  rows={3} className="input-focus"
+                  style={{ width:"100%", background:"var(--inp)", border:"1px solid var(--br)", borderRadius:9,
+                    padding:"10px 13px", fontSize:13, color:"var(--tx)", resize:"none", lineHeight:1.6 }}/>
+              </div>
+              <div style={{ display:"flex", gap:10, marginTop:2 }}>
+                <button onClick={onClose} className="ghost"
+                  style={{ flex:1, height:40, borderRadius:9, border:"1px solid var(--br)", background:"transparent", color:"var(--tx2)", fontSize:13 }}>
+                  Cancel
+                </button>
+                <button onClick={() => onSave(tasks.map(t => t.id), date, time, note)} className="btn-primary"
+                  style={{ flex:2, height:40, borderRadius:9, background:"#4285f4", border:"none", color:"#fff",
+                    fontSize:13, fontWeight:600, display:"flex", alignItems:"center", justifyContent:"center", gap:8 }}>
+                  <Icons.Calendar size={13}/>
+                  Set Reminder{isBulk && tasks.length > 1 ? `s (${tasks.length})` : ""} on Calendar
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MINI CHARTS
+═══════════════════════════════════════════════════════════════════════════ */
+function BarChart({ data }: { data: { label: string; value: number; color?: string }[] }) {
+  const max = Math.max(...data.map(d => d.value), 1);
+  return (
+    <div style={{ display:"flex", alignItems:"flex-end", gap:4, height:80 }}>
+      {data.map((d, i) => (
+        <div key={i} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", gap:4 }}>
+          <div
+            title={`${d.label}: ${d.value}`}
+            style={{
+              width: "100%", borderRadius: "3px 3px 0 0",
+              background: d.color ?? `linear-gradient(180deg, var(--ach), var(--ac))`,
+              height: `${(d.value / max) * 80}%`, minHeight: 3,
+              transition: `height .8s cubic-bezier(.34,1.56,.64,1) ${i * .045}s`,
+              cursor: "default",
+            }}
+          />
+          <span style={{ fontSize: 8, color:"var(--tx3)", fontWeight:500, fontFamily:"var(--font-mono)" }}>{d.label}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function DonutChart({ segs, size = 96 }: { segs: { value: number; color: string; label: string }[]; size?: number }) {
+  const total = segs.reduce((a, s) => a + s.value, 0) || 1;
+  const r = size * .37, cx = size / 2, cy = size / 2, circ = 2 * Math.PI * r;
+  let cum = 0;
+  return (
+    <div style={{ display:"flex", alignItems:"center", gap:14, flexWrap:"wrap" }}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform:"rotate(-90deg)", flexShrink:0 }}>
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--br)" strokeWidth={size * .09}/>
+        {segs.map((s, i) => {
+          const pct = s.value / total, dash = pct * circ, off = -cum * circ; cum += pct;
+          return (
+            <circle key={i} cx={cx} cy={cy} r={r} fill="none" stroke={s.color}
+              strokeWidth={size * .09} strokeLinecap="round"
+              strokeDasharray={`${dash - 2} ${circ}`} strokeDashoffset={off}
+              style={{ transition:"stroke-dasharray .85s ease" }}/>
+          );
+        })}
+      </svg>
+      <div style={{ display:"flex", flexDirection:"column", gap:7 }}>
+        {segs.map(s => (
+          <div key={s.label} style={{ display:"flex", alignItems:"center", gap:8 }}>
+            <div style={{ width:8, height:8, borderRadius:2, background:s.color, flexShrink:0 }}/>
+            <span style={{ fontSize:11, color:"var(--tx2)" }}>{s.label}</span>
+            <span style={{ fontSize:11, fontWeight:700, color:"var(--tx)", marginLeft:"auto", paddingLeft:8,
+              fontFamily:"var(--font-mono)" }}>{s.value}%</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function HealthRing({ score }: { score: number }) {
+  const r = 40, circ = 2 * Math.PI * r;
+  const off = circ * (1 - score / 100);
+  const col = score >= 75 ? "var(--gr)" : score >= 50 ? "var(--am)" : "var(--rd)";
+  return (
+    <div style={{ position:"relative", width:96, height:96, flexShrink:0 }}>
+      <svg width="96" height="96" viewBox="0 0 96 96" style={{ transform:"rotate(-90deg)" }}>
+        <circle cx="48" cy="48" r={r} fill="none" stroke="var(--br)" strokeWidth="7"/>
+        <circle cx="48" cy="48" r={r} fill="none" stroke={col} strokeWidth="7"
+          strokeLinecap="round" strokeDasharray={circ} strokeDashoffset={off}
+          style={{ transition:"stroke-dashoffset 1.3s cubic-bezier(.4,0,.2,1)", filter:`drop-shadow(0 0 9px ${col})` }}/>
+      </svg>
+      <div style={{ position:"absolute", inset:0, display:"flex", flexDirection:"column",
+        alignItems:"center", justifyContent:"center" }}>
+        <span style={{ fontSize:21, fontWeight:800, letterSpacing:"-0.04em", color:"var(--tx)",
+          fontFamily:"var(--font-display)" }}>{score}</span>
+        <span style={{ fontSize:7.5, color:"var(--tx3)", fontWeight:700, letterSpacing:"0.06em" }}>HEALTH</span>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   TASK CARD
+═══════════════════════════════════════════════════════════════════════════ */
+function TaskCard({
+  task, onStatusChange, onSetReminder, compact = false,
+}: {
+  task: Task;
+  onStatusChange?: (id: string, s: TaskStatus) => void;
+  onSetReminder?: (task: Task) => void;
+  compact?: boolean;
+}) {
+  return (
+    <div className="task-card" style={{
+      borderRadius: 10, border: "1px solid var(--br)", background: "var(--bg1)",
+      padding: compact ? "8px 11px" : "12px 14px", marginBottom: 8, cursor: "pointer",
+    }}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:9,
+        marginBottom: compact ? 4 : 9 }}>
+        <p style={{ fontSize: compact ? 11.5 : 12.5, color:"var(--tx)", fontWeight:500,
+          lineHeight:1.45, flex:1 }}>{task.title}</p>
+        <PriBadge p={task.priority}/>
+      </div>
+      {!compact && (
+        <div style={{ display:"flex", alignItems:"center", gap:5, flexWrap:"wrap", marginBottom:9 }}>
+          <span style={{ fontSize:10, padding:"2px 8px", borderRadius:5, background:"var(--as)",
+            color:"var(--ac)", fontWeight:600, fontFamily:"var(--font-mono)" }}>{task.label}</span>
+          {task.dueDate && (
+            <span style={{ display:"flex", alignItems:"center", gap:3, fontSize:10, color:"var(--tx3)" }}>
+              <Icons.Calendar size={9}/>{task.dueDate}
+            </span>
+          )}
+          {task.estimate && (
+            <span style={{ display:"flex", alignItems:"center", gap:3, fontSize:10, color:"var(--tx3)" }}>
+              <Icons.Clock size={9}/>{task.estimate}
+            </span>
+          )}
+          <span style={{ fontSize:9, color:"var(--tx3)", marginLeft:"auto",
+            fontFamily:"var(--font-mono)", opacity:.7 }}>{task.id}</span>
+        </div>
+      )}
+      {!compact && (
+        <div style={{ display:"flex", alignItems:"center", gap:7 }}>
+          {onStatusChange && task.status !== "done" && (
+            <button
+              onClick={e => { e.stopPropagation(); onStatusChange(task.id, task.status === "todo" ? "wip" : "done"); }}
+              className="ghost"
+              style={{ fontSize:10, padding:"3px 9px", borderRadius:6, border:"1px solid var(--br)",
+                background:"transparent", color:"var(--tx3)", display:"flex", alignItems:"center", gap:4 }}>
+              <Icons.Check size={10}/> {task.status === "todo" ? "Start" : "Done"}
+            </button>
+          )}
+          {onSetReminder && (
+            <button
+              onClick={e => { e.stopPropagation(); onSetReminder(task); }}
+              className="ghost"
+              style={{ fontSize:10, padding:"3px 9px", borderRadius:6, border:`1px solid ${task.gcalSet ? "rgba(16,185,129,0.3)" : "var(--br)"}`,
+                background: task.gcalSet ? "rgba(16,185,129,0.07)" : "transparent",
+                color: task.gcalSet ? "var(--gr)" : "var(--tx3)",
+                display:"flex", alignItems:"center", gap:4, marginLeft:"auto" }}>
+              <Icons.Calendar size={10}/> {task.gcalSet ? "✓ Reminder" : "Set Reminder"}
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PAGE: OVERVIEW
+═══════════════════════════════════════════════════════════════════════════ */
+function PageOverview() {
+  const { tasks, setTasks, savedBoards, navigate, dailyGoal, weeklyGoal, user, isLoading } = useApp();
+  const done  = tasks.filter(t => t.status === "done").length;
+  const total = tasks.length;
+  const wip   = tasks.filter(t => t.status === "wip").length;
+  const healthScore = total === 0 ? 100 :
+    Math.round(Math.max(0, 100 - (tasks.filter(t => t.priority === "urgent" || t.priority === "high").length / Math.max(total, 1)) * 42));
+
+  const [quickInput, setQuickInput] = useState("");
+  const [addLoading, setAddLoading] = useState(false);
+
+  const greeting = (() => {
+    const h = new Date().getHours();
+    return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
+  })();
+
+  const displayName = user?.full_name?.split(" ")[0] ?? "there";
+
+  // 🚧 MOCK: Replace with real Supabase CRUD call
+  const handleQuickInput = async () => {
+    if (!quickInput.trim()) return;
+    setAddLoading(true);
+    /* 🔌 BACKEND:
+      const { data, error } = await supabase
+        .from('tasks')
+        .insert({ title: quickInput.trim(), priority:'medium', label:'General', status:'todo', user_id: user.id })
+        .select().single();
+      if (!error && data) setTasks(prev => [...prev, data]);
+    */
+    await new Promise(r => setTimeout(r, 400)); // 🚧 MOCK delay
+    const newTask: Task = {
+      id: `KB-${Date.now()}`, title: quickInput.trim(),
+      priority: "medium", label: "General", status: "todo",
+    };
+    setTasks(prev => [...prev, newTask]);
+    setQuickInput(""); setAddLoading(false);
+    navigate("board");
   };
 
-  const getBorderColor = () => {
-    switch (status) {
-      case 'error':
-        return 'border-red-500/50';
-      case 'warning':
-        return 'border-yellow-500/50';
-      default:
-        return 'border-[#262626]';
+  // 🔌 BACKEND: Real activity data from /api/task-activity
+  const [actData, setActData] = useState<{ label: string; value: number; color?: string }[]>([]);
+  const [weeklyDone, setWeeklyDone] = useState(0);
+  useEffect(() => {
+    fetch("/api/task-activity").then(r => r.json()).then(d => {
+      if (Array.isArray(d) && d.length > 0) {
+        setActData(d);
+        setWeeklyDone(d.slice(-7).reduce((s: number, i: { value: number }) => s + i.value, 0));
+      }
+    }).catch(() => {});
+  }, []);
+
+  // Derived from real tasks
+  const urgentCount  = tasks.filter(t => t.priority === "urgent").length;
+  const highCount    = tasks.filter(t => t.priority === "high").length;
+  const mediumCount  = tasks.filter(t => t.priority === "medium").length;
+  const lowCount     = tasks.filter(t => t.priority === "low").length;
+  const priTotal     = urgentCount + highCount + mediumCount + lowCount || 1;
+  const priSegs = [
+    { value: Math.round(urgentCount / priTotal * 100), color:"var(--ur)", label:"Urgent" },
+    { value: Math.round(highCount   / priTotal * 100), color:"var(--rd)", label:"High"   },
+    { value: Math.round(mediumCount / priTotal * 100), color:"var(--am)", label:"Medium" },
+    { value: Math.round(lowCount    / priTotal * 100), color:"var(--tx3)",label:"Low"    },
+  ];
+
+  // 🚧 MOCK: Replace with real Supabase usage stats from user profile
+  const boardsToday   = user?.boards_used_today ?? 0;
+  const aiUsesMonth   = user?.ai_uses_this_month ?? 51;
+  const boardsLimit   = user?.plan === "pro" ? 100 : 10;
+  const aiLimit       = user?.plan === "pro" ? 1000 : 300;
+
+  const statCards = [
+    { label:"Boards Today",  value:`${boardsToday}/${boardsLimit}`, sub:`${boardsLimit - boardsToday} remaining`, icon:<Icons.Board size={13}/>, prog: boardsToday / boardsLimit * 100 },
+    { label:"AI This Month", value:`${aiUsesMonth}/${aiLimit}`, sub:`${aiLimit - aiUsesMonth} remaining`, icon:<Icons.Autopilot size={13}/>, trend:"↑ 17%", color:"var(--pu)" },
+    { label:"Tasks Total",   value:String(total), sub:`${done} done · ${wip} in progress`, icon:<Icons.Target size={13}/>, color: done === total && total > 0 ? "var(--gr)" : undefined },
+    { label:"Plan",          value: user?.plan === "pro" ? "Pro" : "Free", sub: user?.plan === "pro" ? "All features unlocked" : "$9/mo → Pro", icon:<Icons.Crown size={13}/>, color:"var(--am)" },
+  ];
+
+  return (
+    <div className="fade-up page-pad" style={{ padding:"28px 30px", overflowY:"auto", height:"100%",
+      display:"flex", flexDirection:"column", gap:22 }}>
+
+      {/* Header */}
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", flexWrap:"wrap", gap:12 }}>
+        <div>
+          {isLoading
+            ? <><Skeleton w={220} h={24} style={{ marginBottom:8 }}/><Skeleton w={160} h={14}/></>
+            : <>
+                <h1 style={{ fontSize:22, fontWeight:800, letterSpacing:"-0.035em", color:"var(--tx)",
+                  marginBottom:4, fontFamily:"var(--font-display)" }}>
+                  {greeting}, {displayName} 👋
+                </h1>
+                <p style={{ fontSize:13, color:"var(--tx2)" }}>Here's your workload snapshot</p>
+              </>
+          }
+        </div>
+        <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+          <div className="pulse" style={{ width:6, height:6, borderRadius:"50%", background:"var(--gr)" }}/>
+          <span style={{ fontSize:12, color:"var(--gr)", fontWeight:600 }}>All systems active</span>
+        </div>
+      </div>
+
+      {/* Quick AI input */}
+      <div style={{ borderRadius:14, border:"1px solid var(--br)", background:"var(--bg1)",
+        padding:"16px 18px", position:"relative", overflow:"hidden" }}>
+        {/* Decorative glow */}
+        <div style={{ position:"absolute", top:-20, right:-20, width:120, height:120,
+          borderRadius:"50%", background:"var(--as)", filter:"blur(32px)", pointerEvents:"none" }}/>
+        <div style={{ display:"flex", alignItems:"center", gap:9, marginBottom:10, position:"relative" }}>
+          <div style={{ width:26, height:26, borderRadius:8, background:"var(--as)",
+            display:"flex", alignItems:"center", justifyContent:"center", color:"var(--ac)" }}>
+            <Icons.Sparkle size={12}/>
+          </div>
+          <span style={{ fontSize:12.5, fontWeight:700, color:"var(--tx)", fontFamily:"var(--font-display)" }}>Quick AI Extract</span>
+          <span style={{ fontSize:10, color:"var(--tx3)", marginLeft:2, padding:"1px 6px",
+            borderRadius:4, background:"var(--br)" }}>sends to Board →</span>
+        </div>
+        <div style={{ display:"flex", gap:9, position:"relative" }}>
+          <input
+            value={quickInput}
+            onChange={e => setQuickInput(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && handleQuickInput()}
+            placeholder="Paste a task or note to extract instantly..."
+            className="input-focus"
+            style={{ flex:1, background:"var(--inp)", border:"1px solid var(--br)", borderRadius:10,
+              padding:"10px 14px", fontSize:13, color:"var(--tx)" }}
+          />
+          <button
+            onClick={handleQuickInput}
+            disabled={!quickInput.trim() || addLoading}
+            className="btn-primary"
+            style={{ height:40, padding:"0 16px", borderRadius:10, background:"var(--ac)", border:"none",
+              color:"#fff", fontSize:12.5, fontWeight:700, display:"flex", alignItems:"center", gap:7,
+              opacity: !quickInput.trim() ? .5 : 1 }}>
+            {addLoading
+              ? <div className="spin" style={{ width:13, height:13, borderRadius:"50%",
+                  border:"2px solid rgba(255,255,255,.3)", borderTopColor:"#fff" }}/>
+              : <Icons.Zap size={12}/>
+            }
+            Add
+          </button>
+        </div>
+      </div>
+
+      {/* Stat cards */}
+      <div className="main-grid-4 stagger" style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:12 }}>
+        {statCards.map((s, i) => (
+          <div key={s.label} className="card fade-up"
+            style={{ borderRadius:13, border:"1px solid var(--br)", background:"var(--bg1)", padding:"16px 18px" }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:11 }}>
+              <span style={{ fontSize:11, color:"var(--tx2)", fontWeight:600, letterSpacing:"0.01em" }}>{s.label}</span>
+              <span style={{ color:"var(--tx3)" }}>{s.icon}</span>
+            </div>
+            {isLoading
+              ? <Skeleton w="60%" h={28} style={{ marginBottom:6 }}/>
+              : <div style={{ fontSize:25, fontWeight:800, letterSpacing:"-0.045em",
+                  color: s.color ?? "var(--tx)", lineHeight:1, marginBottom:4,
+                  fontFamily:"var(--font-display)", animation:"countUp .5s ease both" }}>
+                  {s.value}
+                </div>
+            }
+            <p style={{ fontSize:10.5, color:"var(--tx3)" }}>{s.sub}</p>
+            {s.trend && <p style={{ fontSize:10.5, color:"var(--gr)", marginTop:3, fontWeight:600 }}>{s.trend}</p>}
+            {s.prog !== undefined && (
+              <div style={{ marginTop:10 }}>
+                <PBar value={s.prog} h={3} color="var(--ac)"/>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* Health + Goals */}
+      <div className="main-grid-2" style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 }}>
+        {/* Workload Health */}
+        <div className="card" style={{ borderRadius:13, border:"1px solid var(--br)", background:"var(--bg1)", padding:20 }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
+            <h3 style={{ fontSize:13, fontWeight:700, color:"var(--tx)", fontFamily:"var(--font-display)" }}>AI Workload Health</h3>
+            <span style={{
+              fontSize:10, padding:"2px 9px", borderRadius:100, fontWeight:700,
+              background: healthScore >= 75 ? "rgba(16,185,129,0.1)"  : healthScore >= 50 ? "rgba(245,158,11,0.1)"  : "rgba(239,68,68,0.1)",
+              color:      healthScore >= 75 ? "var(--gr)"              : healthScore >= 50 ? "var(--am)"              : "var(--rd)",
+              border:     `1px solid ${healthScore >= 75 ? "rgba(16,185,129,0.2)" : healthScore >= 50 ? "rgba(245,158,11,0.2)" : "rgba(239,68,68,0.2)"}`,
+            }}>
+              {healthScore >= 75 ? "● Healthy" : healthScore >= 50 ? "● Warning" : "● Overloaded"}
+            </span>
+          </div>
+          <div style={{ display:"flex", alignItems:"center", gap:18, marginBottom:16 }}>
+            <HealthRing score={healthScore}/>
+            <div style={{ flex:1, display:"flex", flexDirection:"column", gap:10 }}>
+              {[
+                { l:"Total Tasks",    v:String(total) },
+                { l:"Completed",      v:String(done) },
+                { l:"Burnout Risk",   v: healthScore >= 75 ? "None" : "Watch out!", c: healthScore >= 75 ? "var(--gr)" : "var(--rd)" },
+              ].map(s => (
+                <div key={s.l} style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                  <span style={{ fontSize:11, color:"var(--tx3)" }}>{s.l}</span>
+                  <span style={{ fontSize:12, fontWeight:700, color: s.c ?? "var(--tx)",
+                    fontFamily:"var(--font-mono)" }}>{s.v}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div style={{ display:"flex", alignItems:"flex-start", gap:8, padding:"10px 12px",
+            borderRadius:9, background:"var(--as)", border:"1px solid var(--ag)" }}>
+            <Icons.Brain size={12} style={{ color:"var(--ac)", marginTop:1, flexShrink:0 }}/>
+            <p style={{ fontSize:11.5, color:"var(--ac)", lineHeight:1.55 }}>
+              {healthScore >= 75
+                ? "Workload looks balanced. Great momentum — keep it up!"
+                : "High-priority tasks detected. Consider deferring or delegating."}
+            </p>
+          </div>
+        </div>
+
+        {/* Goals */}
+        <div className="card" style={{ borderRadius:13, border:"1px solid var(--br)", background:"var(--bg1)", padding:20 }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
+            <h3 style={{ fontSize:13, fontWeight:700, color:"var(--tx)", fontFamily:"var(--font-display)" }}>Your Goals</h3>
+            <button className="ghost" style={{ fontSize:11, color:"var(--tx2)", background:"transparent",
+              border:"none", padding:"3px 8px", borderRadius:6 }}>Edit</button>
+          </div>
+          <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+            {[
+              { label:"Daily Tasks",       current:done,  goal:dailyGoal,  color:"var(--ac)" },
+              // 🔌 BACKEND: weeklyDone from /api/task-activity (last 7 days sum)
+              { label:"Weekly Tasks",      current:weeklyDone,    goal:weeklyGoal, color:"var(--gr)" },
+              { label:"Completion Rate",   current:total > 0 ? Math.round((done/total)*100) : 0, goal:100, color:"var(--pu)", suffix:"%" },
+            ].map(g => (
+              <div key={g.label}>
+                <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}>
+                  <span style={{ fontSize:12, color:"var(--tx2)" }}>{g.label}</span>
+                  <span style={{ fontSize:12, fontWeight:700, color:g.color, fontFamily:"var(--font-mono)" }}>
+                    {g.current}/{g.goal}{(g as any).suffix ?? ""}
+                  </span>
+                </div>
+                <PBar value={(g.current / g.goal) * 100} color={g.color} h={5}/>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Charts row */}
+      <div className="main-grid-3" style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1fr", gap:14 }}>
+        <div className="card" style={{ borderRadius:13, border:"1px solid var(--br)", background:"var(--bg1)", padding:20 }}>
+          {/* 🔌 BACKEND: Query Supabase for tasks completed/created per day for last 30 days */}
+          <h3 style={{ fontSize:13, fontWeight:700, color:"var(--tx)", marginBottom:16,
+            fontFamily:"var(--font-display)" }}>Task Activity — Last 30 Days</h3>
+          <BarChart data={actData}/>
+        </div>
+        <div className="card" style={{ borderRadius:13, border:"1px solid var(--br)", background:"var(--bg1)", padding:20 }}>
+          <h3 style={{ fontSize:13, fontWeight:700, color:"var(--tx)", marginBottom:16,
+            fontFamily:"var(--font-display)" }}>Priority Split</h3>
+          <DonutChart segs={priSegs} size={88}/>
+        </div>
+        <div className="card" style={{ borderRadius:13, border:"1px solid var(--br)", background:"var(--bg1)",
+          padding:20, textAlign:"center" }}>
+          <h3 style={{ fontSize:13, fontWeight:700, color:"var(--tx)", marginBottom:16,
+            fontFamily:"var(--font-display)" }}>Completion</h3>
+          <div style={{ position:"relative", width:76, height:76, margin:"0 auto 10px" }}>
+            <svg width="76" height="76" viewBox="0 0 76 76" style={{ transform:"rotate(-90deg)" }}>
+              <circle cx="38" cy="38" r="30" fill="none" stroke="var(--br)" strokeWidth="7"/>
+              <circle cx="38" cy="38" r="30" fill="none" stroke="var(--gr)" strokeWidth="7"
+                strokeLinecap="round"
+                strokeDasharray={2 * Math.PI * 30}
+                strokeDashoffset={2 * Math.PI * 30 * (1 - (total > 0 ? done / total : 0))}
+                style={{ transition:"stroke-dashoffset .9s ease", filter:"drop-shadow(0 0 6px var(--gr))" }}/>
+            </svg>
+            <div style={{ position:"absolute", inset:0, display:"flex", alignItems:"center", justifyContent:"center" }}>
+              <span style={{ fontSize:17, fontWeight:800, color:"var(--tx)", letterSpacing:"-0.04em",
+                fontFamily:"var(--font-display)" }}>
+                {total > 0 ? Math.round((done / total) * 100) : 0}%
+              </span>
+            </div>
+          </div>
+          <p style={{ fontSize:11, color:"var(--tx3)" }}>{done} of {total} done</p>
+        </div>
+      </div>
+
+      {/* Recent Boards */}
+      {savedBoards.length > 0 && (
+        <div className="card" style={{ borderRadius:13, border:"1px solid var(--br)", background:"var(--bg1)", padding:20 }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
+            <h3 style={{ fontSize:13, fontWeight:700, color:"var(--tx)", fontFamily:"var(--font-display)" }}>Recent Boards</h3>
+            <button onClick={() => navigate("saved")} className="ghost"
+              style={{ fontSize:11, color:"var(--ac)", background:"transparent", border:"none",
+                padding:"3px 8px", borderRadius:6, display:"flex", alignItems:"center", gap:4 }}>
+              View all <Icons.ChevR size={11}/>
+            </button>
+          </div>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))", gap:10 }}>
+            {savedBoards.slice(0, 4).map(b => (
+              <div key={b.id}
+                style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 12px",
+                  borderRadius:9, background:"var(--bg2)", border:"1px solid var(--br)",
+                  cursor:"pointer", transition:"all .15s" }}
+                onMouseOver={e => { (e.currentTarget as HTMLDivElement).style.borderColor = "var(--brh)"; }}
+                onMouseOut={e  => { (e.currentTarget as HTMLDivElement).style.borderColor = "var(--br)";  }}>
+                <div style={{ width:32, height:32, borderRadius:8, background:"var(--as)",
+                  display:"flex", alignItems:"center", justifyContent:"center", color:"var(--ac)", flexShrink:0 }}>
+                  <Icons.Layers size={13}/>
+                </div>
+                <div style={{ flex:1, minWidth:0 }}>
+                  <p style={{ fontSize:12, fontWeight:600, color:"var(--tx)", overflow:"hidden",
+                    textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{b.name}</p>
+                  <p style={{ fontSize:10, color:"var(--tx3)" }}>{b.taskCount} tasks · {b.lastEdited}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PAGE: BOARD
+═══════════════════════════════════════════════════════════════════════════ */
+function PageBoard() {
+  const { tasks, setTasks, savedBoards, setSavedBoards, boardView, setBoardView,
+          gcalConnected, setGcalConnected } = useApp();
+  const [inputMode, setInputMode] = useState<InputMode>("paste");
+  const [inputText, setInputText] = useState("");
+  const [gcalModal, setGcalModal] = useState<{ task?: Task; bulk?: boolean } | null>(null);
+  const [extracting, setExtracting] = useState(false);
+  const overloaded = tasks.filter(t => t.status !== "done" && (t.priority === "urgent" || t.priority === "high")).length >= 5;
+
+  const inputModes = [
+    { key:"paste"    as InputMode, label:"Paste",     icon:<Icons.Paste size={12}/> },
+    { key:"pdf"      as InputMode, label:"PDF",       icon:<Icons.Pdf size={12}/>   },
+    { key:"notion"   as InputMode, label:"Notion",    icon:<Icons.Notion size={12}/> },
+    { key:"template" as InputMode, label:"Templates", icon:<Icons.Template size={12}/> },
+  ];
+
+  // 🔌 BACKEND: Replace with real AI extraction via your Next.js API route
+  // POST /api/extract → { tasks: Task[] }
+  const handleExtract = async () => {
+    if (!inputText.trim()) return;
+    setExtracting(true);
+    await new Promise(r => setTimeout(r, 800)); // 🚧 MOCK
+    /* 🔌 BACKEND:
+      const res = await fetch('/api/extract', { method:'POST', body: JSON.stringify({ text: inputText }) });
+      const { tasks: extracted } = await res.json();
+      // then save each to Supabase:
+      const { data } = await supabase.from('tasks').insert(extracted.map(t => ({...t, user_id:user.id}))).select();
+      setTasks(prev => [...prev, ...data]);
+    */
+    const lines = inputText.split("\n").filter(l => l.trim());
+    const newTasks: Task[] = lines.map((l, i) => ({
+      id: `KB-${Date.now()}-${i}`,
+      title: l.replace(/^[-•*\d.]\s*/, "").trim(),
+      priority: (["urgent","high","medium","low"] as Priority[])[Math.floor(Math.random() * 4)],
+      label: "General", status: "todo" as TaskStatus,
+    })).filter(t => t.title.length > 2);
+    setTasks(prev => [...prev, ...newTasks]);
+    setInputText(""); setExtracting(false);
+    setBoardView("kanban");
+  };
+
+  const updateTaskStatus = (id: string, s: TaskStatus) => {
+    /* 🔌 BACKEND: supabase.from('tasks').update({ status: s }).eq('id', id) */
+    setTasks(prev => prev.map(t => t.id === id ? { ...t, status: s } : t));
+  };
+
+  const handleSaveReminder = (taskIds: string[], date: string, time: string, note: string) => {
+    /* 🔌 BACKEND: supabase.from('tasks').update({ gcal_set:true }).in('id', taskIds)
+       Then call your GCal API route: POST /api/gcal/create-event  */
+    setTasks(prev => prev.map(t => taskIds.includes(t.id) ? { ...t, gcalSet: true } : t));
+    setGcalModal(null);
+  };
+
+  const handleSaveBoard = () => {
+    if (tasks.length === 0) return;
+    /* 🔌 BACKEND:
+      const { data } = await supabase.from('saved_boards').insert({
+        name: `Board · ${new Date().toLocaleDateString()}`,
+        task_count: tasks.length, folder: 'Personal', user_id: user.id
+      }).select().single();
+      // then upsert tasks with board_id = data.id
+    */
+    const nb: SavedBoard = {
+      id: Date.now().toString(),
+      name: `Board · ${new Date().toLocaleDateString()}`,
+      taskCount: tasks.length, folder: "Personal", lastEdited: "Just now",
+      tasks: [...tasks],
+    };
+    setSavedBoards(prev => [nb, ...prev]);
+  };
+
+  const cols: [TaskStatus, string, string][] = [
+    ["todo", "To Do",       "var(--ac)"],
+    ["wip",  "In Progress", "var(--am)"],
+    ["done", "Done",        "var(--gr)"],
+  ];
+  const kanbanTasks = (s: TaskStatus) => tasks.filter(t => t.status === s);
+
+  return (
+    <div style={{ display:"flex", flexDirection:"column", height:"100%", overflow:"hidden" }}>
+      {/* Overload warning bar */}
+      {overloaded && boardView === "kanban" && (
+        <div className="slide-r" style={{ display:"flex", alignItems:"center", gap:9, padding:"9px 26px",
+          background:"rgba(239,68,68,0.07)", borderBottom:"1px solid rgba(239,68,68,0.18)" }}>
+          <Icons.AlertTri size={13} style={{ color:"var(--rd)", flexShrink:0 }}/>
+          <span style={{ fontSize:12, color:"var(--rd)", fontWeight:500 }}>
+            Autopilot warning: High task load detected. Consider completing or deferring tasks before adding more.
+          </span>
+        </div>
+      )}
+
+      {boardView === "input" ? (
+        /* ── Input view ── */
+        <div className="page-pad" style={{ padding:"28px 30px", overflowY:"auto", flex:1 }}>
+          <div style={{ maxWidth:880, margin:"0 auto" }}>
+            <div style={{ textAlign:"center", marginBottom:28 }}>
+              <div style={{ display:"inline-flex", alignItems:"center", gap:7, padding:"5px 14px",
+                borderRadius:100, background:"var(--as)", border:"1px solid var(--ag)",
+                marginBottom:16, color:"var(--ac)", fontSize:11.5, fontWeight:600 }}>
+                <Icons.Sparkle size={11}/> AI-Powered Extraction
+              </div>
+              <h1 style={{ fontSize:26, fontWeight:800, letterSpacing:"-0.04em", color:"var(--tx)",
+                marginBottom:8, fontFamily:"var(--font-display)" }}>
+                Transform Notes Into Action
+              </h1>
+              <p style={{ fontSize:13.5, color:"var(--tx2)" }}>
+                Paste your messy notes and let Kanbi AI organize them into tasks
+              </p>
+            </div>
+
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 260px", gap:18 }} className="main-grid-2">
+              {/* Input card */}
+              <div style={{ borderRadius:14, border:"1px solid var(--br)", background:"var(--bg1)", padding:20 }}>
+                {/* Mode tabs */}
+                <div style={{ display:"flex", gap:3, marginBottom:16, background:"var(--bg2)",
+                  borderRadius:10, padding:4 }}>
+                  {inputModes.map(m => (
+                    <button key={m.key} onClick={() => setInputMode(m.key)}
+                      style={{ flex:1, padding:"7px 6px", borderRadius:8, border:"none",
+                        background: inputMode === m.key ? "var(--bg1)" : "transparent",
+                        color: inputMode === m.key ? "var(--tx)" : "var(--tx3)",
+                        fontSize:11.5, fontWeight:inputMode === m.key ? 600 : 400,
+                        cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center",
+                        gap:5, transition:"all .15s",
+                        boxShadow: inputMode === m.key ? "0 1px 4px rgba(0,0,0,.2)" : "none" }}>
+                      {m.icon}{m.label}
+                    </button>
+                  ))}
+                </div>
+
+                {inputMode === "paste" && (
+                  <>
+                    <p style={{ fontSize:11, color:"var(--tx3)", marginBottom:8 }}>
+                      Paste emails, Slack messages, notes — anything works
+                    </p>
+                    <textarea
+                      value={inputText} onChange={e => setInputText(e.target.value)} rows={9}
+                      placeholder={"What's on your mind?\n\n- Fix login bug\n- Review copy\n- Call John\n- Send invoice to Acme"}
+                      className="input-focus"
+                      style={{ width:"100%", background:"var(--inp)", border:"1px solid var(--br)",
+                        borderRadius:10, padding:"12px 14px", fontSize:13, color:"var(--tx)",
+                        resize:"vertical", lineHeight:1.65 }}/>
+                    <p style={{ fontSize:10, color:"var(--tx3)", marginTop:8 }}>
+                      AI-powered extraction · Smart deadline detection · Privacy first
+                    </p>
+                  </>
+                )}
+                {inputMode === "pdf" && (
+                  <div style={{ border:"2px dashed var(--br)", borderRadius:12, padding:"50px 24px",
+                    textAlign:"center", cursor:"pointer", transition:"all .15s" }}
+                    onMouseOver={e => { (e.currentTarget as HTMLDivElement).style.borderColor = "var(--ac)"; (e.currentTarget as HTMLDivElement).style.background = "var(--as)"; }}
+                    onMouseOut={e =>  { (e.currentTarget as HTMLDivElement).style.borderColor = "var(--br)"; (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}>
+                    <Icons.Upload size={30} style={{ color:"var(--tx3)", display:"block", margin:"0 auto 14px" }}/>
+                    <p style={{ fontSize:13.5, color:"var(--tx2)", marginBottom:4, fontWeight:500 }}>Drop your PDF or click to browse</p>
+                    <p style={{ fontSize:11, color:"var(--tx3)" }}>PDF, DOCX up to 10MB</p>
+                    {/* 🔌 BACKEND: Wire to your PDF extraction API route */}
+                  </div>
+                )}
+                {inputMode === "notion" && (
+                  <div style={{ textAlign:"center", padding:"36px 24px" }}>
+                    <Icons.Notion size={32} style={{ color:"var(--ac)", display:"block", margin:"0 auto 16px" }}/>
+                    <p style={{ fontSize:13.5, color:"var(--tx2)", marginBottom:18, fontWeight:500 }}>
+                      Connect Notion to import pages as tasks
+                    </p>
+                    {/* 🔌 BACKEND: Notion OAuth flow */}
+                    <button className="btn-primary"
+                      style={{ height:38, padding:"0 20px", borderRadius:10, background:"var(--ac)",
+                        border:"none", color:"#fff", fontSize:13, fontWeight:600 }}>
+                      Connect Notion
+                    </button>
+                  </div>
+                )}
+                {inputMode === "template" && (
+                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:9 }}>
+                    {["Daily Standup","Sprint Planning","Client Project","Content Calendar","Bug Tracker","Meeting Notes"].map(t => (
+                      <button key={t}
+                        onClick={() => { setInputText(`# ${t}\n\n- Task 1\n- Task 2\n- Task 3`); setInputMode("paste"); }}
+                        className="ghost"
+                        style={{ padding:"14px 13px", borderRadius:9, border:"1px solid var(--br)",
+                          background:"var(--bg2)", color:"var(--tx2)", fontSize:12, fontWeight:500,
+                          textAlign:"left", cursor:"pointer", transition:"all .15s" }}
+                        onMouseOver={e => { (e.currentTarget).style.borderColor = "var(--ac)"; (e.currentTarget).style.color = "var(--tx)"; }}
+                        onMouseOut={e =>  { (e.currentTarget).style.borderColor = "var(--br)";  (e.currentTarget).style.color = "var(--tx2)"; }}>
+                        {t}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {(inputMode === "paste" || inputMode === "pdf") && (
+                  <button onClick={handleExtract} disabled={!inputText.trim() || extracting}
+                    className="btn-primary"
+                    style={{ width:"100%", height:42, marginTop:14, borderRadius:10,
+                      background: inputText.trim() ? "var(--ac)" : "var(--bg3)",
+                      border: `1px solid ${inputText.trim() ? "var(--ac)" : "var(--br)"}`,
+                      color: inputText.trim() ? "#fff" : "var(--tx3)",
+                      fontSize:13, fontWeight:700, display:"flex", alignItems:"center",
+                      justifyContent:"center", gap:8,
+                      cursor: inputText.trim() ? "pointer" : "not-allowed" }}>
+                    {extracting
+                      ? <><div className="spin" style={{ width:14, height:14, borderRadius:"50%",
+                          border:"2px solid rgba(255,255,255,.3)", borderTopColor:"#fff" }}/> Extracting tasks...</>
+                      : <><Icons.Autopilot size={14}/> Turn This Into Tasks</>
+                    }
+                  </button>
+                )}
+              </div>
+
+              {/* Progress panel */}
+              <div style={{ display:"flex", flexDirection:"column", gap:11 }}>
+                <div style={{ borderRadius:12, border:"1px solid var(--br)", background:"var(--bg1)", padding:17 }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:14 }}>
+                    <Icons.Target size={13} style={{ color:"var(--ac)" }}/>
+                    <span style={{ fontSize:13, fontWeight:700, color:"var(--tx)", fontFamily:"var(--font-display)" }}>Progress</span>
+                  </div>
+                  <div style={{ marginBottom:13 }}>
+                    <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}>
+                      <span style={{ fontSize:11, color:"var(--tx2)" }}>Completion</span>
+                      <span style={{ fontSize:11, fontWeight:700, color:"var(--tx)", fontFamily:"var(--font-mono)" }}>
+                        {tasks.length > 0 ? Math.round((tasks.filter(t=>t.status==="done").length / tasks.length)*100) : 0}%
+                      </span>
+                    </div>
+                    <PBar value={tasks.length > 0 ? (tasks.filter(t=>t.status==="done").length/tasks.length)*100 : 0} h={5}/>
+                  </div>
+                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8 }}>
+                    {[
+                      { l:"To Do",   v:tasks.filter(t=>t.status==="todo").length  },
+                      { l:"Working", v:tasks.filter(t=>t.status==="wip").length   },
+                      { l:"Done",    v:tasks.filter(t=>t.status==="done").length  },
+                    ].map(s => (
+                      <div key={s.l} style={{ textAlign:"center", padding:"10px 5px", borderRadius:8,
+                        background:"var(--bg2)", border:"1px solid var(--br)" }}>
+                        <p style={{ fontSize:18, fontWeight:800, color:"var(--tx)", fontFamily:"var(--font-display)" }}>{s.v}</p>
+                        <p style={{ fontSize:9.5, color:"var(--tx3)", marginTop:2 }}>{s.l}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <button className="ghost"
+                  style={{ padding:"11px", borderRadius:10, border:"1px solid var(--br)",
+                    background:"transparent", color:"var(--tx2)", fontSize:12, fontWeight:500 }}>
+                  Import Tasks
+                </button>
+                {tasks.length > 0 && (
+                  <button onClick={() => setBoardView("kanban")} className="btn-primary"
+                    style={{ padding:"11px", borderRadius:10, border:"1px solid var(--ac)",
+                      background:"var(--as)", color:"var(--ac)", fontSize:12, fontWeight:700 }}>
+                    View Board ({tasks.length} tasks)
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : (
+        /* ── Kanban view ── */
+        <div style={{ flex:1, overflow:"hidden", display:"flex", flexDirection:"column" }}>
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
+            padding:"14px 26px", borderBottom:"1px solid var(--br)", flexWrap:"wrap", gap:9 }}>
+            <div style={{ display:"flex", alignItems:"center", gap:11 }}>
+              <button onClick={() => setBoardView("input")} className="ghost"
+                style={{ padding:"5px 11px", borderRadius:8, border:"1px solid var(--br)",
+                  background:"transparent", color:"var(--tx2)", fontSize:12, cursor:"pointer",
+                  display:"flex", alignItems:"center", gap:5 }}>
+                ← Back
+              </button>
+              <span style={{ fontSize:13, fontWeight:700, color:"var(--tx)", fontFamily:"var(--font-display)" }}>My Board</span>
+              <span style={{ fontSize:10, padding:"2px 8px", borderRadius:5, background:"var(--br)",
+                color:"var(--tx3)", fontFamily:"var(--font-mono)" }}>{tasks.length} tasks</span>
+            </div>
+            <div style={{ display:"flex", alignItems:"center", gap:9, flexWrap:"wrap" }}>
+              <button onClick={() => setGcalModal({ bulk: true })}
+                style={{ height:33, padding:"0 13px", borderRadius:8,
+                  border:"1px solid rgba(66,133,244,0.3)", background:"rgba(66,133,244,0.07)",
+                  color:"#4285f4", fontSize:11.5, fontWeight:600,
+                  display:"flex", alignItems:"center", gap:6, cursor:"pointer" }}>
+                <Icons.Calendar size={12}/> Set All Reminders
+              </button>
+              <div style={{ display:"flex", alignItems:"center", gap:5, padding:"4px 11px",
+                borderRadius:8, background:"var(--as)", border:"1px solid var(--ag)" }}>
+                <div className="pulse" style={{ width:5, height:5, borderRadius:"50%", background:"var(--ac)" }}/>
+                <span style={{ fontSize:10.5, color:"var(--ac)", fontWeight:600 }}>
+                  AI extracted {tasks.length} tasks
+                </span>
+              </div>
+              <button onClick={handleSaveBoard} className="btn-primary"
+                style={{ height:33, padding:"0 13px", borderRadius:8, background:"var(--ac)",
+                  border:"none", color:"#fff", fontSize:12, fontWeight:700 }}>
+                Save Board
+              </button>
+            </div>
+          </div>
+
+          <div style={{ flex:1, overflow:"auto", padding:"20px 26px" }}>
+            <div className="kanban-grid" style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:16, minWidth:600 }}>
+              {cols.map(([key, label, color]) => (
+                <div key={key}>
+                  <div style={{ display:"flex", alignItems:"center", gap:7, marginBottom:12, padding:"0 2px" }}>
+                    <div style={{ width:9, height:9, borderRadius:"50%", background:color,
+                      boxShadow:`0 0 8px ${color}` }}/>
+                    <span style={{ fontSize:10.5, fontWeight:700, letterSpacing:"0.07em",
+                      textTransform:"uppercase", color:"var(--tx3)", fontFamily:"var(--font-display)" }}>{label}</span>
+                    <span style={{ fontSize:10, padding:"1px 6px", borderRadius:4, background:"var(--br)",
+                      color:"var(--tx3)", fontFamily:"var(--font-mono)" }}>
+                      {kanbanTasks(key).length}
+                    </span>
+                    <button className="ghost"
+                      style={{ marginLeft:"auto", background:"transparent", border:"none",
+                        color:"var(--tx3)", padding:3, borderRadius:5, display:"flex" }}>
+                      <Icons.Plus size={11}/>
+                    </button>
+                  </div>
+                  <div>
+                    {kanbanTasks(key).map(t => (
+                      <TaskCard key={t.id} task={t} onStatusChange={updateTaskStatus}
+                        onSetReminder={t => setGcalModal({ task: t })}/>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {gcalModal && (
+        <GCalModal
+          task={gcalModal.task}
+          bulkTasks={gcalModal.bulk ? tasks.filter(t => t.status !== "done") : undefined}
+          onClose={() => setGcalModal(null)}
+          onSave={handleSaveReminder}
+          gcalConnected={gcalConnected}
+          onConnect={() => setGcalConnected(true)}
+        />
+      )}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PAGE: AI CHAT
+═══════════════════════════════════════════════════════════════════════════ */
+function PageChat() {
+  const { tasks, setTasks, chatMessages, setChatMessages } = useApp();
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [showMiniBoard, setShowMiniBoard] = useState(true);
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const ts = () => new Date().toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" });
+
+  const quickPrompts = [
+    { text:"What should I work on first?",   icon:<Icons.Target size={14}/> },
+    { text:"Help me plan my day",            icon:<Icons.Calendar size={14}/> },
+    { text:"I'm feeling overwhelmed",        icon:<Icons.AlertTri size={14}/> },
+    { text:"Prioritize my tasks",            icon:<Icons.Autopilot size={14}/> },
+    { text:"Create task: Review proposal",   icon:<Icons.Plus size={14}/> },
+    { text:"Move login bug to In Progress",  icon:<Icons.Board size={14}/> },
+  ];
+
+  const send = useCallback(async (text: string) => {
+    if (!text.trim()) return;
+    const uid = Date.now().toString();
+    setChatMessages(prev => [...prev, { id:uid, role:"user", content:text, ts:ts() }]);
+    setInput(""); setLoading(true);
+
+    /* 🔌 BACKEND: Replace the setTimeout mock with your real AI route:
+       const res = await fetch('/api/chat', {
+         method: 'POST',
+         body: JSON.stringify({ message: text, tasks, history: chatMessages })
+       });
+       const { reply } = await res.json();
+       setChatMessages(prev => [...prev, { id: Date.now().toString(), role:'ai', content:reply, ts:ts() }]);
+       setLoading(false);
+    */
+
+    // 🚧 MOCK: local rule-based responder
+    const todoTasks = tasks.filter(t => t.status === "todo");
+    const wipTasks  = tasks.filter(t => t.status === "wip");
+    await new Promise(r => setTimeout(r, 1100));
+    const lower = text.toLowerCase();
+    let reply = "";
+    if (lower.includes("create task")) {
+      const title = text.replace(/create task[:\s]*/i, "").trim();
+      if (title) {
+        const nt: Task = { id:`KB-${Date.now()}`, title, priority:"medium", label:"General", status:"todo" };
+        setTasks(prev => [...prev, nt]);
+        reply = `✓ Created task: "${title}" on your board with medium priority.`;
+      } else reply = "Please specify a task title, e.g. 'Create task: Review proposal'";
+    } else if (lower.includes("move") && lower.includes("progress")) {
+      const match = tasks.find(t => lower.includes(t.title.toLowerCase().slice(0, 10)));
+      if (match) { setTasks(prev => prev.map(t => t.id === match.id ? { ...t, status:"wip" } : t)); reply = `✓ Moved "${match.title}" to In Progress.`; }
+      else reply = "I couldn't find that task. Try 'Move [task name] to In Progress'.";
+    } else if (lower.includes("first") || lower.includes("prioritize")) {
+      if (!tasks.some(t => t.status !== "done")) reply = "Your board is clear — no pending tasks! 🎉";
+      else {
+        const urgent = tasks.filter(t => t.status !== "done" && (t.priority === "urgent" || t.priority === "high"));
+        reply = urgent.length > 0
+          ? `Based on your board, focus on: **"${urgent[0].title}"** (${urgent[0].priority} priority). You have ${urgent.length} high-priority task(s) pending.`
+          : "All your tasks are medium or low priority. Pick whatever feels most impactful!";
+      }
+    } else if (lower.includes("overwhelmed")) {
+      reply = `You have ${tasks.filter(t=>t.status!=="done").length} pending tasks. Take a breath — let's break it down: start with 1 urgent task, then 2 high-priority ones. The rest can wait. You've got this. 💪`;
+    } else if (lower.includes("plan my day")) {
+      const active = tasks.filter(t => t.status !== "done").slice(0, 5);
+      reply = active.length > 0
+        ? `Here's a suggested plan:\n\n${active.map((t,i) => `${i+1}. ${t.title} (${t.estimate ?? "~1h"})`).join("\n")}\n\nTotal estimated: ~${active.reduce((a,t) => a + (parseInt(t.estimate ?? "") || 1), 0)}h`
+        : "No tasks on your board! Add some tasks first.";
+    } else {
+      reply = `I see you have ${todoTasks.length} to-do and ${wipTasks.length} in progress. ${
+        todoTasks.length === 0 ? "Great — board is clear! 🎉" :
+        "Your top priority: **" + todoTasks.sort((a,b) => ["urgent","high","medium","low"].indexOf(a.priority) - ["urgent","high","medium","low"].indexOf(b.priority))[0]?.title + "**."
+      }`;
     }
+    setChatMessages(prev => [...prev, { id:(Date.now()+1).toString(), role:"ai", content:reply, ts:ts() }]);
+    setLoading(false);
+  }, [tasks, setTasks, setChatMessages, chatMessages]);
+
+  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior:"smooth" }); }, [chatMessages]);
+
+  return (
+    <div style={{ height:"100%", display:"flex", overflow:"hidden" }}>
+      {/* Main chat */}
+      <div style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
+        {/* Chat header */}
+        <div style={{ padding:"14px 22px", borderBottom:"1px solid var(--br)",
+          display:"flex", alignItems:"center", gap:12, flexShrink:0 }}>
+          <div style={{ width:36, height:36, borderRadius:10,
+            background:"linear-gradient(135deg, var(--as), rgba(167,139,250,0.12))",
+            border:"1px solid var(--ag)", display:"flex", alignItems:"center",
+            justifyContent:"center", color:"var(--ac)" }}>
+            <Icons.Brain size={17}/>
+          </div>
+          <div style={{ flex:1 }}>
+            <p style={{ fontSize:13.5, fontWeight:700, color:"var(--tx)", fontFamily:"var(--font-display)" }}>AI Assistant</p>
+            <p style={{ fontSize:10.5, color:"var(--tx3)" }}>Has context from your board ({tasks.length} tasks)</p>
+          </div>
+          <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+            <div style={{ display:"flex", alignItems:"center", gap:5, padding:"3px 10px",
+              borderRadius:100, background:"rgba(16,185,129,0.08)", border:"1px solid rgba(16,185,129,0.2)" }}>
+              <div className="pulse" style={{ width:5, height:5, borderRadius:"50%", background:"var(--gr)" }}/>
+              <span style={{ fontSize:10, color:"var(--gr)", fontWeight:600 }}>Live</span>
+            </div>
+            <button onClick={() => setShowMiniBoard(v => !v)} className="ghost"
+              style={{ fontSize:11, padding:"5px 10px", borderRadius:7, border:"1px solid var(--br)",
+                background:"transparent", color:"var(--tx3)", cursor:"pointer" }}>
+              {showMiniBoard ? "Hide Board" : "Show Board"}
+            </button>
+          </div>
+        </div>
+
+        {/* Messages area */}
+        <div style={{ flex:1, overflowY:"auto", padding:"20px 22px" }}>
+          {chatMessages.length === 0 ? (
+            <div className="fade-in" style={{ display:"flex", flexDirection:"column", alignItems:"center",
+              justifyContent:"center", minHeight:"100%", padding:"24px" }}>
+              <div style={{ width:52, height:52, borderRadius:14,
+                background:"linear-gradient(135deg, var(--as), rgba(167,139,250,0.12))",
+                display:"flex", alignItems:"center", justifyContent:"center",
+                color:"var(--ac)", marginBottom:18 }}>
+                <Icons.Brain size={24}/>
+              </div>
+              <p style={{ fontSize:15, fontWeight:700, color:"var(--tx)", marginBottom:8,
+                fontFamily:"var(--font-display)", textAlign:"center" }}>What can I help you with?</p>
+              <p style={{ fontSize:12.5, color:"var(--tx3)", lineHeight:1.65, textAlign:"center", marginBottom:22 }}>
+                I can prioritize tasks, create new items, plan your day, and more.
+              </p>
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, width:"100%", maxWidth:520 }}>
+                {quickPrompts.map(q => (
+                  <button key={q.text} onClick={() => send(q.text)}
+                    className="ghost"
+                    style={{ padding:"11px 14px", borderRadius:9, border:"1px solid var(--br)",
+                      background:"var(--bg1)", color:"var(--tx2)", fontSize:12,
+                      textAlign:"left", cursor:"pointer", display:"flex", alignItems:"center", gap:9, transition:"all .15s" }}
+                    onMouseOver={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--brh)"; (e.currentTarget as HTMLButtonElement).style.background = "var(--bg2)"; (e.currentTarget as HTMLButtonElement).style.color = "var(--tx)"; }}
+                    onMouseOut={e  => { (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--br)";  (e.currentTarget as HTMLButtonElement).style.background = "var(--bg1)"; (e.currentTarget as HTMLButtonElement).style.color = "var(--tx2)"; }}>
+                    <span style={{ color:"var(--ac)", flexShrink:0 }}>{q.icon}</span>{q.text}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div style={{ display:"flex", flexDirection:"column", gap:14, maxWidth:660, margin:"0 auto" }}>
+              {chatMessages.map((m) => (
+                <div key={m.id} className="fade-up"
+                  style={{ display:"flex", gap:10, alignItems:"flex-start",
+                    flexDirection: m.role === "user" ? "row-reverse" : "row" }}>
+                  {m.role === "ai" && (
+                    <div style={{ width:30, height:30, borderRadius:8, flexShrink:0,
+                      background:"var(--as)", border:"1px solid var(--ag)", display:"flex",
+                      alignItems:"center", justifyContent:"center", color:"var(--ac)" }}>
+                      <Icons.Brain size={13}/>
+                    </div>
+                  )}
+                  <div style={{
+                    maxWidth:"78%", padding:"11px 15px",
+                    borderRadius: m.role === "user" ? "14px 4px 14px 14px" : "4px 14px 14px 14px",
+                    background: m.role === "user" ? "var(--ac)" : "var(--bg1)",
+                    border: m.role === "user" ? "none" : "1px solid var(--br)",
+                    color: m.role === "user" ? "#fff" : "var(--tx)",
+                  }}>
+                    <p style={{ fontSize:13, lineHeight:1.6, whiteSpace:"pre-wrap" }}>{m.content}</p>
+                    <p style={{ fontSize:9.5, opacity:.55, marginTop:5,
+                      textAlign: m.role === "user" ? "right" : "left",
+                      fontFamily:"var(--font-mono)" }}>{m.ts}</p>
+                  </div>
+                </div>
+              ))}
+
+              {loading && (
+                <div className="fade-in" style={{ display:"flex", gap:10, alignItems:"center" }}>
+                  <div style={{ width:30, height:30, borderRadius:8, flexShrink:0,
+                    background:"var(--as)", border:"1px solid var(--ag)",
+                    display:"flex", alignItems:"center", justifyContent:"center", color:"var(--ac)" }}>
+                    <Icons.Brain size={13}/>
+                  </div>
+                  <div style={{ padding:"11px 15px", borderRadius:"4px 14px 14px 14px",
+                    background:"var(--bg1)", border:"1px solid var(--br)", display:"flex", gap:5, alignItems:"center" }}>
+                    {[0,1,2].map(i => (
+                      <div key={i} className="pulse" style={{ width:6, height:6, borderRadius:"50%",
+                        background:"var(--ac)", animationDelay:`${i*.15}s` }}/>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div ref={bottomRef}/>
+            </div>
+          )}
+        </div>
+
+        {/* Input bar */}
+        <div style={{ padding:"14px 22px", borderTop:"1px solid var(--br)", flexShrink:0 }}>
+          <div style={{ display:"flex", gap:9, alignItems:"flex-end" }}>
+            <textarea
+              value={input} onChange={e => setInput(e.target.value)} rows={1}
+              onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(input); } }}
+              placeholder="Ask me anything about your tasks..."
+              className="input-focus"
+              style={{ flex:1, background:"var(--inp)", border:"1px solid var(--br)",
+                borderRadius:12, padding:"11px 14px", fontSize:13, color:"var(--tx)",
+                resize:"none", lineHeight:1.5, maxHeight:120 }}/>
+            <button onClick={() => send(input)} disabled={!input.trim() || loading} className="btn-primary"
+              style={{ width:42, height:42, borderRadius:12, background:"var(--ac)", border:"none",
+                color:"#fff", display:"flex", alignItems:"center", justifyContent:"center",
+                opacity: !input.trim() ? .5 : 1, flexShrink:0 }}>
+              {loading ? <div className="spin" style={{ width:14, height:14, borderRadius:"50%",
+                border:"2px solid rgba(255,255,255,.3)", borderTopColor:"#fff" }}/> : <Icons.Send size={14}/>}
+            </button>
+          </div>
+          <p style={{ fontSize:10, color:"var(--tx3)", marginTop:6, textAlign:"center" }}>
+            Shift+Enter for new line · Enter to send
+          </p>
+        </div>
+      </div>
+
+      {/* Mini task board sidebar */}
+      {showMiniBoard && (
+        <div className="chat-sidebar xl-hide" style={{ width:260, borderLeft:"1px solid var(--br)",
+          display:"flex", flexDirection:"column", overflow:"hidden" }}>
+          <div style={{ padding:"13px 16px", borderBottom:"1px solid var(--br)",
+            display:"flex", alignItems:"center", gap:10 }}>
+            <span style={{ fontSize:12, fontWeight:700, color:"var(--tx)", fontFamily:"var(--font-display)" }}>Task Board</span>
+            <span style={{ fontSize:10, padding:"1px 6px", borderRadius:4, background:"var(--br)",
+              color:"var(--tx3)", fontFamily:"var(--font-mono)" }}>{tasks.length}</span>
+            <button onClick={() => setShowMiniBoard(false)} className="ghost"
+              style={{ marginLeft:"auto", background:"transparent", border:"none", color:"var(--tx3)",
+                padding:3, borderRadius:4, display:"flex" }}>
+              <Icons.X size={11}/>
+            </button>
+          </div>
+          <div style={{ flex:1, overflowY:"auto", padding:10 }}>
+            {tasks.length === 0 ? (
+              <p style={{ fontSize:12, color:"var(--tx3)", textAlign:"center", paddingTop:20 }}>
+                No tasks yet. Add tasks on the Board page.
+              </p>
+            ) : (
+              (["todo","wip","done"] as TaskStatus[]).map(s => {
+                const colTasks = tasks.filter(t => t.status === s);
+                if (colTasks.length === 0) return null;
+                const colors: Record<string,string> = { todo:"var(--ac)", wip:"var(--am)", done:"var(--gr)" };
+                const labels: Record<string,string> = { todo:"To Do", wip:"In Progress", done:"Done" };
+                return (
+                  <div key={s} style={{ marginBottom:13 }}>
+                    <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:7 }}>
+                      <div style={{ width:6, height:6, borderRadius:"50%", background:colors[s],
+                        boxShadow:`0 0 6px ${colors[s]}` }}/>
+                      <span style={{ fontSize:9.5, fontWeight:700, letterSpacing:"0.07em",
+                        textTransform:"uppercase", color:"var(--tx3)", fontFamily:"var(--font-display)" }}>
+                        {labels[s]}
+                      </span>
+                      <span style={{ fontSize:9, padding:"0 5px", borderRadius:3, background:"var(--br)",
+                        color:"var(--tx3)", fontFamily:"var(--font-mono)" }}>{colTasks.length}</span>
+                    </div>
+                    {colTasks.map(t => <TaskCard key={t.id} task={t} compact/>)}
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PAGE: AUTOPILOT
+═══════════════════════════════════════════════════════════════════════════ */
+function PageAutopilot() {
+  const { tasks, setTasks, briefings, setBriefings, burnoutAlerts } = useApp();
+  const [genLoading, setGenLoading] = useState(false);
+  const [settings, setSettings] = useState({
+    scheduling:true, burnout:true, learning:false, autoPrioritize:false,
+  });
+
+  const pendingTasks = tasks.filter(t => t.status !== "done");
+  const healthScore  = tasks.length === 0 ? 100 :
+    Math.round(Math.max(0, 100 - (tasks.filter(t=>t.priority==="urgent"||t.priority==="high").length / Math.max(tasks.length,1)) * 42));
+
+  // 🔌 BACKEND: Replace with real AI briefing via your API route
+  // POST /api/autopilot/briefing → { summary, schedule, healthNote }
+  const handleGenerate = async () => {
+    setGenLoading(true);
+    await new Promise(r => setTimeout(r, 2200)); // 🚧 MOCK
+    const schedule = pendingTasks.slice(0, 5).map((t, i) => ({
+      time: `${9 + i}:00 AM`, task: t.title, duration: t.estimate ?? "1h",
+    }));
+    const nb: Briefing = {
+      id: Date.now().toString(),
+      date: new Date().toLocaleDateString("en-US", { weekday:"long", month:"short", day:"numeric" }),
+      summary: `You have ${pendingTasks.length} pending tasks today. ${
+        pendingTasks.filter(t=>t.priority==="urgent").length > 0
+          ? `⚠ ${pendingTasks.filter(t=>t.priority==="urgent").length} urgent item(s) need immediate attention.`
+          : "No urgent items — great position to be in!"} Focus on high-impact work in the morning.`,
+      schedule,
+      healthNote: healthScore >= 75
+        ? "✓ Workload looks healthy. Aim to complete 2-3 tasks before noon."
+        : "⚠ High load detected. Consider deferring lower-priority tasks.",
+    };
+    setBriefings(prev => [nb, ...prev]);
+    setGenLoading(false);
+  };
+
+  const createScheduleOnBoard = () => {
+    if (!briefings[0]) return;
+    const scheduleTasks: Task[] = briefings[0].schedule.map((s, i) => ({
+      id: `SCH-${Date.now()}-${i}`, title: s.task, priority:"medium",
+      label:"Schedule", estimate:s.duration, status:"todo" as TaskStatus,
+    }));
+    setTasks(prev => [...prev, ...scheduleTasks]);
   };
 
   return (
-    <Card className={`border-[#262626] bg-[#141414] ${getBorderColor()}`}>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium text-gray-400">{title}</CardTitle>
-        <Icon className="h-4 w-4 text-gray-400" />
-      </CardHeader>
-      <CardContent>
-        <div className="flex items-center gap-2">
-          <div className="text-2xl font-bold">{value}</div>
-          {badge && (
-            <Badge
-              variant={badge === 'premium' ? 'default' : 'outline'}
-              className={`text-xs ${badge === 'premium' ? 'bg-gradient-to-r from-gray-700 to-gray-800 border-0' : ''}`}
-            >
-              {badge}
-            </Badge>
-          )}
+    <div className="fade-up page-pad" style={{ padding:"28px 30px", height:"100%", overflowY:"auto",
+      display:"flex", flexDirection:"column", gap:18 }}>
+
+      {/* Header */}
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", flexWrap:"wrap", gap:12 }}>
+        <div>
+          <h1 style={{ fontSize:22, fontWeight:800, letterSpacing:"-0.035em", color:"var(--tx)",
+            marginBottom:4, fontFamily:"var(--font-display)" }}>AI Autopilot</h1>
+          <p style={{ fontSize:13, color:"var(--tx2)" }}>Autonomous workload management & morning briefings</p>
         </div>
-        {description && (
-          <p className={`text-xs mt-1 ${
-            status === 'error' ? 'text-red-400' :
-            status === 'warning' ? 'text-yellow-400' :
-            'text-gray-500'
-          }`}>
-            {description}
-            {status === 'error' && ' - Limit reached!'}
-            {status === 'warning' && ' - Approaching limit'}
-          </p>
-        )}
-        {progress !== undefined && (
-          <div className="mt-3">
-            <div className="h-1.5 bg-[#1a1a1a] rounded-full overflow-hidden">
-              <div
-                className={`h-full ${getProgressColor()} transition-all duration-300`}
-                style={{ width: `${Math.min(progress, 100)}%` }}
-              />
-            </div>
-            {progress > 0 && (
-              <p className="text-xs text-gray-500 mt-1">{Math.round(progress)}% used</p>
+        <button onClick={handleGenerate} disabled={genLoading} className="btn-primary"
+          style={{ height:40, padding:"0 18px", borderRadius:10, background:"var(--ac)",
+            border:"none", color:"#fff", fontSize:13, fontWeight:700,
+            display:"flex", alignItems:"center", gap:8 }}>
+          {genLoading
+            ? <><div className="spin" style={{ width:14, height:14, borderRadius:"50%",
+                border:"2px solid rgba(255,255,255,.3)", borderTopColor:"#fff" }}/> Generating...</>
+            : <><Icons.Autopilot size={14}/> Generate Briefing</>
+          }
+        </button>
+      </div>
+
+      {/* Live sync status */}
+      <div style={{ display:"flex", alignItems:"center", gap:11, padding:"12px 16px",
+        borderRadius:11, background:"var(--as)", border:"1px solid var(--ag)" }}>
+        <div className="pulse" style={{ width:7, height:7, borderRadius:"50%", background:"var(--ac)", flexShrink:0 }}/>
+        <span style={{ fontSize:12, color:"var(--ac)", fontWeight:600 }}>
+          Live sync with board: {pendingTasks.length} pending tasks · Health {healthScore}/100 · {pendingTasks.filter(t=>t.priority==="urgent").length} urgent
+        </span>
+      </div>
+
+      <div className="autopilot-grid" style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16 }}>
+        {/* Morning Briefing */}
+        <div style={{ borderRadius:13, border:"1px solid var(--br)", background:"var(--bg1)", padding:22 }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:17 }}>
+            <h3 style={{ fontSize:13, fontWeight:700, color:"var(--tx)", fontFamily:"var(--font-display)" }}>Morning Briefing</h3>
+            {briefings.length > 0 && (
+              <span style={{ fontSize:10, padding:"2px 9px", borderRadius:100,
+                background:"rgba(16,185,129,0.1)", color:"var(--gr)", border:"1px solid rgba(16,185,129,0.2)", fontWeight:700 }}>
+                Latest
+              </span>
             )}
           </div>
+          {briefings.length === 0 ? (
+            <div style={{ textAlign:"center", padding:"32px 18px" }}>
+              <div style={{ width:48, height:48, borderRadius:13, background:"var(--as)",
+                display:"flex", alignItems:"center", justifyContent:"center",
+                color:"var(--ac)", margin:"0 auto 14px" }}>
+                <Icons.Autopilot size={22}/>
+              </div>
+              <p style={{ fontSize:13.5, color:"var(--tx2)", marginBottom:8, fontWeight:500 }}>No briefing yet</p>
+              <p style={{ fontSize:11.5, color:"var(--tx3)", lineHeight:1.65 }}>
+                Generate your first AI briefing to see a smart summary of today's tasks.
+              </p>
+            </div>
+          ) : (
+            <div style={{ display:"flex", flexDirection:"column", gap:13 }}>
+              <p style={{ fontSize:11, color:"var(--tx3)", fontWeight:700, fontFamily:"var(--font-mono)" }}>{briefings[0].date}</p>
+              <p style={{ fontSize:12.5, color:"var(--tx2)", lineHeight:1.7 }}>{briefings[0].summary}</p>
+              <div style={{ padding:"10px 13px", borderRadius:9, background:"var(--as)", border:"1px solid var(--ag)" }}>
+                <p style={{ fontSize:11.5, color:"var(--ac)" }}>{briefings[0].healthNote}</p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* AI Schedule */}
+        <div style={{ borderRadius:13, border:"1px solid var(--br)", background:"var(--bg1)", padding:22 }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:17 }}>
+            <h3 style={{ fontSize:13, fontWeight:700, color:"var(--tx)", fontFamily:"var(--font-display)" }}>AI Daily Schedule</h3>
+            {briefings.length > 0 && (
+              <button onClick={createScheduleOnBoard} className="btn-primary"
+                style={{ fontSize:10.5, padding:"4px 10px", borderRadius:7, border:"1px solid var(--ac)",
+                  background:"var(--as)", color:"var(--ac)", cursor:"pointer", fontWeight:700 }}>
+                → Add to Board
+              </button>
+            )}
+          </div>
+          {briefings.length === 0 ? (
+            <div style={{ textAlign:"center", padding:"32px 18px" }}>
+              <Icons.Clock size={30} style={{ color:"var(--tx3)", display:"block", margin:"0 auto 13px" }}/>
+              <p style={{ fontSize:12, color:"var(--tx3)" }}>Generate a briefing first to see your AI schedule</p>
+            </div>
+          ) : (
+            <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+              {briefings[0].schedule.map((s, i) => (
+                <div key={i} style={{ display:"flex", alignItems:"center", gap:11, padding:"9px 12px",
+                  borderRadius:9, background:"var(--bg2)", border:"1px solid var(--br)" }}>
+                  <span style={{ fontSize:10, fontWeight:700, color:"var(--ac)", fontFamily:"var(--font-mono)",
+                    flexShrink:0, minWidth:56 }}>{s.time}</span>
+                  <span style={{ fontSize:12, color:"var(--tx)", flex:1, overflow:"hidden",
+                    textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{s.task}</span>
+                  <span style={{ fontSize:10, color:"var(--tx3)", flexShrink:0,
+                    fontFamily:"var(--font-mono)" }}>{s.duration}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Burnout Panel */}
+        <div style={{ borderRadius:13, border:"1px solid var(--br)", background:"var(--bg1)", padding:22 }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:17 }}>
+            <h3 style={{ fontSize:13, fontWeight:700, color:"var(--tx)", fontFamily:"var(--font-display)" }}>Burnout Alert Panel</h3>
+            <HealthRing score={healthScore}/>
+          </div>
+          <div style={{ display:"flex", flexDirection:"column", gap:11 }}>
+            <div style={{ padding:"11px 13px", borderRadius:9,
+              background: healthScore >= 75 ? "rgba(16,185,129,0.06)" : "rgba(239,68,68,0.06)",
+              border:`1px solid ${healthScore >= 75 ? "rgba(16,185,129,0.2)" : "rgba(239,68,68,0.2)"}` }}>
+              <p style={{ fontSize:12, fontWeight:700, color: healthScore >= 75 ? "var(--gr)" : "var(--rd)", marginBottom:3 }}>
+                {healthScore >= 75 ? "✓ No burnout risk detected" : "⚠ Elevated burnout risk"}
+              </p>
+              <p style={{ fontSize:11.5, color:"var(--tx2)" }}>
+                {pendingTasks.length} pending · {pendingTasks.filter(t=>t.priority==="urgent"||t.priority==="high").length} high priority
+              </p>
+            </div>
+            {burnoutAlerts.length === 0 ? (
+              <p style={{ fontSize:11.5, color:"var(--tx3)", textAlign:"center", padding:"12px 0" }}>
+                No burnout alerts in history. Great work! 🎉
+              </p>
+            ) : (
+              burnoutAlerts.map(a => (
+                <div key={a.id} style={{ padding:"9px 11px", borderRadius:9,
+                  background:"var(--bg2)", border:"1px solid var(--br)" }}>
+                  <div style={{ display:"flex", justifyContent:"space-between", marginBottom:3 }}>
+                    <span style={{ fontSize:11, color:"var(--rd)", fontWeight:700 }}>Score: {a.score}/100</span>
+                    <span style={{ fontSize:10, color:"var(--tx3)", fontFamily:"var(--font-mono)" }}>{a.date}</span>
+                  </div>
+                  <p style={{ fontSize:11.5, color:"var(--tx2)" }}>{a.message}</p>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Settings */}
+        <div style={{ borderRadius:13, border:"1px solid var(--br)", background:"var(--bg1)", padding:22 }}>
+          <h3 style={{ fontSize:13, fontWeight:700, color:"var(--tx)", marginBottom:18, fontFamily:"var(--font-display)" }}>
+            Autopilot Settings
+          </h3>
+          <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+            {[
+              { key:"scheduling"     as const, label:"Smart Scheduling",    desc:"AI plans your day based on priorities" },
+              { key:"burnout"        as const, label:"Burnout Detection",   desc:"Monitor workload & alert on overload" },
+              { key:"learning"       as const, label:"Pattern Learning",    desc:"Learn your productivity habits (Pro)" },
+              { key:"autoPrioritize" as const, label:"Auto-Prioritization", desc:"Re-rank tasks when new ones arrive (Pro)" },
+            ].map(s => (
+              <div key={s.key} style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:14 }}>
+                <div style={{ flex:1 }}>
+                  <p style={{ fontSize:13, fontWeight:500, color:"var(--tx)", marginBottom:2 }}>{s.label}</p>
+                  <p style={{ fontSize:11.5, color:"var(--tx3)" }}>{s.desc}</p>
+                </div>
+                <Toggle on={settings[s.key]} onToggle={() => setSettings(prev => ({ ...prev, [s.key]:!prev[s.key] }))}/>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Briefing history */}
+      {briefings.length > 1 && (
+        <div style={{ borderRadius:13, border:"1px solid var(--br)", background:"var(--bg1)", padding:22 }}>
+          <h3 style={{ fontSize:13, fontWeight:700, color:"var(--tx)", marginBottom:15, fontFamily:"var(--font-display)" }}>
+            Briefing History
+          </h3>
+          <div style={{ display:"flex", flexDirection:"column", gap:9 }}>
+            {briefings.slice(1).map(b => (
+              <div key={b.id} style={{ display:"flex", alignItems:"center", gap:13, padding:"10px 13px",
+                borderRadius:9, background:"var(--bg2)", border:"1px solid var(--br)" }}>
+                <Icons.Calendar size={13} style={{ color:"var(--tx3)", flexShrink:0 }}/>
+                <div style={{ flex:1 }}>
+                  <p style={{ fontSize:12, fontWeight:600, color:"var(--tx)" }}>{b.date}</p>
+                  <p style={{ fontSize:11, color:"var(--tx3)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{b.summary}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PAGE: SAVED BOARDS
+═══════════════════════════════════════════════════════════════════════════ */
+function PageSaved() {
+  const { savedBoards, setSavedBoards, setTasks, setBoardView, navigate } = useApp();
+  const [view, setView] = useState<"grid"|"list">("grid");
+  const [search, setSearch] = useState("");
+  const [activeFolder, setActiveFolder] = useState("All");
+  const [renamingId, setRenamingId] = useState<string|null>(null);
+  const [renameVal, setRenameVal] = useState("");
+  const [movingId, setMovingId] = useState<string|null>(null);
+
+  const folders = ["All","Clients","Personal","Dev","Content"];
+  const filtered = savedBoards.filter(b =>
+    (activeFolder === "All" || b.folder === activeFolder) &&
+    b.name.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const openBoard   = (b: SavedBoard) => { setTasks(b.tasks); setBoardView("kanban"); navigate("board"); };
+  // 🔌 BACKEND: supabase.from('saved_boards').delete().eq('id', id)
+  const deleteBoard = (id: string) => setSavedBoards(prev => prev.filter(b => b.id !== id));
+  const renameBoard = (id: string) => {
+    if (renameVal.trim())
+      /* 🔌 BACKEND: supabase.from('saved_boards').update({ name: renameVal }).eq('id', id) */
+      setSavedBoards(prev => prev.map(b => b.id === id ? { ...b, name: renameVal.trim() } : b));
+    setRenamingId(null); setRenameVal("");
+  };
+  const moveBoard = (id: string, folder: string) => {
+    /* 🔌 BACKEND: supabase.from('saved_boards').update({ folder }).eq('id', id) */
+    setSavedBoards(prev => prev.map(b => b.id === id ? { ...b, folder } : b));
+    setMovingId(null);
+  };
+
+  return (
+    <div className="fade-up page-pad" style={{ padding:"28px 30px", height:"100%", overflowY:"auto" }}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:24, flexWrap:"wrap", gap:12 }}>
+        <div>
+          <h1 style={{ fontSize:22, fontWeight:800, letterSpacing:"-0.035em", color:"var(--tx)",
+            marginBottom:4, fontFamily:"var(--font-display)" }}>Saved Boards</h1>
+          <p style={{ fontSize:13, color:"var(--tx2)" }}>{savedBoards.length} boards · {folders.length-1} folders</p>
+        </div>
+        <button onClick={() => navigate("board")} className="btn-primary"
+          style={{ height:38, padding:"0 16px", borderRadius:10, background:"var(--ac)",
+            border:"none", color:"#fff", fontSize:13, fontWeight:700, display:"flex", alignItems:"center", gap:7 }}>
+          <Icons.Plus size={13}/> New Board
+        </button>
+      </div>
+
+      {/* Toolbar */}
+      <div style={{ display:"flex", gap:10, marginBottom:18, flexWrap:"wrap" }}>
+        <div style={{ flex:1, minWidth:200, position:"relative" }}>
+          <Icons.Search size={13} style={{ position:"absolute", left:12, top:"50%",
+            transform:"translateY(-50%)", color:"var(--tx3)" }}/>
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search boards..."
+            className="input-focus"
+            style={{ width:"100%", background:"var(--bg1)", border:"1px solid var(--br)", borderRadius:9,
+              padding:"8px 12px 8px 34px", fontSize:13, color:"var(--tx)" }}/>
+        </div>
+        <div style={{ display:"flex", gap:3, background:"var(--bg1)", border:"1px solid var(--br)",
+          borderRadius:9, padding:4 }}>
+          {(["grid","list"] as const).map(v => (
+            <button key={v} onClick={() => setView(v)}
+              style={{ width:32, height:32, borderRadius:7, border:"none",
+                background: view === v ? "var(--bg2)" : "transparent",
+                color: view === v ? "var(--tx)" : "var(--tx3)",
+                cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center",
+                transition:"all .15s" }}>
+              {v === "grid" ? <Icons.Overview size={13}/> : <Icons.Board size={13}/>}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Folder tabs */}
+      <div style={{ display:"flex", gap:6, marginBottom:22, flexWrap:"wrap" }}>
+        {folders.map(f => (
+          <button key={f} onClick={() => setActiveFolder(f)}
+            style={{ padding:"5px 14px", borderRadius:8,
+              border:`1px solid ${activeFolder === f ? "var(--ac)" : "var(--br)"}`,
+              background: activeFolder === f ? "var(--as)" : "transparent",
+              color: activeFolder === f ? "var(--ac)" : "var(--tx2)",
+              fontSize:12, fontWeight: activeFolder === f ? 700 : 400,
+              cursor:"pointer", display:"flex", alignItems:"center", gap:6, transition:"all .15s" }}>
+            {f !== "All" && <Icons.Folder size={11}/>}{f}
+            <span style={{ fontSize:10, color: activeFolder === f ? "var(--ac)" : "var(--tx3)",
+              fontFamily:"var(--font-mono)" }}>
+              {f === "All" ? savedBoards.length : savedBoards.filter(b => b.folder === f).length}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      {filtered.length === 0 && (
+        <div style={{ textAlign:"center", padding:"60px 24px" }}>
+          <Icons.Saved size={30} style={{ color:"var(--tx3)", display:"block", margin:"0 auto 14px" }}/>
+          <p style={{ fontSize:14, color:"var(--tx2)", marginBottom:6, fontWeight:600 }}>No boards found</p>
+          <p style={{ fontSize:12, color:"var(--tx3)" }}>Save a board from the Board page, or create a new one.</p>
+        </div>
+      )}
+
+      {view === "grid" ? (
+        <div className="saved-grid" style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(235px,1fr))", gap:13 }}>
+          {filtered.map(b => (
+            <div key={b.id} className="card"
+              style={{ borderRadius:14, border:"1px solid var(--br)", background:"var(--bg1)", padding:20 }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:13 }}>
+                <div style={{ width:36, height:36, borderRadius:9, background:"var(--as)",
+                  display:"flex", alignItems:"center", justifyContent:"center", color:"var(--ac)" }}>
+                  <Icons.Layers size={15}/>
+                </div>
+                <span style={{ fontSize:10, padding:"2px 9px", borderRadius:100,
+                  background:"var(--bg2)", border:"1px solid var(--br)", color:"var(--tx3)" }}>{b.folder}</span>
+              </div>
+              {renamingId === b.id ? (
+                <input value={renameVal} onChange={e => setRenameVal(e.target.value)} autoFocus
+                  onKeyDown={e => { if(e.key==="Enter") renameBoard(b.id); if(e.key==="Escape"){setRenamingId(null);setRenameVal("");} }}
+                  onBlur={() => renameBoard(b.id)}
+                  className="input-focus"
+                  style={{ width:"100%", background:"var(--inp)", border:"1px solid var(--ac)",
+                    borderRadius:7, padding:"6px 9px", fontSize:13, color:"var(--tx)", marginBottom:4 }}/>
+              ) : (
+                <p style={{ fontSize:13.5, fontWeight:700, color:"var(--tx)", marginBottom:4,
+                  lineHeight:1.35, fontFamily:"var(--font-display)" }}>{b.name}</p>
+              )}
+              <p style={{ fontSize:11, color:"var(--tx3)", marginBottom:16, fontFamily:"var(--font-mono)" }}>
+                {b.taskCount} tasks · {b.lastEdited}
+              </p>
+              {movingId === b.id && (
+                <div style={{ marginBottom:11, padding:"9px", borderRadius:9,
+                  background:"var(--bg2)", border:"1px solid var(--br)" }}>
+                  <p style={{ fontSize:10.5, color:"var(--tx3)", marginBottom:7, fontWeight:600 }}>Move to folder:</p>
+                  {folders.filter(f => f !== "All" && f !== b.folder).map(f => (
+                    <button key={f} onClick={() => moveBoard(b.id, f)}
+                      style={{ display:"block", width:"100%", padding:"5px 9px", borderRadius:6,
+                        border:"none", background:"transparent", color:"var(--tx2)", fontSize:12,
+                        textAlign:"left", cursor:"pointer", marginBottom:2, transition:"all .12s" }}
+                      onMouseOver={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--bg3)"; }}
+                      onMouseOut={e =>  { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}>
+                      {f}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <div style={{ display:"flex", gap:7 }}>
+                <button onClick={() => openBoard(b)}
+                  style={{ flex:1, padding:"8px", borderRadius:8, border:"1px solid var(--br)",
+                    background:"transparent", color:"var(--tx2)", fontSize:11.5, cursor:"pointer",
+                    fontWeight:500, transition:"all .15s" }}
+                  onMouseOver={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--ac)"; (e.currentTarget as HTMLButtonElement).style.color = "var(--ac)"; }}
+                  onMouseOut={e  => { (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--br)"; (e.currentTarget as HTMLButtonElement).style.color = "var(--tx2)"; }}>
+                  Open
+                </button>
+                {[
+                  { icon:<Icons.Edit size={12}/>, onClick:()=>{setRenamingId(b.id);setRenameVal(b.name);} },
+                  { icon:<Icons.MoveFolder size={12}/>, onClick:()=>setMovingId(movingId===b.id?null:b.id) },
+                  { icon:<Icons.Trash size={12}/>, onClick:()=>deleteBoard(b.id), danger:true },
+                ].map((btn, i) => (
+                  <button key={i} onClick={btn.onClick}
+                    style={{ width:32, borderRadius:8,
+                      border:`1px solid ${btn.danger ? "rgba(239,68,68,0.2)" : "var(--br)"}`,
+                      background:"transparent", color: btn.danger ? "var(--rd)" : "var(--tx3)",
+                      cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center",
+                      transition:"all .15s" }}>
+                    {btn.icon}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div style={{ display:"flex", flexDirection:"column", gap:3 }}>
+          {filtered.map(b => (
+            <div key={b.id} style={{ display:"flex", alignItems:"center", gap:13, padding:"12px 14px",
+              borderRadius:10, border:"1px solid transparent", cursor:"pointer", transition:"all .15s" }}
+              onMouseOver={e => { (e.currentTarget as HTMLDivElement).style.background = "var(--bg1)"; (e.currentTarget as HTMLDivElement).style.borderColor = "var(--br)"; }}
+              onMouseOut={e =>  { (e.currentTarget as HTMLDivElement).style.background = "transparent"; (e.currentTarget as HTMLDivElement).style.borderColor = "transparent"; }}>
+              <div style={{ width:32, height:32, borderRadius:8, background:"var(--as)",
+                display:"flex", alignItems:"center", justifyContent:"center", color:"var(--ac)", flexShrink:0 }}>
+                <Icons.Layers size={13}/>
+              </div>
+              {renamingId === b.id ? (
+                <input value={renameVal} onChange={e => setRenameVal(e.target.value)} autoFocus
+                  onKeyDown={e => { if(e.key==="Enter") renameBoard(b.id); if(e.key==="Escape"){setRenamingId(null);setRenameVal("");} }}
+                  onBlur={() => renameBoard(b.id)} className="input-focus"
+                  style={{ flex:1, background:"var(--inp)", border:"1px solid var(--ac)",
+                    borderRadius:6, padding:"5px 9px", fontSize:13, color:"var(--tx)" }}/>
+              ) : (
+                <div style={{ flex:1, minWidth:0 }}>
+                  <p style={{ fontSize:13, fontWeight:600, color:"var(--tx)", overflow:"hidden",
+                    textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{b.name}</p>
+                  <p style={{ fontSize:10.5, color:"var(--tx3)", fontFamily:"var(--font-mono)" }}>
+                    {b.taskCount} tasks · {b.folder} · {b.lastEdited}
+                  </p>
+                </div>
+              )}
+              <div style={{ display:"flex", gap:6, flexShrink:0 }}>
+                <button onClick={() => openBoard(b)}
+                  style={{ fontSize:11.5, padding:"4px 10px", borderRadius:7, border:"1px solid var(--br)",
+                    background:"transparent", color:"var(--tx2)", cursor:"pointer", transition:"all .15s" }}
+                  onMouseOver={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--ac)"; (e.currentTarget as HTMLButtonElement).style.color = "var(--ac)"; }}
+                  onMouseOut={e  => { (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--br)"; (e.currentTarget as HTMLButtonElement).style.color = "var(--tx2)"; }}>
+                  Open
+                </button>
+                <button onClick={() => { setRenamingId(b.id); setRenameVal(b.name); }}
+                  style={{ width:30, height:30, borderRadius:7, border:"1px solid var(--br)",
+                    background:"transparent", color:"var(--tx3)", cursor:"pointer",
+                    display:"flex", alignItems:"center", justifyContent:"center" }}>
+                  <Icons.Edit size={12}/>
+                </button>
+                <button onClick={() => deleteBoard(b.id)}
+                  style={{ width:30, height:30, borderRadius:7, border:"1px solid rgba(239,68,68,0.2)",
+                    background:"transparent", color:"var(--rd)", cursor:"pointer",
+                    display:"flex", alignItems:"center", justifyContent:"center" }}>
+                  <Icons.Trash size={12}/>
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PAGE: SETTINGS
+═══════════════════════════════════════════════════════════════════════════ */
+function PageSettings({ theme, toggleTheme }: { theme: Theme; toggleTheme: () => void }) {
+  const { user } = useApp();
+  const [tab, setTab] = useState("profile");
+  const [profileName, setProfileName] = useState(user?.full_name ?? "");
+  const [saving, setSaving] = useState(false);
+
+  const tabs = [
+    { key:"profile",      label:"Profile",      icon:<Icons.Settings size={13}/>   },
+    { key:"security",     label:"Security",     icon:<Icons.Shield size={13}/>     },
+    { key:"billing",      label:"Billing",      icon:<Icons.Card size={13}/>       },
+    { key:"integrations", label:"Integrations", icon:<Icons.Notion size={13}/>     },
+    { key:"appearance",   label:"Appearance",   icon:<Icons.Sun size={13}/>        },
+    { key:"danger",       label:"Danger Zone",  icon:<Icons.Trash size={13}/>      },
+  ];
+
+  const handleSaveProfile = async () => {
+    setSaving(true);
+    /* 🔌 BACKEND:
+      await supabase.from('profiles').update({ full_name: profileName }).eq('id', user.id);
+    */
+    await new Promise(r => setTimeout(r, 600)); // 🚧 MOCK
+    setSaving(false);
+  };
+
+  const handleSignOut = async () => {
+    /* 🔌 BACKEND: await supabase.auth.signOut() */
+  };
+
+  return (
+    <div className="fade-up page-pad" style={{ padding:"28px 30px", height:"100%", overflowY:"auto" }}>
+      <div style={{ marginBottom:24 }}>
+        <h1 style={{ fontSize:22, fontWeight:800, letterSpacing:"-0.035em", color:"var(--tx)",
+          marginBottom:4, fontFamily:"var(--font-display)" }}>Settings</h1>
+        <p style={{ fontSize:13, color:"var(--tx2)" }}>Manage your account and preferences</p>
+      </div>
+
+      <div className="settings-grid" style={{ display:"grid", gridTemplateColumns:"210px 1fr", gap:24 }}>
+        {/* Tabs */}
+        <div style={{ display:"flex", flexDirection:"column", gap:3 }}>
+          {tabs.map(t => (
+            <button key={t.key} onClick={() => setTab(t.key)} className="nav-btn"
+              style={{ padding:"9px 12px", borderRadius:9, border:"none",
+                background: tab === t.key ? "var(--as)" : "transparent",
+                color: tab === t.key ? "var(--ac)" : "var(--tx2)",
+                fontSize:13, fontWeight: tab === t.key ? 700 : 400,
+                cursor:"pointer", display:"flex", alignItems:"center", gap:10,
+                textAlign:"left", borderLeft: tab === t.key ? "2px solid var(--ac)" : "2px solid transparent" }}>
+              <span style={{ color: tab === t.key ? "var(--ac)" : "var(--tx3)" }}>{t.icon}</span>
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Panel */}
+        <div style={{ borderRadius:14, border:"1px solid var(--br)", background:"var(--bg1)", padding:26 }}>
+          {tab === "profile" && (
+            <div>
+              <h3 style={{ fontSize:15, fontWeight:800, color:"var(--tx)", marginBottom:4, fontFamily:"var(--font-display)" }}>Profile</h3>
+              <p style={{ fontSize:12.5, color:"var(--tx2)", marginBottom:22 }}>Update your personal information</p>
+              <div style={{ display:"flex", alignItems:"center", gap:14, marginBottom:24,
+                padding:"16px", borderRadius:12, background:"var(--bg2)", border:"1px solid var(--br)" }}>
+                {/* 🔌 BACKEND: Replace "User" with user?.full_name and pass user?.avatar_url */}
+                <Avt name={user?.full_name ?? "User"} size={48}/>
+                <div style={{ flex:1 }}>
+                  <p style={{ fontSize:14, fontWeight:700, color:"var(--tx)", fontFamily:"var(--font-display)" }}>
+                    {user?.full_name ?? "User"}
+                  </p>
+                  <p style={{ fontSize:11.5, color:"var(--tx3)" }}>{user?.email}</p>
+                  <p style={{ fontSize:10.5, padding:"2px 8px", borderRadius:100, display:"inline-block",
+                    marginTop:4, background:"var(--as)", color:"var(--ac)", fontWeight:700 }}>
+                    {user?.plan === "pro" ? "Pro Plan" : "Free Plan"}
+                  </p>
+                </div>
+              </div>
+              <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+                <div>
+                  <label style={{ fontSize:12, fontWeight:600, color:"var(--tx2)", display:"block", marginBottom:7 }}>Full Name</label>
+                  <input value={profileName} onChange={e => setProfileName(e.target.value)}
+                    className="input-focus"
+                    style={{ width:"100%", background:"var(--inp)", border:"1px solid var(--br)",
+                      borderRadius:9, padding:"10px 13px", fontSize:13, color:"var(--tx)" }}/>
+                </div>
+                <div>
+                  <label style={{ fontSize:12, fontWeight:600, color:"var(--tx2)", display:"block", marginBottom:7 }}>Email</label>
+                  {/* 🔌 BACKEND: Email comes from user.email — read-only */}
+                  <input defaultValue={user?.email} type="email" readOnly
+                    style={{ width:"100%", background:"var(--inp)", border:"1px solid var(--br)",
+                      borderRadius:9, padding:"10px 13px", fontSize:13, color:"var(--tx2)", opacity:.7 }}/>
+                  <p style={{ fontSize:11, color:"var(--tx3)", marginTop:4 }}>Email cannot be changed</p>
+                </div>
+                <button onClick={handleSaveProfile} disabled={saving} className="btn-primary"
+                  style={{ alignSelf:"flex-start", height:38, padding:"0 18px", borderRadius:9,
+                    background:"var(--ac)", border:"none", color:"#fff", fontSize:13, fontWeight:700,
+                    display:"flex", alignItems:"center", gap:8 }}>
+                  {saving
+                    ? <><div className="spin" style={{ width:12, height:12, borderRadius:"50%",
+                        border:"2px solid rgba(255,255,255,.3)", borderTopColor:"#fff" }}/> Saving...</>
+                    : "Save Changes"
+                  }
+                </button>
+              </div>
+            </div>
+          )}
+
+          {tab === "security" && (
+            <div>
+              <h3 style={{ fontSize:15, fontWeight:800, color:"var(--tx)", marginBottom:4, fontFamily:"var(--font-display)" }}>Security</h3>
+              <p style={{ fontSize:12.5, color:"var(--tx2)", marginBottom:22 }}>Update your password</p>
+              <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+                {["New Password","Confirm Password"].map(f => (
+                  <div key={f}>
+                    <label style={{ fontSize:12, fontWeight:600, color:"var(--tx2)", display:"block", marginBottom:7 }}>{f}</label>
+                    {/* 🔌 BACKEND: supabase.auth.updateUser({ password: newPassword }) */}
+                    <input type="password" placeholder={`Enter ${f.toLowerCase()}`} className="input-focus"
+                      style={{ width:"100%", background:"var(--inp)", border:"1px solid var(--br)",
+                        borderRadius:9, padding:"10px 13px", fontSize:13, color:"var(--tx)" }}/>
+                  </div>
+                ))}
+                <button className="btn-primary"
+                  style={{ alignSelf:"flex-start", height:38, padding:"0 18px", borderRadius:9,
+                    background:"var(--ac)", border:"none", color:"#fff", fontSize:13, fontWeight:700 }}>
+                  Change Password
+                </button>
+              </div>
+            </div>
+          )}
+
+          {tab === "billing" && (
+            <div>
+              <h3 style={{ fontSize:15, fontWeight:800, color:"var(--tx)", marginBottom:4, fontFamily:"var(--font-display)" }}>Billing</h3>
+              <p style={{ fontSize:12.5, color:"var(--tx2)", marginBottom:22 }}>Manage your subscription</p>
+              <div style={{ borderRadius:12, border:"1px solid var(--br)", padding:"18px", marginBottom:16,
+                display:"flex", alignItems:"center", gap:16 }}>
+                <div style={{ flex:1 }}>
+                  <p style={{ fontSize:14, fontWeight:700, color:"var(--tx)", fontFamily:"var(--font-display)" }}>
+                    {user?.plan === "pro" ? "Pro Plan" : "Free Plan"}
+                  </p>
+                  <p style={{ fontSize:12, color:"var(--tx3)" }}>
+                    {user?.plan === "pro" ? "100 boards/day · 1000 AI uses/month" : "10 boards/day · 300 AI uses/month"}
+                  </p>
+                </div>
+                {user?.plan !== "pro" && (
+                  /* 🔌 BACKEND: Link to your Stripe checkout session */
+                  <button className="btn-primary"
+                    style={{ height:36, padding:"0 16px", borderRadius:9, background:"var(--ac)",
+                      border:"none", color:"#fff", fontSize:12, fontWeight:700 }}>
+                    Upgrade to Pro · $9/mo
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {tab === "integrations" && (
+            <div>
+              <h3 style={{ fontSize:15, fontWeight:800, color:"var(--tx)", marginBottom:4, fontFamily:"var(--font-display)" }}>Integrations</h3>
+              <p style={{ fontSize:12.5, color:"var(--tx2)", marginBottom:22 }}>Connect your tools</p>
+              <div style={{ display:"flex", flexDirection:"column", gap:11 }}>
+                {[
+                  { name:"Notion",          desc:"Two-way sync with Notion",            icon:<Icons.Notion size={16}/> },
+                  { name:"Gmail",           desc:"Import tasks from email",             icon:<Icons.Google size={16}/> },
+                  { name:"Google Calendar", desc:"Set task reminders automatically",    icon:<Icons.Calendar size={16}/> },
+                ].map(i => (
+                  <div key={i.name} style={{ display:"flex", alignItems:"center", gap:15, padding:"15px 18px",
+                    borderRadius:11, border:"1px solid var(--br)", background:"var(--bg2)" }}>
+                    <div style={{ width:36, height:36, borderRadius:9, background:"var(--bg3)",
+                      display:"flex", alignItems:"center", justifyContent:"center", color:"var(--ac)", flexShrink:0 }}>
+                      {i.icon}
+                    </div>
+                    <div style={{ flex:1 }}>
+                      <p style={{ fontSize:13.5, fontWeight:700, color:"var(--tx)" }}>{i.name}</p>
+                      <p style={{ fontSize:11.5, color:"var(--tx3)" }}>{i.desc}</p>
+                    </div>
+                    {/* 🔌 BACKEND: Wire each to its OAuth flow */}
+                    <button className="btn-primary"
+                      style={{ height:32, padding:"0 14px", borderRadius:8, border:"1px solid var(--ac)",
+                        background:"var(--as)", color:"var(--ac)", fontSize:12, fontWeight:700 }}>
+                      Connect
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {tab === "appearance" && (
+            <div>
+              <h3 style={{ fontSize:15, fontWeight:800, color:"var(--tx)", marginBottom:4, fontFamily:"var(--font-display)" }}>Appearance</h3>
+              <p style={{ fontSize:12.5, color:"var(--tx2)", marginBottom:22 }}>Customize how Kanbi looks</p>
+              <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"16px 18px",
+                borderRadius:11, border:"1px solid var(--br)", background:"var(--bg2)" }}>
+                <div>
+                  <p style={{ fontSize:13.5, fontWeight:500, color:"var(--tx)", marginBottom:3 }}>Theme</p>
+                  <p style={{ fontSize:11.5, color:"var(--tx3)" }}>{theme === "dark" ? "Dark mode" : "Light mode"} · auto-detects system</p>
+                </div>
+                <button onClick={toggleTheme} className="ghost"
+                  style={{ height:36, padding:"0 16px", borderRadius:9, border:"1px solid var(--br)",
+                    background:"var(--bg3)", color:"var(--tx)", fontSize:13, cursor:"pointer",
+                    display:"flex", alignItems:"center", gap:8 }}>
+                  {theme === "dark" ? <><Icons.Sun size={14}/> Light</> : <><Icons.Moon size={14}/> Dark</>}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {tab === "danger" && (
+            <div>
+              <h3 style={{ fontSize:15, fontWeight:800, color:"var(--rd)", marginBottom:4, fontFamily:"var(--font-display)" }}>Danger Zone</h3>
+              <p style={{ fontSize:12.5, color:"var(--tx2)", marginBottom:22 }}>These actions are permanent and cannot be undone.</p>
+              <div style={{ borderRadius:11, border:"1px solid rgba(239,68,68,0.22)",
+                background:"rgba(239,68,68,0.04)", padding:"20px 22px" }}>
+                <p style={{ fontSize:13.5, fontWeight:700, color:"var(--rd)", marginBottom:6 }}>Delete Account</p>
+                <p style={{ fontSize:12.5, color:"var(--tx2)", marginBottom:16, lineHeight:1.65 }}>
+                  Permanently deletes your account, all boards, and all data.
+                </p>
+                {/* 🔌 BACKEND: supabase.auth.admin.deleteUser(user.id) — server-side only */}
+                <button style={{ height:36, padding:"0 16px", borderRadius:9,
+                  border:"1px solid var(--rd)", background:"transparent",
+                  color:"var(--rd)", fontSize:13, fontWeight:700, cursor:"pointer",
+                  transition:"background .15s" }}
+                  onMouseOver={e => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(239,68,68,0.08)"; }}
+                  onMouseOut={e  => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}>
+                  Delete My Account
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SIDEBAR
+═══════════════════════════════════════════════════════════════════════════ */
+function Sidebar({ page, setPage, theme, toggleTheme }: {
+  page: Page; setPage: (p: Page) => void; theme: Theme; toggleTheme: () => void;
+}) {
+  const { user } = useApp();
+
+  const navItems: [Page, string, ReactNode][] = [
+    ["overview",  "Overview",     <Icons.Overview size={15}/>  ],
+    ["board",     "Board",        <Icons.Board size={15}/>     ],
+    ["chat",      "AI Chat",      <Icons.Chat size={15}/>      ],
+    ["autopilot", "Autopilot",    <Icons.Autopilot size={15}/> ],
+    ["saved",     "Saved Boards", <Icons.Saved size={15}/>     ],
+    ["settings",  "Settings",     <Icons.Settings size={15}/> ],
+  ];
+
+  // 🚧 MOCK: Replace with real usage from user profile
+  const boardsUsed  = user?.boards_used_today ?? 0;
+  const boardsLimit = user?.plan === "pro" ? 100 : 10;
+
+  return (
+    <aside className="sidebar" style={{
+      width: 246, height:"100vh", position:"fixed", left:0, top:0, zIndex:50,
+      background:"var(--sb)", borderRight:"1px solid var(--br)",
+      display:"flex", flexDirection:"column",
+    }}>
+      {/* Logo */}
+      <div style={{ padding:"17px 17px 14px", borderBottom:"1px solid var(--br)" }}>
+        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+          <div style={{
+            width:32, height:32, borderRadius:10,
+            background:"linear-gradient(135deg, var(--ac), var(--pu))",
+            display:"flex", alignItems:"center", justifyContent:"center",
+            color:"#fff", boxShadow:"0 0 20px rgba(99,102,241,0.35)",
+          }}>
+            <Icons.Sparkle size={14}/>
+          </div>
+          <span style={{ fontSize:16, fontWeight:800, color:"var(--tx)", letterSpacing:"-0.03em",
+            fontFamily:"var(--font-display)" }}>Kanbi</span>
+          <span style={{ fontSize:9, fontWeight:700, padding:"2px 7px", borderRadius:5,
+            background: user?.plan === "pro" ? "rgba(16,185,129,0.12)" : "var(--as)",
+            color: user?.plan === "pro" ? "var(--gr)" : "var(--ac)",
+            letterSpacing:"0.04em", marginLeft:2 }}>
+            {user?.plan === "pro" ? "PRO" : "FREE"}
+          </span>
+        </div>
+      </div>
+
+      {/* Nav */}
+      <nav style={{ flex:1, padding:"11px 10px 0", overflowY:"auto" }}>
+        {navItems.map(([key, label, icon]) => (
+          <button key={key} onClick={() => setPage(key)} className="nav-btn"
+            style={{
+              width:"100%", padding:"9px 11px", borderRadius:9, border:"none",
+              background: page === key ? "var(--as)" : "transparent",
+              color: page === key ? "var(--ac)" : "var(--tx2)",
+              fontSize:13, fontWeight: page === key ? 700 : 400,
+              cursor:"pointer", display:"flex", alignItems:"center", gap:11,
+              textAlign:"left", marginBottom:3,
+              borderLeft: page === key ? "2px solid var(--ac)" : "2px solid transparent",
+              transition:"all .15s",
+            }}>
+            <span style={{ color: page === key ? "var(--ac)" : "var(--tx3)" }}>{icon}</span>
+            {label}
+            {key === "chat" && (
+              <span style={{ marginLeft:"auto", fontSize:9, padding:"1px 6px", borderRadius:4,
+                background:"var(--as)", color:"var(--ac)", fontWeight:700 }}>AI</span>
+            )}
+            {key === "autopilot" && (
+              <span style={{ marginLeft:"auto", fontSize:9, padding:"1px 6px", borderRadius:4,
+                background:"rgba(167,139,250,0.12)", color:"var(--pu)", fontWeight:700 }}>AUTO</span>
+            )}
+          </button>
+        ))}
+      </nav>
+
+      {/* Bottom section */}
+      <div style={{ padding:"11px 10px 16px", borderTop:"1px solid var(--br)", display:"flex", flexDirection:"column", gap:8 }}>
+        {/* Usage bar */}
+        <div style={{ padding:"12px 13px", borderRadius:10, background:"var(--bg2)", border:"1px solid var(--br)" }}>
+          <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}>
+            <span style={{ fontSize:11, color:"var(--tx3)" }}>Boards today</span>
+            <span style={{ fontSize:11, fontWeight:700, color:"var(--tx)", fontFamily:"var(--font-mono)" }}>
+              {boardsUsed}/{boardsLimit}
+            </span>
+          </div>
+          <PBar value={boardsUsed / boardsLimit * 100} h={4}/>
+        </div>
+
+        {/* Upgrade button (only if free) */}
+        {user?.plan !== "pro" && (
+          <button onClick={() => setPage("settings")}
+            style={{ width:"100%", padding:"9px 12px", borderRadius:10,
+              border:"1px solid rgba(245,158,11,0.25)", background:"rgba(245,158,11,0.06)",
+              color:"var(--am)", fontSize:12, fontWeight:700, cursor:"pointer",
+              display:"flex", alignItems:"center", gap:8, transition:"background .15s" }}
+            onMouseOver={e => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(245,158,11,0.1)"; }}
+            onMouseOut={e =>  { (e.currentTarget as HTMLButtonElement).style.background = "rgba(245,158,11,0.06)"; }}>
+            <Icons.Crown size={12}/> Upgrade to Pro · $9/mo
+          </button>
         )}
-      </CardContent>
-    </Card>
+
+        {/* User row */}
+        <div style={{ display:"flex", alignItems:"center", gap:9, padding:"4px 3px" }}>
+          {/* 🔌 BACKEND: user.full_name and user.avatar_url from Supabase session */}
+          <Avt name={user?.full_name ?? "User"} size={30} avatarUrl={user?.avatar_url}/>
+          <div style={{ flex:1, minWidth:0 }}>
+            <p style={{ fontSize:12.5, fontWeight:700, color:"var(--tx)", overflow:"hidden",
+              textOverflow:"ellipsis", whiteSpace:"nowrap", fontFamily:"var(--font-display)" }}>
+              {user?.full_name ?? "User"}
+            </p>
+            <p style={{ fontSize:10, color:"var(--tx3)" }}>
+              {user?.plan === "pro" ? "Pro plan" : "Free plan"}
+            </p>
+          </div>
+          <button onClick={toggleTheme} className="ghost"
+            style={{ width:28, height:28, borderRadius:7, border:"1px solid var(--br)",
+              background:"transparent", color:"var(--tx3)", cursor:"pointer",
+              display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+            {theme === "dark" ? <Icons.Sun size={12}/> : <Icons.Moon size={12}/>}
+          </button>
+          {/* 🔌 BACKEND: onClick calls supabase.auth.signOut() then redirect to /login */}
+          <button className="ghost"
+            style={{ width:28, height:28, borderRadius:7, border:"1px solid var(--br)",
+              background:"transparent", color:"var(--tx3)", cursor:"pointer",
+              display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+            <Icons.Logout size={12}/>
+          </button>
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   BOTTOM NAV (mobile)
+═══════════════════════════════════════════════════════════════════════════ */
+function BottomNav({ page, setPage }: { page: Page; setPage: (p: Page) => void }) {
+  const items: [Page, string, ReactNode][] = [
+    ["overview",  "Home",     <Icons.Overview size={19}/>  ],
+    ["board",     "Board",    <Icons.Board size={19}/>     ],
+    ["chat",      "Chat",     <Icons.Chat size={19}/>      ],
+    ["autopilot", "Pilot",    <Icons.Autopilot size={19}/> ],
+    ["saved",     "Saved",    <Icons.Saved size={19}/>     ],
+    ["settings",  "Settings", <Icons.Settings size={19}/> ],
+  ];
+  return (
+    <div className="bottom-nav" style={{
+      position:"fixed", bottom:0, left:0, right:0, zIndex:100,
+      background:"var(--sb)", borderTop:"1px solid var(--br)",
+      display:"none", alignItems:"center",
+      paddingBottom:"env(safe-area-inset-bottom)",
+      backdropFilter:"blur(12px)",
+    }}>
+      {items.map(([k, l, icon]) => (
+        <button key={k} onClick={() => setPage(k)}
+          style={{ flex:1, padding:"8px 4px", background:"transparent", border:"none",
+            color: page === k ? "var(--ac)" : "var(--tx3)",
+            cursor:"pointer", display:"flex", flexDirection:"column", alignItems:"center", gap:2,
+            transition:"color .15s" }}>
+          {icon}
+          <span style={{ fontSize:9, fontWeight: page === k ? 700 : 400 }}>{l}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   TOPBAR
+═══════════════════════════════════════════════════════════════════════════ */
+const PAGE_META: Record<Page, { title: string; sub: string }> = {
+  overview:  { title:"Dashboard",     sub:"Your workload at a glance"      },
+  board:     { title:"Kanban Board",  sub:"Extract and manage tasks"       },
+  chat:      { title:"AI Chat",       sub:"Your productivity coach"        },
+  autopilot: { title:"AI Autopilot",  sub:"Autonomous workload management" },
+  saved:     { title:"Saved Boards",  sub:"All your boards and projects"   },
+  settings:  { title:"Settings",      sub:"Account preferences"            },
+};
+
+function Topbar({ page }: { page: Page }) {
+  const { user } = useApp();
+  return (
+    <div style={{
+      height:54, borderBottom:"1px solid var(--br)",
+      background:"var(--bg)", display:"flex", alignItems:"center",
+      justifyContent:"space-between", padding:"0 30px", flexShrink:0,
+    }}>
+      <div>
+        <h2 style={{ fontSize:14, fontWeight:700, color:"var(--tx)", fontFamily:"var(--font-display)" }}>
+          {PAGE_META[page].title}
+        </h2>
+        <p style={{ fontSize:11, color:"var(--tx3)" }}>{PAGE_META[page].sub}</p>
+      </div>
+      {/* 🔌 BACKEND: user.full_name and user.avatar_url from Supabase session */}
+      <Avt name={user?.full_name ?? "User"} size={30} avatarUrl={user?.avatar_url}/>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ROOT — Dashboard
+═══════════════════════════════════════════════════════════════════════════ */
+export default function Dashboard() {
+  const [page, setPage]   = useState<Page>("overview");
+  const [theme, setTheme] = useState<Theme>("dark");
+
+  /* ── Theme persist ── */
+  useEffect(() => {
+    const stored = localStorage.getItem("kanbi-theme") as Theme | null;
+    if (stored) { setTheme(stored); return; }
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    setTheme(mq.matches ? "dark" : "light");
+    const fn = (e: MediaQueryListEvent) => { if (!localStorage.getItem("kanbi-theme")) setTheme(e.matches ? "dark" : "light"); };
+    mq.addEventListener("change", fn);
+    return () => mq.removeEventListener("change", fn);
+  }, []);
+
+  const toggleTheme = useCallback(() => {
+    setTheme(t => { const n = t === "dark" ? "light" : "dark"; localStorage.setItem("kanbi-theme", n); return n; });
+  }, []);
+
+  /* ══════════════════════════════════════════════════════════════════
+     🔌 BACKEND: AUTH + REAL DATA LOADING
+     Replace all useState initializers below with Supabase calls.
+
+     Recommended pattern:
+     1. Get session: const { data:{ session } } = await supabase.auth.getSession()
+     2. Map session.user → AuthUser
+     3. Fetch tasks: supabase.from('tasks').select('*').eq('user_id', session.user.id)
+     4. Fetch boards: supabase.from('saved_boards').select('*').eq('user_id', session.user.id)
+     5. Subscribe to realtime: supabase.channel('tasks').on('postgres_changes', ...).subscribe()
+  ══════════════════════════════════════════════════════════════════ */
+
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // 🔌 BACKEND: Load real user + tasks + boards from existing APIs
+  useEffect(() => {
+    setIsLoading(true);
+    Promise.all([
+      fetch("/api/profile").then(r => r.json()).catch(() => ({})),
+      fetch("/api/usage").then(r => r.json()).catch(() => ({})),
+    ]).then(([profile, usage]) => {
+      setUser({
+        id:                 profile.id ?? "",
+        email:              profile.email ?? "",
+        full_name:          profile.full_name ?? undefined,
+        avatar_url:         profile.avatar_url ?? undefined,
+        plan:               usage.plan === "premium" ? "pro" : "free",
+        boards_used_today:  usage.boardsUsedToday ?? 0,
+        ai_uses_this_month: usage.aiUsedMonth ?? 0,
+      });
+    }).finally(() => setIsLoading(false));
+  }, []);
+
+  const [tasks, setTasks] = useState<Task[]>([]);
+
+  // 🔌 BACKEND: Load tasks from task-stats (overview counts only; board page loads full tasks)
+  useEffect(() => {
+    fetch("/api/task-stats").then(r => r.json()).then(d => {
+      // Build representative task list from stats for overview metrics
+      const syntheticTasks: Task[] = [];
+      for (let i = 0; i < (d.urgent ?? 0); i++)
+        syntheticTasks.push({ id:`u${i}`, title:"", priority:"urgent", label:"", status:"todo" });
+      for (let i = 0; i < (d.high ?? 0); i++)
+        syntheticTasks.push({ id:`h${i}`, title:"", priority:"high", label:"", status:"todo" });
+      for (let i = 0; i < (d.medium ?? 0); i++)
+        syntheticTasks.push({ id:`m${i}`, title:"", priority:"medium", label:"", status:"todo" });
+      for (let i = 0; i < (d.low ?? 0); i++)
+        syntheticTasks.push({ id:`l${i}`, title:"", priority:"low", label:"", status:"todo" });
+      for (let i = 0; i < (d.completed ?? 0); i++)
+        syntheticTasks.push({ id:`c${i}`, title:"", priority:"low", label:"", status:"done" });
+      setTasks(syntheticTasks);
+    }).catch(() => {});
+  }, []);
+
+  // 🔌 BACKEND: Load saved boards from API
+  const [savedBoards, setSavedBoards] = useState<SavedBoard[]>([]);
+  useEffect(() => {
+    fetch("/api/saved/list").then(r => r.json()).then(d => {
+      if (Array.isArray(d)) setSavedBoards(d);
+    }).catch(() => {});
+  }, []);
+
+  // 🚧 MOCK: Chat messages — replace with: supabase.from('chat_messages').select('*').eq('user_id', user.id).order('created_at')
+  const [chatMessages, setChatMessages] = useState<ChatMsg[]>([]);
+  const [briefings, setBriefings]       = useState<Briefing[]>([]);
+  const [burnoutAlerts]                 = useState<BurnoutAlert[]>([]);
+  const [gcalConnected, setGcalConnected] = useState(false);
+  const [boardView, setBoardView]       = useState<BoardView>("input");
+  const navigate = useCallback((p: Page) => setPage(p), []);
+
+  const appState: AppState = {
+    tasks, setTasks, savedBoards, setSavedBoards,
+    chatMessages, setChatMessages, briefings, setBriefings,
+    burnoutAlerts, gcalConnected, setGcalConnected,
+    dailyGoal: 5, weeklyGoal: 30,
+    boardView, setBoardView, navigate,
+    user, isLoading,
+  };
+
+  return (
+    <AppCtx.Provider value={appState}>
+      <GlobalStyles theme={theme}/>
+      <div style={{ display:"flex", height:"100vh", background:"var(--bg)", overflow:"hidden" }}>
+        <Sidebar page={page} setPage={setPage} theme={theme} toggleTheme={toggleTheme}/>
+        <div className="main-wrap" style={{ marginLeft:246, flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
+          <Topbar page={page}/>
+          <div style={{ flex:1, overflow:"hidden" }}>
+            {page === "overview"  && <PageOverview/>}
+            {page === "board"     && <PageBoard/>}
+            {page === "chat"      && <PageChat/>}
+            {page === "autopilot" && <PageAutopilot/>}
+            {page === "saved"     && <PageSaved/>}
+            {page === "settings"  && <PageSettings theme={theme} toggleTheme={toggleTheme}/>}
+          </div>
+        </div>
+        <BottomNav page={page} setPage={setPage}/>
+      </div>
+    </AppCtx.Provider>
   );
 }

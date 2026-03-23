@@ -1,3 +1,31 @@
+// Global error handler for client-side
+if (typeof window !== 'undefined') {
+  // Handle unhandled promise rejections
+  window.addEventListener('unhandledrejection', (event) => {
+    const error = event.reason;
+    
+    // Convert object errors to proper Error instances
+    if (error && typeof error === 'object' && !error.message) {
+      const errorMsg = error.error_description || error.message || 'Unknown error';
+      console.error('Unhandled promise rejection:', errorMsg);
+      event.preventDefault();
+      return;
+    }
+    
+    // Suppress known harmless errors
+    const msg = error?.toString() || '';
+    if (
+      msg.includes('spoofer') ||
+      msg.includes('extension') ||
+      msg.includes('vendors.chunk.js') ||
+      msg.includes('lock request is aborted')
+    ) {
+      event.preventDefault();
+      return;
+    }
+  });
+}
+
 // Suppress known console warnings in development
 if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
   const originalWarn = console.warn;
@@ -26,6 +54,9 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
     
     // Suppress extension errors
     if (message.includes('vendors.chunk.js')) return;
+    
+    // Suppress [object Object] errors that are already handled
+    if (message === '[object Object]') return;
     
     originalError.apply(console, args);
   };

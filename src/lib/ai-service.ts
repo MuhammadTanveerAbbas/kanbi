@@ -145,7 +145,7 @@ Return ONLY valid JSON array, no markdown.`;
       const parsed = JSON.parse(raw);
       const rawTasks = Array.isArray(parsed) ? parsed : (parsed.tasks || []);
       const tokens = (completion as any).usage?.total_tokens ?? 0;
-      
+
       const tasks = this.normalizeExtractedTasks(rawTasks);
       const duplicates = this.detectDuplicates(tasks);
       const qualityScore = this.calculateQualityScore(tasks, notes);
@@ -159,11 +159,11 @@ Return ONLY valid JSON array, no markdown.`;
       };
 
       console.log(`[AI] Extracted ${tasks.length} tasks, ${duplicates.length} duplicates, quality: ${qualityScore}`);
-      
+
       return { tasks, duplicates, qualityScore, extractionMetadata: metadata };
     } catch (error) {
       console.error('Task parsing error:', error);
-      
+
       // Fallback: extract from bullet points
       const fallbackTasks = this.fallbackExtraction(notes);
       const processingTime = Date.now() - startTime;
@@ -193,13 +193,13 @@ Return ONLY valid JSON array, no markdown.`;
    */
   private static normalizeExtractedTasks(raw: any[]): ExtractedTask[] {
     if (!Array.isArray(raw)) return [];
-    
+
     return raw
       .map((item: any) => {
         if (!item || typeof item !== 'object') return null;
         const task = (item.task ?? item.title ?? item.description ?? '').toString().trim();
         if (!task) return null;
-        
+
         return {
           task,
           owner: (item.owner ?? item.assignee ?? 'Me').toString().trim(),
@@ -219,7 +219,7 @@ Return ONLY valid JSON array, no markdown.`;
    */
   private static detectDuplicates(tasks: ExtractedTask[]): TaskDuplicate[] {
     const duplicates: TaskDuplicate[] = [];
-    
+
     for (let i = 0; i < tasks.length; i++) {
       for (let j = i + 1; j < tasks.length; j++) {
         const similarity = this.calculateSimilarity(tasks[i].task, tasks[j].task);
@@ -232,7 +232,7 @@ Return ONLY valid JSON array, no markdown.`;
         }
       }
     }
-    
+
     return duplicates;
   }
 
@@ -242,20 +242,20 @@ Return ONLY valid JSON array, no markdown.`;
   private static calculateSimilarity(str1: string, str2: string): number {
     const s1 = str1.toLowerCase();
     const s2 = str2.toLowerCase();
-    
+
     if (s1 === s2) return 1;
     if (s1.length === 0 || s2.length === 0) return 0;
-    
+
     const matrix: number[][] = [];
-    
+
     for (let i = 0; i <= s2.length; i++) {
       matrix[i] = [i];
     }
-    
+
     for (let j = 0; j <= s1.length; j++) {
       matrix[0][j] = j;
     }
-    
+
     for (let i = 1; i <= s2.length; i++) {
       for (let j = 1; j <= s1.length; j++) {
         if (s2.charAt(i - 1) === s1.charAt(j - 1)) {
@@ -269,7 +269,7 @@ Return ONLY valid JSON array, no markdown.`;
         }
       }
     }
-    
+
     const maxLen = Math.max(s1.length, s2.length);
     return 1 - matrix[s2.length][s1.length] / maxLen;
   }
@@ -279,13 +279,13 @@ Return ONLY valid JSON array, no markdown.`;
    */
   private static calculateQualityScore(tasks: ExtractedTask[], originalNotes: string): number {
     if (tasks.length === 0) return 0;
-    
+
     const avgConfidence = tasks.reduce((sum, t) => sum + t.confidence, 0) / tasks.length;
     const hasDeadlines = tasks.filter(t => t.deadline !== 'Not specified').length / tasks.length;
     const hasPriorities = tasks.filter(t => t.priority && t.priority !== 'medium').length / tasks.length;
     const notesLines = originalNotes.split('\n').filter(l => l.trim()).length;
     const extractionRate = Math.min(1, tasks.length / Math.max(1, notesLines * 0.5));
-    
+
     return (avgConfidence * 0.4 + hasDeadlines * 0.2 + hasPriorities * 0.2 + extractionRate * 0.2);
   }
 
@@ -312,7 +312,7 @@ Return ONLY valid JSON array, no markdown.`;
    */
   static async parseTasksFromEmail(emailContent: string): Promise<{ task: string; owner: string; deadline: string; priority?: string }[]> {
     const emailPromptAddition = ' This is an email thread. Extract every action item, commitment, request, and deadline mentioned. Pay special attention to: "please", "can you", "by [date]", "I need", "let me know", "follow up".';
-    const systemPrompt = `You are an expert assistant for task management. Extract every action item from the following email. For each task identify: the task description (make it specific and actionable), who owns it (name if mentioned, otherwise 'Me'), the deadline (extract from context like 'by Friday', 'end of month', 'ASAP' — convert to actual dates based on today's date), and priority (urgent if deadline <3 days, high if deadline <1 week, medium if <2 weeks, low otherwise). Return ONLY a valid JSON array, no markdown, no explanation.${emailPromptAddition}`;
+    const systemPrompt = `You are an expert assistant for task management. Extract every action item from the following email. For each task identify: the task description (make it specific and actionable), who owns it (name if mentioned, otherwise 'Me'), the deadline (extract from context like 'by Friday', 'end of month', 'ASAP'   convert to actual dates based on today's date), and priority (urgent if deadline <3 days, high if deadline <1 week, medium if <2 weeks, low otherwise). Return ONLY a valid JSON array, no markdown, no explanation.${emailPromptAddition}`;
 
     if (!emailContent?.trim()) throw new Error('Email content is required');
     if (!groq) throw new Error('Groq API key not configured');
@@ -333,7 +333,7 @@ Return ONLY valid JSON array, no markdown.`;
       const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : content);
       const tasks = Array.isArray(parsed) ? parsed : (parsed.tasks || []);
       const tokens = (completion as any).usage?.total_tokens ?? 0;
-      
+
       console.log(`[AI] Used: llama-3.3-70b-versatile (Groq), tokens: ${tokens}`);
       return this.normalizeTaskArray(tasks);
     } catch (error) {
@@ -347,7 +347,7 @@ Return ONLY valid JSON array, no markdown.`;
    */
   static async parseTasksFromWebPage(webContent: string): Promise<{ task: string; owner: string; deadline: string; priority?: string }[]> {
     const urlPromptAddition = ' This is content from a web page (brief, project doc, or job posting). Extract every actionable task, requirement, or deliverable mentioned.';
-    const systemPrompt = `You are an expert assistant for task management. Extract every action item from the following content. For each task identify: the task description (make it specific and actionable), who owns it (name if mentioned, otherwise 'Me'), the deadline (extract from context like 'by Friday', 'end of month', 'ASAP' — convert to actual dates based on today's date), and priority (urgent if deadline <3 days, high if deadline <1 week, medium if <2 weeks, low otherwise). Return ONLY a valid JSON array, no markdown, no explanation.${urlPromptAddition}`;
+    const systemPrompt = `You are an expert assistant for task management. Extract every action item from the following content. For each task identify: the task description (make it specific and actionable), who owns it (name if mentioned, otherwise 'Me'), the deadline (extract from context like 'by Friday', 'end of month', 'ASAP'   convert to actual dates based on today's date), and priority (urgent if deadline <3 days, high if deadline <1 week, medium if <2 weeks, low otherwise). Return ONLY a valid JSON array, no markdown, no explanation.${urlPromptAddition}`;
 
     if (!webContent?.trim()) throw new Error('Web content is required');
     if (!groq) throw new Error('Groq API key not configured');
@@ -368,7 +368,7 @@ Return ONLY valid JSON array, no markdown.`;
       const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : content);
       const tasks = Array.isArray(parsed) ? parsed : (parsed.tasks || []);
       const tokens = (completion as any).usage?.total_tokens ?? 0;
-      
+
       console.log(`[AI] Used: llama-3.3-70b-versatile (Groq), tokens: ${tokens}`);
       return this.normalizeTaskArray(tasks);
     } catch (error) {

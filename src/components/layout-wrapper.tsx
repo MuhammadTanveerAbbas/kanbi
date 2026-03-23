@@ -6,7 +6,7 @@ import Footer from "@/components/layout/footer";
 
 export default function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const showLayout = pathname === '/' || pathname === '/pricing';
+  const showLayout = pathname === '/pricing';
 
   if (!showLayout) {
     return <>{children}</>;

@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.redirect('/login?error=unauthorized');
+      return NextResponse.redirect('/sign-in?error=unauthorized');
     }
 
     const searchParams = request.nextUrl.searchParams;
