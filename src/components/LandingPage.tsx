@@ -664,8 +664,8 @@ function Footer(){
           ))}
         </div>
         <div style={{borderTop:"1px solid var(--br)",paddingTop:20,display:"flex",justifyContent:"space-between",flexWrap:"wrap",gap:10}}>
-          <span style={{fontSize:12,color:"var(--tx3)"}}>© 2026 Kanbi by Muhammad Tanveer Abbas. All rights reserved.</span>
-          <span style={{fontSize:12,color:"var(--tx3)"}}>Built to save you 2 hours every day · Faisalabad, Pakistan 🇵🇰</span>
+          <span style={{fontSize:12,color:"var(--tx3)"}}>© 2026 Kanbi. All rights reserved.</span>
+          <span style={{fontSize:12,color:"var(--tx3)"}}>Built to save you 2 hours every day</span>
         </div>
       </div>
     </footer>

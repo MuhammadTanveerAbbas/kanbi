@@ -1,39 +1,13 @@
 "use client";
 
-/*
- ██╗  ██╗ █████╗ ███╗   ██╗██████╗ ██╗
- ██║ ██╔╝██╔══██╗████╗  ██║██╔══██╗██║
- █████╔╝ ███████║██╔██╗ ██║██████╔╝██║
- ██╔═██╗ ██╔══██║██║╚██╗██║██╔══██╗██║
- ██║  ██╗██║  ██║██║ ╚████║██████╔╝██║
- ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═══╝╚═════╝ ╚═╝
- Enhanced Dashboard v2 — Supabase Edition
- 
- ┌──────────────────────────────────────────────────────────────┐
- │  BACKEND INTEGRATION GUIDE                                   │
- │  Search "// 🔌 BACKEND:" to find every wiring point         │
- │  All mock data labeled "// 🚧 MOCK:" — replace with real    │
- │  Supabase hooks are pre-wired, just uncomment + add client   │
- └──────────────────────────────────────────────────────────────┘
-*/
 
 import {
   useState, useEffect, useRef, useCallback,
   createContext, useContext, type ReactNode,
 } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   SUPABASE CLIENT
-   🔌 BACKEND: Import your Supabase client here
-   import { createClient } from "@supabase/supabase-js";
-   import { supabase } from "@/lib/supabase"; // or wherever your client lives
-   
-   The hooks below are pre-written and commented — just uncomment when wiring.
-═══════════════════════════════════════════════════════════════════════════ */
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   DESIGN TOKENS  ·  Dark / Light
-═══════════════════════════════════════════════════════════════════════════ */
 const DARK_VARS = `
   --bg:#06060a; --bg1:#0c0c12; --bg2:#101018; --bg3:#141420;
   --br:rgba(255,255,255,0.065); --brh:rgba(255,255,255,0.12);
@@ -173,22 +147,39 @@ function GlobalStyles({ theme }: { theme: "dark" | "light" }) {
       }
       @media(max-width:768px) {
         .sidebar { display:none !important }
-        .main-wrap { margin-left:0 !important }
+        .main-wrap { margin-left:0 !important; overflow:auto !important }
+        .root-layout { height:auto !important; min-height:100vh; overflow:visible !important }
         .bottom-nav { display:flex !important }
-        body { overflow:auto }
+        body { overflow:auto; height:auto }
         .main-grid-2 { grid-template-columns:1fr !important }
         .main-grid-3 { grid-template-columns:1fr !important }
         .main-grid-4 { grid-template-columns:1fr 1fr !important }
-        .page-pad { padding:20px 16px !important }
-        .kanban-grid { grid-template-columns:1fr !important; overflow-x:auto }
+        .page-pad { padding:16px 14px 80px !important }
+        .kanban-grid { overflow-x:auto; grid-template-columns:repeat(3,minmax(260px,1fr)) !important }
         .chat-sidebar { display:none !important }
         .settings-grid { grid-template-columns:1fr !important }
+        .settings-tabs { display:flex; flex-direction:row; flex-wrap:wrap; gap:4px; margin-bottom:16px }
+        .settings-tabs button { flex:1; min-width:calc(50% - 4px); justify-content:center !important }
         .saved-grid { grid-template-columns:1fr 1fr !important }
+        .autopilot-grid { grid-template-columns:1fr !important }
+        .quick-ai-sub { display:none }
+        .quick-ai-badge { display:none }
+        .topbar-sub { display:none }
+        .bottom-nav-item { min-height:52px }
+        .stat-value { font-size:20px !important }
+        .modal-inner { padding:16px !important; margin:12px !important; max-height:calc(100vh - 24px) !important }
+        .board-input-grid { grid-template-columns:1fr !important }
       }
       @media(max-width:480px) {
         .main-grid-4 { grid-template-columns:1fr !important }
         .saved-grid { grid-template-columns:1fr !important }
         .autopilot-grid { grid-template-columns:1fr !important }
+        .page-pad { padding:12px 12px 80px !important }
+        .quick-ai-row { flex-wrap:wrap }
+        .quick-ai-btn { width:100%; justify-content:center }
+        .topbar-title { font-size:13px !important }
+        .chat-prompts { grid-template-columns:1fr !important }
+        .kanban-grid { grid-template-columns:repeat(3,minmax(240px,1fr)) !important }
       }
 
       /* ── Focus visible for a11y ── */
@@ -197,6 +188,96 @@ function GlobalStyles({ theme }: { theme: "dark" | "light" }) {
         outline-offset: 2px;
         border-radius: var(--radius-sm);
       }
+
+      /* ── Quick AI Extract Bar ── */
+      .quick-ai-bar {
+        border-radius: 13px;
+        border: 1px solid var(--br);
+        background: var(--bg1);
+        padding: 14px 16px;
+      }
+      .quick-ai-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 10px;
+      }
+      .quick-ai-icon {
+        width: 26px;
+        height: 26px;
+        border-radius: 7px;
+        background: linear-gradient(135deg, var(--ac), var(--pu));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        flex-shrink: 0;
+      }
+      .quick-ai-title {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--tx);
+        font-family: var(--font-display);
+        flex-shrink: 0;
+      }
+      .quick-ai-sub {
+        font-size: 11px;
+        color: var(--tx3);
+      }
+      .quick-ai-badge {
+        margin-left: auto;
+        font-size: 10px;
+        color: var(--ac);
+        padding: 2px 8px;
+        border-radius: 5px;
+        background: var(--as);
+        border: 1px solid var(--ag);
+        font-weight: 600;
+        flex-shrink: 0;
+      }
+      .quick-ai-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .quick-ai-input {
+        flex: 1;
+        min-width: 0;
+        height: 40px;
+        background: var(--inp);
+        border: 1px solid var(--br);
+        border-radius: 9px;
+        padding: 0 14px;
+        font-size: 13px;
+        color: var(--tx);
+        font-family: var(--font-body);
+        outline: none;
+        transition: border-color .15s, box-shadow .15s;
+      }
+      .quick-ai-input:focus {
+        border-color: var(--ac);
+        box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
+      }
+      .quick-ai-input::placeholder { color: var(--tx3); }
+      .quick-ai-btn {
+        height: 40px;
+        padding: 0 18px;
+        border-radius: 9px;
+        border: none;
+        background: linear-gradient(135deg, var(--ac), var(--pu));
+        color: #fff;
+        font-size: 12.5px;
+        font-weight: 700;
+        font-family: var(--font-body);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-shrink: 0;
+        cursor: pointer;
+        transition: filter .15s, box-shadow .15s;
+      }
+      .quick-ai-btn:hover { filter: brightness(1.1); box-shadow: 0 4px 16px rgba(99,102,241,0.35); }
+      .quick-ai-btn:disabled { cursor: not-allowed; }
     `}</style>
   );
 }
@@ -277,6 +358,7 @@ const Ic = (d: string | string[], s = 16, sw = "1.75", fill = "none") =>
   );
 
 const Icons = {
+  LayoutGrid: Ic(["M3 3h7v7H3z","M14 3h7v7h-7z","M3 14h7v7H3z","M14 14h7v7h-7z"]),
   Overview:   Ic(["M3 3h7v7H3z","M14 3h7v7h-7z","M3 14h7v7H3z","M14 14h7v7h-7z"]),
   Board:      Ic(["M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18"]),
   Chat:       Ic("M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"),
@@ -440,12 +522,14 @@ function GCalModal({ task, bulkTasks, onClose, onSave, gcalConnected, onConnect 
     <div
       style={{ position:"fixed", inset:0, zIndex:999, background:"rgba(0,0,0,0.72)",
         display:"flex", alignItems:"center", justifyContent:"center", padding:16,
-        backdropFilter:"blur(4px)", }}
+        backdropFilter:"blur(4px)", overflowY:"auto" }}
       onClick={onClose}
     >
       <div
+        className="modal-inner"
         style={{ width:"100%", maxWidth:480, borderRadius:20, border:"1px solid var(--brh)",
-          background:"var(--bg1)", boxShadow:"0 40px 96px rgba(0,0,0,0.65)", animation:"modalIn .28s ease both" }}
+          background:"var(--bg1)", boxShadow:"0 40px 96px rgba(0,0,0,0.65)", animation:"modalIn .28s ease both",
+          overflowY:"auto", maxHeight:"calc(100vh - 32px)" }}
         onClick={e => e.stopPropagation()}
       >
         <div style={{ padding:"20px 24px 16px", borderBottom:"1px solid var(--br)", display:"flex", alignItems:"center", gap:13 }}>
@@ -569,30 +653,58 @@ function BarChart({ data }: { data: { label: string; value: number; color?: stri
   );
 }
 
-function DonutChart({ segs, size = 96 }: { segs: { value: number; color: string; label: string }[]; size?: number }) {
+function DonutChart({ segs, size = 110 }: { segs: { value: number; color: string; label: string }[]; size?: number }) {
   const total = segs.reduce((a, s) => a + s.value, 0) || 1;
-  const r = size * .37, cx = size / 2, cy = size / 2, circ = 2 * Math.PI * r;
+  const r = size * .36, cx = size / 2, cy = size / 2, circ = 2 * Math.PI * r;
+  const sw = size * .085;
   let cum = 0;
+  const nonZero = segs.filter(s => s.value > 0);
   return (
-    <div style={{ display:"flex", alignItems:"center", gap:14, flexWrap:"wrap" }}>
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform:"rotate(-90deg)", flexShrink:0 }}>
-        <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--br)" strokeWidth={size * .09}/>
-        {segs.map((s, i) => {
-          const pct = s.value / total, dash = pct * circ, off = -cum * circ; cum += pct;
-          return (
-            <circle key={i} cx={cx} cy={cy} r={r} fill="none" stroke={s.color}
-              strokeWidth={size * .09} strokeLinecap="round"
-              strokeDasharray={`${dash - 2} ${circ}`} strokeDashoffset={off}
-              style={{ transition:"stroke-dasharray .85s ease" }}/>
-          );
-        })}
-      </svg>
-      <div style={{ display:"flex", flexDirection:"column", gap:7 }}>
+    <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:14 }}>
+      <div style={{ position:"relative", flexShrink:0 }}>
+        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform:"rotate(-90deg)" }}>
+          {/* Track */}
+          <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--br)" strokeWidth={sw}/>
+          {nonZero.map((s, i) => {
+            const pct = s.value / total;
+            const gap = nonZero.length > 1 ? 3 : 0;
+            const dash = pct * circ - gap;
+            const off = -(cum * circ);
+            cum += pct;
+            return (
+              <circle key={i} cx={cx} cy={cy} r={r} fill="none" stroke={s.color}
+                strokeWidth={sw} strokeLinecap="round"
+                strokeDasharray={`${Math.max(dash, 0)} ${circ}`}
+                strokeDashoffset={off}
+                style={{
+                  transition: `stroke-dasharray .9s cubic-bezier(.4,0,.2,1) ${i * .1}s`,
+                  filter: `drop-shadow(0 0 5px ${s.color}88)`,
+                }}/>
+            );
+          })}
+        </svg>
+        {/* Center label */}
+        <div style={{ position:"absolute", inset:0, display:"flex", flexDirection:"column",
+          alignItems:"center", justifyContent:"center" }}>
+          <span style={{ fontSize: size * .18, fontWeight:800, color:"var(--tx)",
+            letterSpacing:"-0.04em", fontFamily:"var(--font-display)", lineHeight:1 }}>
+            {nonZero[0]?.value ?? 0}%
+          </span>
+          <span style={{ fontSize: size * .085, color:"var(--tx3)", fontWeight:600,
+            letterSpacing:"0.04em", marginTop:1 }}>
+            {nonZero[0]?.label ?? ""}
+          </span>
+        </div>
+      </div>
+      {/* Legend */}
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"5px 14px", width:"100%" }}>
         {segs.map(s => (
-          <div key={s.label} style={{ display:"flex", alignItems:"center", gap:8 }}>
-            <div style={{ width:8, height:8, borderRadius:2, background:s.color, flexShrink:0 }}/>
-            <span style={{ fontSize:11, color:"var(--tx2)" }}>{s.label}</span>
-            <span style={{ fontSize:11, fontWeight:700, color:"var(--tx)", marginLeft:"auto", paddingLeft:8,
+          <div key={s.label} style={{ display:"flex", alignItems:"center", gap:6 }}>
+            <div style={{ width:7, height:7, borderRadius:"50%", background:s.color,
+              flexShrink:0, boxShadow:`0 0 5px ${s.color}88` }}/>
+            <span style={{ fontSize:10.5, color:"var(--tx3)", flex:1, whiteSpace:"nowrap",
+              overflow:"hidden", textOverflow:"ellipsis" }}>{s.label}</span>
+            <span style={{ fontSize:10.5, fontWeight:700, color:"var(--tx)",
               fontFamily:"var(--font-mono)" }}>{s.value}%</span>
           </div>
         ))}
@@ -602,22 +714,26 @@ function DonutChart({ segs, size = 96 }: { segs: { value: number; color: string;
 }
 
 function HealthRing({ score }: { score: number }) {
-  const r = 40, circ = 2 * Math.PI * r;
+  const size = 100;
+  const r = 38, circ = 2 * Math.PI * r;
   const off = circ * (1 - score / 100);
   const col = score >= 75 ? "var(--gr)" : score >= 50 ? "var(--am)" : "var(--rd)";
   return (
-    <div style={{ position:"relative", width:96, height:96, flexShrink:0 }}>
-      <svg width="96" height="96" viewBox="0 0 96 96" style={{ transform:"rotate(-90deg)" }}>
-        <circle cx="48" cy="48" r={r} fill="none" stroke="var(--br)" strokeWidth="7"/>
-        <circle cx="48" cy="48" r={r} fill="none" stroke={col} strokeWidth="7"
+    <div style={{ position:"relative", width:size, height:size, flexShrink:0 }}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform:"rotate(-90deg)" }}>
+        {/* Track */}
+        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="var(--br)" strokeWidth="5"/>
+        {/* Arc */}
+        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={col} strokeWidth="5"
           strokeLinecap="round" strokeDasharray={circ} strokeDashoffset={off}
-          style={{ transition:"stroke-dashoffset 1.3s cubic-bezier(.4,0,.2,1)", filter:`drop-shadow(0 0 9px ${col})` }}/>
+          style={{ transition:"stroke-dashoffset 1.2s cubic-bezier(.4,0,.2,1)" }}/>
       </svg>
       <div style={{ position:"absolute", inset:0, display:"flex", flexDirection:"column",
         alignItems:"center", justifyContent:"center" }}>
-        <span style={{ fontSize:21, fontWeight:800, letterSpacing:"-0.04em", color:"var(--tx)",
-          fontFamily:"var(--font-display)" }}>{score}</span>
-        <span style={{ fontSize:7.5, color:"var(--tx3)", fontWeight:700, letterSpacing:"0.06em" }}>HEALTH</span>
+        <span style={{ fontSize:22, fontWeight:700, letterSpacing:"-0.04em",
+          color:"var(--tx)", fontFamily:"var(--font-display)", lineHeight:1 }}>{score}</span>
+        <span style={{ fontSize:9, color:"var(--tx3)", fontWeight:500,
+          letterSpacing:"0.05em", marginTop:3 }}>/ 100</span>
       </div>
     </div>
   );
@@ -729,6 +845,7 @@ function PageOverview() {
       priority: "medium", label: "General", status: "todo",
     };
     setTasks(prev => [...prev, newTask]);
+    fetch('/api/sync-task-stats', { method: 'POST' }).catch(() => {});
     setQuickInput(""); setAddLoading(false);
     navigate("board");
   };
@@ -796,43 +913,32 @@ function PageOverview() {
       </div>
 
       {/* Quick AI input */}
-      <div style={{ borderRadius:14, border:"1px solid var(--br)", background:"var(--bg1)",
-        padding:"16px 18px", position:"relative", overflow:"hidden" }}>
-        {/* Decorative glow */}
-        <div style={{ position:"absolute", top:-20, right:-20, width:120, height:120,
-          borderRadius:"50%", background:"var(--as)", filter:"blur(32px)", pointerEvents:"none" }}/>
-        <div style={{ display:"flex", alignItems:"center", gap:9, marginBottom:10, position:"relative" }}>
-          <div style={{ width:26, height:26, borderRadius:8, background:"var(--as)",
-            display:"flex", alignItems:"center", justifyContent:"center", color:"var(--ac)" }}>
-            <Icons.Sparkle size={12}/>
-          </div>
-          <span style={{ fontSize:12.5, fontWeight:700, color:"var(--tx)", fontFamily:"var(--font-display)" }}>Quick AI Extract</span>
-          <span style={{ fontSize:10, color:"var(--tx3)", marginLeft:2, padding:"1px 6px",
-            borderRadius:4, background:"var(--br)" }}>sends to Board →</span>
+      <div className="quick-ai-bar">
+        <div className="quick-ai-header">
+          <div className="quick-ai-icon"><Icons.Sparkle size={13}/></div>
+          <span className="quick-ai-title">Quick AI Extract</span>
+          <span className="quick-ai-sub">— paste any text, AI extracts tasks instantly</span>
+          <span className="quick-ai-badge">→ Board</span>
         </div>
-        <div style={{ display:"flex", gap:9, position:"relative" }}>
+        <div className="quick-ai-row">
           <input
             value={quickInput}
             onChange={e => setQuickInput(e.target.value)}
             onKeyDown={e => e.key === "Enter" && handleQuickInput()}
-            placeholder="Paste a task or note to extract instantly..."
-            className="input-focus"
-            style={{ flex:1, background:"var(--inp)", border:"1px solid var(--br)", borderRadius:10,
-              padding:"10px 14px", fontSize:13, color:"var(--tx)" }}
+            placeholder="Paste a task, email, or note to extract instantly..."
+            className="quick-ai-input"
           />
           <button
             onClick={handleQuickInput}
             disabled={!quickInput.trim() || addLoading}
-            className="btn-primary"
-            style={{ height:40, padding:"0 16px", borderRadius:10, background:"var(--ac)", border:"none",
-              color:"#fff", fontSize:12.5, fontWeight:700, display:"flex", alignItems:"center", gap:7,
-              opacity: !quickInput.trim() ? .5 : 1 }}>
+            className="quick-ai-btn"
+            style={{ opacity: !quickInput.trim() ? .45 : 1 }}
+          >
             {addLoading
-              ? <div className="spin" style={{ width:13, height:13, borderRadius:"50%",
-                  border:"2px solid rgba(255,255,255,.3)", borderTopColor:"#fff" }}/>
+              ? <div className="spin" style={{ width:12, height:12, borderRadius:"50%", border:"2px solid rgba(255,255,255,.3)", borderTopColor:"#fff" }}/>
               : <Icons.Zap size={12}/>
             }
-            Add
+            Extract
           </button>
         </div>
       </div>
@@ -848,7 +954,7 @@ function PageOverview() {
             </div>
             {isLoading
               ? <Skeleton w="60%" h={28} style={{ marginBottom:6 }}/>
-              : <div style={{ fontSize:25, fontWeight:800, letterSpacing:"-0.045em",
+              : <div className="stat-value" style={{ fontSize:25, fontWeight:800, letterSpacing:"-0.045em",
                   color: s.color ?? "var(--tx)", lineHeight:1, marginBottom:4,
                   fontFamily:"var(--font-display)", animation:"countUp .5s ease both" }}>
                   {s.value}
@@ -869,42 +975,33 @@ function PageOverview() {
       <div className="main-grid-2" style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 }}>
         {/* Workload Health */}
         <div className="card" style={{ borderRadius:13, border:"1px solid var(--br)", background:"var(--bg1)", padding:20 }}>
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
-            <h3 style={{ fontSize:13, fontWeight:700, color:"var(--tx)", fontFamily:"var(--font-display)" }}>AI Workload Health</h3>
-            <span style={{
-              fontSize:10, padding:"2px 9px", borderRadius:100, fontWeight:700,
-              background: healthScore >= 75 ? "rgba(16,185,129,0.1)"  : healthScore >= 50 ? "rgba(245,158,11,0.1)"  : "rgba(239,68,68,0.1)",
-              color:      healthScore >= 75 ? "var(--gr)"              : healthScore >= 50 ? "var(--am)"              : "var(--rd)",
-              border:     `1px solid ${healthScore >= 75 ? "rgba(16,185,129,0.2)" : healthScore >= 50 ? "rgba(245,158,11,0.2)" : "rgba(239,68,68,0.2)"}`,
-            }}>
-              {healthScore >= 75 ? "● Healthy" : healthScore >= 50 ? "● Warning" : "● Overloaded"}
-            </span>
-          </div>
-          <div style={{ display:"flex", alignItems:"center", gap:18, marginBottom:16 }}>
+          <h3 style={{ fontSize:13, fontWeight:600, color:"var(--tx2)", marginBottom:18,
+            fontFamily:"var(--font-display)", letterSpacing:"0.01em" }}>Workload Health</h3>
+
+          <div style={{ display:"flex", alignItems:"center", gap:20, marginBottom:18 }}>
             <HealthRing score={healthScore}/>
-            <div style={{ flex:1, display:"flex", flexDirection:"column", gap:10 }}>
+            <div style={{ flex:1, display:"flex", flexDirection:"column", gap:12 }}>
               {[
-                { l:"Total Tasks",    v:String(total) },
-                { l:"Completed",      v:String(done) },
-                { l:"Burnout Risk",   v: healthScore >= 75 ? "None" : "Watch out!", c: healthScore >= 75 ? "var(--gr)" : "var(--rd)" },
+                { l:"Total",     v:String(total) },
+                { l:"Done",      v:String(done) },
+                { l:"In Progress", v:String(tasks.filter(t=>t.status==="wip").length) },
               ].map(s => (
                 <div key={s.l} style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
                   <span style={{ fontSize:11, color:"var(--tx3)" }}>{s.l}</span>
-                  <span style={{ fontSize:12, fontWeight:700, color: s.c ?? "var(--tx)",
-                    fontFamily:"var(--font-mono)" }}>{s.v}</span>
+                  <span style={{ fontSize:12, fontWeight:600, color:"var(--tx)", fontFamily:"var(--font-mono)" }}>{s.v}</span>
                 </div>
               ))}
             </div>
           </div>
-          <div style={{ display:"flex", alignItems:"flex-start", gap:8, padding:"10px 12px",
-            borderRadius:9, background:"var(--as)", border:"1px solid var(--ag)" }}>
-            <Icons.Brain size={12} style={{ color:"var(--ac)", marginTop:1, flexShrink:0 }}/>
-            <p style={{ fontSize:11.5, color:"var(--ac)", lineHeight:1.55 }}>
-              {healthScore >= 75
-                ? "Workload looks balanced. Great momentum — keep it up!"
-                : "High-priority tasks detected. Consider deferring or delegating."}
-            </p>
-          </div>
+
+          <div style={{ height:1, background:"var(--br)", marginBottom:12 }}/>
+          <p style={{ fontSize:11, color:"var(--tx3)", lineHeight:1.6 }}>
+            {healthScore >= 75
+              ? "Workload is balanced."
+              : healthScore >= 50
+              ? "Some high-priority tasks need attention."
+              : "Overloaded — consider deferring tasks."}
+          </p>
         </div>
 
         {/* Goals */}
@@ -946,7 +1043,7 @@ function PageOverview() {
         <div className="card" style={{ borderRadius:13, border:"1px solid var(--br)", background:"var(--bg1)", padding:20 }}>
           <h3 style={{ fontSize:13, fontWeight:700, color:"var(--tx)", marginBottom:16,
             fontFamily:"var(--font-display)" }}>Priority Split</h3>
-          <DonutChart segs={priSegs} size={88}/>
+          <DonutChart segs={priSegs} size={110}/>
         </div>
         <div className="card" style={{ borderRadius:13, border:"1px solid var(--br)", background:"var(--bg1)",
           padding:20, textAlign:"center" }}>
@@ -1021,6 +1118,14 @@ function PageBoard() {
   const [extracting, setExtracting] = useState(false);
   const overloaded = tasks.filter(t => t.status !== "done" && (t.priority === "urgent" || t.priority === "high")).length >= 5;
 
+  const syncTaskStats = async () => {
+    try {
+      await fetch('/api/sync-task-stats', { method: 'POST' });
+    } catch {
+      // Fire-and-forget: sync errors don't block UI
+    }
+  };
+
   const inputModes = [
     { key:"paste"    as InputMode, label:"Paste",     icon:<Icons.Paste size={12}/> },
     { key:"pdf"      as InputMode, label:"PDF",       icon:<Icons.Pdf size={12}/>   },
@@ -1028,34 +1133,42 @@ function PageBoard() {
     { key:"template" as InputMode, label:"Templates", icon:<Icons.Template size={12}/> },
   ];
 
-  // 🔌 BACKEND: Replace with real AI extraction via your Next.js API route
-  // POST /api/extract → { tasks: Task[] }
   const handleExtract = async () => {
     if (!inputText.trim()) return;
     setExtracting(true);
-    await new Promise(r => setTimeout(r, 800)); // 🚧 MOCK
-    /* 🔌 BACKEND:
-      const res = await fetch('/api/extract', { method:'POST', body: JSON.stringify({ text: inputText }) });
-      const { tasks: extracted } = await res.json();
-      // then save each to Supabase:
-      const { data } = await supabase.from('tasks').insert(extracted.map(t => ({...t, user_id:user.id}))).select();
-      setTasks(prev => [...prev, ...data]);
-    */
-    const lines = inputText.split("\n").filter(l => l.trim());
-    const newTasks: Task[] = lines.map((l, i) => ({
-      id: `KB-${Date.now()}-${i}`,
-      title: l.replace(/^[-•*\d.]\s*/, "").trim(),
-      priority: (["urgent","high","medium","low"] as Priority[])[Math.floor(Math.random() * 4)],
-      label: "General", status: "todo" as TaskStatus,
-    })).filter(t => t.title.length > 2);
-    setTasks(prev => [...prev, ...newTasks]);
-    setInputText(""); setExtracting(false);
-    setBoardView("kanban");
+    try {
+      const res = await fetch('/api/extract', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: inputText, userId: '' }),
+      });
+      const data = await res.json();
+      const extracted: Task[] = (data.tasks ?? [])
+        .map((t: { task?: string; title?: string; priority?: string; estimate?: string; deadline?: string }, i: number) => ({
+          id: `KB-${Date.now()}-${i}`,
+          title: (t.task ?? t.title ?? '').trim(),
+          priority: (['urgent', 'high', 'medium', 'low'].includes(t.priority ?? '') ? t.priority : 'medium') as Priority,
+          label: 'General',
+          status: 'todo' as TaskStatus,
+          estimate: t.estimate,
+          dueDate: t.deadline,
+        }))
+        .filter((t: Task) => t.title.length > 2);
+      setTasks(prev => [...prev, ...extracted]);
+      syncTaskStats();
+      setInputText('');
+      setBoardView('kanban');
+    } catch {
+      // Keep extracting false on error so user can retry
+    } finally {
+      setExtracting(false);
+    }
   };
 
   const updateTaskStatus = (id: string, s: TaskStatus) => {
     /* 🔌 BACKEND: supabase.from('tasks').update({ status: s }).eq('id', id) */
     setTasks(prev => prev.map(t => t.id === id ? { ...t, status: s } : t));
+    syncTaskStats();
   };
 
   const handleSaveReminder = (taskIds: string[], date: string, time: string, note: string) => {
@@ -1122,7 +1235,7 @@ function PageBoard() {
               </p>
             </div>
 
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 260px", gap:18 }} className="main-grid-2">
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 260px", gap:18 }} className="main-grid-2 board-input-grid">
               {/* Input card */}
               <div style={{ borderRadius:14, border:"1px solid var(--br)", background:"var(--bg1)", padding:20 }}>
                 {/* Mode tabs */}
@@ -1377,56 +1490,24 @@ function PageChat() {
     setChatMessages(prev => [...prev, { id:uid, role:"user", content:text, ts:ts() }]);
     setInput(""); setLoading(true);
 
-    /* 🔌 BACKEND: Replace the setTimeout mock with your real AI route:
-       const res = await fetch('/api/chat', {
-         method: 'POST',
-         body: JSON.stringify({ message: text, tasks, history: chatMessages })
-       });
-       const { reply } = await res.json();
-       setChatMessages(prev => [...prev, { id: Date.now().toString(), role:'ai', content:reply, ts:ts() }]);
-       setLoading(false);
-    */
-
-    // 🚧 MOCK: local rule-based responder
-    const todoTasks = tasks.filter(t => t.status === "todo");
-    const wipTasks  = tasks.filter(t => t.status === "wip");
-    await new Promise(r => setTimeout(r, 1100));
-    const lower = text.toLowerCase();
-    let reply = "";
-    if (lower.includes("create task")) {
-      const title = text.replace(/create task[:\s]*/i, "").trim();
-      if (title) {
-        const nt: Task = { id:`KB-${Date.now()}`, title, priority:"medium", label:"General", status:"todo" };
-        setTasks(prev => [...prev, nt]);
-        reply = `✓ Created task: "${title}" on your board with medium priority.`;
-      } else reply = "Please specify a task title, e.g. 'Create task: Review proposal'";
-    } else if (lower.includes("move") && lower.includes("progress")) {
-      const match = tasks.find(t => lower.includes(t.title.toLowerCase().slice(0, 10)));
-      if (match) { setTasks(prev => prev.map(t => t.id === match.id ? { ...t, status:"wip" } : t)); reply = `✓ Moved "${match.title}" to In Progress.`; }
-      else reply = "I couldn't find that task. Try 'Move [task name] to In Progress'.";
-    } else if (lower.includes("first") || lower.includes("prioritize")) {
-      if (!tasks.some(t => t.status !== "done")) reply = "Your board is clear — no pending tasks! 🎉";
-      else {
-        const urgent = tasks.filter(t => t.status !== "done" && (t.priority === "urgent" || t.priority === "high"));
-        reply = urgent.length > 0
-          ? `Based on your board, focus on: **"${urgent[0].title}"** (${urgent[0].priority} priority). You have ${urgent.length} high-priority task(s) pending.`
-          : "All your tasks are medium or low priority. Pick whatever feels most impactful!";
-      }
-    } else if (lower.includes("overwhelmed")) {
-      reply = `You have ${tasks.filter(t=>t.status!=="done").length} pending tasks. Take a breath — let's break it down: start with 1 urgent task, then 2 high-priority ones. The rest can wait. You've got this. 💪`;
-    } else if (lower.includes("plan my day")) {
-      const active = tasks.filter(t => t.status !== "done").slice(0, 5);
-      reply = active.length > 0
-        ? `Here's a suggested plan:\n\n${active.map((t,i) => `${i+1}. ${t.title} (${t.estimate ?? "~1h"})`).join("\n")}\n\nTotal estimated: ~${active.reduce((a,t) => a + (parseInt(t.estimate ?? "") || 1), 0)}h`
-        : "No tasks on your board! Add some tasks first.";
-    } else {
-      reply = `I see you have ${todoTasks.length} to-do and ${wipTasks.length} in progress. ${
-        todoTasks.length === 0 ? "Great — board is clear! 🎉" :
-        "Your top priority: **" + todoTasks.sort((a,b) => ["urgent","high","medium","low"].indexOf(a.priority) - ["urgent","high","medium","low"].indexOf(b.priority))[0]?.title + "**."
-      }`;
+    try {
+      const res = await fetch('/api/ai/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: text,
+          tasks: tasks.map(t => ({ id: t.id, title: t.title, priority: t.priority, status: t.status })),
+          workloadHealth: Math.round(Math.max(0, 100 - (tasks.filter(t => t.priority === "urgent" || t.priority === "high").length / Math.max(tasks.length, 1)) * 42)),
+        }),
+      });
+      const data = await res.json();
+      const reply = data.response ?? data.reply ?? "Sorry, I couldn't get a response.";
+      setChatMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: "ai", content: reply, ts: ts() }]);
+    } catch {
+      setChatMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: "ai", content: "Sorry, I couldn't connect to the AI. Please try again.", ts: ts() }]);
+    } finally {
+      setLoading(false);
     }
-    setChatMessages(prev => [...prev, { id:(Date.now()+1).toString(), role:"ai", content:reply, ts:ts() }]);
-    setLoading(false);
   }, [tasks, setTasks, setChatMessages, chatMessages]);
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior:"smooth" }); }, [chatMessages]);
@@ -1478,7 +1559,7 @@ function PageChat() {
               <p style={{ fontSize:12.5, color:"var(--tx3)", lineHeight:1.65, textAlign:"center", marginBottom:22 }}>
                 I can prioritize tasks, create new items, plan your day, and more.
               </p>
-              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, width:"100%", maxWidth:520 }}>
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, width:"100%", maxWidth:520 }} className="chat-prompts">
                 {quickPrompts.map(q => (
                   <button key={q.text} onClick={() => send(q.text)}
                     className="ghost"
@@ -1634,24 +1715,31 @@ function PageAutopilot() {
   // POST /api/autopilot/briefing → { summary, schedule, healthNote }
   const handleGenerate = async () => {
     setGenLoading(true);
-    await new Promise(r => setTimeout(r, 2200)); // 🚧 MOCK
-    const schedule = pendingTasks.slice(0, 5).map((t, i) => ({
-      time: `${9 + i}:00 AM`, task: t.title, duration: t.estimate ?? "1h",
-    }));
-    const nb: Briefing = {
-      id: Date.now().toString(),
-      date: new Date().toLocaleDateString("en-US", { weekday:"long", month:"short", day:"numeric" }),
-      summary: `You have ${pendingTasks.length} pending tasks today. ${
-        pendingTasks.filter(t=>t.priority==="urgent").length > 0
-          ? `⚠ ${pendingTasks.filter(t=>t.priority==="urgent").length} urgent item(s) need immediate attention.`
-          : "No urgent items — great position to be in!"} Focus on high-impact work in the morning.`,
-      schedule,
-      healthNote: healthScore >= 75
-        ? "✓ Workload looks healthy. Aim to complete 2-3 tasks before noon."
-        : "⚠ High load detected. Consider deferring lower-priority tasks.",
-    };
-    setBriefings(prev => [nb, ...prev]);
-    setGenLoading(false);
+    try {
+      const res = await fetch('/api/autopilot/briefing', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tasks: pendingTasks.map(t => ({ id: t.id, title: t.title, priority: t.priority, estimate: t.estimate })),
+          workloadHealth: healthScore,
+        }),
+      });
+      const data = await res.json();
+      const nb: Briefing = {
+        id: Date.now().toString(),
+        date: new Date().toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" }),
+        summary: data.summary ?? `You have ${pendingTasks.length} pending tasks today.`,
+        schedule: data.schedule ?? [],
+        healthNote: data.healthNote ?? (healthScore >= 75
+          ? "✓ Workload looks healthy."
+          : "⚠ High load detected."),
+      };
+      setBriefings(prev => [nb, ...prev]);
+    } catch {
+      // Silently fail — user can retry
+    } finally {
+      setGenLoading(false);
+    }
   };
 
   const createScheduleOnBoard = () => {
@@ -2081,6 +2169,8 @@ function PageSettings({ theme, toggleTheme }: { theme: Theme; toggleTheme: () =>
   const [tab, setTab] = useState("profile");
   const [profileName, setProfileName] = useState(user?.full_name ?? "");
   const [saving, setSaving] = useState(false);
+  const router = useRouter();
+  const supabase = createClient();
 
   const tabs = [
     { key:"profile",      label:"Profile",      icon:<Icons.Settings size={13}/>   },
@@ -2101,7 +2191,8 @@ function PageSettings({ theme, toggleTheme }: { theme: Theme; toggleTheme: () =>
   };
 
   const handleSignOut = async () => {
-    /* 🔌 BACKEND: await supabase.auth.signOut() */
+    await supabase.auth.signOut();
+    router.push("/sign-in");
   };
 
   return (
@@ -2114,7 +2205,7 @@ function PageSettings({ theme, toggleTheme }: { theme: Theme; toggleTheme: () =>
 
       <div className="settings-grid" style={{ display:"grid", gridTemplateColumns:"210px 1fr", gap:24 }}>
         {/* Tabs */}
-        <div style={{ display:"flex", flexDirection:"column", gap:3 }}>
+        <div className="settings-tabs" style={{ display:"flex", flexDirection:"column", gap:3 }}>
           {tabs.map(t => (
             <button key={t.key} onClick={() => setTab(t.key)} className="nav-btn"
               style={{ padding:"9px 12px", borderRadius:9, border:"none",
@@ -2175,6 +2266,15 @@ function PageSettings({ theme, toggleTheme }: { theme: Theme; toggleTheme: () =>
                         border:"2px solid rgba(255,255,255,.3)", borderTopColor:"#fff" }}/> Saving...</>
                     : "Save Changes"
                   }
+                </button>
+                <button onClick={handleSignOut}
+                  style={{ alignSelf:"flex-start", height:38, padding:"0 18px", borderRadius:9,
+                    border:"1px solid var(--br)", background:"transparent",
+                    color:"var(--tx2)", fontSize:13, fontWeight:600, cursor:"pointer",
+                    display:"flex", alignItems:"center", gap:8, transition:"background .15s, color .15s" }}
+                  onMouseOver={e => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(239,68,68,0.07)"; (e.currentTarget as HTMLButtonElement).style.color = "var(--rd)"; }}
+                  onMouseOut={e =>  { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; (e.currentTarget as HTMLButtonElement).style.color = "var(--tx2)"; }}>
+                  <Icons.Logout size={13}/> Sign Out
                 </button>
               </div>
             </div>
@@ -2340,15 +2440,17 @@ function Sidebar({ page, setPage, theme, toggleTheme }: {
       <div style={{ padding:"17px 17px 14px", borderBottom:"1px solid var(--br)" }}>
         <div style={{ display:"flex", alignItems:"center", gap:10 }}>
           <div style={{
-            width:32, height:32, borderRadius:10,
-            background:"linear-gradient(135deg, var(--ac), var(--pu))",
+            width:32, height:32, borderRadius:10, flexShrink:0,
+            background:"linear-gradient(135deg, #5e6fe8 0%, #a78bfa 100%)",
             display:"flex", alignItems:"center", justifyContent:"center",
-            color:"#fff", boxShadow:"0 0 20px rgba(99,102,241,0.35)",
           }}>
-            <Icons.Sparkle size={14}/>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffffff"
+              strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+            </svg>
           </div>
           <span style={{ fontSize:16, fontWeight:800, color:"var(--tx)", letterSpacing:"-0.03em",
-            fontFamily:"var(--font-display)" }}>Kanbi</span>
+            fontFamily:"var(--font-display)" }}>KANBI</span>
           <span style={{ fontSize:9, fontWeight:700, padding:"2px 7px", borderRadius:5,
             background: user?.plan === "pro" ? "rgba(16,185,129,0.12)" : "var(--as)",
             color: user?.plan === "pro" ? "var(--gr)" : "var(--ac)",
@@ -2432,7 +2534,7 @@ function Sidebar({ page, setPage, theme, toggleTheme }: {
             {theme === "dark" ? <Icons.Sun size={12}/> : <Icons.Moon size={12}/>}
           </button>
           {/* 🔌 BACKEND: onClick calls supabase.auth.signOut() then redirect to /login */}
-          <button className="ghost"
+          <button className="ghost" onClick={async () => { const s = createClient(); await s.auth.signOut(); window.location.href = "/sign-in"; }}
             style={{ width:28, height:28, borderRadius:7, border:"1px solid var(--br)",
               background:"transparent", color:"var(--tx3)", cursor:"pointer",
               display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
@@ -2466,6 +2568,7 @@ function BottomNav({ page, setPage }: { page: Page; setPage: (p: Page) => void }
     }}>
       {items.map(([k, l, icon]) => (
         <button key={k} onClick={() => setPage(k)}
+          className="bottom-nav-item"
           style={{ flex:1, padding:"8px 4px", background:"transparent", border:"none",
             color: page === k ? "var(--ac)" : "var(--tx3)",
             cursor:"pointer", display:"flex", flexDirection:"column", alignItems:"center", gap:2,
@@ -2496,14 +2599,28 @@ function Topbar({ page }: { page: Page }) {
     <div style={{
       height:54, borderBottom:"1px solid var(--br)",
       background:"var(--bg)", display:"flex", alignItems:"center",
-      justifyContent:"space-between", padding:"0 30px", flexShrink:0,
+      justifyContent:"space-between", padding:"0 24px", flexShrink:0,
     }}>
-      <div>
-        <h2 style={{ fontSize:14, fontWeight:700, color:"var(--tx)", fontFamily:"var(--font-display)" }}>
-          {PAGE_META[page].title}
-        </h2>
-        <p style={{ fontSize:11, color:"var(--tx3)" }}>{PAGE_META[page].sub}</p>
+      {/* Left: favicon logo + page title */}
+      <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+        <div style={{
+          width:28, height:28, borderRadius:8, flexShrink:0,
+          background:"linear-gradient(135deg, #5e6fe8 0%, #a78bfa 100%)",
+          display:"flex", alignItems:"center", justifyContent:"center",
+        }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ffffff"
+            strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+          </svg>
+        </div>
+        <div>
+          <h2 className="topbar-title" style={{ fontSize:14, fontWeight:700, color:"var(--tx)", fontFamily:"var(--font-display)", lineHeight:1.2 }}>
+            {PAGE_META[page].title}
+          </h2>
+          <p className="topbar-sub" style={{ fontSize:10.5, color:"var(--tx3)", lineHeight:1 }}>{PAGE_META[page].sub}</p>
+        </div>
       </div>
+      {/* Right: avatar */}
       {/* 🔌 BACKEND: user.full_name and user.avatar_url from Supabase session */}
       <Avt name={user?.full_name ?? "User"} size={30} avatarUrl={user?.avatar_url}/>
     </div>
@@ -2568,24 +2685,28 @@ export default function Dashboard() {
 
   const [tasks, setTasks] = useState<Task[]>([]);
 
-  // 🔌 BACKEND: Load tasks from task-stats (overview counts only; board page loads full tasks)
+  // Load real tasks from /api/boards
   useEffect(() => {
-    fetch("/api/task-stats").then(r => r.json()).then(d => {
-      // Build representative task list from stats for overview metrics
-      const syntheticTasks: Task[] = [];
-      for (let i = 0; i < (d.urgent ?? 0); i++)
-        syntheticTasks.push({ id:`u${i}`, title:"", priority:"urgent", label:"", status:"todo" });
-      for (let i = 0; i < (d.high ?? 0); i++)
-        syntheticTasks.push({ id:`h${i}`, title:"", priority:"high", label:"", status:"todo" });
-      for (let i = 0; i < (d.medium ?? 0); i++)
-        syntheticTasks.push({ id:`m${i}`, title:"", priority:"medium", label:"", status:"todo" });
-      for (let i = 0; i < (d.low ?? 0); i++)
-        syntheticTasks.push({ id:`l${i}`, title:"", priority:"low", label:"", status:"todo" });
-      for (let i = 0; i < (d.completed ?? 0); i++)
-        syntheticTasks.push({ id:`c${i}`, title:"", priority:"low", label:"", status:"done" });
-      setTasks(syntheticTasks);
-    }).catch(() => {});
-  }, []);
+    fetch('/api/boards')
+      .then(r => r.json())
+      .then(d => {
+        const loaded: Task[] = (d.tasks ?? []).map((t: {
+          id: string; title: string; priority?: string; label?: string;
+          status?: string; estimate?: string; due_date?: string; gcal_set?: boolean;
+        }) => ({
+          id: t.id,
+          title: t.title,
+          priority: (['urgent', 'high', 'medium', 'low'].includes(t.priority ?? '') ? t.priority : 'medium') as Priority,
+          label: t.label ?? 'General',
+          status: (['todo', 'wip', 'done'].includes(t.status ?? '') ? t.status : 'todo') as TaskStatus,
+          estimate: t.estimate,
+          dueDate: t.due_date,
+          gcalSet: t.gcal_set,
+        }));
+        setTasks(loaded);
+      })
+      .catch(() => {});
+  }, [user?.id]);
 
   // 🔌 BACKEND: Load saved boards from API
   const [savedBoards, setSavedBoards] = useState<SavedBoard[]>([]);
@@ -2615,7 +2736,7 @@ export default function Dashboard() {
   return (
     <AppCtx.Provider value={appState}>
       <GlobalStyles theme={theme}/>
-      <div style={{ display:"flex", height:"100vh", background:"var(--bg)", overflow:"hidden" }}>
+      <div className="root-layout" style={{ display:"flex", height:"100vh", background:"var(--bg)", overflow:"hidden" }}>
         <Sidebar page={page} setPage={setPage} theme={theme} toggleTheme={toggleTheme}/>
         <div className="main-wrap" style={{ marginLeft:246, flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
           <Topbar page={page}/>
