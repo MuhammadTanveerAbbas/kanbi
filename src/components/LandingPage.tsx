@@ -163,12 +163,12 @@ function Hero(){
       <div style={{maxWidth:1140,margin:"0 auto",padding:"0 24px",textAlign:"center",position:"relative"}}>
         <div className="hero-badge" style={{display:"inline-flex",alignItems:"center",gap:8,padding:"5px 14px 5px 10px",borderRadius:100,border:"1px solid var(--ag)",background:"var(--as)",marginBottom:28}}>
           <div style={{width:20,height:20,borderRadius:6,background:"var(--as)",display:"flex",alignItems:"center",justifyContent:"center",color:"var(--ac)",flexShrink:0}}><IC.Spark size={13}/></div>
-          <span className="badge-text" style={{fontSize:12,color:"var(--ac)",fontWeight:500,whiteSpace:"nowrap"}}>Groq AI · Notion Sync · Google Calendar · Burnout Prevention</span>
+          <span className="badge-text" style={{fontSize:"clamp(10px,2vw,12px)",color:"var(--ac)",fontWeight:500,whiteSpace:"nowrap"}}>Groq AI · Notion Sync · Google Calendar · Burnout Prevention</span>
         </div>
         <h1 className="hh" style={{fontSize:"clamp(44px,7.5vw,86px)",fontWeight:800,letterSpacing:"-0.048em",lineHeight:1.04,color:"var(--tx)",marginBottom:24}}>
           <ST text="Turn hours of task" delay={0}/>{" "}
           <span style={{position:"relative",display:"inline-block"}}><Wavy/><ST text="planning" delay={0.34} style={{color:"var(--ac)",fontWeight:800} as React.CSSProperties}/></span>
-          <br/>{"into "}<span className="shimmer"><ST text="10 seconds" delay={0.56}/></span>
+          <br/>{"into "}<span style={{color:"var(--ac)",fontWeight:800}}><ST text="10 seconds" delay={0.56}/></span>
         </h1>
         <p style={{fontSize:17,color:"var(--tx2)",maxWidth:540,margin:"0 auto 40px",lineHeight:1.7}}>Paste notes, emails, or PDFs. Kanbi's Groq AI extracts every task, prioritizes intelligently, prevents burnout   and syncs with your calendar. <strong style={{color:"var(--tx)",fontWeight:500}}>2+ hours saved every day.</strong></p>
         <div className="cr" style={{display:"flex",gap:12,justifyContent:"center",flexWrap:"wrap"}}>

@@ -74,7 +74,7 @@ export default function HeroSection({ setIsLoading }: HeroSectionProps) {
             <span className="block text-white mb-2">
               Turns hours of task planning
             </span>
-            <span className="block bg-gradient-to-r from-gray-200 via-gray-400 to-gray-600 bg-clip-text text-transparent">
+            <span className="block text-white">
               into 10 seconds
             </span>
           </h1>
