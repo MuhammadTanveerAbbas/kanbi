@@ -7,6 +7,7 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { LogoIcon, LogoBadge } from "@/components/logo";
 
 const DARK_VARS = `
   --bg:#06060a; --bg1:#0c0c12; --bg2:#101018; --bg3:#141420;
@@ -157,9 +158,13 @@ function GlobalStyles({ theme }: { theme: "dark" | "light" }) {
         .page-pad { padding:16px 14px 80px !important }
         .kanban-grid { overflow-x:auto; grid-template-columns:repeat(3,minmax(260px,1fr)) !important }
         .chat-sidebar { display:none !important }
-        .settings-grid { grid-template-columns:1fr !important }
-        .settings-tabs { display:flex; flex-direction:row; flex-wrap:wrap; gap:4px; margin-bottom:16px }
-        .settings-tabs button { flex:1; min-width:calc(50% - 4px); justify-content:center !important }
+        .settings-grid { grid-template-columns:1fr !important; gap:16px !important }
+        .settings-tabs { display:flex; flex-direction:row; flex-wrap:wrap; gap:4px; margin-bottom:16px; position:static !important }
+        .settings-tabs button { flex:1; min-width:calc(50% - 4px); justify-content:center !important; padding:7px 8px !important; font-size:11.5px !important }
+        .integration-card { flex-direction:column !important; align-items:flex-start !important; gap:12px !important }
+        .integration-card > div:first-child { align-self:center }
+        .integration-card > div:nth-child(2) { text-align:center; width:100% }
+        .integration-card button { width:100% !important; justify-content:center !important }
         .saved-grid { grid-template-columns:1fr 1fr !important }
         .autopilot-grid { grid-template-columns:1fr !important }
         .quick-ai-sub { display:none }
@@ -180,6 +185,10 @@ function GlobalStyles({ theme }: { theme: "dark" | "light" }) {
         .topbar-title { font-size:13px !important }
         .chat-prompts { grid-template-columns:1fr !important }
         .kanban-grid { grid-template-columns:repeat(3,minmax(240px,1fr)) !important }
+        .settings-tabs button { min-width:100% !important; font-size:11px !important }
+        .integration-card { padding:12px 14px !important }
+        .integration-card p { font-size:12px !important }
+        .integration-card button { font-size:11px !important; height:30px !important }
       }
 
       /* ── Focus visible for a11y ── */
@@ -2203,9 +2212,9 @@ function PageSettings({ theme, toggleTheme }: { theme: Theme; toggleTheme: () =>
         <p style={{ fontSize:13, color:"var(--tx2)" }}>Manage your account and preferences</p>
       </div>
 
-      <div className="settings-grid" style={{ display:"grid", gridTemplateColumns:"210px 1fr", gap:24 }}>
+      <div className="settings-grid" style={{ display:"grid", gridTemplateColumns:"210px 1fr", gap:24, alignItems:"start" }}>
         {/* Tabs */}
-        <div className="settings-tabs" style={{ display:"flex", flexDirection:"column", gap:3 }}>
+        <div className="settings-tabs" style={{ display:"flex", flexDirection:"column", gap:3, position:"sticky", top:0 }}>
           {tabs.map(t => (
             <button key={t.key} onClick={() => setTab(t.key)} className="nav-btn"
               style={{ padding:"9px 12px", borderRadius:9, border:"none",
@@ -2227,14 +2236,14 @@ function PageSettings({ theme, toggleTheme }: { theme: Theme; toggleTheme: () =>
               <h3 style={{ fontSize:15, fontWeight:800, color:"var(--tx)", marginBottom:4, fontFamily:"var(--font-display)" }}>Profile</h3>
               <p style={{ fontSize:12.5, color:"var(--tx2)", marginBottom:22 }}>Update your personal information</p>
               <div style={{ display:"flex", alignItems:"center", gap:14, marginBottom:24,
-                padding:"16px", borderRadius:12, background:"var(--bg2)", border:"1px solid var(--br)" }}>
+                padding:"16px", borderRadius:12, background:"var(--bg2)", border:"1px solid var(--br)", flexWrap:"wrap" }}>
                 {/* 🔌 BACKEND: Replace "User" with user?.full_name and pass user?.avatar_url */}
                 <Avt name={user?.full_name ?? "User"} size={48}/>
-                <div style={{ flex:1 }}>
-                  <p style={{ fontSize:14, fontWeight:700, color:"var(--tx)", fontFamily:"var(--font-display)" }}>
+                <div style={{ flex:1, minWidth:0 }}>
+                  <p style={{ fontSize:14, fontWeight:700, color:"var(--tx)", fontFamily:"var(--font-display)", wordBreak:"break-word" }}>
                     {user?.full_name ?? "User"}
                   </p>
-                  <p style={{ fontSize:11.5, color:"var(--tx3)" }}>{user?.email}</p>
+                  <p style={{ fontSize:11.5, color:"var(--tx3)", wordBreak:"break-all" }}>{user?.email}</p>
                   <p style={{ fontSize:10.5, padding:"2px 8px", borderRadius:100, display:"inline-block",
                     marginTop:4, background:"var(--as)", color:"var(--ac)", fontWeight:700 }}>
                     {user?.plan === "pro" ? "Pro Plan" : "Free Plan"}
@@ -2257,25 +2266,27 @@ function PageSettings({ theme, toggleTheme }: { theme: Theme; toggleTheme: () =>
                       borderRadius:9, padding:"10px 13px", fontSize:13, color:"var(--tx2)", opacity:.7 }}/>
                   <p style={{ fontSize:11, color:"var(--tx3)", marginTop:4 }}>Email cannot be changed</p>
                 </div>
-                <button onClick={handleSaveProfile} disabled={saving} className="btn-primary"
-                  style={{ alignSelf:"flex-start", height:38, padding:"0 18px", borderRadius:9,
-                    background:"var(--ac)", border:"none", color:"#fff", fontSize:13, fontWeight:700,
-                    display:"flex", alignItems:"center", gap:8 }}>
-                  {saving
-                    ? <><div className="spin" style={{ width:12, height:12, borderRadius:"50%",
-                        border:"2px solid rgba(255,255,255,.3)", borderTopColor:"#fff" }}/> Saving...</>
-                    : "Save Changes"
-                  }
-                </button>
-                <button onClick={handleSignOut}
-                  style={{ alignSelf:"flex-start", height:38, padding:"0 18px", borderRadius:9,
-                    border:"1px solid var(--br)", background:"transparent",
-                    color:"var(--tx2)", fontSize:13, fontWeight:600, cursor:"pointer",
-                    display:"flex", alignItems:"center", gap:8, transition:"background .15s, color .15s" }}
-                  onMouseOver={e => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(239,68,68,0.07)"; (e.currentTarget as HTMLButtonElement).style.color = "var(--rd)"; }}
-                  onMouseOut={e =>  { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; (e.currentTarget as HTMLButtonElement).style.color = "var(--tx2)"; }}>
-                  <Icons.Logout size={13}/> Sign Out
-                </button>
+                <div style={{ display:"flex", gap:10, flexWrap:"wrap" }}>
+                  <button onClick={handleSaveProfile} disabled={saving} className="btn-primary"
+                    style={{ flex:"1 1 auto", minWidth:"140px", height:38, padding:"0 18px", borderRadius:9,
+                      background:"var(--ac)", border:"none", color:"#fff", fontSize:13, fontWeight:700,
+                      display:"flex", alignItems:"center", justifyContent:"center", gap:8 }}>
+                    {saving
+                      ? <><div className="spin" style={{ width:12, height:12, borderRadius:"50%",
+                          border:"2px solid rgba(255,255,255,.3)", borderTopColor:"#fff" }}/> Saving...</>
+                      : "Save Changes"
+                    }
+                  </button>
+                  <button onClick={handleSignOut}
+                    style={{ flex:"1 1 auto", minWidth:"140px", height:38, padding:"0 18px", borderRadius:9,
+                      border:"1px solid var(--br)", background:"transparent",
+                      color:"var(--tx2)", fontSize:13, fontWeight:600, cursor:"pointer",
+                      display:"flex", alignItems:"center", justifyContent:"center", gap:8, transition:"background .15s, color .15s" }}
+                    onMouseOver={e => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(239,68,68,0.07)"; (e.currentTarget as HTMLButtonElement).style.color = "var(--rd)"; }}
+                    onMouseOut={e =>  { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; (e.currentTarget as HTMLButtonElement).style.color = "var(--tx2)"; }}>
+                    <Icons.Logout size={13}/> Sign Out
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -2308,12 +2319,12 @@ function PageSettings({ theme, toggleTheme }: { theme: Theme; toggleTheme: () =>
               <h3 style={{ fontSize:15, fontWeight:800, color:"var(--tx)", marginBottom:4, fontFamily:"var(--font-display)" }}>Billing</h3>
               <p style={{ fontSize:12.5, color:"var(--tx2)", marginBottom:22 }}>Manage your subscription</p>
               <div style={{ borderRadius:12, border:"1px solid var(--br)", padding:"18px", marginBottom:16,
-                display:"flex", alignItems:"center", gap:16 }}>
-                <div style={{ flex:1 }}>
+                display:"flex", alignItems:"center", gap:16, flexWrap:"wrap" }}>
+                <div style={{ flex:1, minWidth:0 }}>
                   <p style={{ fontSize:14, fontWeight:700, color:"var(--tx)", fontFamily:"var(--font-display)" }}>
                     {user?.plan === "pro" ? "Pro Plan" : "Free Plan"}
                   </p>
-                  <p style={{ fontSize:12, color:"var(--tx3)" }}>
+                  <p style={{ fontSize:12, color:"var(--tx3)", wordBreak:"break-word" }}>
                     {user?.plan === "pro" ? "100 boards/day · 1000 AI uses/month" : "10 boards/day · 300 AI uses/month"}
                   </p>
                 </div>
@@ -2321,7 +2332,7 @@ function PageSettings({ theme, toggleTheme }: { theme: Theme; toggleTheme: () =>
                   /* 🔌 BACKEND: Link to your Stripe checkout session */
                   <button className="btn-primary"
                     style={{ height:36, padding:"0 16px", borderRadius:9, background:"var(--ac)",
-                      border:"none", color:"#fff", fontSize:12, fontWeight:700 }}>
+                      border:"none", color:"#fff", fontSize:12, fontWeight:700, flexShrink:0, whiteSpace:"nowrap" }}>
                     Upgrade to Pro · $9/mo
                   </button>
                 )}
@@ -2335,24 +2346,23 @@ function PageSettings({ theme, toggleTheme }: { theme: Theme; toggleTheme: () =>
               <p style={{ fontSize:12.5, color:"var(--tx2)", marginBottom:22 }}>Connect your tools</p>
               <div style={{ display:"flex", flexDirection:"column", gap:11 }}>
                 {[
-                  { name:"Notion",          desc:"Two-way sync with Notion",            icon:<Icons.Notion size={16}/> },
-                  { name:"Gmail",           desc:"Import tasks from email",             icon:<Icons.Google size={16}/> },
-                  { name:"Google Calendar", desc:"Set task reminders automatically",    icon:<Icons.Calendar size={16}/> },
+                  { name:"Notion",          desc:"Two-way sync with Notion",            icon:<Icons.Notion size={16}/>,   url:"/api/integrations/notion/auth" },
+                  { name:"Gmail",           desc:"Import tasks from email",             icon:<Icons.Google size={16}/>,   url:"/api/google/auth" },
+                  { name:"Google Calendar", desc:"Set task reminders automatically",    icon:<Icons.Calendar size={16}/>, url:"/api/google/auth" },
                 ].map(i => (
-                  <div key={i.name} style={{ display:"flex", alignItems:"center", gap:15, padding:"15px 18px",
-                    borderRadius:11, border:"1px solid var(--br)", background:"var(--bg2)" }}>
+                  <div key={i.name} className="integration-card" style={{ display:"flex", alignItems:"center", gap:15, padding:"15px 18px",
+                    borderRadius:11, border:"1px solid var(--br)", background:"var(--bg2)", flexWrap:"wrap" }}>
                     <div style={{ width:36, height:36, borderRadius:9, background:"var(--bg3)",
                       display:"flex", alignItems:"center", justifyContent:"center", color:"var(--ac)", flexShrink:0 }}>
                       {i.icon}
                     </div>
-                    <div style={{ flex:1 }}>
-                      <p style={{ fontSize:13.5, fontWeight:700, color:"var(--tx)" }}>{i.name}</p>
-                      <p style={{ fontSize:11.5, color:"var(--tx3)" }}>{i.desc}</p>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <p style={{ fontSize:13.5, fontWeight:700, color:"var(--tx)", wordBreak:"break-word" }}>{i.name}</p>
+                      <p style={{ fontSize:11.5, color:"var(--tx3)", wordBreak:"break-word" }}>{i.desc}</p>
                     </div>
-                    {/* 🔌 BACKEND: Wire each to its OAuth flow */}
-                    <button className="btn-primary"
+                    <button onClick={() => window.location.href = i.url} className="btn-primary"
                       style={{ height:32, padding:"0 14px", borderRadius:8, border:"1px solid var(--ac)",
-                        background:"var(--as)", color:"var(--ac)", fontSize:12, fontWeight:700 }}>
+                        background:"var(--as)", color:"var(--ac)", fontSize:12, fontWeight:700, cursor:"pointer", flexShrink:0 }}>
                       Connect
                     </button>
                   </div>
@@ -2439,16 +2449,7 @@ function Sidebar({ page, setPage, theme, toggleTheme }: {
       {/* Logo */}
       <div style={{ padding:"17px 17px 14px", borderBottom:"1px solid var(--br)" }}>
         <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-          <div style={{
-            width:32, height:32, borderRadius:10, flexShrink:0,
-            background:"linear-gradient(135deg, #5e6fe8 0%, #a78bfa 100%)",
-            display:"flex", alignItems:"center", justifyContent:"center",
-          }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffffff"
-              strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
-            </svg>
-          </div>
+          <LogoBadge size={32} />
           <span style={{ fontSize:16, fontWeight:800, color:"var(--tx)", letterSpacing:"-0.03em",
             fontFamily:"var(--font-display)" }}>KANBI</span>
           <span style={{ fontSize:9, fontWeight:700, padding:"2px 7px", borderRadius:5,
@@ -2603,16 +2604,7 @@ function Topbar({ page }: { page: Page }) {
     }}>
       {/* Left: favicon logo + page title */}
       <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-        <div style={{
-          width:28, height:28, borderRadius:8, flexShrink:0,
-          background:"linear-gradient(135deg, #5e6fe8 0%, #a78bfa 100%)",
-          display:"flex", alignItems:"center", justifyContent:"center",
-        }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ffffff"
-            strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
-          </svg>
-        </div>
+        <LogoBadge size={28} />
         <div>
           <h2 className="topbar-title" style={{ fontSize:14, fontWeight:700, color:"var(--tx)", fontFamily:"var(--font-display)", lineHeight:1.2 }}>
             {PAGE_META[page].title}

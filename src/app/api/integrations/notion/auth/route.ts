@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
 
     const authUrl = `https://api.notion.com/v1/oauth/authorize?client_id=${clientId}&response_type=code&owner=user&redirect_uri=${encodeURIComponent(redirectUri)}`;
 
-    return NextResponse.redirect(authUrl);
+    return Response.redirect(authUrl, 302);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
