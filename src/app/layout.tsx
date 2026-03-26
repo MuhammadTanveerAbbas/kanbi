@@ -49,8 +49,12 @@ export const metadata: Metadata = {
     images: ['/twitter-image'],
   },
   icons: {
-    icon: '/icon',
+    icon: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+      { url: '/icon', type: 'image/png', sizes: '64x64' },
+    ],
     apple: '/apple-icon',
+    shortcut: '/favicon.svg',
   },
 };
 
