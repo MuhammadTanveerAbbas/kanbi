@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.redirect('/sign-in?error=unauthorized');
+      return NextResponse.redirect(new URL('/sign-in?error=unauthorized', request.url));
     }
 
     const searchParams = request.nextUrl.searchParams;
@@ -15,11 +15,11 @@ export async function GET(request: NextRequest) {
     const error = searchParams.get('error');
 
     if (error) {
-      return NextResponse.redirect(`/dashboard/settings?error=${error}`);
+      return NextResponse.redirect(new URL(`/dashboard?error=${error}`, request.url));
     }
 
     if (!code) {
-      return NextResponse.redirect('/dashboard/settings?error=no_code');
+      return NextResponse.redirect(new URL('/dashboard?error=no_code', request.url));
     }
 
     const clientId = process.env.NOTION_CLIENT_ID;
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     const redirectUri = process.env.NOTION_REDIRECT_URI;
 
     if (!clientId || !clientSecret || !redirectUri) {
-      return NextResponse.redirect('/dashboard/settings?error=config_missing');
+      return NextResponse.redirect(new URL('/dashboard?error=config_missing', request.url));
     }
 
     const auth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
     if (!tokenResponse.ok) {
       const errorData = await tokenResponse.json();
       console.error('Notion token error:', errorData);
-      return NextResponse.redirect('/dashboard/settings?error=token_failed');
+      return NextResponse.redirect(new URL('/dashboard?error=token_failed', request.url));
     }
 
     const tokenData = await tokenResponse.json();
@@ -66,9 +66,9 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    return NextResponse.redirect('/dashboard/settings?success=notion_connected');
+    return NextResponse.redirect(new URL('/dashboard?success=notion_connected', request.url));
   } catch (error: any) {
     console.error('Notion callback error:', error);
-    return NextResponse.redirect('/dashboard/settings?error=callback_failed');
+    return NextResponse.redirect(new URL('/dashboard?error=callback_failed', request.url));
   }
 }

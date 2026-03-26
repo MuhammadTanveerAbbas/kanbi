@@ -25,6 +25,10 @@ const AUTH_CSS = (theme: "dark" | "light") => `
   @keyframes spin { from{transform:rotate(0)} to{transform:rotate(360deg)} }
   .fade-up { animation: fadeUp .38s cubic-bezier(.22,1,.36,1) both; }
   .spin { animation: spin .7s linear infinite; }
+  .auth-card { padding: 32px 28px; }
+  @media (max-width: 480px) {
+    .auth-card { padding: 20px 16px; }
+  }
 `;
 
 const I = {
@@ -67,7 +71,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
       <div suppressHydrationWarning style={{
         minHeight: "100vh", display: "flex", flexDirection: "column",
         alignItems: "center", justifyContent: "center",
-        padding: "24px 16px",
+        padding: "80px 16px 24px",
         background: t === "dark"
           ? "radial-gradient(ellipse at 50% -20%, rgba(94,111,232,0.12) 0%, transparent 60%), #07070b"
           : "radial-gradient(ellipse at 50% -20%, rgba(94,111,232,0.08) 0%, transparent 60%), #f2f3fb",
@@ -103,7 +107,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
 
         <div className="fade-up" style={{
           position: "relative", zIndex: 1,
-          width: "100%", maxWidth: 420,
+          width: "min(100%, 420px)",
           borderRadius: 18, border: "1px solid var(--br)",
           background: "var(--card)",
           boxShadow: t === "dark"

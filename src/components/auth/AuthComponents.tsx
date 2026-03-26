@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 
 const authFieldStyles = `
   .auth-input {
@@ -174,14 +174,24 @@ export function AuthButton({ children, loading, icon, onClick, type = "submit", 
 }
 
 export function SocialAuth({ mode }: { mode: "signin" | "signup" }) {
+  const [loading, setLoading] = React.useState(false);
   const handleGoogleAuth = async () => {
-    // TODO: Implement Google OAuth with Supabase
-    alert("Google OAuth - Wire with Supabase Auth");
+    setLoading(true);
+    const { createClient } = await import("@/lib/supabase/client");
+    const supabase = createClient();
+    await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+        queryParams: { access_type: "offline", prompt: "consent" },
+      },
+    });
+    setLoading(false);
   };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 16 }}>
-      <AuthButton variant="ghost" icon={I.google(16)} onClick={handleGoogleAuth} type="button">
+      <AuthButton variant="ghost" icon={I.google(16)} onClick={handleGoogleAuth} type="button" loading={loading}>
         {mode === "signin" ? "Sign in" : "Sign up"} with Google
       </AuthButton>
       <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "4px 0" }}>

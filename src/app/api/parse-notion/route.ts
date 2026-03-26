@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { pageUrl, accessToken } = body;
+    const { pageUrl } = body;
 
     if (!pageUrl || typeof pageUrl !== 'string') {
       return NextResponse.json(
@@ -61,12 +61,23 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    if (!accessToken || typeof accessToken !== 'string') {
+
+    // Fetch stored Notion access token for this user
+    const { data: integration } = await supabase
+      .from('integrations')
+      .select('access_token')
+      .eq('user_id', user.id)
+      .eq('provider', 'notion')
+      .single();
+
+    if (!integration?.access_token) {
       return NextResponse.json(
-        { error: 'accessToken is required' },
-        { status: 400 }
+        { error: 'Notion not connected. Please connect your Notion workspace first.' },
+        { status: 401 }
       );
     }
+
+    const accessToken = integration.access_token;
 
     const pageId = extractPageId(pageUrl.trim());
     if (!pageId) {

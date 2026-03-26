@@ -116,11 +116,16 @@ function Navbar(){
   const {theme,toggle}=useTheme();
   const [mob,setMob]=useState(false);
   const [scrolled,setScrolled]=useState(false);
+  const [user,setUser]=useState<{id:string}|null>(null);
   const prog=useScrollP();
   const handleGetStarted=()=>{
     window.location.href='/sign-up';
   };
   useEffect(()=>{const fn=()=>setScrolled(window.scrollY>24);window.addEventListener("scroll",fn,{passive:true});return()=>window.removeEventListener("scroll",fn);},[]);
+  useEffect(()=>{
+    const supabase=createClient();
+    supabase.auth.getUser().then(({data})=>setUser(data.user));
+  },[]);
   const links=[["Features","#features"],["How It Works","#how-it-works"],["Product","#showcase"],["Pricing","#pricing"],["FAQ","#faq"]];
   return(<>
     <nav style={{position:"fixed",top:0,left:0,right:0,zIndex:200,height:56,display:"flex",alignItems:"center",borderBottom:`1px solid ${scrolled?"var(--br)":"transparent"}`,background:scrolled?"var(--nb)":"transparent",backdropFilter:scrolled?"blur(24px)":"none",WebkitBackdropFilter:scrolled?"blur(24px)":"none",transition:"background .3s,border-color .3s"}}>
@@ -137,15 +142,20 @@ function Navbar(){
           <button onClick={toggle} style={{width:34,height:34,borderRadius:8,border:"1px solid var(--br)",background:"var(--bg1)",color:"var(--tx2)",display:"flex",alignItems:"center",justifyContent:"center",transition:"all .15s"}} onMouseOver={e=>{e.currentTarget.style.borderColor="var(--brh)";e.currentTarget.style.color="var(--tx)"}} onMouseOut={e=>{e.currentTarget.style.borderColor="var(--br)";e.currentTarget.style.color="var(--tx2)"}}>
             {theme==="dark"?<IC.Sun size={14}/>:<IC.Moon size={14}/>}
           </button>
-          <a href="/sign-in" className="na xlh" style={{fontSize:13,color:"var(--tx2)",transition:"color .15s"}}>Sign in</a>
-          <button onClick={handleGetStarted} style={{height:34,padding:"0 15px",borderRadius:8,background:"var(--inv)",color:"var(--inv2)",fontSize:13,fontWeight:600,display:"inline-flex",alignItems:"center",transition:"opacity .15s",border:"none"}} onMouseOver={e=>(e.currentTarget.style.opacity=".88")} onMouseOut={e=>(e.currentTarget.style.opacity="1")}>Get Started Free</button>
+          {user
+            ? <a href="/dashboard" style={{height:34,padding:"0 15px",borderRadius:8,background:"var(--inv)",color:"var(--inv2)",fontSize:13,fontWeight:600,display:"inline-flex",alignItems:"center",transition:"opacity .15s",textDecoration:"none"}} onMouseOver={e=>(e.currentTarget.style.opacity=".88")} onMouseOut={e=>(e.currentTarget.style.opacity="1")}>Dashboard</a>
+            : <button onClick={handleGetStarted} style={{height:34,padding:"0 15px",borderRadius:8,background:"var(--inv)",color:"var(--inv2)",fontSize:13,fontWeight:600,display:"inline-flex",alignItems:"center",transition:"opacity .15s",border:"none"}} onMouseOver={e=>(e.currentTarget.style.opacity=".88")} onMouseOut={e=>(e.currentTarget.style.opacity="1")}>Get Started Free</button>
+          }
           <button className="ms" onClick={()=>setMob(!mob)} style={{display:"none",background:"none",border:"none",color:"var(--tx2)",padding:4}}>{mob?<IC.X/>:<IC.Menu/>}</button>
         </div>
       </div>
     </nav>
     {mob&&<div style={{position:"fixed",top:56,left:0,right:0,zIndex:199,background:"var(--bg1)",borderBottom:"1px solid var(--br)",padding:"20px 24px",display:"flex",flexDirection:"column",gap:16}}>
       {links.map(([l,h])=><a key={l} href={h} onClick={()=>setMob(false)} style={{fontSize:14,color:"var(--tx2)"}}>{l}</a>)}
-      <a href="/sign-up" onClick={()=>setMob(false)} style={{height:42,borderRadius:9,background:"var(--ac)",color:"#fff",fontSize:13,fontWeight:600,display:"flex",alignItems:"center",justifyContent:"center"}}>Get Started Free</a>
+      {user
+        ? <a href="/dashboard" onClick={()=>setMob(false)} style={{height:42,borderRadius:9,background:"var(--ac)",color:"#fff",fontSize:13,fontWeight:600,display:"flex",alignItems:"center",justifyContent:"center"}}>Dashboard</a>
+        : <a href="/sign-up" onClick={()=>setMob(false)} style={{height:42,borderRadius:9,background:"var(--ac)",color:"#fff",fontSize:13,fontWeight:600,display:"flex",alignItems:"center",justifyContent:"center"}}>Get Started Free</a>
+      }
     </div>}
   </>);
 }

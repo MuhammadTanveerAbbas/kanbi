@@ -10,39 +10,42 @@ import { createClient } from "@/lib/supabase/client";
 import { LogoIcon, LogoBadge } from "@/components/logo";
 
 const DARK_VARS = `
-  --bg:#06060a; --bg1:#0c0c12; --bg2:#101018; --bg3:#141420;
-  --br:rgba(255,255,255,0.065); --brh:rgba(255,255,255,0.12);
-  --tx:#e4e4f0; --tx2:#7272a0; --tx3:#38384e;
-  --nb:rgba(6,6,10,0.92); --sb:#0c0c12;
-  --sh:rgba(0,0,0,0.55); --inp:#101018;
-  --card-glow:rgba(94,111,232,0.04);
+  --bg:#07070e; --bg1:#0e0e18; --bg2:#13131f; --bg3:#18182a;
+  --br:rgba(255,255,255,0.07); --brh:rgba(255,255,255,0.14);
+  --tx:#eaeaf8; --tx2:#6e6e9a; --tx3:#35354e;
+  --nb:rgba(7,7,14,0.93); --sb:#0a0a15;
+  --sh:rgba(0,0,0,0.6); --inp:#13131f;
+  --card-glow:rgba(99,102,241,0.05);
+  --sidebar-border:rgba(255,255,255,0.055);
 `;
 const LIGHT_VARS = `
-  --bg:#f0f1fa; --bg1:#ffffff; --bg2:#e8eaf6; --bg3:#dde0f2;
-  --br:rgba(0,0,0,0.068); --brh:rgba(0,0,0,0.13);
-  --tx:#080818; --tx2:#46467a; --tx3:#9090b8;
-  --nb:rgba(240,241,250,0.94); --sb:#ffffff;
-  --sh:rgba(0,0,0,0.07); --inp:#e8eaf6;
-  --card-glow:rgba(94,111,232,0.03);
+  --bg:#f4f5fd; --bg1:#ffffff; --bg2:#eceef9; --bg3:#e2e4f5;
+  --br:rgba(0,0,0,0.07); --brh:rgba(0,0,0,0.14);
+  --tx:#0a0a1a; --tx2:#44447a; --tx3:#9494bc;
+  --nb:rgba(244,245,253,0.95); --sb:#ffffff;
+  --sh:rgba(0,0,0,0.08); --inp:#eceef9;
+  --card-glow:rgba(99,102,241,0.04);
+  --sidebar-border:rgba(0,0,0,0.07);
 `;
 
 function GlobalStyles({ theme }: { theme: "dark" | "light" }) {
   return (
     <style suppressHydrationWarning>{`
-      @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+      @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
 
       *,*::before,*::after { box-sizing:border-box; margin:0; padding:0 }
       html { font-size:16px }
 
       :root {
         ${theme === "dark" ? DARK_VARS : LIGHT_VARS}
-        --ac:#6366f1; --ach:#818cf8; --as:rgba(99,102,241,0.10); --ag:rgba(99,102,241,0.20);
+        --ac:#6366f1; --ach:#818cf8; --as:rgba(99,102,241,0.10); --ag:rgba(99,102,241,0.22);
         --gr:#10b981; --am:#f59e0b; --rd:#ef4444; --pu:#a78bfa; --ur:#f97316;
-        --inv:${theme==="dark"?"#fff":"#06060a"}; --inv2:${theme==="dark"?"#06060a":"#fff"};
-        --radius-sm:7px; --radius-md:11px; --radius-lg:16px; --radius-xl:22px;
-        --font-display:'Syne',sans-serif;
-        --font-body:'DM Sans',-apple-system,sans-serif;
-        --font-mono:'DM Mono',monospace;
+        --inv:${theme==="dark"?"#fff":"#07070e"}; --inv2:${theme==="dark"?"#07070e":"#fff"};
+        --radius-sm:8px; --radius-md:12px; --radius-lg:16px; --radius-xl:22px;
+        --font-display:'Plus Jakarta Sans',sans-serif;
+        --font-body:'Inter',-apple-system,sans-serif;
+        --font-mono:'JetBrains Mono',monospace;
+        --sidebar-w:252px;
       }
 
       body {
@@ -50,94 +53,95 @@ function GlobalStyles({ theme }: { theme: "dark" | "light" }) {
         background: var(--bg);
         color: var(--tx);
         -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
         overflow: hidden;
         height: 100vh;
         transition: background .25s, color .25s;
+        letter-spacing: -0.01em;
       }
 
       a { text-decoration:none; color:inherit }
-      button { font-family:var(--font-body); cursor:pointer }
-      textarea,input,select { font-family:var(--font-body) }
+      button { font-family:var(--font-body); cursor:pointer; letter-spacing:-0.01em }
+      textarea,input,select { font-family:var(--font-body); letter-spacing:-0.01em }
 
       ::-webkit-scrollbar { width:3px; height:3px }
       ::-webkit-scrollbar-track { background:transparent }
-      ::-webkit-scrollbar-thumb { background:var(--br); border-radius:3px }
+      ::-webkit-scrollbar-thumb { background:var(--br); border-radius:99px }
       ::-webkit-scrollbar-thumb:hover { background:var(--brh) }
 
       /* ── Keyframes ── */
-      @keyframes fadeUp    { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+      @keyframes fadeUp    { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
       @keyframes fadeIn    { from{opacity:0} to{opacity:1} }
-      @keyframes scaleIn   { from{opacity:0;transform:scale(.94)} to{opacity:1;transform:scale(1)} }
-      @keyframes pulse     { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.35;transform:scale(.55)} }
+      @keyframes scaleIn   { from{opacity:0;transform:scale(.95)} to{opacity:1;transform:scale(1)} }
+      @keyframes pulse     { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.3;transform:scale(.5)} }
       @keyframes spin      { from{transform:rotate(0)} to{transform:rotate(360deg)} }
-      @keyframes slideR    { from{transform:translateX(-14px);opacity:0} to{transform:translateX(0);opacity:1} }
-      @keyframes modalIn   { from{opacity:0;transform:scale(.95) translateY(10px)} to{opacity:1;transform:scale(1) translateY(0)} }
+      @keyframes slideR    { from{transform:translateX(-12px);opacity:0} to{transform:translateX(0);opacity:1} }
+      @keyframes modalIn   { from{opacity:0;transform:scale(.96) translateY(8px)} to{opacity:1;transform:scale(1) translateY(0)} }
       @keyframes shimmer   { from{background-position:-200% 0} to{background-position:200% 0} }
-      @keyframes countUp   { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
-      @keyframes glowPulse { 0%,100%{box-shadow:0 0 0 0 rgba(99,102,241,0)} 50%{box-shadow:0 0 20px 2px rgba(99,102,241,0.2)} }
+      @keyframes countUp   { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
 
       /* ── Utility classes ── */
-      .fade-up   { animation: fadeUp .38s cubic-bezier(.22,1,.36,1) both }
-      .fade-in   { animation: fadeIn .28s ease both }
-      .scale-in  { animation: scaleIn .32s cubic-bezier(.22,1,.36,1) both }
+      .fade-up   { animation: fadeUp .36s cubic-bezier(.22,1,.36,1) both }
+      .fade-in   { animation: fadeIn .26s ease both }
+      .scale-in  { animation: scaleIn .3s cubic-bezier(.22,1,.36,1) both }
       .pulse     { animation: pulse 2.4s ease-in-out infinite }
-      .spin      { animation: spin .72s linear infinite }
-      .slide-r   { animation: slideR .3s cubic-bezier(.22,1,.36,1) both }
+      .spin      { animation: spin .7s linear infinite }
+      .slide-r   { animation: slideR .28s cubic-bezier(.22,1,.36,1) both }
 
-      /* Stagger delays for child elements */
+      /* Stagger delays */
       .stagger > *:nth-child(1) { animation-delay:.04s }
-      .stagger > *:nth-child(2) { animation-delay:.08s }
-      .stagger > *:nth-child(3) { animation-delay:.12s }
-      .stagger > *:nth-child(4) { animation-delay:.16s }
-      .stagger > *:nth-child(5) { animation-delay:.20s }
-      .stagger > *:nth-child(6) { animation-delay:.24s }
+      .stagger > *:nth-child(2) { animation-delay:.09s }
+      .stagger > *:nth-child(3) { animation-delay:.14s }
+      .stagger > *:nth-child(4) { animation-delay:.19s }
+      .stagger > *:nth-child(5) { animation-delay:.24s }
+      .stagger > *:nth-child(6) { animation-delay:.29s }
 
-      /* ── Interactive ── */
-      .nav-btn   { transition: background .15s, color .15s, border-color .15s, transform .12s }
-      .nav-btn:hover { background:rgba(255,255,255,0.045) !important; color:var(--tx) !important }
+      /* ── Nav buttons ── */
+      .nav-btn { transition: background .15s, color .15s, transform .1s }
+      .nav-btn:hover { background:rgba(99,102,241,0.07) !important; color:var(--tx) !important }
       .nav-btn:active { transform: scale(.97) }
 
+      /* ── Cards ── */
       .card {
-        transition: border-color .18s, background .18s, transform .2s, box-shadow .2s;
+        transition: border-color .18s, transform .2s, box-shadow .2s;
         position: relative;
         overflow: hidden;
       }
-      .card::before {
+      .card::after {
         content:'';
         position:absolute;
         inset:0;
-        background:var(--card-glow);
+        background: linear-gradient(135deg, var(--card-glow), transparent 60%);
         opacity:0;
-        transition:opacity .2s;
+        transition:opacity .22s;
         pointer-events:none;
         border-radius:inherit;
       }
-      .card:hover { border-color:var(--brh) !important; transform:translateY(-2px); box-shadow:0 8px 32px var(--sh) }
-      .card:hover::before { opacity:1 }
+      .card:hover { border-color:var(--brh) !important; transform:translateY(-1px); box-shadow:0 6px 28px var(--sh) }
+      .card:hover::after { opacity:1 }
 
-      .task-card { transition: border-color .15s, background .15s, transform .15s }
-      .task-card:hover { border-color:var(--brh) !important; background:var(--bg2) !important; transform:translateX(2px) }
+      /* ── Task cards ── */
+      .task-card { transition: border-color .15s, background .15s, transform .15s, box-shadow .15s }
+      .task-card:hover { border-color:rgba(99,102,241,0.3) !important; background:var(--bg2) !important; transform:translateX(2px); box-shadow:0 2px 12px rgba(0,0,0,0.2) }
 
-      .ghost  { transition: background .15s, color .15s, border-color .15s }
-      .ghost:hover { background:rgba(255,255,255,0.055) !important }
+      /* ── Ghost buttons ── */
+      .ghost { transition: background .15s, color .15s, border-color .15s }
+      .ghost:hover { background:rgba(99,102,241,0.07) !important }
 
-      .btn-primary {
-        transition: background .15s, transform .12s, box-shadow .15s, opacity .15s;
-      }
-      .btn-primary:hover { filter:brightness(1.1); box-shadow:0 4px 20px rgba(99,102,241,0.35) }
+      /* ── Primary buttons ── */
+      .btn-primary { transition: filter .15s, transform .1s, box-shadow .15s }
+      .btn-primary:hover { filter:brightness(1.12); box-shadow:0 4px 22px rgba(99,102,241,0.38) }
       .btn-primary:active { transform:scale(.97) }
 
-      .input-focus {
-        transition: border-color .15s, box-shadow .15s;
-        outline: none;
-      }
-      .input-focus:focus { border-color: var(--ac) !important; box-shadow: 0 0 0 3px rgba(99,102,241,0.12) }
+      /* ── Inputs ── */
+      .input-focus { transition: border-color .15s, box-shadow .15s; outline: none }
+      .input-focus:focus { border-color: var(--ac) !important; box-shadow: 0 0 0 3px rgba(99,102,241,0.14) }
 
-      /* Skeleton shimmer for loading states */
+      /* ── Skeleton ── */
       .skeleton {
         background: linear-gradient(90deg, var(--bg2) 25%, var(--bg3) 50%, var(--bg2) 75%);
         background-size: 200% 100%;
-        animation: shimmer 1.6s infinite;
+        animation: shimmer 1.5s infinite;
         border-radius: var(--radius-sm);
       }
 
@@ -191,36 +195,38 @@ function GlobalStyles({ theme }: { theme: "dark" | "light" }) {
         .integration-card button { font-size:11px !important; height:30px !important }
       }
 
-      /* ── Focus visible for a11y ── */
+      /* ── Focus visible ── */
       :focus-visible {
         outline: 2px solid var(--ac);
         outline-offset: 2px;
         border-radius: var(--radius-sm);
       }
 
-      /* ── Quick AI Extract Bar ── */
+      /* ── Quick AI Bar ── */
       .quick-ai-bar {
-        border-radius: 13px;
+        border-radius: var(--radius-md);
         border: 1px solid var(--br);
         background: var(--bg1);
-        padding: 14px 16px;
+        padding: 15px 18px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.12);
       }
       .quick-ai-header {
         display: flex;
         align-items: center;
-        gap: 8px;
-        margin-bottom: 10px;
+        gap: 9px;
+        margin-bottom: 11px;
       }
       .quick-ai-icon {
-        width: 26px;
-        height: 26px;
-        border-radius: 7px;
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
         background: linear-gradient(135deg, var(--ac), var(--pu));
         display: flex;
         align-items: center;
         justify-content: center;
         color: #fff;
         flex-shrink: 0;
+        box-shadow: 0 2px 8px rgba(99,102,241,0.35);
       }
       .quick-ai-title {
         font-size: 13px;
@@ -228,65 +234,75 @@ function GlobalStyles({ theme }: { theme: "dark" | "light" }) {
         color: var(--tx);
         font-family: var(--font-display);
         flex-shrink: 0;
+        letter-spacing: -0.02em;
       }
-      .quick-ai-sub {
-        font-size: 11px;
-        color: var(--tx3);
-      }
+      .quick-ai-sub { font-size: 11px; color: var(--tx3) }
       .quick-ai-badge {
         margin-left: auto;
         font-size: 10px;
         color: var(--ac);
-        padding: 2px 8px;
-        border-radius: 5px;
+        padding: 2px 9px;
+        border-radius: 99px;
         background: var(--as);
         border: 1px solid var(--ag);
         font-weight: 600;
         flex-shrink: 0;
+        font-family: var(--font-mono);
       }
-      .quick-ai-row {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
+      .quick-ai-row { display: flex; align-items: center; gap: 8px }
       .quick-ai-input {
         flex: 1;
         min-width: 0;
-        height: 40px;
+        height: 42px;
         background: var(--inp);
         border: 1px solid var(--br);
-        border-radius: 9px;
+        border-radius: var(--radius-sm);
         padding: 0 14px;
-        font-size: 13px;
+        font-size: 13.5px;
         color: var(--tx);
         font-family: var(--font-body);
         outline: none;
         transition: border-color .15s, box-shadow .15s;
+        letter-spacing: -0.01em;
       }
       .quick-ai-input:focus {
         border-color: var(--ac);
-        box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
+        box-shadow: 0 0 0 3px rgba(99,102,241,0.14);
       }
-      .quick-ai-input::placeholder { color: var(--tx3); }
+      .quick-ai-input::placeholder { color: var(--tx3) }
       .quick-ai-btn {
-        height: 40px;
-        padding: 0 18px;
-        border-radius: 9px;
+        height: 42px;
+        padding: 0 20px;
+        border-radius: var(--radius-sm);
         border: none;
         background: linear-gradient(135deg, var(--ac), var(--pu));
         color: #fff;
-        font-size: 12.5px;
+        font-size: 13px;
         font-weight: 700;
-        font-family: var(--font-body);
+        font-family: var(--font-display);
         display: flex;
         align-items: center;
-        gap: 6px;
+        gap: 7px;
         flex-shrink: 0;
         cursor: pointer;
         transition: filter .15s, box-shadow .15s;
+        letter-spacing: -0.01em;
+        box-shadow: 0 2px 12px rgba(99,102,241,0.3);
       }
-      .quick-ai-btn:hover { filter: brightness(1.1); box-shadow: 0 4px 16px rgba(99,102,241,0.35); }
-      .quick-ai-btn:disabled { cursor: not-allowed; }
+      .quick-ai-btn:hover { filter: brightness(1.1); box-shadow: 0 4px 18px rgba(99,102,241,0.42) }
+      .quick-ai-btn:disabled { cursor: not-allowed; opacity: .5 }
+
+      /* ── Section labels ── */
+      .nav-section-label {
+        font-size: 9.5px;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--tx3);
+        padding: 0 12px;
+        margin: 14px 0 5px;
+        font-family: var(--font-mono);
+      }
     `}</style>
   );
 }
@@ -426,11 +442,12 @@ function PriBadge({ p }: { p: Priority }) {
   const c = PRI[p];
   return (
     <span style={{
-      fontSize: 9.5, fontWeight: 700, letterSpacing: "0.05em",
-      padding: "2px 7px", borderRadius: 4,
+      fontSize: 9, fontWeight: 700, letterSpacing: "0.06em",
+      padding: "2px 8px", borderRadius: 99,
       background: c.bg, color: c.color,
       textTransform: "uppercase", whiteSpace: "nowrap",
       fontFamily: "var(--font-mono)",
+      border: `1px solid ${c.color}22`,
     }}>
       {c.label}
     </span>
@@ -443,7 +460,8 @@ function Avt({ name, size = 28, avatarUrl }: { name: string; size?: number; avat
   if (avatarUrl) {
     return (
       <img src={avatarUrl} alt={name} width={size} height={size}
-        style={{ borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+        style={{ borderRadius: "50%", objectFit: "cover", flexShrink: 0,
+          boxShadow: "0 0 0 2px var(--bg1), 0 0 0 3px var(--br)" }} />
     );
   }
   return (
@@ -451,9 +469,10 @@ function Avt({ name, size = 28, avatarUrl }: { name: string; size?: number; avat
       width: size, height: size, borderRadius: "50%",
       background: "linear-gradient(135deg, var(--ac), var(--pu))",
       display: "flex", alignItems: "center", justifyContent: "center",
-      fontSize: size * 0.35, fontWeight: 700, color: "#fff", flexShrink: 0,
+      fontSize: size * 0.34, fontWeight: 700, color: "#fff", flexShrink: 0,
       fontFamily: "var(--font-display)",
-      boxShadow: "0 2px 8px rgba(99,102,241,0.25)",
+      boxShadow: "0 0 0 2px var(--bg1), 0 0 0 3px var(--br), 0 2px 8px rgba(99,102,241,0.3)",
+      letterSpacing: "-0.02em",
     }}>
       {init}
     </div>
@@ -761,31 +780,29 @@ function TaskCard({
 }) {
   return (
     <div className="task-card" style={{
-      borderRadius: 10, border: "1px solid var(--br)", background: "var(--bg1)",
-      padding: compact ? "8px 11px" : "12px 14px", marginBottom: 8, cursor: "pointer",
+      borderRadius: 12, border: "1px solid var(--br)", background: "var(--bg1)",
+      padding: compact ? "8px 11px" : "13px 15px", marginBottom: 8, cursor: "pointer",
     }}>
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:9,
-        marginBottom: compact ? 4 : 9 }}>
-        <p style={{ fontSize: compact ? 11.5 : 12.5, color:"var(--tx)", fontWeight:500,
-          lineHeight:1.45, flex:1 }}>{task.title}</p>
+        marginBottom: compact ? 0 : 9 }}>
+        <p style={{ fontSize: compact ? 11.5 : 13, color:"var(--tx)", fontWeight:500,
+          lineHeight:1.5, flex:1, letterSpacing:"-0.01em" }}>{task.title}</p>
         <PriBadge p={task.priority}/>
       </div>
       {!compact && (
-        <div style={{ display:"flex", alignItems:"center", gap:5, flexWrap:"wrap", marginBottom:9 }}>
-          <span style={{ fontSize:10, padding:"2px 8px", borderRadius:5, background:"var(--as)",
-            color:"var(--ac)", fontWeight:600, fontFamily:"var(--font-mono)" }}>{task.label}</span>
+        <div style={{ display:"flex", alignItems:"center", gap:5, flexWrap:"wrap", marginBottom:10 }}>
+          <span style={{ fontSize:10, padding:"2px 8px", borderRadius:99, background:"var(--as)",
+            color:"var(--ac)", fontWeight:600, fontFamily:"var(--font-mono)", border:"1px solid var(--ag)" }}>{task.label}</span>
           {task.dueDate && (
-            <span style={{ display:"flex", alignItems:"center", gap:3, fontSize:10, color:"var(--tx3)" }}>
+            <span style={{ display:"flex", alignItems:"center", gap:3, fontSize:10.5, color:"var(--tx3)" }}>
               <Icons.Calendar size={9}/>{task.dueDate}
             </span>
           )}
           {task.estimate && (
-            <span style={{ display:"flex", alignItems:"center", gap:3, fontSize:10, color:"var(--tx3)" }}>
+            <span style={{ display:"flex", alignItems:"center", gap:3, fontSize:10.5, color:"var(--tx3)" }}>
               <Icons.Clock size={9}/>{task.estimate}
             </span>
           )}
-          <span style={{ fontSize:9, color:"var(--tx3)", marginLeft:"auto",
-            fontFamily:"var(--font-mono)", opacity:.7 }}>{task.id}</span>
         </div>
       )}
       {!compact && (
@@ -794,7 +811,7 @@ function TaskCard({
             <button
               onClick={e => { e.stopPropagation(); onStatusChange(task.id, task.status === "todo" ? "wip" : "done"); }}
               className="ghost"
-              style={{ fontSize:10, padding:"3px 9px", borderRadius:6, border:"1px solid var(--br)",
+              style={{ fontSize:10.5, padding:"3px 10px", borderRadius:99, border:"1px solid var(--br)",
                 background:"transparent", color:"var(--tx3)", display:"flex", alignItems:"center", gap:4 }}>
               <Icons.Check size={10}/> {task.status === "todo" ? "Start" : "Done"}
             </button>
@@ -803,11 +820,12 @@ function TaskCard({
             <button
               onClick={e => { e.stopPropagation(); onSetReminder(task); }}
               className="ghost"
-              style={{ fontSize:10, padding:"3px 9px", borderRadius:6, border:`1px solid ${task.gcalSet ? "rgba(16,185,129,0.3)" : "var(--br)"}`,
+              style={{ fontSize:10.5, padding:"3px 10px", borderRadius:99,
+                border:`1px solid ${task.gcalSet ? "rgba(16,185,129,0.3)" : "var(--br)"}`,
                 background: task.gcalSet ? "rgba(16,185,129,0.07)" : "transparent",
                 color: task.gcalSet ? "var(--gr)" : "var(--tx3)",
                 display:"flex", alignItems:"center", gap:4, marginLeft:"auto" }}>
-              <Icons.Calendar size={10}/> {task.gcalSet ? "✓ Reminder" : "Set Reminder"}
+              <Icons.Calendar size={10}/> {task.gcalSet ? "✓ Set" : "Remind"}
             </button>
           )}
         </div>
@@ -837,26 +855,33 @@ function PageOverview() {
 
   const displayName = user?.full_name?.split(" ")[0] ?? "there";
 
-  // 🚧 MOCK: Replace with real Supabase CRUD call
   const handleQuickInput = async () => {
-    if (!quickInput.trim()) return;
+    if (!quickInput.trim() || !user?.id) return;
     setAddLoading(true);
-    /* 🔌 BACKEND:
-      const { data, error } = await supabase
-        .from('tasks')
-        .insert({ title: quickInput.trim(), priority:'medium', label:'General', status:'todo', user_id: user.id })
-        .select().single();
-      if (!error && data) setTasks(prev => [...prev, data]);
-    */
-    await new Promise(r => setTimeout(r, 400)); // 🚧 MOCK delay
-    const newTask: Task = {
-      id: `KB-${Date.now()}`, title: quickInput.trim(),
-      priority: "medium", label: "General", status: "todo",
-    };
-    setTasks(prev => [...prev, newTask]);
+    try {
+      const res = await fetch('/api/boards', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: quickInput.trim(), priority: 'medium', label: 'General', status: 'todo' }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setTasks(prev => [...prev, {
+          id: data.id, title: data.title,
+          priority: data.priority ?? 'medium',
+          label: data.label ?? 'General',
+          status: data.status ?? 'todo',
+        }]);
+      } else {
+        // fallback local
+        setTasks(prev => [...prev, { id: `KB-${Date.now()}`, title: quickInput.trim(), priority: 'medium', label: 'General', status: 'todo' }]);
+      }
+    } catch {
+      setTasks(prev => [...prev, { id: `KB-${Date.now()}`, title: quickInput.trim(), priority: 'medium', label: 'General', status: 'todo' }]);
+    }
     fetch('/api/sync-task-stats', { method: 'POST' }).catch(() => {});
-    setQuickInput(""); setAddLoading(false);
-    navigate("board");
+    setQuickInput(''); setAddLoading(false);
+    navigate('board');
   };
 
   // 🔌 BACKEND: Real activity data from /api/task-activity
@@ -1116,11 +1141,108 @@ function PageOverview() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   NOTION IMPORT PANEL
+═══════════════════════════════════════════════════════════════════════════ */
+function NotionImportPanel({ onTasksImported }: { onTasksImported: (tasks: Task[]) => void }) {
+  const { user } = useApp();
+  const [connected, setConnected] = useState<boolean | null>(null);
+  const [pageUrl, setPageUrl] = useState("");
+  const [importing, setImporting] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    fetch('/api/integrations/status')
+      .then(r => r.json())
+      .then(d => setConnected(!!d.connected?.notion))
+      .catch(() => setConnected(false));
+  }, []);
+
+  const handleImport = async () => {
+    if (!pageUrl.trim()) return;
+    setImporting(true);
+    setError("");
+    try {
+      // Get the stored access token for the user
+      const res = await fetch('/api/parse-notion', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pageUrl: pageUrl.trim(), accessToken: '__use_stored__' }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error || 'Import failed'); return; }
+      const result = data.tasks as { task?: string; title?: string; priority?: string; deadline?: string }[];
+      const imported: Task[] = (Array.isArray(result) ? result : []).map((t, i) => ({
+        id: `KB-${Date.now()}-${i}`,
+        title: (t.task ?? t.title ?? '').trim(),
+        priority: (['urgent','high','medium','low'].includes(t.priority ?? '') ? t.priority : 'medium') as Priority,
+        label: 'Notion',
+        status: 'todo' as TaskStatus,
+        dueDate: t.deadline,
+      })).filter(t => t.title.length > 2);
+      if (imported.length === 0) { setError('No tasks found on this page.'); return; }
+      onTasksImported(imported);
+    } catch {
+      setError('Failed to connect to Notion. Try again.');
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  if (connected === null) return (
+    <div style={{ textAlign:"center", padding:"36px 24px", color:"var(--tx3)", fontSize:12 }}>Checking connection...</div>
+  );
+
+  if (!connected) return (
+    <div style={{ textAlign:"center", padding:"36px 24px" }}>
+      <Icons.Notion size={32} style={{ color:"var(--ac)", display:"block", margin:"0 auto 16px" }}/>
+      <p style={{ fontSize:13.5, color:"var(--tx2)", marginBottom:6, fontWeight:500 }}>Connect your Notion workspace</p>
+      <p style={{ fontSize:11.5, color:"var(--tx3)", marginBottom:18, lineHeight:1.6 }}>
+        Authorize once and import any Notion page as tasks
+      </p>
+      <button onClick={() => window.location.href = '/api/integrations/notion/auth'}
+        style={{ height:38, padding:"0 20px", borderRadius:10, background:"var(--ac)",
+          border:"none", color:"#fff", fontSize:13, fontWeight:600, cursor:"pointer" }}>
+        Connect Notion
+      </button>
+    </div>
+  );
+
+  return (
+    <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+      <p style={{ fontSize:11, color:"var(--tx3)" }}>Paste a Notion page URL to import its content as tasks</p>
+      <input
+        value={pageUrl} onChange={e => setPageUrl(e.target.value)}
+        placeholder="https://notion.so/Your-Page-abc123..."
+        className="input-focus"
+        style={{ width:"100%", background:"var(--inp)", border:"1px solid var(--br)",
+          borderRadius:10, padding:"10px 14px", fontSize:13, color:"var(--tx)" }}
+      />
+      {error && <p style={{ fontSize:11.5, color:"var(--rd)" }}>{error}</p>}
+      <button onClick={handleImport} disabled={!pageUrl.trim() || importing}
+        className="btn-primary"
+        style={{ width:"100%", height:42, borderRadius:10,
+          background: pageUrl.trim() ? "var(--ac)" : "var(--bg3)",
+          border: `1px solid ${pageUrl.trim() ? "var(--ac)" : "var(--br)"}`,
+          color: pageUrl.trim() ? "#fff" : "var(--tx3)",
+          fontSize:13, fontWeight:700, display:"flex", alignItems:"center",
+          justifyContent:"center", gap:8,
+          cursor: pageUrl.trim() ? "pointer" : "not-allowed" }}>
+        {importing
+          ? <><div className="spin" style={{ width:14, height:14, borderRadius:"50%",
+              border:"2px solid rgba(255,255,255,.3)", borderTopColor:"#fff" }}/> Importing...</>
+          : <><Icons.Notion size={14}/> Import from Notion</>
+        }
+      </button>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    PAGE: BOARD
 ═══════════════════════════════════════════════════════════════════════════ */
 function PageBoard() {
   const { tasks, setTasks, savedBoards, setSavedBoards, boardView, setBoardView,
-          gcalConnected, setGcalConnected } = useApp();
+          gcalConnected, setGcalConnected, user } = useApp();
   const [inputMode, setInputMode] = useState<InputMode>("paste");
   const [inputText, setInputText] = useState("");
   const [gcalModal, setGcalModal] = useState<{ task?: Task; bulk?: boolean } | null>(null);
@@ -1149,9 +1271,14 @@ function PageBoard() {
       const res = await fetch('/api/extract', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: inputText, userId: '' }),
+        body: JSON.stringify({ text: inputText, userId: user?.id ?? '' }),
       });
       const data = await res.json();
+      if (!res.ok) {
+        console.error('Extract error:', data.error);
+        setExtracting(false);
+        return;
+      }
       const extracted: Task[] = (data.tasks ?? [])
         .map((t: { task?: string; title?: string; priority?: string; estimate?: string; deadline?: string }, i: number) => ({
           id: `KB-${Date.now()}-${i}`,
@@ -1174,35 +1301,62 @@ function PageBoard() {
     }
   };
 
-  const updateTaskStatus = (id: string, s: TaskStatus) => {
-    /* 🔌 BACKEND: supabase.from('tasks').update({ status: s }).eq('id', id) */
+  const updateTaskStatus = async (id: string, s: TaskStatus) => {
     setTasks(prev => prev.map(t => t.id === id ? { ...t, status: s } : t));
+    try {
+      await fetch(`/api/boards/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: s }),
+      });
+    } catch { /* non-blocking */ }
     syncTaskStats();
   };
 
-  const handleSaveReminder = (taskIds: string[], date: string, time: string, note: string) => {
-    /* 🔌 BACKEND: supabase.from('tasks').update({ gcal_set:true }).in('id', taskIds)
-       Then call your GCal API route: POST /api/gcal/create-event  */
+  const handleSaveReminder = async (taskIds: string[], date: string, time: string, note: string) => {
+    const task = tasks.find(t => taskIds.includes(t.id));
+    try {
+      await fetch('/api/google/create-event', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          taskIds, taskTitle: task?.title ?? 'Task reminder',
+          date, time, note, duration: task?.estimate,
+          userId: user?.id ?? '',
+        }),
+      });
+    } catch { /* non-blocking */ }
     setTasks(prev => prev.map(t => taskIds.includes(t.id) ? { ...t, gcalSet: true } : t));
     setGcalModal(null);
   };
 
-  const handleSaveBoard = () => {
+  const handleSaveBoard = async () => {
     if (tasks.length === 0) return;
-    /* 🔌 BACKEND:
-      const { data } = await supabase.from('saved_boards').insert({
-        name: `Board · ${new Date().toLocaleDateString()}`,
-        task_count: tasks.length, folder: 'Personal', user_id: user.id
-      }).select().single();
-      // then upsert tasks with board_id = data.id
-    */
-    const nb: SavedBoard = {
-      id: Date.now().toString(),
-      name: `Board · ${new Date().toLocaleDateString()}`,
-      taskCount: tasks.length, folder: "Personal", lastEdited: "Just now",
-      tasks: [...tasks],
-    };
-    setSavedBoards(prev => [nb, ...prev]);
+    const name = `Board · ${new Date().toLocaleDateString()}`;
+    try {
+      const res = await fetch('/api/boards/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: name, tasks, category: 'personal', icon: 'board' }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        const nb: SavedBoard = {
+          id: data.id ?? Date.now().toString(),
+          name, taskCount: tasks.length, folder: "Personal",
+          lastEdited: "Just now", tasks: [...tasks],
+        };
+        setSavedBoards(prev => [nb, ...prev]);
+      }
+    } catch {
+      // fallback: save locally
+      const nb: SavedBoard = {
+        id: Date.now().toString(), name,
+        taskCount: tasks.length, folder: "Personal",
+        lastEdited: "Just now", tasks: [...tasks],
+      };
+      setSavedBoards(prev => [nb, ...prev]);
+    }
   };
 
   const cols: [TaskStatus, string, string][] = [
@@ -1293,31 +1447,49 @@ function PageBoard() {
                   </div>
                 )}
                 {inputMode === "notion" && (
-                  <div style={{ textAlign:"center", padding:"36px 24px" }}>
-                    <Icons.Notion size={32} style={{ color:"var(--ac)", display:"block", margin:"0 auto 16px" }}/>
-                    <p style={{ fontSize:13.5, color:"var(--tx2)", marginBottom:18, fontWeight:500 }}>
-                      Connect Notion to import pages as tasks
-                    </p>
-                    {/* 🔌 BACKEND: Notion OAuth flow */}
-                    <button className="btn-primary"
-                      style={{ height:38, padding:"0 20px", borderRadius:10, background:"var(--ac)",
-                        border:"none", color:"#fff", fontSize:13, fontWeight:600 }}>
-                      Connect Notion
-                    </button>
-                  </div>
+                  <NotionImportPanel onTasksImported={(imported) => {
+                    setTasks(prev => [...prev, ...imported]);
+                    syncTaskStats();
+                    setBoardView('kanban');
+                  }} />
                 )}
                 {inputMode === "template" && (
                   <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:9 }}>
-                    {["Daily Standup","Sprint Planning","Client Project","Content Calendar","Bug Tracker","Meeting Notes"].map(t => (
-                      <button key={t}
-                        onClick={() => { setInputText(`# ${t}\n\n- Task 1\n- Task 2\n- Task 3`); setInputMode("paste"); }}
+                    {[
+                      {
+                        label: "Daily Standup",
+                        text: `# Daily Standup – ${new Date().toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'})}\n\n## Yesterday\n- Finished API integration for user auth\n- Reviewed PR #42 and left comments\n- Fixed bug in payment flow\n\n## Today\n- Implement dashboard analytics charts\n- Write unit tests for auth module\n- Sync with design team on new UI mockups\n- Deploy staging build\n\n## Blockers\n- Waiting on backend team for API docs\n- Need design approval before starting new feature`,
+                      },
+                      {
+                        label: "Sprint Planning",
+                        text: `# Sprint Planning – Sprint 14\n\n## Sprint Goal\nShip user onboarding flow and fix critical billing bugs\n\n## Backlog Items\n- Build onboarding wizard (3 steps: profile, preferences, first board)\n- Fix Stripe webhook not firing on subscription renewal\n- Add email verification resend button\n- Improve mobile responsiveness on dashboard\n- Write API documentation for v2 endpoints\n- Set up error monitoring with Sentry\n- Performance audit and lazy-load heavy components\n- Add CSV export for board data`,
+                      },
+                      {
+                        label: "Client Project",
+                        text: `# Client Project – Website Redesign\n\n## Discovery Phase\n- Conduct stakeholder interviews (CEO, Marketing, Sales)\n- Audit existing site: performance, SEO, conversion rates\n- Competitor analysis – review 5 competitor sites\n- Define target audience personas\n\n## Design Phase\n- Create wireframes for homepage and key landing pages\n- Design component library in Figma\n- Get client approval on design direction\n- Build interactive prototype for user testing\n\n## Development Phase\n- Set up Next.js project with CMS integration\n- Implement responsive design across all breakpoints\n- Integrate analytics and heatmap tracking\n- QA testing across browsers and devices\n- Client review and feedback round\n- Final launch and handoff`,
+                      },
+                      {
+                        label: "Content Calendar",
+                        text: `# Content Calendar – Q1 Campaign\n\n## Blog Posts\n- Write "10 productivity hacks for remote teams" (due Friday)\n- Draft case study: how Acme Corp saved 20hrs/week\n- Update SEO meta for top 5 landing pages\n- Research keywords for new product category\n\n## Social Media\n- Create 3 LinkedIn posts about product launch\n- Design 5 Instagram carousel graphics\n- Schedule Twitter thread on industry trends\n- Respond to all comments from last week's posts\n\n## Email\n- Write monthly newsletter (500 subscribers)\n- Set up drip campaign for new signups (5 emails)\n- A/B test subject lines for re-engagement campaign\n\n## Video\n- Record product demo walkthrough (5 min)\n- Edit and caption YouTube tutorial`,
+                      },
+                      {
+                        label: "Bug Tracker",
+                        text: `# Bug Tracker – Release v2.4\n\n## Critical (P0)\n- App crashes on iOS 17 when opening notifications\n- Payment fails silently when card is declined – no error shown\n- Data loss: board state not saved after browser refresh\n\n## High Priority (P1)\n- Login with Google fails for users with 2FA enabled\n- Dashboard charts show wrong date range on first load\n- File upload hangs at 99% for files over 10MB\n\n## Medium Priority (P2)\n- Dark mode toggle resets on page navigation\n- Search results don't update when filters change\n- Email notifications sent twice for same event\n- Tooltip overlaps button on mobile screens\n\n## Low Priority (P3)\n- Typo in onboarding step 2 copy\n- Footer links open in same tab instead of new tab`,
+                      },
+                      {
+                        label: "Meeting Notes",
+                        text: `# Meeting Notes – Product Review\nDate: ${new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})}\nAttendees: Product, Engineering, Design, Marketing\n\n## Decisions Made\n- Launch date confirmed for March 15th\n- Drop feature X from v1 scope, move to v1.1\n- Pricing: keep free tier at 10 uses/day\n\n## Action Items\n- PM: Update roadmap and share with stakeholders by EOD\n- Engineering: Finalize API contracts and share docs\n- Design: Deliver final assets to dev by Wednesday\n- Marketing: Prepare launch announcement email draft\n- All: Review and sign off on QA checklist before Thursday\n\n## Open Questions\n- Do we need legal review for new data retention policy?\n- Who owns customer support during launch week?`,
+                      },
+                    ].map(t => (
+                      <button key={t.label}
+                        onClick={() => { setInputText(t.text); setInputMode("paste"); }}
                         className="ghost"
                         style={{ padding:"14px 13px", borderRadius:9, border:"1px solid var(--br)",
                           background:"var(--bg2)", color:"var(--tx2)", fontSize:12, fontWeight:500,
                           textAlign:"left", cursor:"pointer", transition:"all .15s" }}
                         onMouseOver={e => { (e.currentTarget).style.borderColor = "var(--ac)"; (e.currentTarget).style.color = "var(--tx)"; }}
                         onMouseOut={e =>  { (e.currentTarget).style.borderColor = "var(--br)";  (e.currentTarget).style.color = "var(--tx2)"; }}>
-                        {t}
+                        {t.label}
                       </button>
                     ))}
                   </div>
@@ -1737,9 +1909,13 @@ function PageAutopilot() {
       const nb: Briefing = {
         id: Date.now().toString(),
         date: new Date().toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" }),
-        summary: data.summary ?? `You have ${pendingTasks.length} pending tasks today.`,
-        schedule: data.schedule ?? [],
-        healthNote: data.healthNote ?? (healthScore >= 75
+        summary: data.briefing?.summary ?? data.summary ?? `You have ${pendingTasks.length} pending tasks today.`,
+        schedule: (data.briefing?.schedule ?? data.schedule ?? []).map((s: { time?: string; task?: string; task_title?: string; duration?: string; estimated_duration?: string }) => ({
+          time: s.time ?? s.task_title ?? '',
+          task: s.task ?? s.task_title ?? '',
+          duration: s.duration ?? s.estimated_duration ?? '30m',
+        })),
+        healthNote: data.briefing?.warnings?.[0] ?? data.healthNote ?? (healthScore >= 75
           ? "✓ Workload looks healthy."
           : "⚠ High load detected."),
       };
@@ -2178,8 +2354,36 @@ function PageSettings({ theme, toggleTheme }: { theme: Theme; toggleTheme: () =>
   const [tab, setTab] = useState("profile");
   const [profileName, setProfileName] = useState(user?.full_name ?? "");
   const [saving, setSaving] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [pwSaving, setPwSaving] = useState(false);
+  const [pwError, setPwError] = useState("");
+  const [pwSuccess, setPwSuccess] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [deleting, setDeleting] = useState(false);
   const router = useRouter();
   const supabase = createClient();
+
+  const handleChangePassword = async () => {
+    setPwError(""); setPwSuccess(false);
+    if (!newPassword || newPassword.length < 8) { setPwError("Password must be at least 8 characters"); return; }
+    if (newPassword !== confirmPassword) { setPwError("Passwords do not match"); return; }
+    setPwSaving(true);
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) setPwError(error.message);
+    else { setPwSuccess(true); setNewPassword(""); setConfirmPassword(""); }
+    setPwSaving(false);
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirm !== "DELETE") return;
+    setDeleting(true);
+    try {
+      await fetch('/api/profile', { method: 'DELETE' });
+      await supabase.auth.signOut();
+      router.push('/');
+    } catch { setDeleting(false); }
+  };
 
   const tabs = [
     { key:"profile",      label:"Profile",      icon:<Icons.Settings size={13}/>   },
@@ -2191,11 +2395,15 @@ function PageSettings({ theme, toggleTheme }: { theme: Theme; toggleTheme: () =>
   ];
 
   const handleSaveProfile = async () => {
+    if (!profileName.trim()) return;
     setSaving(true);
-    /* 🔌 BACKEND:
-      await supabase.from('profiles').update({ full_name: profileName }).eq('id', user.id);
-    */
-    await new Promise(r => setTimeout(r, 600)); // 🚧 MOCK
+    try {
+      await fetch('/api/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ full_name: profileName.trim() }),
+      });
+    } catch { /* non-blocking */ }
     setSaving(false);
   };
 
@@ -2296,19 +2504,28 @@ function PageSettings({ theme, toggleTheme }: { theme: Theme; toggleTheme: () =>
               <h3 style={{ fontSize:15, fontWeight:800, color:"var(--tx)", marginBottom:4, fontFamily:"var(--font-display)" }}>Security</h3>
               <p style={{ fontSize:12.5, color:"var(--tx2)", marginBottom:22 }}>Update your password</p>
               <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
-                {["New Password","Confirm Password"].map(f => (
-                  <div key={f}>
-                    <label style={{ fontSize:12, fontWeight:600, color:"var(--tx2)", display:"block", marginBottom:7 }}>{f}</label>
-                    {/* 🔌 BACKEND: supabase.auth.updateUser({ password: newPassword }) */}
-                    <input type="password" placeholder={`Enter ${f.toLowerCase()}`} className="input-focus"
+                {[
+                  { label:"New Password", value:newPassword, onChange:(v:string)=>setNewPassword(v) },
+                  { label:"Confirm Password", value:confirmPassword, onChange:(v:string)=>setConfirmPassword(v) },
+                ].map(f => (
+                  <div key={f.label}>
+                    <label style={{ fontSize:12, fontWeight:600, color:"var(--tx2)", display:"block", marginBottom:7 }}>{f.label}</label>
+                    <input type="password" value={f.value} onChange={e => f.onChange(e.target.value)}
+                      placeholder={`Enter ${f.label.toLowerCase()}`} className="input-focus"
                       style={{ width:"100%", background:"var(--inp)", border:"1px solid var(--br)",
                         borderRadius:9, padding:"10px 13px", fontSize:13, color:"var(--tx)" }}/>
                   </div>
                 ))}
-                <button className="btn-primary"
+                {pwError && <p style={{ fontSize:12, color:"var(--rd)" }}>{pwError}</p>}
+                {pwSuccess && <p style={{ fontSize:12, color:"var(--gr)" }}>Password updated successfully.</p>}
+                <button onClick={handleChangePassword} disabled={pwSaving} className="btn-primary"
                   style={{ alignSelf:"flex-start", height:38, padding:"0 18px", borderRadius:9,
-                    background:"var(--ac)", border:"none", color:"#fff", fontSize:13, fontWeight:700 }}>
-                  Change Password
+                    background:"var(--ac)", border:"none", color:"#fff", fontSize:13, fontWeight:700,
+                    display:"flex", alignItems:"center", gap:8 }}>
+                  {pwSaving
+                    ? <><div className="spin" style={{ width:12, height:12, borderRadius:"50%", border:"2px solid rgba(255,255,255,.3)", borderTopColor:"#fff" }}/> Saving...</>
+                    : "Change Password"
+                  }
                 </button>
               </div>
             </div>
@@ -2329,8 +2546,7 @@ function PageSettings({ theme, toggleTheme }: { theme: Theme; toggleTheme: () =>
                   </p>
                 </div>
                 {user?.plan !== "pro" && (
-                  /* 🔌 BACKEND: Link to your Stripe checkout session */
-                  <button className="btn-primary"
+                  <button className="btn-primary" onClick={() => window.location.href = "/pricing"}
                     style={{ height:36, padding:"0 16px", borderRadius:9, background:"var(--ac)",
                       border:"none", color:"#fff", fontSize:12, fontWeight:700, flexShrink:0, whiteSpace:"nowrap" }}>
                     Upgrade to Pro · $9/mo
@@ -2399,16 +2615,23 @@ function PageSettings({ theme, toggleTheme }: { theme: Theme; toggleTheme: () =>
                 background:"rgba(239,68,68,0.04)", padding:"20px 22px" }}>
                 <p style={{ fontSize:13.5, fontWeight:700, color:"var(--rd)", marginBottom:6 }}>Delete Account</p>
                 <p style={{ fontSize:12.5, color:"var(--tx2)", marginBottom:16, lineHeight:1.65 }}>
-                  Permanently deletes your account, all boards, and all data.
+                  Permanently deletes your account, all boards, and all data. Type <strong>DELETE</strong> to confirm.
                 </p>
-                {/* 🔌 BACKEND: supabase.auth.admin.deleteUser(user.id) — server-side only */}
-                <button style={{ height:36, padding:"0 16px", borderRadius:9,
-                  border:"1px solid var(--rd)", background:"transparent",
-                  color:"var(--rd)", fontSize:13, fontWeight:700, cursor:"pointer",
-                  transition:"background .15s" }}
-                  onMouseOver={e => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(239,68,68,0.08)"; }}
-                  onMouseOut={e  => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}>
-                  Delete My Account
+                <input value={deleteConfirm} onChange={e => setDeleteConfirm(e.target.value)}
+                  placeholder='Type DELETE to confirm' className="input-focus"
+                  style={{ width:"100%", background:"var(--inp)", border:"1px solid rgba(239,68,68,0.3)",
+                    borderRadius:9, padding:"10px 13px", fontSize:13, color:"var(--tx)", marginBottom:14 }}/>
+                <button onClick={handleDeleteAccount}
+                  disabled={deleteConfirm !== "DELETE" || deleting}
+                  style={{ height:36, padding:"0 16px", borderRadius:9,
+                    border:"1px solid var(--rd)", background: deleteConfirm === "DELETE" ? "rgba(239,68,68,0.12)" : "transparent",
+                    color:"var(--rd)", fontSize:13, fontWeight:700, cursor: deleteConfirm === "DELETE" ? "pointer" : "not-allowed",
+                    opacity: deleteConfirm === "DELETE" ? 1 : 0.5, transition:"all .15s",
+                    display:"flex", alignItems:"center", gap:8 }}>
+                  {deleting
+                    ? <><div className="spin" style={{ width:12, height:12, borderRadius:"50%", border:"2px solid rgba(239,68,68,.3)", borderTopColor:"var(--rd)" }}/> Deleting...</>
+                    : "Delete My Account"
+                  }
                 </button>
               </div>
             </div>
@@ -2427,119 +2650,151 @@ function Sidebar({ page, setPage, theme, toggleTheme }: {
 }) {
   const { user } = useApp();
 
-  const navItems: [Page, string, ReactNode][] = [
+  const mainNav: [Page, string, ReactNode][] = [
     ["overview",  "Overview",     <Icons.Overview size={15}/>  ],
     ["board",     "Board",        <Icons.Board size={15}/>     ],
-    ["chat",      "AI Chat",      <Icons.Chat size={15}/>      ],
-    ["autopilot", "Autopilot",    <Icons.Autopilot size={15}/> ],
     ["saved",     "Saved Boards", <Icons.Saved size={15}/>     ],
-    ["settings",  "Settings",     <Icons.Settings size={15}/> ],
+  ];
+  const aiNav: [Page, string, ReactNode, string?][] = [
+    ["chat",      "AI Chat",      <Icons.Chat size={15}/>,      "AI"   ],
+    ["autopilot", "Autopilot",    <Icons.Autopilot size={15}/>, "AUTO" ],
   ];
 
-  // 🚧 MOCK: Replace with real usage from user profile
   const boardsUsed  = user?.boards_used_today ?? 0;
   const boardsLimit = user?.plan === "pro" ? 100 : 10;
+  const usagePct    = Math.min((boardsUsed / boardsLimit) * 100, 100);
+  const usageColor  = usagePct >= 90 ? "var(--rd)" : usagePct >= 70 ? "var(--am)" : "var(--ac)";
+
+  const NavBtn = ({ k, label, icon, badge }: { k: Page; label: string; icon: ReactNode; badge?: string }) => {
+    const active = page === k;
+    return (
+      <button onClick={() => setPage(k)} className="nav-btn"
+        style={{
+          width:"100%", padding:"8px 12px", borderRadius:10, border:"none",
+          background: active ? "linear-gradient(135deg, rgba(99,102,241,0.15), rgba(167,139,250,0.08))" : "transparent",
+          color: active ? "var(--ac)" : "var(--tx2)",
+          fontSize:13, fontWeight: active ? 600 : 400,
+          cursor:"pointer", display:"flex", alignItems:"center", gap:10,
+          textAlign:"left", marginBottom:2,
+          boxShadow: active ? "inset 0 0 0 1px rgba(99,102,241,0.2)" : "none",
+          transition:"all .15s", letterSpacing:"-0.01em",
+        }}>
+        <span style={{
+          width:28, height:28, borderRadius:8, flexShrink:0,
+          display:"flex", alignItems:"center", justifyContent:"center",
+          background: active ? "rgba(99,102,241,0.15)" : "transparent",
+          color: active ? "var(--ac)" : "var(--tx3)",
+          transition:"all .15s",
+        }}>{icon}</span>
+        <span style={{ flex:1 }}>{label}</span>
+        {badge && (
+          <span style={{
+            fontSize:9, padding:"2px 7px", borderRadius:99,
+            background: badge === "AI" ? "var(--as)" : "rgba(167,139,250,0.12)",
+            color: badge === "AI" ? "var(--ac)" : "var(--pu)",
+            fontWeight:700, fontFamily:"var(--font-mono)", letterSpacing:"0.04em",
+          }}>{badge}</span>
+        )}
+      </button>
+    );
+  };
 
   return (
     <aside className="sidebar" style={{
-      width: 246, height:"100vh", position:"fixed", left:0, top:0, zIndex:50,
-      background:"var(--sb)", borderRight:"1px solid var(--br)",
+      width: 252, height:"100vh", position:"fixed", left:0, top:0, zIndex:50,
+      background:"var(--sb)", borderRight:"1px solid var(--sidebar-border)",
       display:"flex", flexDirection:"column",
     }}>
       {/* Logo */}
-      <div style={{ padding:"17px 17px 14px", borderBottom:"1px solid var(--br)" }}>
+      <div style={{ padding:"18px 16px 16px", borderBottom:"1px solid var(--sidebar-border)" }}>
         <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-          <LogoBadge size={32} />
-          <span style={{ fontSize:16, fontWeight:800, color:"var(--tx)", letterSpacing:"-0.03em",
-            fontFamily:"var(--font-display)" }}>KANBI</span>
-          <span style={{ fontSize:9, fontWeight:700, padding:"2px 7px", borderRadius:5,
-            background: user?.plan === "pro" ? "rgba(16,185,129,0.12)" : "var(--as)",
-            color: user?.plan === "pro" ? "var(--gr)" : "var(--ac)",
-            letterSpacing:"0.04em", marginLeft:2 }}>
-            {user?.plan === "pro" ? "PRO" : "FREE"}
-          </span>
+          <div style={{
+            width:34, height:34, borderRadius:10,
+            background:"linear-gradient(135deg, var(--ac), var(--pu))",
+            display:"flex", alignItems:"center", justifyContent:"center",
+            boxShadow:"0 2px 12px rgba(99,102,241,0.35)", flexShrink:0,
+          }}>
+            <Icons.Zap size={15} style={{ color:"#fff" }}/>
+          </div>
+          <div>
+            <span style={{ fontSize:15, fontWeight:800, color:"var(--tx)", letterSpacing:"-0.04em",
+              fontFamily:"var(--font-display)", display:"block", lineHeight:1.1 }}>KANBI</span>
+            <span style={{ fontSize:9.5, fontWeight:600, letterSpacing:"0.02em",
+              color: user?.plan === "pro" ? "var(--gr)" : "var(--ac)",
+              fontFamily:"var(--font-mono)" }}>
+              {user?.plan === "pro" ? "PRO PLAN" : "FREE PLAN"}
+            </span>
+          </div>
         </div>
       </div>
 
       {/* Nav */}
-      <nav style={{ flex:1, padding:"11px 10px 0", overflowY:"auto" }}>
-        {navItems.map(([key, label, icon]) => (
-          <button key={key} onClick={() => setPage(key)} className="nav-btn"
-            style={{
-              width:"100%", padding:"9px 11px", borderRadius:9, border:"none",
-              background: page === key ? "var(--as)" : "transparent",
-              color: page === key ? "var(--ac)" : "var(--tx2)",
-              fontSize:13, fontWeight: page === key ? 700 : 400,
-              cursor:"pointer", display:"flex", alignItems:"center", gap:11,
-              textAlign:"left", marginBottom:3,
-              borderLeft: page === key ? "2px solid var(--ac)" : "2px solid transparent",
-              transition:"all .15s",
-            }}>
-            <span style={{ color: page === key ? "var(--ac)" : "var(--tx3)" }}>{icon}</span>
-            {label}
-            {key === "chat" && (
-              <span style={{ marginLeft:"auto", fontSize:9, padding:"1px 6px", borderRadius:4,
-                background:"var(--as)", color:"var(--ac)", fontWeight:700 }}>AI</span>
-            )}
-            {key === "autopilot" && (
-              <span style={{ marginLeft:"auto", fontSize:9, padding:"1px 6px", borderRadius:4,
-                background:"rgba(167,139,250,0.12)", color:"var(--pu)", fontWeight:700 }}>AUTO</span>
-            )}
-          </button>
-        ))}
+      <nav style={{ flex:1, padding:"10px 10px 0", overflowY:"auto" }}>
+        <div className="nav-section-label">Workspace</div>
+        {mainNav.map(([k, l, i]) => <NavBtn key={k} k={k} label={l} icon={i}/>)}
+
+        <div className="nav-section-label" style={{ marginTop:18 }}>AI Features</div>
+        {aiNav.map(([k, l, i, b]) => <NavBtn key={k} k={k} label={l} icon={i} badge={b}/>)}
+
+        <div className="nav-section-label" style={{ marginTop:18 }}>Account</div>
+        <NavBtn k="settings" label="Settings" icon={<Icons.Settings size={15}/>}/>
       </nav>
 
-      {/* Bottom section */}
-      <div style={{ padding:"11px 10px 16px", borderTop:"1px solid var(--br)", display:"flex", flexDirection:"column", gap:8 }}>
-        {/* Usage bar */}
-        <div style={{ padding:"12px 13px", borderRadius:10, background:"var(--bg2)", border:"1px solid var(--br)" }}>
-          <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}>
-            <span style={{ fontSize:11, color:"var(--tx3)" }}>Boards today</span>
-            <span style={{ fontSize:11, fontWeight:700, color:"var(--tx)", fontFamily:"var(--font-mono)" }}>
-              {boardsUsed}/{boardsLimit}
+      {/* Bottom */}
+      <div style={{ padding:"12px 10px 16px", borderTop:"1px solid var(--sidebar-border)", display:"flex", flexDirection:"column", gap:10 }}>
+        {/* Usage */}
+        <div style={{ padding:"11px 13px", borderRadius:12, background:"var(--bg2)", border:"1px solid var(--br)" }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:7 }}>
+            <span style={{ fontSize:11, color:"var(--tx3)", fontWeight:500 }}>Boards today</span>
+            <span style={{ fontSize:11, fontWeight:700, color: usagePct >= 90 ? "var(--rd)" : "var(--tx)", fontFamily:"var(--font-mono)" }}>
+              {boardsUsed}<span style={{ color:"var(--tx3)", fontWeight:400 }}>/{boardsLimit}</span>
             </span>
           </div>
-          <PBar value={boardsUsed / boardsLimit * 100} h={4}/>
+          <PBar value={usagePct} h={3} color={usageColor}/>
         </div>
 
-        {/* Upgrade button (only if free) */}
+        {/* Upgrade */}
         {user?.plan !== "pro" && (
-          <button onClick={() => setPage("settings")}
-            style={{ width:"100%", padding:"9px 12px", borderRadius:10,
-              border:"1px solid rgba(245,158,11,0.25)", background:"rgba(245,158,11,0.06)",
+          <button onClick={() => window.location.href = "/pricing"}
+            style={{
+              width:"100%", padding:"10px 13px", borderRadius:12,
+              border:"1px solid rgba(245,158,11,0.2)",
+              background:"linear-gradient(135deg, rgba(245,158,11,0.07), rgba(249,115,22,0.04))",
               color:"var(--am)", fontSize:12, fontWeight:700, cursor:"pointer",
-              display:"flex", alignItems:"center", gap:8, transition:"background .15s" }}
-            onMouseOver={e => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(245,158,11,0.1)"; }}
-            onMouseOut={e =>  { (e.currentTarget as HTMLButtonElement).style.background = "rgba(245,158,11,0.06)"; }}>
-            <Icons.Crown size={12}/> Upgrade to Pro · $9/mo
+              display:"flex", alignItems:"center", gap:8, transition:"all .15s",
+              letterSpacing:"-0.01em",
+            }}
+            onMouseOver={e => { (e.currentTarget as HTMLButtonElement).style.background = "linear-gradient(135deg, rgba(245,158,11,0.13), rgba(249,115,22,0.08))"; }}
+            onMouseOut={e =>  { (e.currentTarget as HTMLButtonElement).style.background = "linear-gradient(135deg, rgba(245,158,11,0.07), rgba(249,115,22,0.04))"; }}>
+            <span style={{ width:22, height:22, borderRadius:6, background:"rgba(245,158,11,0.15)",
+              display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+              <Icons.Crown size={11}/>
+            </span>
+            Upgrade to Pro · $9/mo
           </button>
         )}
 
         {/* User row */}
-        <div style={{ display:"flex", alignItems:"center", gap:9, padding:"4px 3px" }}>
-          {/* 🔌 BACKEND: user.full_name and user.avatar_url from Supabase session */}
-          <Avt name={user?.full_name ?? "User"} size={30} avatarUrl={user?.avatar_url}/>
+        <div style={{ display:"flex", alignItems:"center", gap:9, padding:"6px 4px" }}>
+          <Avt name={user?.full_name ?? "User"} size={32} avatarUrl={user?.avatar_url}/>
           <div style={{ flex:1, minWidth:0 }}>
-            <p style={{ fontSize:12.5, fontWeight:700, color:"var(--tx)", overflow:"hidden",
-              textOverflow:"ellipsis", whiteSpace:"nowrap", fontFamily:"var(--font-display)" }}>
-              {user?.full_name ?? "User"}
-            </p>
-            <p style={{ fontSize:10, color:"var(--tx3)" }}>
-              {user?.plan === "pro" ? "Pro plan" : "Free plan"}
+            <p style={{ fontSize:12.5, fontWeight:600, color:"var(--tx)", overflow:"hidden",
+              textOverflow:"ellipsis", whiteSpace:"nowrap", fontFamily:"var(--font-display)",
+              letterSpacing:"-0.02em" }}>
+              {(user?.full_name ?? "User").split(" ")[0]}
             </p>
           </div>
           <button onClick={toggleTheme} className="ghost"
-            style={{ width:28, height:28, borderRadius:7, border:"1px solid var(--br)",
+            style={{ width:30, height:30, borderRadius:8, border:"1px solid var(--br)",
               background:"transparent", color:"var(--tx3)", cursor:"pointer",
               display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-            {theme === "dark" ? <Icons.Sun size={12}/> : <Icons.Moon size={12}/>}
+            {theme === "dark" ? <Icons.Sun size={13}/> : <Icons.Moon size={13}/>}
           </button>
-          {/* 🔌 BACKEND: onClick calls supabase.auth.signOut() then redirect to /login */}
           <button className="ghost" onClick={async () => { const s = createClient(); await s.auth.signOut(); window.location.href = "/sign-in"; }}
-            style={{ width:28, height:28, borderRadius:7, border:"1px solid var(--br)",
+            style={{ width:30, height:30, borderRadius:8, border:"1px solid var(--br)",
               background:"transparent", color:"var(--tx3)", cursor:"pointer",
               display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-            <Icons.Logout size={12}/>
+            <Icons.Logout size={13}/>
           </button>
         </div>
       </div>
@@ -2598,23 +2853,33 @@ function Topbar({ page }: { page: Page }) {
   const { user } = useApp();
   return (
     <div style={{
-      height:54, borderBottom:"1px solid var(--br)",
-      background:"var(--bg)", display:"flex", alignItems:"center",
-      justifyContent:"space-between", padding:"0 24px", flexShrink:0,
+      height:56, borderBottom:"1px solid var(--br)",
+      background:"var(--bg1)", display:"flex", alignItems:"center",
+      justifyContent:"space-between", padding:"0 26px", flexShrink:0,
+      boxShadow:"0 1px 0 var(--br)",
     }}>
-      {/* Left: favicon logo + page title */}
-      <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-        <LogoBadge size={28} />
+      <div style={{ display:"flex", alignItems:"center", gap:14 }}>
         <div>
-          <h2 className="topbar-title" style={{ fontSize:14, fontWeight:700, color:"var(--tx)", fontFamily:"var(--font-display)", lineHeight:1.2 }}>
+          <h2 className="topbar-title" style={{
+            fontSize:15, fontWeight:700, color:"var(--tx)",
+            fontFamily:"var(--font-display)", lineHeight:1.2,
+            letterSpacing:"-0.03em",
+          }}>
             {PAGE_META[page].title}
           </h2>
-          <p className="topbar-sub" style={{ fontSize:10.5, color:"var(--tx3)", lineHeight:1 }}>{PAGE_META[page].sub}</p>
+          <p className="topbar-sub" style={{ fontSize:11, color:"var(--tx3)", lineHeight:1, marginTop:1 }}>
+            {PAGE_META[page].sub}
+          </p>
         </div>
       </div>
-      {/* Right: avatar */}
-      {/* 🔌 BACKEND: user.full_name and user.avatar_url from Supabase session */}
-      <Avt name={user?.full_name ?? "User"} size={30} avatarUrl={user?.avatar_url}/>
+      <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+        <div style={{ display:"flex", alignItems:"center", gap:6, padding:"4px 10px",
+          borderRadius:99, background:"var(--as)", border:"1px solid var(--ag)" }}>
+          <div className="pulse" style={{ width:5, height:5, borderRadius:"50%", background:"var(--gr)" }}/>
+          <span style={{ fontSize:10.5, color:"var(--ac)", fontWeight:600, fontFamily:"var(--font-mono)" }}>Live</span>
+        </div>
+        <Avt name={user?.full_name ?? "User"} size={32} avatarUrl={user?.avatar_url}/>
+      </div>
     </div>
   );
 }
@@ -2730,7 +2995,7 @@ export default function Dashboard() {
       <GlobalStyles theme={theme}/>
       <div className="root-layout" style={{ display:"flex", height:"100vh", background:"var(--bg)", overflow:"hidden" }}>
         <Sidebar page={page} setPage={setPage} theme={theme} toggleTheme={toggleTheme}/>
-        <div className="main-wrap" style={{ marginLeft:246, flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
+        <div className="main-wrap" style={{ marginLeft:252, flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
           <Topbar page={page}/>
           <div style={{ flex:1, overflow:"hidden" }}>
             {page === "overview"  && <PageOverview/>}

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { BoardService } from '@/lib/services/board-service';
 
 export async function GET(
   request: NextRequest,
@@ -9,19 +8,12 @@ export async function GET(
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { id } = await params;
-    const board = await BoardService.getById(id);
-    
-    if (!board) {
-      return NextResponse.json({ error: 'Board not found' }, { status: 404 });
-    }
-
-    return NextResponse.json(board);
+    const { data, error } = await supabase.from('tasks').select('*').eq('id', id).eq('user_id', user.id).single();
+    if (error || !data) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    return NextResponse.json(data);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
@@ -34,16 +26,20 @@ export async function PATCH(
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { id } = await params;
     const body = await request.json();
-    const board = await BoardService.update(id, body);
-    
-    return NextResponse.json(board);
+    const { data, error } = await supabase
+      .from('tasks')
+      .update({ ...body, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .select()
+      .single();
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json(data);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
@@ -56,14 +52,10 @@ export async function DELETE(
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { id } = await params;
-    await BoardService.delete(id);
-    
+    await supabase.from('tasks').delete().eq('id', id).eq('user_id', user.id);
     return NextResponse.json({ success: true });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

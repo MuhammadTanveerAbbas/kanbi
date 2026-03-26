@@ -60,8 +60,16 @@ export async function POST(req: Request): Promise<Response> {
       messages: [
         {
           role: 'system',
-          content:
-            'Extract every action item from the text the user gives you. Return ONLY valid JSON. No markdown. No explanation.',
+          content: `Extract every action item / task from the user's text.
+Return ONLY a valid JSON array. No markdown, no explanation, no extra text.
+Each item must have these exact fields:
+- "title": string (clear, actionable task name)
+- "priority": one of "urgent" | "high" | "medium" | "low"
+- "estimate": string like "30m", "1h", "2h" (your best guess, or omit if unclear)
+- "deadline": ISO date string if mentioned, otherwise omit
+
+Example output:
+[{"title":"Review client proposal","priority":"high","estimate":"1h"},{"title":"Send follow-up email","priority":"medium","estimate":"15m"}]`,
         },
         { role: 'user', content: cleanInput },
       ],
@@ -74,6 +82,23 @@ export async function POST(req: Request): Promise<Response> {
       p_user_id: body.userId,
       p_date: today,
     })
+
+    // Persist extracted tasks to the tasks table
+    const taskRows = (tasks as { title?: string; priority?: string; estimate?: string; deadline?: string }[])
+      .filter(t => t.title && t.title.trim().length > 2)
+      .map(t => ({
+        user_id: user.id,
+        title: t.title!.trim(),
+        priority: ['urgent','high','medium','low'].includes(t.priority ?? '') ? t.priority : 'medium',
+        label: 'General',
+        status: 'todo',
+        estimate: t.estimate ?? null,
+        due_date: t.deadline ?? null,
+      }))
+
+    if (taskRows.length > 0) {
+      await supabase.from('tasks').insert(taskRows)
+    }
 
     return Response.json({ tasks })
   } catch (error: unknown) {

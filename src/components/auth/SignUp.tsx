@@ -23,10 +23,7 @@ export default function SignUpPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [confirm, setConfirm] = useState("");
-  const [showPw, setShowPw] = useState(false);
-  const [showCon, setShowCon] = useState(false);
-  const [agreed, setAgreed] = useState(false);
+  const [showPw, setShowPw] = useState(false);  const [agreed, setAgreed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
@@ -40,7 +37,6 @@ export default function SignUpPage() {
     else if (!/\S+@\S+\.\S+/.test(email)) e.email = "Enter a valid email address";
     if (!password) e.password = "Password is required";
     else if (password.length < 8) e.password = "Password must be at least 8 characters";
-    if (password !== confirm) e.confirm = "Passwords do not match";
     if (!agreed) e.agreed = "Please accept the terms to continue";
     return e;
   };
@@ -92,17 +88,13 @@ export default function SignUpPage() {
     <AuthLayout>
       <div style={{ padding: "28px 28px" }}>
         <div style={{ textAlign: "center", marginBottom: 24 }}>
-          <div style={{ width: 46, height: 46, borderRadius: 13, background: "var(--as)", border: "1px solid var(--ag)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--ac)", margin: "0 auto 13px" }}>
-            {I.spark()}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 14 }}>
+            <div style={{ width: 38, height: 38, borderRadius: 11, background: "var(--as)", border: "1px solid var(--ag)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--ac)", flexShrink: 0 }}>
+              {I.zap(17)}
+            </div>
+            <span style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-0.04em", color: "var(--tx)", lineHeight: 1 }}>kanbi</span>
           </div>
           <h1 style={{ fontSize: 21, fontWeight: 700, letterSpacing: "-0.035em", color: "var(--tx)", marginBottom: 5 }}>Create your account</h1>
-          <p style={{ fontSize: 13, color: "var(--tx2)" }}>Start saving 2 hours every day — free forever</p>
-        </div>
-
-        <div style={{ display: "flex", gap: 6, justifyContent: "center", flexWrap: "wrap", marginBottom: 22 }}>
-          {["Free plan included", "Groq AI powered", "No credit card"].map(f => (
-            <span key={f} style={{ fontSize: 11, padding: "3px 9px", borderRadius: 100, background: "var(--as)", border: "1px solid var(--ag)", color: "var(--ac)", fontWeight: 500 }}>{f}</span>
-          ))}
         </div>
 
         <SocialAuth mode="signup" />
@@ -136,12 +128,6 @@ export default function SignUpPage() {
               </div>
             )}
           </div>
-          <AuthField
-            label="Confirm Password" type={showCon ? "text" : "password"} value={confirm} onChange={setConfirm}
-            placeholder="Repeat your password" error={errors.confirm}
-            icon={I.shield(14)} autoComplete="new-password" required
-            showPassword={showCon} onTogglePassword={() => setShowCon(v => !v)}
-          />
 
           <div>
             <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer" }}>

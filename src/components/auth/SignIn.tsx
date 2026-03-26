@@ -51,13 +51,16 @@ export default function SignInPage() {
 
   return (
     <AuthLayout>
-      <div style={{ padding: "32px 28px" }}>
+      <div className="auth-card">
         <div style={{ textAlign: "center", marginBottom: 28 }}>
-          <div style={{ width: 48, height: 48, borderRadius: 14, background: "var(--as)", border: "1px solid var(--ag)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--ac)", margin: "0 auto 14px" }}>
-            {I.zap()}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 14 }}>
+            <div style={{ width: 38, height: 38, borderRadius: 11, background: "var(--as)", border: "1px solid var(--ag)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--ac)", flexShrink: 0 }}>
+              {I.zap(17)}
+            </div>
+            <span style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-0.04em", color: "var(--tx)", lineHeight: 1 }}>kanbi</span>
           </div>
           <h1 style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.035em", color: "var(--tx)", marginBottom: 6 }}>Welcome back</h1>
-          <p style={{ fontSize: 13, color: "var(--tx2)" }}>Sign in to your Kanbi account</p>
+          <p style={{ fontSize: 13, color: "var(--tx2)" }}>Sign in to your kanbi account</p>
         </div>
 
         <SocialAuth mode="signin" />
