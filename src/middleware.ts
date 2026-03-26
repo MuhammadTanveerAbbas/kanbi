@@ -8,7 +8,7 @@ const ALLOWED_ORIGINS = [
   'http://localhost:3000',
 ];
 
-export default async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const response = await updateSession(request);
   const origin = request.headers.get('origin');
   const pathname = request.nextUrl.pathname;
