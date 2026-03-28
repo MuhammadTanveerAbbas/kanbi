@@ -8,7 +8,6 @@ import {
   Target,
   Clipboard,
   BarChart3,
-  Lock,
 } from "lucide-react";
 
 const features = [
@@ -51,14 +50,6 @@ const features = [
     title: "AI learns your productivity patterns",
     description:
       "Track completion trends, identify bottlenecks, and get personalized insights. AI learns when you're most productive and suggests optimal task scheduling.",
-  },
-  {
-    icon: (
-      <Lock className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 text-primary" />
-    ),
-    title: "Export and own your data",
-    description:
-      "Export to DOCX or PDF. Your data, your way, always secure with enterprise-grade encryption.",
   },
 ];
 

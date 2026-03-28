@@ -529,11 +529,16 @@ function ComparisonTable(){
 }
 
 function Pricing(){
-  const handleProClick=()=>{
-    window.location.href='/sign-up?plan=pro';
+  const handleProClick=async()=>{
+    try{
+      const res=await fetch('/api/stripe/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({})});
+      const data=await res.json();
+      if(data.url)window.location.href=data.url;
+      else window.location.href='/sign-up';
+    }catch{window.location.href='/sign-up';}
   };
-  const freeF=[{t:"30 AI task extractions/month",ok:true},{t:"Full Kanban board",ok:true},{t:"Email import",ok:true},{t:"Basic prioritization",ok:true},{t:"PDF import",ok:false},{t:"AI Chat Coach",ok:false},{t:"Burnout alerts",ok:false}];
-  const proF=["Unlimited AI task extractions","PDF import","AI Chat Coach (board-aware)","Burnout prevention & health scoring","Pattern learning & smart scheduling","DOCX & PDF export","Board templates (5 workflows)","Daily AI briefings","Priority support"];
+  const freeF=[{t:"10 AI task extractions per day",ok:true},{t:"300 board uses per month",ok:true},{t:"Full Kanban board",ok:true},{t:"Priority levels & due dates",ok:true},{t:"PDF import",ok:false},{t:"AI Chat Coach",ok:false},{t:"Burnout alerts",ok:false}];
+  const proF=["50 AI task extractions per day","Unlimited board uses","PDF import & URL extraction","AI Chat Coach (board-aware)","Burnout prevention & health scoring","DOCX & PDF export","Autopilot scheduling & briefings","Google Calendar sync","Priority email support (24h)"];
   return(
     <section id="pricing" style={{padding:"96px 0",borderTop:"1px solid var(--br)"}}>
       <div style={{maxWidth:1140,margin:"0 auto",padding:"0 24px"}}>
@@ -623,7 +628,7 @@ function CTABanner(){
         <div style={{position:"absolute",top:0,left:"50%",transform:"translateX(-50%)",width:560,height:200,background:"radial-gradient(ellipse at top,var(--ag) 0%,transparent 70%)",pointerEvents:"none"}}/>
         <div style={{position:"relative"}}>
           <h2 style={{fontSize:"clamp(28px,5vw,56px)",fontWeight:700,letterSpacing:"-0.038em",color:"var(--tx)",marginBottom:16}}><ST text="Ready to save 2 hours daily?"/></h2>
-          <p style={{fontSize:15,color:"var(--tx2)",maxWidth:460,margin:"0 auto 34px",lineHeight:1.65}}>Join 14,000+ freelancers who've transformed how they manage tasks with Kanbi.</p>
+          <p style={{fontSize:15,color:"var(--tx2)",maxWidth:460,margin:"0 auto 34px",lineHeight:1.65}}>Start free. Upgrade to Pro for AI superpowers. Cancel anytime.</p>
           <div className="cr" style={{display:"flex",gap:12,justifyContent:"center",flexWrap:"wrap"}}>
             <button onClick={handleGetStarted} style={{height:48,padding:"0 28px",borderRadius:10,background:"var(--inv)",color:"var(--inv2)",fontSize:14,fontWeight:700,display:"inline-flex",alignItems:"center",gap:9,transition:"opacity .15s",border:"none"}} onMouseOver={e=>(e.currentTarget.style.opacity=".88")} onMouseOut={e=>(e.currentTarget.style.opacity="1")}>Start Free   No Card Needed <IC.Arrow size={15}/></button>
             <a href="#pricing" style={{height:48,padding:"0 22px",borderRadius:10,border:"1px solid var(--brh)",fontSize:14,color:"var(--tx2)",display:"inline-flex",alignItems:"center",transition:"all .15s"}} onMouseOver={e=>{e.currentTarget.style.borderColor="var(--ag)";e.currentTarget.style.color="var(--tx)"}} onMouseOut={e=>{e.currentTarget.style.borderColor="var(--brh)";e.currentTarget.style.color="var(--tx2)"}}>View Pricing →</a>
@@ -656,8 +661,8 @@ function Footer(){
             </div>
           </div>
           {[
-            {h:"Product",links:[["Pricing","#pricing"],["Features","#features"],["How It Works","#how-it-works"],["Dashboard","/dashboard"],["Changelog","#"]]},
-            {h:"Resources",links:[["Docs","#"],["Privacy","/privacy"],["Terms","/terms"],["Status","#"],["Hire Me","https://themvpguy.vercel.app"]]},
+            {h:"Product",links:[["Pricing","#pricing"],["Features","#features"],["How It Works","#how-it-works"],["Dashboard","/dashboard"],["Sign Up","/sign-up"]]},
+            {h:"Resources",links:[["Privacy","/privacy"],["Terms","/terms"],["Sign In","/sign-in"],["Pricing","/pricing"],["Support","mailto:support@kanbi.app"]]},
             {h:"Connect",links:[["Email","mailto:support@kanbi.app"],["GitHub","https://github.com/MuhammadTanveerAbbas"],["LinkedIn","https://linkedin.com/in/MuhammadTanveerAbbas"],["Twitter","https://twitter.com"]]},
           ].map(col=>(
             <div key={col.h}>

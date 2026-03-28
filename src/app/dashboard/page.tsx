@@ -2045,6 +2045,208 @@ function PageSaved() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   GOOGLE CALENDAR INTEGRATION COMPONENT
+═══════════════════════════════════════════════════════════════════════════ */
+function IntegrationsTab() {
+  const [calConnected, setCalConnected] = useState(false);
+  const [calLoading, setCalLoading] = useState(true);
+  const [calError, setCalError] = useState("");
+  const [syncTasks, setSyncTasks] = useState(true);
+  const [syncDeadlines, setSyncDeadlines] = useState(true);
+  const [syncReminders, setSyncReminders] = useState(false);
+
+  useEffect(() => {
+    // Check connection status on mount
+    fetch("/api/integrations/google-calendar/status")
+      .then(r => r.json())
+      .then(d => setCalConnected(d.connected))
+      .catch(() => {})
+      .finally(() => setCalLoading(false));
+
+    // Handle redirect back from OAuth
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("cal_connected") === "1") {
+      setCalConnected(true);
+      window.history.replaceState({}, "", "/dashboard");
+    }
+    if (params.get("cal_error")) {
+      setCalError("Google Calendar connection failed. Please try again.");
+      window.history.replaceState({}, "", "/dashboard");
+    }
+  }, []);
+
+  const handleConnectCalendar = async () => {
+    setCalLoading(true);
+    setCalError("");
+    try {
+      const res = await fetch("/api/integrations/google-calendar/auth");
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else if (data.connected) {
+        setCalConnected(true);
+      } else {
+        setCalError(data.error ?? "Failed to connect. Please try again.");
+      }
+    } catch {
+      setCalError("Connection failed. Check your network and try again.");
+    } finally {
+      setCalLoading(false);
+    }
+  };
+
+  const handleDisconnect = async () => {
+    setCalLoading(true);
+    try {
+      await fetch("/api/integrations/google-calendar/disconnect", { method: "POST" });
+      setCalConnected(false);
+    } catch {
+      setCalError("Failed to disconnect.");
+    } finally {
+      setCalLoading(false);
+    }
+  };
+
+  const handleSyncNow = async () => {
+    setCalLoading(true);
+    setCalError("");
+    try {
+      const res = await fetch("/api/integrations/google-calendar/sync", { method: "POST" });
+      const data = await res.json();
+      if (!data.success) setCalError(data.error ?? "Sync failed.");
+    } catch {
+      setCalError("Sync failed. Please try again.");
+    } finally {
+      setCalLoading(false);
+    }
+  };
+
+  return (
+    <div>
+      <h3 style={{ fontSize:15, fontWeight:800, color:"var(--tx)", marginBottom:4, fontFamily:"var(--font-display)" }}>Integrations</h3>
+      <p style={{ fontSize:12.5, color:"var(--tx2)", marginBottom:22 }}>Connect your tools to supercharge your workflow.</p>
+
+      {/* Google Calendar Card */}
+      <div className="integration-card" style={{
+        borderRadius:12, border:"1px solid var(--br)", background:"var(--bg2)",
+        padding:"18px 20px", display:"flex", alignItems:"center", gap:16,
+        marginBottom:12, flexWrap:"wrap",
+      }}>
+        {/* Icon */}
+        <div style={{
+          width:44, height:44, borderRadius:10, background:"#fff",
+          display:"flex", alignItems:"center", justifyContent:"center",
+          flexShrink:0, boxShadow:"0 2px 8px rgba(0,0,0,0.18)",
+        }}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <rect x="3" y="4" width="18" height="17" rx="2" fill="#fff" stroke="#e0e0e0" strokeWidth="1"/>
+            <rect x="3" y="8" width="18" height="2" fill="#4285F4"/>
+            <rect x="7" y="2" width="2" height="4" rx="1" fill="#4285F4"/>
+            <rect x="15" y="2" width="2" height="4" rx="1" fill="#4285F4"/>
+            <text x="12" y="19" textAnchor="middle" fontSize="7" fontWeight="700" fill="#4285F4">CAL</text>
+          </svg>
+        </div>
+
+        {/* Info */}
+        <div style={{ flex:1, minWidth:0 }}>
+          <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:3, flexWrap:"wrap" }}>
+            <p style={{ fontSize:13.5, fontWeight:700, color:"var(--tx)", fontFamily:"var(--font-display)" }}>
+              Google Calendar
+            </p>
+            {calConnected && (
+              <span style={{
+                fontSize:9.5, fontWeight:700, color:"var(--gr)", background:"rgba(16,185,129,0.1)",
+                border:"1px solid rgba(16,185,129,0.25)", padding:"1px 8px", borderRadius:99,
+                letterSpacing:"0.05em", textTransform:"uppercase",
+              }}>Connected</span>
+            )}
+          </div>
+          <p style={{ fontSize:12, color:"var(--tx3)", lineHeight:1.5 }}>
+            Sync tasks with due dates to Google Calendar. Get reminders and see your workload alongside your schedule.
+          </p>
+          {calError && (
+            <p style={{ fontSize:11.5, color:"var(--rd)", marginTop:6 }}>{calError}</p>
+          )}
+        </div>
+
+        {/* Action */}
+        <div style={{ display:"flex", gap:8, flexShrink:0, flexWrap:"wrap" }}>
+          {calConnected ? (
+            <>
+              <button onClick={handleSyncNow} disabled={calLoading} className="ghost"
+                style={{ height:34, padding:"0 14px", borderRadius:8, border:"1px solid var(--br)",
+                  background:"transparent", color:"var(--tx2)", fontSize:12, fontWeight:600,
+                  cursor:"pointer", display:"flex", alignItems:"center", gap:6 }}>
+                {calLoading
+                  ? <><div className="spin" style={{ width:11, height:11, borderRadius:"50%", border:"2px solid rgba(255,255,255,.2)", borderTopColor:"var(--ac)" }}/> Syncing...</>
+                  : <><Icons.Calendar size={12}/> Sync Now</>
+                }
+              </button>
+              <button onClick={handleDisconnect} disabled={calLoading}
+                style={{ height:34, padding:"0 14px", borderRadius:8, border:"1px solid rgba(239,68,68,0.25)",
+                  background:"rgba(239,68,68,0.06)", color:"var(--rd)", fontSize:12, fontWeight:600,
+                  cursor:"pointer" }}>
+                Disconnect
+              </button>
+            </>
+          ) : (
+            <button onClick={handleConnectCalendar} disabled={calLoading} className="btn-primary"
+              style={{ height:34, padding:"0 16px", borderRadius:8, border:"none",
+                background:"linear-gradient(135deg, var(--ac), var(--pu))", color:"#fff",
+                fontSize:12, fontWeight:700, cursor:"pointer",
+                display:"flex", alignItems:"center", gap:7,
+                boxShadow:"0 2px 10px rgba(99,102,241,0.3)" }}>
+              {calLoading
+                ? <><div className="spin" style={{ width:11, height:11, borderRadius:"50%", border:"2px solid rgba(255,255,255,.3)", borderTopColor:"#fff" }}/> Connecting...</>
+                : <><Icons.Google size={12}/> Connect Google</>
+              }
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Sync settings — only shown when connected */}
+      {calConnected && (
+        <div style={{ borderRadius:12, border:"1px solid var(--br)", background:"var(--bg1)", padding:"18px 20px" }}>
+          <p style={{ fontSize:12.5, fontWeight:700, color:"var(--tx)", marginBottom:14, fontFamily:"var(--font-display)" }}>
+            Sync Settings
+          </p>
+          {[
+            { label:"Sync tasks with due dates", sub:"Creates calendar events for tasks that have a due date", on:syncTasks, set:setSyncTasks },
+            { label:"Sync deadline reminders", sub:"Adds 30-minute reminders before task deadlines", on:syncDeadlines, set:setSyncDeadlines },
+            { label:"Daily briefing event", sub:"Adds a morning briefing block to your calendar", on:syncReminders, set:setSyncReminders },
+          ].map(({ label, sub, on, set }) => (
+            <div key={label} style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
+              padding:"12px 0", borderBottom:"1px solid var(--br)", gap:12, flexWrap:"wrap" }}
+              className="last:border-0">
+              <div style={{ flex:1, minWidth:0 }}>
+                <p style={{ fontSize:13, fontWeight:500, color:"var(--tx)", marginBottom:2 }}>{label}</p>
+                <p style={{ fontSize:11.5, color:"var(--tx3)" }}>{sub}</p>
+              </div>
+              <Toggle on={on} onToggle={() => set(!on)} />
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Coming soon integrations */}
+      <div style={{ marginTop:16 }}>
+        <p style={{ fontSize:11, fontWeight:600, color:"var(--tx3)", letterSpacing:"0.08em",
+          textTransform:"uppercase", marginBottom:10, fontFamily:"var(--font-mono)" }}>Coming Soon</p>
+        <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+          {["Notion", "Slack", "Linear", "Jira"].map(name => (
+            <div key={name} style={{ padding:"6px 14px", borderRadius:8, border:"1px solid var(--br)",
+              background:"var(--bg2)", fontSize:12, color:"var(--tx3)", fontWeight:500 }}>
+              {name}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    PAGE: SETTINGS
 ═══════════════════════════════════════════════════════════════════════════ */
 function PageSettings({ theme, toggleTheme }: { theme: Theme; toggleTheme: () => void }) {
@@ -2063,7 +2265,6 @@ function PageSettings({ theme, toggleTheme }: { theme: Theme; toggleTheme: () =>
   const supabase = createClient();
 
   const handleChangePassword = async () => {
-    setPwError(""); setPwSuccess(false);
     if (!newPassword || newPassword.length < 8) { setPwError("Password must be at least 8 characters"); return; }
     if (newPassword !== confirmPassword) { setPwError("Passwords do not match"); return; }
     setPwSaving(true);
@@ -2253,10 +2454,7 @@ function PageSettings({ theme, toggleTheme }: { theme: Theme; toggleTheme: () =>
           )}
 
           {tab === "integrations" && (
-            <div>
-              <h3 style={{ fontSize:15, fontWeight:800, color:"var(--tx)", marginBottom:4, fontFamily:"var(--font-display)" }}>Integrations</h3>
-              <p style={{ fontSize:12.5, color:"var(--tx2)", marginBottom:22 }}>No integrations available at this time.</p>
-            </div>
+            <IntegrationsTab />
           )}
 
           {tab === "appearance" && (

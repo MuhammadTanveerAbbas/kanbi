@@ -1,21 +1,27 @@
-# KANBI
+# Kanbi
 
-AI-powered Kanban task management — transforms messy notes into organized boards in seconds.
+> AI-powered Kanban board that extracts tasks from notes, PDFs & URLs in seconds.
 
-[![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)](https://nextjs.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-latest-black?logo=next.js)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?logo=typescript)](https://www.typescriptlang.org/)
 [![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-green?logo=supabase)](https://supabase.com/)
 [![Stripe](https://img.shields.io/badge/Stripe-Payments-purple?logo=stripe)](https://stripe.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-**Live Demo:** [https://kanbi.app](https://kanbi.app)
+**Live:** [kanbi.vercel.app](https://kanbi.vercel.app/) &nbsp;·&nbsp; **Author:** [Muhammad Tanveer Abbas](https://themvpguy.vercel.app/)
+
+---
+
+## What is Kanbi?
+
+Kanbi turns messy notes, emails, PDFs, and URLs into a clean Kanban board in under 2 seconds using Groq AI. It includes workload analysis, burnout detection, an AI productivity coach, and a full SaaS billing layer — all in one Next.js app.
 
 ---
 
 ## Features
 
 **AI**
-- Task extraction from notes, emails, PDFs, and URLs via Groq (llama-3.3-70b) in under 2 seconds
+- Task extraction from text, emails, PDFs, and URLs via Groq (llama-3.3-70b) in ~2 seconds
 - Workload health scoring, burnout risk detection, and deadline clustering
 - Conversational AI productivity coach with full board context
 - Morning briefings, auto-scheduling, and intelligent task adjustments (Autopilot)
@@ -45,7 +51,7 @@ AI-powered Kanban task management — transforms messy notes into organized boar
 
 | Category | Technology |
 |---|---|
-| Framework | Next.js 16 (App Router, Turbopack) |
+| Framework | Next.js (App Router, Turbopack) |
 | Language | TypeScript 5 |
 | Styling | Tailwind CSS 3.4 |
 | Database | Supabase (PostgreSQL + RLS) |
@@ -64,11 +70,11 @@ AI-powered Kanban task management — transforms messy notes into organized boar
 ## Getting Started
 
 ```bash
-git clone https://github.com/your-username/kanbi.git
+git clone https://github.com/MuhammadTanveerAbbas/kanbi.git
 cd kanbi
 pnpm install
 cp .env.example .env.local
-# Fill in .env.local with your credentials (see Environment Variables below)
+# Fill in .env.local with your credentials
 pnpm dev
 ```
 
@@ -90,7 +96,7 @@ Copy `.env.example` to `.env.local` and fill in the values.
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Yes | Stripe publishable key |
 | `STRIPE_WEBHOOK_SECRET` | Yes | Stripe webhook signing secret |
 | `STRIPE_PRICE_ID` | Yes | Stripe price ID for the premium plan |
-| `NEXT_PUBLIC_APP_URL` | Yes | Public base URL (e.g. `https://kanbi.app`) |
+| `NEXT_PUBLIC_APP_URL` | Yes | Public base URL (e.g. `https://kanbi.vercel.app`) |
 | `NEXT_PUBLIC_USE_AI` | Yes | Set to `true` to enable AI features |
 
 ---
@@ -152,7 +158,7 @@ kanbi/
 | `/api/parse-pdf` | POST | Extract tasks from PDF upload |
 | `/api/parse-url` | POST | Extract tasks from a web page URL |
 | `/api/parse-tasks` | POST | Parse tasks from raw notes |
-| `/api/boards` | GET/POST | List or create tasks |
+| `/api/boards` | GET/POST | List or create boards |
 | `/api/boards/[id]` | GET/PATCH/DELETE | Manage a specific board |
 | `/api/boards/[id]/export` | POST | Export board as PDF or DOCX |
 | `/api/boards/save` | POST | Save board to database |
@@ -197,14 +203,14 @@ pnpm test:e2e       # Playwright E2E tests
 
 ## Deployment
 
-**Vercel (recommended)**
+Recommended: [Vercel](https://vercel.com)
 
 1. Push to GitHub
 2. Import the repo in Vercel
 3. Add all environment variables
 4. Deploy
 
-Update for production:
+For production, update:
 - `NEXT_PUBLIC_APP_URL` → your domain
 - `STRIPE_WEBHOOK_SECRET` → production webhook secret from Stripe dashboard
 
@@ -227,3 +233,7 @@ Update for production:
 ## License
 
 MIT — see [LICENSE](LICENSE)
+
+---
+
+Built by [Muhammad Tanveer Abbas](https://themvpguy.vercel.app/)

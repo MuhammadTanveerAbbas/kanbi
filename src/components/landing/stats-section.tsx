@@ -1,62 +1,30 @@
 "use client";
 
-import { motion, useInView } from "framer-motion";
-import { useRef, useEffect, useState } from "react";
-import { FileText, Users, Heart, Clock } from "lucide-react";
+import { motion } from "framer-motion";
+import { Zap, Shield, BarChart3, Download } from "lucide-react";
 
 const stats = [
   {
-    icon: <FileText className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-primary" />,
-    value: "AI",
-    label: "Task Extraction",
-    suffix: "",
+    icon: <Zap className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-primary" />,
+    value: "< 2s",
+    label: "AI extraction speed",
   },
   {
-    icon: <Users className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-primary" />,
-    value: "Cloud",
-    label: "Sync & Storage",
-    suffix: "",
+    icon: <BarChart3 className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-primary" />,
+    value: "2h+",
+    label: "Saved per day",
   },
   {
-    icon: <Heart className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-primary" />,
-    value: "Stripe",
-    label: "Secure Payments",
-    suffix: "",
+    icon: <Shield className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-primary" />,
+    value: "RLS",
+    label: "Row-level security",
   },
   {
-    icon: <Clock className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-primary" />,
+    icon: <Download className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-primary" />,
     value: "Free",
-    label: "Plan Available",
-    suffix: "",
+    label: "Plan forever",
   },
 ];
-
-function CountUp({ end, duration = 2, suffix = "" }: { end: number; duration?: number; suffix?: string }) {
-  const [count, setCount] = useState(0);
-  const ref = useRef(null);
-  const isInView = useInView(ref, { once: true });
-
-  useEffect(() => {
-    if (!isInView) return;
-
-    let startTime: number;
-    const animate = (currentTime: number) => {
-      if (!startTime) startTime = currentTime;
-      const progress = Math.min((currentTime - startTime) / (duration * 1000), 1);
-      setCount(Math.floor(progress * end));
-      if (progress < 1) {
-        requestAnimationFrame(animate);
-      }
-    };
-    requestAnimationFrame(animate);
-  }, [isInView, end, duration]);
-
-  return (
-    <span ref={ref}>
-      {count}{suffix}
-    </span>
-  );
-}
 
 export default function StatsSection() {
   return (
@@ -70,10 +38,10 @@ export default function StatsSection() {
           className="text-center mb-8 sm:mb-12 md:mb-16"
         >
           <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight mb-3 sm:mb-4 md:mb-6 px-2">
-            Built for Productivity
+            Built for real productivity
           </h2>
           <p className="text-xs sm:text-sm md:text-base lg:text-lg text-muted-foreground max-w-2xl mx-auto px-2">
-            Complete SaaS platform with powerful features to organize your tasks.
+            Groq AI, Supabase, and Stripe — production-grade infrastructure under the hood.
           </p>
         </motion.div>
 
@@ -88,7 +56,7 @@ export default function StatsSection() {
               className="text-center"
             >
               <div className="flex justify-center mb-2 sm:mb-3 md:mb-4">
-                <motion.div 
+                <motion.div
                   className="p-2 sm:p-3 md:p-4 rounded-lg sm:rounded-xl bg-primary/10 border border-primary/20"
                   whileHover={{ scale: 1.1, rotate: 5 }}
                   transition={{ type: "spring", stiffness: 300 }}

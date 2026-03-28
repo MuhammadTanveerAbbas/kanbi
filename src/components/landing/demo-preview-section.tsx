@@ -19,7 +19,7 @@ export default function DemoPreviewSection() {
             See It In Action
           </h2>
           <p className="text-xs sm:text-sm md:text-base lg:text-lg text-muted-foreground max-w-2xl mx-auto px-2">
-            Transform messy notes into organized tasks instantly
+            Paste a client email. Get a full Kanban board in under 2 seconds.
           </p>
         </motion.div>
 
@@ -31,9 +31,8 @@ export default function DemoPreviewSection() {
             transition={{ duration: 0.6 }}
             className="relative"
           >
-            {/* Demo Board */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
-              {/* To Do Column */}
+              {/* To Do */}
               <Card className="p-4 bg-card/50 backdrop-blur-sm border-2">
                 <div className="flex items-center gap-2 mb-4">
                   <Circle className="h-4 w-4 text-gray-400" />
@@ -42,9 +41,9 @@ export default function DemoPreviewSection() {
                 </div>
                 <div className="space-y-3">
                   {[
-                    { title: "Design landing page", priority: "High" },
-                    { title: "Setup database", priority: "Medium" },
-                    { title: "Write documentation", priority: "Low" },
+                    { title: "Send revised proposal to Acme", priority: "High" },
+                    { title: "Update onboarding deck", priority: "Medium" },
+                    { title: "Review Q2 analytics report", priority: "Low" },
                   ].map((task, i) => (
                     <motion.div
                       key={i}
@@ -67,7 +66,7 @@ export default function DemoPreviewSection() {
                 </div>
               </Card>
 
-              {/* In Progress Column */}
+              {/* In Progress */}
               <Card className="p-4 bg-card/50 backdrop-blur-sm border-2 border-primary/30">
                 <div className="flex items-center gap-2 mb-4">
                   <Clock className="h-4 w-4 text-primary" />
@@ -76,8 +75,8 @@ export default function DemoPreviewSection() {
                 </div>
                 <div className="space-y-3">
                   {[
-                    { title: "Implement AI extraction", priority: "High" },
-                    { title: "Add authentication", priority: "High" },
+                    { title: "Client dashboard integration", priority: "High" },
+                    { title: "Fintech case study writeup", priority: "High" },
                   ].map((task, i) => (
                     <motion.div
                       key={i}
@@ -96,7 +95,7 @@ export default function DemoPreviewSection() {
                 </div>
               </Card>
 
-              {/* Done Column */}
+              {/* Done */}
               <Card className="p-4 bg-card/50 backdrop-blur-sm border-2">
                 <div className="flex items-center gap-2 mb-4">
                   <CheckCircle2 className="h-4 w-4 text-green-400" />
@@ -105,8 +104,8 @@ export default function DemoPreviewSection() {
                 </div>
                 <div className="space-y-3">
                   {[
-                    { title: "Project setup", priority: "High" },
-                    { title: "Install dependencies", priority: "Medium" },
+                    { title: "Kick-off call with Acme team" },
+                    { title: "Set up project tracking board" },
                   ].map((task, i) => (
                     <motion.div
                       key={i}
@@ -126,7 +125,6 @@ export default function DemoPreviewSection() {
               </Card>
             </div>
 
-            {/* Glow effect */}
             <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-primary/10 blur-3xl -z-10" />
           </motion.div>
         </div>

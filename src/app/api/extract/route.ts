@@ -10,6 +10,16 @@ interface ExtractBody {
   userId: string
 }
 
+const VALID_PRIORITIES = new Set(['urgent', 'high', 'medium', 'low'])
+
+function sanitizeText(text: string): string {
+  return text
+    .replace(/<[^>]*>/g, '') // strip HTML
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '') // strip control chars
+    .trim()
+    .slice(0, 8000) // hard cap to avoid token abuse
+}
+
 export async function POST(req: Request): Promise<Response> {
   try {
     const supabase = await createClient()
@@ -54,20 +64,30 @@ export async function POST(req: Request): Promise<Response> {
       )
     }
 
-    const cleanInput = body.text.replace(/<[^>]*>/g, '').trim()
+    const cleanInput = sanitizeText(body.text)
+    if (!cleanInput) {
+      return Response.json({ error: 'No usable text provided' }, { status: 400 })
+    }
+
     const completion = await getGroq().chat.completions.create({
       model: 'llama-3.3-70b-versatile',
       max_tokens: 1200,
+      temperature: 0.2,
       messages: [
         {
           role: 'system',
           content: `Extract every action item / task from the user's text.
 Return ONLY a valid JSON array. No markdown, no explanation, no extra text.
 Each item must have these exact fields:
-- "title": string (clear, actionable task name)
+- "title": string (clear, actionable task name, max 120 chars)
 - "priority": one of "urgent" | "high" | "medium" | "low"
 - "estimate": string like "30m", "1h", "2h" (your best guess, or omit if unclear)
 - "deadline": ISO date string if mentioned, otherwise omit
+
+Rules:
+- Only extract real action items, not observations or facts
+- Merge duplicate tasks
+- Max 20 tasks per extraction
 
 Example output:
 [{"title":"Review client proposal","priority":"high","estimate":"1h"},{"title":"Send follow-up email","priority":"medium","estimate":"15m"}]`,
@@ -77,7 +97,13 @@ Example output:
     })
 
     const raw = completion.choices[0]?.message?.content ?? '[]'
-    const tasks = JSON.parse(raw.replace(/```json|```/g, '').trim()) as unknown[]
+    let tasks: unknown[]
+    try {
+      tasks = JSON.parse(raw.replace(/```json|```/g, '').trim()) as unknown[]
+      if (!Array.isArray(tasks)) tasks = []
+    } catch {
+      tasks = []
+    }
 
     await supabase.rpc('increment_ai_usage', {
       p_user_id: body.userId,
@@ -87,10 +113,11 @@ Example output:
     // Persist extracted tasks to the tasks table
     const taskRows = (tasks as { title?: string; priority?: string; estimate?: string; deadline?: string }[])
       .filter(t => t.title && t.title.trim().length > 2)
+      .slice(0, 20) // enforce max
       .map(t => ({
         user_id: user.id,
-        title: t.title!.trim(),
-        priority: ['urgent','high','medium','low'].includes(t.priority ?? '') ? t.priority : 'medium',
+        title: t.title!.trim().slice(0, 120),
+        priority: VALID_PRIORITIES.has(t.priority ?? '') ? t.priority : 'medium',
         label: 'General',
         status: 'todo',
         estimate: t.estimate ?? null,
