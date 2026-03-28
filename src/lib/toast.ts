@@ -1,4 +1,4 @@
-// Toast notification utility for visual feedback
+// Toast notification utility — lightweight alternative to a full toast library
 export type ToastType = 'success' | 'error' | 'info' | 'warning';
 
 interface ToastOptions {
@@ -64,7 +64,6 @@ class ToastManager {
 
     container.appendChild(toast);
 
-    // Add slide-in animation
     const style = document.createElement('style');
     style.textContent = `
       @keyframes slideIn {
@@ -93,7 +92,6 @@ class ToastManager {
       document.head.appendChild(style);
     }
 
-    // Auto-remove after duration
     setTimeout(() => {
       toast.style.animation = 'slideOut 0.3s ease-out';
       setTimeout(() => {

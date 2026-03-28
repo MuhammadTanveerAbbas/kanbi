@@ -81,7 +81,7 @@ export default function HeroSection({ setIsLoading }: HeroSectionProps) {
 
           {/* Subtext */}
           <p className="text-sm xs:text-base sm:text-lg text-gray-400 max-w-2xl mx-auto mb-8 leading-relaxed px-2">
-            Paste your notes. AI extracts tasks, prioritizes them, and prevents burnout. Works with emails, PDFs, and Notion. Get organized in seconds, not hours.
+            Paste your notes. AI extracts tasks, prioritizes them, and prevents burnout. Works with emails and PDFs. Get organized in seconds, not hours.
           </p>
 
           {/* CTAs */}

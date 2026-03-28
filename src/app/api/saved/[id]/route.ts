@@ -48,7 +48,6 @@ export async function DELETE(
       );
     }
 
-    // Invalidate caches
     cacheManager.invalidate(CACHE_KEYS.USAGE(user.id));
     cacheManager.invalidate(CACHE_KEYS.ANALYTICS(user.id));
     cacheManager.invalidate(CACHE_KEYS.TASK_STATS(user.id));
@@ -85,7 +84,6 @@ export async function PATCH(
     const { id } = await params;
     const body = await request.json();
 
-    // Validate input
     const validation = UpdateBoardSchema.safeParse(body);
     if (!validation.success) {
       return NextResponse.json(

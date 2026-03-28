@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
         const userId = session.metadata?.supabase_user_id
 
         if (!userId) {
-          logger.error('[webhook] checkout.session.completed: No user ID in checkout session metadata', {})
+          logger.error('[webhook] checkout.session.completed: No user ID in metadata', {})
           break
         }
 

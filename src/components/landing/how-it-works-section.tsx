@@ -9,14 +9,14 @@ const steps = [
     icon: <FileText className="h-6 w-6 sm:h-8 sm:w-8 md:h-10 md:w-10 text-primary" />,
     title: "Drop in your notes",
     description:
-      "Paste text, upload PDF, link Notion, paste email, or enter a URL",
+      "Paste text, upload PDF, paste email, or enter a URL",
   },
   {
     number: "2",
     icon: <Sparkles className="h-6 w-6 sm:h-8 sm:w-8 md:h-10 md:w-10 text-primary" />,
     title: "AI extracts every action item",
     description:
-      "Gemini or Groq reads the content, finds tasks, assigns owners, sets deadlines",
+      "Groq reads the content, finds tasks, assigns owners, sets deadlines",
   },
   {
     number: "3",

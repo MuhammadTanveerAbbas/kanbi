@@ -13,8 +13,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const supabase = await createClient();
-    
-    // Get authenticated user
+
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
       throw new AuthError();
@@ -22,14 +21,10 @@ export async function POST(request: NextRequest) {
 
     logger.info('Analyze workload request', { userId: user.id, requestId });
 
-    // Validate request body
     const body = await request.json();
     const validated = analyzeWorkloadSchema.parse(body);
 
-    // Fetch user's historical pattern
     const userPattern = await fetchUserPattern(supabase, user.id);
-
-    // Fetch consecutive overload days
     const consecutiveOverloadDays = await fetchConsecutiveOverloadDays(supabase, user.id);
 
     // Analyze workload with user capacity
@@ -40,10 +35,8 @@ export async function POST(request: NextRequest) {
       consecutiveOverloadDays
     );
 
-    // Save workload snapshot
     await saveWorkloadSnapshot(supabase, user.id, analysis);
 
-    // Generate and save insights if status is not healthy
     if (analysis.status !== 'healthy' && analysis.suggestions.length > 0) {
       await saveInsight(supabase, user.id, analysis);
     }
@@ -83,9 +76,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-/**
- * Fetch consecutive overload days
- */
+/** Counts consecutive days where health_score < 50 to feed burnout risk calculation. */
 async function fetchConsecutiveOverloadDays(supabase: any, userId: string): Promise<number> {
   try {
     const { data } = await supabase
@@ -113,9 +104,7 @@ async function fetchConsecutiveOverloadDays(supabase: any, userId: string): Prom
   }
 }
 
-/**
- * Fetch user's completion patterns from database
- */
+/** Builds a UserPattern from the last 30 days of task completions for personalized time estimates. */
 async function fetchUserPattern(supabase: any, userId: string) {
   try {
     // Get total completions
@@ -167,9 +156,6 @@ async function fetchUserPattern(supabase: any, userId: string) {
   }
 }
 
-/**
- * Save workload snapshot to database
- */
 async function saveWorkloadSnapshot(supabase: any, userId: string, analysis: any) {
   try {
     await supabase
@@ -192,9 +178,6 @@ async function saveWorkloadSnapshot(supabase: any, userId: string, analysis: any
   }
 }
 
-/**
- * Save AI insight to database
- */
 async function saveInsight(supabase: any, userId: string, analysis: any) {
   try {
     const message = analysis.suggestions[0];

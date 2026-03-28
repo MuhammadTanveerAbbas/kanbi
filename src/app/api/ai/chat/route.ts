@@ -13,8 +13,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const supabase = await createClient();
-    
-    // Get authenticated user
+
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
       throw new AuthError();
@@ -29,37 +28,30 @@ export async function POST(request: NextRequest) {
       throw new ValidationError('Message or quick action required');
     }
 
-    // Validate message if provided
     if (message) {
       chatSchema.parse({ message, tasks });
     }
 
-    // Build context
     const context: ChatContext = {
       tasks: tasks || [],
       workloadHealth,
       estimatedHours,
     };
 
-    // Get recent chat history
     const chatHistory = await getChatHistory(supabase, user.id);
 
     let aiResponse: string;
 
-    // Handle quick actions
     if (quickAction) {
       aiResponse = await ChatAssistant.handleQuickAction(quickAction, context);
     } else {
-      // Generate AI response
       aiResponse = await ChatAssistant.generateResponse(message, context, chatHistory);
     }
 
-    // Save user message
     if (message) {
       await saveMessage(supabase, user.id, 'user', message, tasks);
     }
 
-    // Save AI response
     await saveMessage(supabase, user.id, 'assistant', aiResponse, tasks);
 
     logger.info('Chat success', { userId: user.id, requestId });
@@ -101,13 +93,11 @@ export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient();
     
-    // Get authenticated user
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
       throw new AuthError();
     }
 
-    // Get chat history
     const { data: messages, error } = await supabase
       .from('chat_messages')
       .select('*')
@@ -143,13 +133,11 @@ export async function DELETE(request: NextRequest) {
   try {
     const supabase = await createClient();
     
-    // Get authenticated user
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
       throw new AuthError();
     }
 
-    // Delete all chat messages for user
     const { error } = await supabase
       .from('chat_messages')
       .delete()
@@ -189,9 +177,6 @@ export async function DELETE(request: NextRequest) {
   }
 }
 
-/**
- * Get recent chat history
- */
 async function getChatHistory(supabase: any, userId: string): Promise<ChatMessage[]> {
   try {
     const { data: messages } = await supabase
@@ -214,9 +199,6 @@ async function getChatHistory(supabase: any, userId: string): Promise<ChatMessag
   }
 }
 
-/**
- * Save chat message to database
- */
 async function saveMessage(
   supabase: any,
   userId: string,

@@ -1,10 +1,7 @@
 import Groq from 'groq-sdk';
 import { ExtractedTask, TaskExtractionResult, TaskDuplicate, ExtractionMetadata } from './types';
 
-// Use Groq API key
 const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
-
-// Initialize Groq client
 const groq = GROQ_API_KEY ? new Groq({ apiKey: GROQ_API_KEY }) : null;
 
 export type AIModel = 'groq';
@@ -16,13 +13,12 @@ export interface GenerationOptions {
   model?: AIModel;
 }
 
-/**
- * Unified AI service using Groq
- * - Fast, cost-effective, reliable
- */
+/** Unified AI service backed by Groq (llama-3.3-70b-versatile). */
 export class AIService {
   /**
-   * Generate content using Groq
+   * Generate content via Groq.
+   * @param input - Prompt or user-provided text
+   * @param options - Tone, length, format, and model overrides
    */
   static async generate(
     input: string,
@@ -41,9 +37,6 @@ export class AIService {
     }
   }
 
-  /**
-   * Generate with Groq (fast, cost-effective)
-   */
   private static async generateWithGroq(
     input: string,
     tone: string,
@@ -84,9 +77,7 @@ export class AIService {
     return completion.choices[0]?.message?.content || '';
   }
 
-  /**
-   * Normalize AI response to { task, owner, deadline, priority }[]
-   */
+  /** Coerce raw AI output into a consistent task shape. */
   private static normalizeTaskArray(raw: any[]): { task: string; owner: string; deadline: string; priority?: string }[] {
     if (!Array.isArray(raw)) return [];
     const mapped: (({ task: string; owner: string; deadline: string; priority: string } | null)[]) = raw.map((item: any) => {
@@ -104,7 +95,8 @@ export class AIService {
   }
 
   /**
-   * Parse tasks from notes with enhanced extraction
+   * Extract structured tasks from freeform notes using Groq.
+   * Falls back to bullet-point parsing if the LLM call fails.
    */
   static async parseTasks(notes: string): Promise<TaskExtractionResult> {
     if (!notes || typeof notes !== 'string') {
@@ -158,13 +150,10 @@ Return ONLY valid JSON array, no markdown.`;
         fallbackUsed: false,
       };
 
-      console.log(`[AI] Extracted ${tasks.length} tasks, ${duplicates.length} duplicates, quality: ${qualityScore}`);
-
       return { tasks, duplicates, qualityScore, extractionMetadata: metadata };
     } catch (error) {
       console.error('Task parsing error:', error);
 
-      // Fallback: extract from bullet points
       const fallbackTasks = this.fallbackExtraction(notes);
       const processingTime = Date.now() - startTime;
 
@@ -175,7 +164,6 @@ Return ONLY valid JSON array, no markdown.`;
           processingTime,
           fallbackUsed: true,
         };
-        console.log(`[AI] Fallback: extracted ${fallbackTasks.length} tasks`);
         return {
           tasks: fallbackTasks,
           duplicates: [],
@@ -188,9 +176,6 @@ Return ONLY valid JSON array, no markdown.`;
     }
   }
 
-  /**
-   * Normalize extracted tasks with confidence scores
-   */
   private static normalizeExtractedTasks(raw: any[]): ExtractedTask[] {
     if (!Array.isArray(raw)) return [];
 
@@ -214,9 +199,7 @@ Return ONLY valid JSON array, no markdown.`;
       .filter((t): t is ExtractedTask => t !== null);
   }
 
-  /**
-   * Detect duplicate tasks by title similarity >80%
-   */
+  /** Flag tasks with >80% title similarity as duplicates. */
   private static detectDuplicates(tasks: ExtractedTask[]): TaskDuplicate[] {
     const duplicates: TaskDuplicate[] = [];
 
@@ -236,9 +219,7 @@ Return ONLY valid JSON array, no markdown.`;
     return duplicates;
   }
 
-  /**
-   * Calculate string similarity (Levenshtein-based)
-   */
+  /** Levenshtein-based similarity score in [0, 1]. */
   private static calculateSimilarity(str1: string, str2: string): number {
     const s1 = str1.toLowerCase();
     const s2 = str2.toLowerCase();
@@ -274,9 +255,7 @@ Return ONLY valid JSON array, no markdown.`;
     return 1 - matrix[s2.length][s1.length] / maxLen;
   }
 
-  /**
-   * Calculate extraction quality score (0-1)
-   */
+  /** Composite quality score: confidence, deadline coverage, priority coverage, extraction rate. */
   private static calculateQualityScore(tasks: ExtractedTask[], originalNotes: string): number {
     if (tasks.length === 0) return 0;
 
@@ -289,9 +268,7 @@ Return ONLY valid JSON array, no markdown.`;
     return (avgConfidence * 0.4 + hasDeadlines * 0.2 + hasPriorities * 0.2 + extractionRate * 0.2);
   }
 
-  /**
-   * Fallback extraction from bullet points
-   */
+  /** Regex-based fallback: extracts bullet/numbered lines when the LLM call fails. */
   private static fallbackExtraction(notes: string): ExtractedTask[] {
     return notes
       .split('\n')
@@ -307,9 +284,7 @@ Return ONLY valid JSON array, no markdown.`;
       .filter(item => item.task.length > 0);
   }
 
-  /**
-   * Parse tasks from email thread
-   */
+  /** Extract action items from an email thread. */
   static async parseTasksFromEmail(emailContent: string): Promise<{ task: string; owner: string; deadline: string; priority?: string }[]> {
     const emailPromptAddition = ' This is an email thread. Extract every action item, commitment, request, and deadline mentioned. Pay special attention to: "please", "can you", "by [date]", "I need", "let me know", "follow up".';
     const systemPrompt = `You are an expert assistant for task management. Extract every action item from the following email. For each task identify: the task description (make it specific and actionable), who owns it (name if mentioned, otherwise 'Me'), the deadline (extract from context like 'by Friday', 'end of month', 'ASAP'   convert to actual dates based on today's date), and priority (urgent if deadline <3 days, high if deadline <1 week, medium if <2 weeks, low otherwise). Return ONLY a valid JSON array, no markdown, no explanation.${emailPromptAddition}`;
@@ -332,9 +307,6 @@ Return ONLY valid JSON array, no markdown.`;
       const jsonMatch = content.match(/\[[\s\S]*\]/);
       const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : content);
       const tasks = Array.isArray(parsed) ? parsed : (parsed.tasks || []);
-      const tokens = (completion as any).usage?.total_tokens ?? 0;
-
-      console.log(`[AI] Used: llama-3.3-70b-versatile (Groq), tokens: ${tokens}`);
       return this.normalizeTaskArray(tasks);
     } catch (error) {
       console.error('Email task parsing error:', error);
@@ -342,9 +314,7 @@ Return ONLY valid JSON array, no markdown.`;
     }
   }
 
-  /**
-   * Parse tasks from web page content
-   */
+  /** Extract actionable tasks from scraped web page content. */
   static async parseTasksFromWebPage(webContent: string): Promise<{ task: string; owner: string; deadline: string; priority?: string }[]> {
     const urlPromptAddition = ' This is content from a web page (brief, project doc, or job posting). Extract every actionable task, requirement, or deliverable mentioned.';
     const systemPrompt = `You are an expert assistant for task management. Extract every action item from the following content. For each task identify: the task description (make it specific and actionable), who owns it (name if mentioned, otherwise 'Me'), the deadline (extract from context like 'by Friday', 'end of month', 'ASAP'   convert to actual dates based on today's date), and priority (urgent if deadline <3 days, high if deadline <1 week, medium if <2 weeks, low otherwise). Return ONLY a valid JSON array, no markdown, no explanation.${urlPromptAddition}`;
@@ -367,9 +337,6 @@ Return ONLY valid JSON array, no markdown.`;
       const jsonMatch = content.match(/\[[\s\S]*\]/);
       const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : content);
       const tasks = Array.isArray(parsed) ? parsed : (parsed.tasks || []);
-      const tokens = (completion as any).usage?.total_tokens ?? 0;
-
-      console.log(`[AI] Used: llama-3.3-70b-versatile (Groq), tokens: ${tokens}`);
       return this.normalizeTaskArray(tasks);
     } catch (error) {
       console.error('Web page task parsing error:', error);
@@ -377,9 +344,7 @@ Return ONLY valid JSON array, no markdown.`;
     }
   }
 
-  /**
-   * Check if AI services are available
-   */
+  /** Returns availability status for each configured AI provider. */
   static isAvailable(): { groq: boolean } {
     return {
       groq: !!groq,

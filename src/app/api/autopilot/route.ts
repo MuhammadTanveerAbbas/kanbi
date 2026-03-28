@@ -1,8 +1,9 @@
 import Groq from 'groq-sdk'
-
 import { createClient } from '@/lib/supabase/server'
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
+function getGroq() {
+  return new Groq({ apiKey: process.env.GROQ_API_KEY })
+}
 
 interface AutoTask {
   status: 'todo' | 'wip' | 'done'
@@ -30,7 +31,7 @@ export async function POST(req: Request): Promise<Response> {
     }
 
     const pending = body.tasks.filter((task) => task.status !== 'done')
-    const completion = await groq.chat.completions.create({
+    const completion = await getGroq().chat.completions.create({
       model: 'llama-3.3-70b-versatile',
       max_tokens: 800,
       messages: [

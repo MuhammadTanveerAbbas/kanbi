@@ -4,7 +4,7 @@ import { usageService } from '@/lib/services/usage-service';
 import { AIService } from '@/lib/ai-service';
 import { rateLimit, rateLimitResponse } from '@/lib/rate-limiter';
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const PDF_MIME = 'application/pdf';
 
 export async function POST(request: NextRequest) {
@@ -57,7 +57,6 @@ export async function POST(request: NextRequest) {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const pdfParse = require('pdf-parse') as (buf: Buffer) => Promise<{ text: string; numpages: number }>;
     const { text, numpages } = await pdfParse(buffer);
 

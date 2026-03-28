@@ -21,7 +21,7 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // Refresh session — keeps cookies alive
+  // Calling getUser() refreshes the session cookie on every request.
   await supabase.auth.getUser()
 
   return supabaseResponse

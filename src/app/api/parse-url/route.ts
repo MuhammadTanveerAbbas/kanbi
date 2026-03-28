@@ -4,10 +4,7 @@ import { usageService } from '@/lib/services/usage-service';
 import { AIService } from '@/lib/ai-service';
 import { rateLimit, rateLimitResponse } from '@/lib/rate-limiter';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const cheerio = require('cheerio') as { load: (html: string) => CheerioAPI };
-interface CheerioAPI {
-  (sel: string | unknown): { remove: () => void; text: () => string; attr: (n: string) => string | undefined; each: (fn: (i: number, el: unknown) => void) => void };
-}
+const cheerio = require('cheerio') as { load: (html: string) => (sel: string | unknown) => { remove: () => void; text: () => string; attr: (n: string) => string | undefined; each: (fn: (i: number, el: unknown) => void) => void } };
 
 const MAX_TEXT_LENGTH = 4000;
 

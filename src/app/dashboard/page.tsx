@@ -314,13 +314,13 @@ type Page        = "overview" | "board" | "chat" | "autopilot" | "saved" | "sett
 type Priority    = "urgent" | "high" | "medium" | "low";
 type TaskStatus  = "todo" | "wip" | "done";
 type Theme       = "dark" | "light";
-type InputMode   = "paste" | "pdf" | "notion" | "template";
+type InputMode   = "paste" | "pdf" | "template";
 type BoardView   = "input" | "kanban";
 
 interface Task {
   id: string; title: string; priority: Priority;
   label: string; dueDate?: string; estimate?: string;
-  status: TaskStatus; gcalSet?: boolean;
+  status: TaskStatus;
 }
 interface SavedBoard {
   id: string; name: string; taskCount: number;
@@ -358,8 +358,6 @@ interface AppState {
   briefings: Briefing[];
   setBriefings: (b: Briefing[] | ((p: Briefing[]) => Briefing[])) => void;
   burnoutAlerts: BurnoutAlert[];
-  gcalConnected: boolean;
-  setGcalConnected: (v: boolean) => void;
   dailyGoal: number; weeklyGoal: number;
   boardView: BoardView; setBoardView: (v: BoardView) => void;
   navigate: (p: Page) => void;
@@ -408,7 +406,7 @@ const Icons = {
   Logout:     Ic(["M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4","M16 17l5-5-5-5","M21 12H9"]),
   Shield:     Ic("M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"),
   Card:       Ic(["M1 4h22v16H1z","M1 9h22"]),
-  Notion:     Ic(["M4 4h16v16H4z","M8 9h8M8 13h5"]),
+
   Pdf:        Ic(["M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z","M14 2v6h6"]),
   Paste:      Ic(["M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2","M15 2H9a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1z"]),
   Template:   Ic(["M4 3h16a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z","M4 11h6v10H4z","M14 11h6v10h-6z"]),
@@ -492,7 +490,6 @@ function PBar({ value, color = "var(--ac)", h = 4, animated = true }: {
         transition: animated ? "width .9s cubic-bezier(.4,0,.2,1)" : "none",
         position: "relative",
       }}>
-        {/* Subtle shine */}
         <div style={{
           position: "absolute", inset: 0,
           background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent)",
@@ -526,133 +523,6 @@ function Toggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
 /* Skeleton loader for async states */
 function Skeleton({ w = "100%", h = 16, style }: { w?: string|number; h?: number; style?: React.CSSProperties }) {
   return <div className="skeleton" style={{ width: w, height: h, ...style }}/>;
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   GOOGLE CALENDAR REMINDER MODAL
-═══════════════════════════════════════════════════════════════════════════ */
-interface GCalModalProps {
-  task?: Task | null; bulkTasks?: Task[];
-  onClose: () => void;
-  onSave: (taskIds: string[], date: string, time: string, note: string) => void;
-  gcalConnected: boolean; onConnect: () => void;
-}
-
-function GCalModal({ task, bulkTasks, onClose, onSave, gcalConnected, onConnect }: GCalModalProps) {
-  const tasks = bulkTasks ?? (task ? [task] : []);
-  const isBulk = !!bulkTasks;
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
-  const [time, setTime] = useState("09:00");
-  const [note, setNote] = useState("");
-  const today = new Date().toISOString().slice(0, 10);
-
-  return (
-    <div
-      style={{ position:"fixed", inset:0, zIndex:999, background:"rgba(0,0,0,0.72)",
-        display:"flex", alignItems:"center", justifyContent:"center", padding:16,
-        backdropFilter:"blur(4px)", overflowY:"auto" }}
-      onClick={onClose}
-    >
-      <div
-        className="modal-inner"
-        style={{ width:"100%", maxWidth:480, borderRadius:20, border:"1px solid var(--brh)",
-          background:"var(--bg1)", boxShadow:"0 40px 96px rgba(0,0,0,0.65)", animation:"modalIn .28s ease both",
-          overflowY:"auto", maxHeight:"calc(100vh - 32px)" }}
-        onClick={e => e.stopPropagation()}
-      >
-        <div style={{ padding:"20px 24px 16px", borderBottom:"1px solid var(--br)", display:"flex", alignItems:"center", gap:13 }}>
-          <div style={{ width:38, height:38, borderRadius:11, background:"rgba(66,133,244,0.12)",
-            display:"flex", alignItems:"center", justifyContent:"center", color:"#4285f4", flexShrink:0 }}>
-            <Icons.Google size={18}/>
-          </div>
-          <div style={{ flex:1 }}>
-            <p style={{ fontSize:14, fontWeight:700, color:"var(--tx)", fontFamily:"var(--font-display)" }}>Set Google Calendar Reminder</p>
-            <p style={{ fontSize:11, color:"var(--tx3)" }}>{isBulk ? `${tasks.length} tasks` : task?.title}</p>
-          </div>
-          <button onClick={onClose} className="ghost"
-            style={{ width:30, height:30, borderRadius:8, border:"1px solid var(--br)", background:"transparent", color:"var(--tx3)", display:"flex", alignItems:"center", justifyContent:"center" }}>
-            <Icons.X size={13}/>
-          </button>
-        </div>
-
-        <div style={{ padding:"20px 24px" }}>
-          {!gcalConnected ? (
-            <div style={{ textAlign:"center", padding:"28px 0" }}>
-              <div style={{ width:60, height:60, borderRadius:16, background:"rgba(66,133,244,0.08)",
-                display:"flex", alignItems:"center", justifyContent:"center", color:"#4285f4", margin:"0 auto 18px" }}>
-                <Icons.Google size={28}/>
-              </div>
-              <p style={{ fontSize:15, fontWeight:700, color:"var(--tx)", marginBottom:8, fontFamily:"var(--font-display)" }}>Connect Google Calendar</p>
-              <p style={{ fontSize:12.5, color:"var(--tx2)", marginBottom:22, lineHeight:1.65 }}>
-                Connect your Google account to set reminders directly from Kanbi.
-              </p>
-              {/* 🔌 BACKEND: Replace onClick with your Supabase OAuth flow:
-                  supabase.auth.signInWithOAuth({ provider:'google', options:{ scopes:'https://www.googleapis.com/auth/calendar' }})
-              */}
-              <button onClick={onConnect} className="btn-primary"
-                style={{ height:40, padding:"0 22px", borderRadius:10, background:"#4285f4", border:"none",
-                  color:"#fff", fontSize:13, fontWeight:600, display:"inline-flex", alignItems:"center", gap:9 }}>
-                <Icons.Google size={14}/> Connect Google Calendar
-              </button>
-            </div>
-          ) : (
-            <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
-              {isBulk && (
-                <div style={{ maxHeight:120, overflowY:"auto", display:"flex", flexDirection:"column", gap:6 }}>
-                  {tasks.map(t => (
-                    <div key={t.id} style={{ display:"flex", alignItems:"center", gap:8, padding:"7px 11px",
-                      borderRadius:8, background:"var(--bg2)", border:"1px solid var(--br)" }}>
-                      <PriBadge p={t.priority}/>
-                      <span style={{ fontSize:12, color:"var(--tx)", flex:1, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{t.title}</span>
-                      {t.estimate && <span style={{ fontSize:10, color:"var(--tx3)", fontFamily:"var(--font-mono)" }}>{t.estimate}</span>}
-                    </div>
-                  ))}
-                </div>
-              )}
-              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
-                {[{label:"Date",type:"date",value:date,min:today,onChange:(v:string)=>setDate(v)},
-                  {label:"Time",type:"time",value:time,onChange:(v:string)=>setTime(v)}].map(f=>(
-                  <div key={f.label}>
-                    <label style={{ fontSize:11, fontWeight:600, color:"var(--tx2)", display:"block", marginBottom:6 }}>{f.label}</label>
-                    <input type={f.type} value={f.value} min={f.min} onChange={e=>f.onChange(e.target.value)}
-                      className="input-focus"
-                      style={{ width:"100%", background:"var(--inp)", border:"1px solid var(--br)", borderRadius:9,
-                        padding:"10px 13px", fontSize:13, color:"var(--tx)", colorScheme:"dark" }}/>
-                  </div>
-                ))}
-              </div>
-              {!isBulk && task?.estimate && (
-                <div style={{ display:"flex", alignItems:"center", gap:9, padding:"9px 13px",
-                  borderRadius:9, background:"var(--as)", border:"1px solid var(--ag)" }}>
-                  <Icons.Clock size={12} style={{ color:"var(--ac)" }}/>
-                  <span style={{ fontSize:12, color:"var(--ac)" }}>Duration auto-set: <strong>{task.estimate}</strong></span>
-                </div>
-              )}
-              <div>
-                <label style={{ fontSize:11, fontWeight:600, color:"var(--tx2)", display:"block", marginBottom:6 }}>Note (optional)</label>
-                <textarea value={note} onChange={e=>setNote(e.target.value)} placeholder="Add a note to your calendar event..."
-                  rows={3} className="input-focus"
-                  style={{ width:"100%", background:"var(--inp)", border:"1px solid var(--br)", borderRadius:9,
-                    padding:"10px 13px", fontSize:13, color:"var(--tx)", resize:"none", lineHeight:1.6 }}/>
-              </div>
-              <div style={{ display:"flex", gap:10, marginTop:2 }}>
-                <button onClick={onClose} className="ghost"
-                  style={{ flex:1, height:40, borderRadius:9, border:"1px solid var(--br)", background:"transparent", color:"var(--tx2)", fontSize:13 }}>
-                  Cancel
-                </button>
-                <button onClick={() => onSave(tasks.map(t => t.id), date, time, note)} className="btn-primary"
-                  style={{ flex:2, height:40, borderRadius:9, background:"#4285f4", border:"none", color:"#fff",
-                    fontSize:13, fontWeight:600, display:"flex", alignItems:"center", justifyContent:"center", gap:8 }}>
-                  <Icons.Calendar size={13}/>
-                  Set Reminder{isBulk && tasks.length > 1 ? `s (${tasks.length})` : ""} on Calendar
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -691,7 +561,6 @@ function DonutChart({ segs, size = 110 }: { segs: { value: number; color: string
     <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:14 }}>
       <div style={{ position:"relative", flexShrink:0 }}>
         <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform:"rotate(-90deg)" }}>
-          {/* Track */}
           <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--br)" strokeWidth={sw}/>
           {nonZero.map((s, i) => {
             const pct = s.value / total;
@@ -711,7 +580,6 @@ function DonutChart({ segs, size = 110 }: { segs: { value: number; color: string
             );
           })}
         </svg>
-        {/* Center label */}
         <div style={{ position:"absolute", inset:0, display:"flex", flexDirection:"column",
           alignItems:"center", justifyContent:"center" }}>
           <span style={{ fontSize: size * .18, fontWeight:800, color:"var(--tx)",
@@ -724,7 +592,6 @@ function DonutChart({ segs, size = 110 }: { segs: { value: number; color: string
           </span>
         </div>
       </div>
-      {/* Legend */}
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"5px 14px", width:"100%" }}>
         {segs.map(s => (
           <div key={s.label} style={{ display:"flex", alignItems:"center", gap:6 }}>
@@ -749,9 +616,7 @@ function HealthRing({ score }: { score: number }) {
   return (
     <div style={{ position:"relative", width:size, height:size, flexShrink:0 }}>
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform:"rotate(-90deg)" }}>
-        {/* Track */}
         <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="var(--br)" strokeWidth="5"/>
-        {/* Arc */}
         <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={col} strokeWidth="5"
           strokeLinecap="round" strokeDasharray={circ} strokeDashoffset={off}
           style={{ transition:"stroke-dashoffset 1.2s cubic-bezier(.4,0,.2,1)" }}/>
@@ -771,11 +636,10 @@ function HealthRing({ score }: { score: number }) {
    TASK CARD
 ═══════════════════════════════════════════════════════════════════════════ */
 function TaskCard({
-  task, onStatusChange, onSetReminder, compact = false,
+  task, onStatusChange, compact = false,
 }: {
   task: Task;
   onStatusChange?: (id: string, s: TaskStatus) => void;
-  onSetReminder?: (task: Task) => void;
   compact?: boolean;
 }) {
   return (
@@ -814,18 +678,6 @@ function TaskCard({
               style={{ fontSize:10.5, padding:"3px 10px", borderRadius:99, border:"1px solid var(--br)",
                 background:"transparent", color:"var(--tx3)", display:"flex", alignItems:"center", gap:4 }}>
               <Icons.Check size={10}/> {task.status === "todo" ? "Start" : "Done"}
-            </button>
-          )}
-          {onSetReminder && (
-            <button
-              onClick={e => { e.stopPropagation(); onSetReminder(task); }}
-              className="ghost"
-              style={{ fontSize:10.5, padding:"3px 10px", borderRadius:99,
-                border:`1px solid ${task.gcalSet ? "rgba(16,185,129,0.3)" : "var(--br)"}`,
-                background: task.gcalSet ? "rgba(16,185,129,0.07)" : "transparent",
-                color: task.gcalSet ? "var(--gr)" : "var(--tx3)",
-                display:"flex", alignItems:"center", gap:4, marginLeft:"auto" }}>
-              <Icons.Calendar size={10}/> {task.gcalSet ? "✓ Set" : "Remind"}
             </button>
           )}
         </div>
@@ -873,7 +725,6 @@ function PageOverview() {
           status: data.status ?? 'todo',
         }]);
       } else {
-        // fallback local
         setTasks(prev => [...prev, { id: `KB-${Date.now()}`, title: quickInput.trim(), priority: 'medium', label: 'General', status: 'todo' }]);
       }
     } catch {
@@ -884,7 +735,6 @@ function PageOverview() {
     navigate('board');
   };
 
-  // 🔌 BACKEND: Real activity data from /api/task-activity
   const [actData, setActData] = useState<{ label: string; value: number; color?: string }[]>([]);
   const [weeklyDone, setWeeklyDone] = useState(0);
   useEffect(() => {
@@ -896,7 +746,6 @@ function PageOverview() {
     }).catch(() => {});
   }, []);
 
-  // Derived from real tasks
   const urgentCount  = tasks.filter(t => t.priority === "urgent").length;
   const highCount    = tasks.filter(t => t.priority === "high").length;
   const mediumCount  = tasks.filter(t => t.priority === "medium").length;
@@ -909,7 +758,6 @@ function PageOverview() {
     { value: Math.round(lowCount    / priTotal * 100), color:"var(--tx3)",label:"Low"    },
   ];
 
-  // 🚧 MOCK: Replace with real Supabase usage stats from user profile
   const boardsToday   = user?.boards_used_today ?? 0;
   const aiUsesMonth   = user?.ai_uses_this_month ?? 51;
   const boardsLimit   = user?.plan === "pro" ? 100 : 10;
@@ -1048,7 +896,6 @@ function PageOverview() {
           <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
             {[
               { label:"Daily Tasks",       current:done,  goal:dailyGoal,  color:"var(--ac)" },
-              // 🔌 BACKEND: weeklyDone from /api/task-activity (last 7 days sum)
               { label:"Weekly Tasks",      current:weeklyDone,    goal:weeklyGoal, color:"var(--gr)" },
               { label:"Completion Rate",   current:total > 0 ? Math.round((done/total)*100) : 0, goal:100, color:"var(--pu)", suffix:"%" },
             ].map(g => (
@@ -1069,7 +916,6 @@ function PageOverview() {
       {/* Charts row */}
       <div className="main-grid-3" style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1fr", gap:14 }}>
         <div className="card" style={{ borderRadius:13, border:"1px solid var(--br)", background:"var(--bg1)", padding:20 }}>
-          {/* 🔌 BACKEND: Query Supabase for tasks completed/created per day for last 30 days */}
           <h3 style={{ fontSize:13, fontWeight:700, color:"var(--tx)", marginBottom:16,
             fontFamily:"var(--font-display)" }}>Task Activity — Last 30 Days</h3>
           <BarChart data={actData}/>
@@ -1141,111 +987,12 @@ function PageOverview() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   NOTION IMPORT PANEL
-═══════════════════════════════════════════════════════════════════════════ */
-function NotionImportPanel({ onTasksImported }: { onTasksImported: (tasks: Task[]) => void }) {
-  const { user } = useApp();
-  const [connected, setConnected] = useState<boolean | null>(null);
-  const [pageUrl, setPageUrl] = useState("");
-  const [importing, setImporting] = useState(false);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    fetch('/api/integrations/status')
-      .then(r => r.json())
-      .then(d => setConnected(!!d.connected?.notion))
-      .catch(() => setConnected(false));
-  }, []);
-
-  const handleImport = async () => {
-    if (!pageUrl.trim()) return;
-    setImporting(true);
-    setError("");
-    try {
-      // Get the stored access token for the user
-      const res = await fetch('/api/parse-notion', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pageUrl: pageUrl.trim(), accessToken: '__use_stored__' }),
-      });
-      const data = await res.json();
-      if (!res.ok) { setError(data.error || 'Import failed'); return; }
-      const result = data.tasks as { task?: string; title?: string; priority?: string; deadline?: string }[];
-      const imported: Task[] = (Array.isArray(result) ? result : []).map((t, i) => ({
-        id: `KB-${Date.now()}-${i}`,
-        title: (t.task ?? t.title ?? '').trim(),
-        priority: (['urgent','high','medium','low'].includes(t.priority ?? '') ? t.priority : 'medium') as Priority,
-        label: 'Notion',
-        status: 'todo' as TaskStatus,
-        dueDate: t.deadline,
-      })).filter(t => t.title.length > 2);
-      if (imported.length === 0) { setError('No tasks found on this page.'); return; }
-      onTasksImported(imported);
-    } catch {
-      setError('Failed to connect to Notion. Try again.');
-    } finally {
-      setImporting(false);
-    }
-  };
-
-  if (connected === null) return (
-    <div style={{ textAlign:"center", padding:"36px 24px", color:"var(--tx3)", fontSize:12 }}>Checking connection...</div>
-  );
-
-  if (!connected) return (
-    <div style={{ textAlign:"center", padding:"36px 24px" }}>
-      <Icons.Notion size={32} style={{ color:"var(--ac)", display:"block", margin:"0 auto 16px" }}/>
-      <p style={{ fontSize:13.5, color:"var(--tx2)", marginBottom:6, fontWeight:500 }}>Connect your Notion workspace</p>
-      <p style={{ fontSize:11.5, color:"var(--tx3)", marginBottom:18, lineHeight:1.6 }}>
-        Authorize once and import any Notion page as tasks
-      </p>
-      <button onClick={() => window.location.href = '/api/integrations/notion/auth'}
-        style={{ height:38, padding:"0 20px", borderRadius:10, background:"var(--ac)",
-          border:"none", color:"#fff", fontSize:13, fontWeight:600, cursor:"pointer" }}>
-        Connect Notion
-      </button>
-    </div>
-  );
-
-  return (
-    <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
-      <p style={{ fontSize:11, color:"var(--tx3)" }}>Paste a Notion page URL to import its content as tasks</p>
-      <input
-        value={pageUrl} onChange={e => setPageUrl(e.target.value)}
-        placeholder="https://notion.so/Your-Page-abc123..."
-        className="input-focus"
-        style={{ width:"100%", background:"var(--inp)", border:"1px solid var(--br)",
-          borderRadius:10, padding:"10px 14px", fontSize:13, color:"var(--tx)" }}
-      />
-      {error && <p style={{ fontSize:11.5, color:"var(--rd)" }}>{error}</p>}
-      <button onClick={handleImport} disabled={!pageUrl.trim() || importing}
-        className="btn-primary"
-        style={{ width:"100%", height:42, borderRadius:10,
-          background: pageUrl.trim() ? "var(--ac)" : "var(--bg3)",
-          border: `1px solid ${pageUrl.trim() ? "var(--ac)" : "var(--br)"}`,
-          color: pageUrl.trim() ? "#fff" : "var(--tx3)",
-          fontSize:13, fontWeight:700, display:"flex", alignItems:"center",
-          justifyContent:"center", gap:8,
-          cursor: pageUrl.trim() ? "pointer" : "not-allowed" }}>
-        {importing
-          ? <><div className="spin" style={{ width:14, height:14, borderRadius:"50%",
-              border:"2px solid rgba(255,255,255,.3)", borderTopColor:"#fff" }}/> Importing...</>
-          : <><Icons.Notion size={14}/> Import from Notion</>
-        }
-      </button>
-    </div>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
    PAGE: BOARD
 ═══════════════════════════════════════════════════════════════════════════ */
 function PageBoard() {
-  const { tasks, setTasks, savedBoards, setSavedBoards, boardView, setBoardView,
-          gcalConnected, setGcalConnected, user } = useApp();
+  const { tasks, setTasks, savedBoards, setSavedBoards, boardView, setBoardView, user } = useApp();
   const [inputMode, setInputMode] = useState<InputMode>("paste");
   const [inputText, setInputText] = useState("");
-  const [gcalModal, setGcalModal] = useState<{ task?: Task; bulk?: boolean } | null>(null);
   const [extracting, setExtracting] = useState(false);
   const overloaded = tasks.filter(t => t.status !== "done" && (t.priority === "urgent" || t.priority === "high")).length >= 5;
 
@@ -1260,7 +1007,6 @@ function PageBoard() {
   const inputModes = [
     { key:"paste"    as InputMode, label:"Paste",     icon:<Icons.Paste size={12}/> },
     { key:"pdf"      as InputMode, label:"PDF",       icon:<Icons.Pdf size={12}/>   },
-    { key:"notion"   as InputMode, label:"Notion",    icon:<Icons.Notion size={12}/> },
     { key:"template" as InputMode, label:"Templates", icon:<Icons.Template size={12}/> },
   ];
 
@@ -1311,23 +1057,6 @@ function PageBoard() {
       });
     } catch { /* non-blocking */ }
     syncTaskStats();
-  };
-
-  const handleSaveReminder = async (taskIds: string[], date: string, time: string, note: string) => {
-    const task = tasks.find(t => taskIds.includes(t.id));
-    try {
-      await fetch('/api/google/create-event', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          taskIds, taskTitle: task?.title ?? 'Task reminder',
-          date, time, note, duration: task?.estimate,
-          userId: user?.id ?? '',
-        }),
-      });
-    } catch { /* non-blocking */ }
-    setTasks(prev => prev.map(t => taskIds.includes(t.id) ? { ...t, gcalSet: true } : t));
-    setGcalModal(null);
   };
 
   const handleSaveBoard = async () => {
@@ -1443,15 +1172,7 @@ function PageBoard() {
                     <Icons.Upload size={30} style={{ color:"var(--tx3)", display:"block", margin:"0 auto 14px" }}/>
                     <p style={{ fontSize:13.5, color:"var(--tx2)", marginBottom:4, fontWeight:500 }}>Drop your PDF or click to browse</p>
                     <p style={{ fontSize:11, color:"var(--tx3)" }}>PDF, DOCX up to 10MB</p>
-                    {/* 🔌 BACKEND: Wire to your PDF extraction API route */}
                   </div>
-                )}
-                {inputMode === "notion" && (
-                  <NotionImportPanel onTasksImported={(imported) => {
-                    setTasks(prev => [...prev, ...imported]);
-                    syncTaskStats();
-                    setBoardView('kanban');
-                  }} />
                 )}
                 {inputMode === "template" && (
                   <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:9 }}>
@@ -1577,13 +1298,6 @@ function PageBoard() {
                 color:"var(--tx3)", fontFamily:"var(--font-mono)" }}>{tasks.length} tasks</span>
             </div>
             <div style={{ display:"flex", alignItems:"center", gap:9, flexWrap:"wrap" }}>
-              <button onClick={() => setGcalModal({ bulk: true })}
-                style={{ height:33, padding:"0 13px", borderRadius:8,
-                  border:"1px solid rgba(66,133,244,0.3)", background:"rgba(66,133,244,0.07)",
-                  color:"#4285f4", fontSize:11.5, fontWeight:600,
-                  display:"flex", alignItems:"center", gap:6, cursor:"pointer" }}>
-                <Icons.Calendar size={12}/> Set All Reminders
-              </button>
               <div style={{ display:"flex", alignItems:"center", gap:5, padding:"4px 11px",
                 borderRadius:8, background:"var(--as)", border:"1px solid var(--ag)" }}>
                 <div className="pulse" style={{ width:5, height:5, borderRadius:"50%", background:"var(--ac)" }}/>
@@ -1620,8 +1334,7 @@ function PageBoard() {
                   </div>
                   <div>
                     {kanbanTasks(key).map(t => (
-                      <TaskCard key={t.id} task={t} onStatusChange={updateTaskStatus}
-                        onSetReminder={t => setGcalModal({ task: t })}/>
+                      <TaskCard key={t.id} task={t} onStatusChange={updateTaskStatus}/>
                     ))}
                   </div>
                 </div>
@@ -1631,16 +1344,6 @@ function PageBoard() {
         </div>
       )}
 
-      {gcalModal && (
-        <GCalModal
-          task={gcalModal.task}
-          bulkTasks={gcalModal.bulk ? tasks.filter(t => t.status !== "done") : undefined}
-          onClose={() => setGcalModal(null)}
-          onSave={handleSaveReminder}
-          gcalConnected={gcalConnected}
-          onConnect={() => setGcalConnected(true)}
-        />
-      )}
     </div>
   );
 }
@@ -1892,8 +1595,6 @@ function PageAutopilot() {
   const healthScore  = tasks.length === 0 ? 100 :
     Math.round(Math.max(0, 100 - (tasks.filter(t=>t.priority==="urgent"||t.priority==="high").length / Math.max(tasks.length,1)) * 42));
 
-  // 🔌 BACKEND: Replace with real AI briefing via your API route
-  // POST /api/autopilot/briefing → { summary, schedule, healthNote }
   const handleGenerate = async () => {
     setGenLoading(true);
     try {
@@ -2140,16 +1841,13 @@ function PageSaved() {
   );
 
   const openBoard   = (b: SavedBoard) => { setTasks(b.tasks); setBoardView("kanban"); navigate("board"); };
-  // 🔌 BACKEND: supabase.from('saved_boards').delete().eq('id', id)
   const deleteBoard = (id: string) => setSavedBoards(prev => prev.filter(b => b.id !== id));
   const renameBoard = (id: string) => {
     if (renameVal.trim())
-      /* 🔌 BACKEND: supabase.from('saved_boards').update({ name: renameVal }).eq('id', id) */
       setSavedBoards(prev => prev.map(b => b.id === id ? { ...b, name: renameVal.trim() } : b));
     setRenamingId(null); setRenameVal("");
   };
   const moveBoard = (id: string, folder: string) => {
-    /* 🔌 BACKEND: supabase.from('saved_boards').update({ folder }).eq('id', id) */
     setSavedBoards(prev => prev.map(b => b.id === id ? { ...b, folder } : b));
     setMovingId(null);
   };
@@ -2389,7 +2087,7 @@ function PageSettings({ theme, toggleTheme }: { theme: Theme; toggleTheme: () =>
     { key:"profile",      label:"Profile",      icon:<Icons.Settings size={13}/>   },
     { key:"security",     label:"Security",     icon:<Icons.Shield size={13}/>     },
     { key:"billing",      label:"Billing",      icon:<Icons.Card size={13}/>       },
-    { key:"integrations", label:"Integrations", icon:<Icons.Notion size={13}/>     },
+    { key:"integrations", label:"Integrations", icon:<Icons.Layers size={13}/>     },
     { key:"appearance",   label:"Appearance",   icon:<Icons.Sun size={13}/>        },
     { key:"danger",       label:"Danger Zone",  icon:<Icons.Trash size={13}/>      },
   ];
@@ -2445,7 +2143,6 @@ function PageSettings({ theme, toggleTheme }: { theme: Theme; toggleTheme: () =>
               <p style={{ fontSize:12.5, color:"var(--tx2)", marginBottom:22 }}>Update your personal information</p>
               <div style={{ display:"flex", alignItems:"center", gap:14, marginBottom:24,
                 padding:"16px", borderRadius:12, background:"var(--bg2)", border:"1px solid var(--br)", flexWrap:"wrap" }}>
-                {/* 🔌 BACKEND: Replace "User" with user?.full_name and pass user?.avatar_url */}
                 <Avt name={user?.full_name ?? "User"} size={48}/>
                 <div style={{ flex:1, minWidth:0 }}>
                   <p style={{ fontSize:14, fontWeight:700, color:"var(--tx)", fontFamily:"var(--font-display)", wordBreak:"break-word" }}>
@@ -2468,7 +2165,6 @@ function PageSettings({ theme, toggleTheme }: { theme: Theme; toggleTheme: () =>
                 </div>
                 <div>
                   <label style={{ fontSize:12, fontWeight:600, color:"var(--tx2)", display:"block", marginBottom:7 }}>Email</label>
-                  {/* 🔌 BACKEND: Email comes from user.email — read-only */}
                   <input defaultValue={user?.email} type="email" readOnly
                     style={{ width:"100%", background:"var(--inp)", border:"1px solid var(--br)",
                       borderRadius:9, padding:"10px 13px", fontSize:13, color:"var(--tx2)", opacity:.7 }}/>
@@ -2559,31 +2255,7 @@ function PageSettings({ theme, toggleTheme }: { theme: Theme; toggleTheme: () =>
           {tab === "integrations" && (
             <div>
               <h3 style={{ fontSize:15, fontWeight:800, color:"var(--tx)", marginBottom:4, fontFamily:"var(--font-display)" }}>Integrations</h3>
-              <p style={{ fontSize:12.5, color:"var(--tx2)", marginBottom:22 }}>Connect your tools</p>
-              <div style={{ display:"flex", flexDirection:"column", gap:11 }}>
-                {[
-                  { name:"Notion",          desc:"Two-way sync with Notion",            icon:<Icons.Notion size={16}/>,   url:"/api/integrations/notion/auth" },
-                  { name:"Gmail",           desc:"Import tasks from email",             icon:<Icons.Google size={16}/>,   url:"/api/google/auth" },
-                  { name:"Google Calendar", desc:"Set task reminders automatically",    icon:<Icons.Calendar size={16}/>, url:"/api/google/auth" },
-                ].map(i => (
-                  <div key={i.name} className="integration-card" style={{ display:"flex", alignItems:"center", gap:15, padding:"15px 18px",
-                    borderRadius:11, border:"1px solid var(--br)", background:"var(--bg2)", flexWrap:"wrap" }}>
-                    <div style={{ width:36, height:36, borderRadius:9, background:"var(--bg3)",
-                      display:"flex", alignItems:"center", justifyContent:"center", color:"var(--ac)", flexShrink:0 }}>
-                      {i.icon}
-                    </div>
-                    <div style={{ flex:1, minWidth:0 }}>
-                      <p style={{ fontSize:13.5, fontWeight:700, color:"var(--tx)", wordBreak:"break-word" }}>{i.name}</p>
-                      <p style={{ fontSize:11.5, color:"var(--tx3)", wordBreak:"break-word" }}>{i.desc}</p>
-                    </div>
-                    <button onClick={() => window.location.href = i.url} className="btn-primary"
-                      style={{ height:32, padding:"0 14px", borderRadius:8, border:"1px solid var(--ac)",
-                        background:"var(--as)", color:"var(--ac)", fontSize:12, fontWeight:700, cursor:"pointer", flexShrink:0 }}>
-                      Connect
-                    </button>
-                  </div>
-                ))}
-              </div>
+              <p style={{ fontSize:12.5, color:"var(--tx2)", marginBottom:22 }}>No integrations available at this time.</p>
             </div>
           )}
 
@@ -2906,22 +2578,9 @@ export default function Dashboard() {
     setTheme(t => { const n = t === "dark" ? "light" : "dark"; localStorage.setItem("kanbi-theme", n); return n; });
   }, []);
 
-  /* ══════════════════════════════════════════════════════════════════
-     🔌 BACKEND: AUTH + REAL DATA LOADING
-     Replace all useState initializers below with Supabase calls.
-
-     Recommended pattern:
-     1. Get session: const { data:{ session } } = await supabase.auth.getSession()
-     2. Map session.user → AuthUser
-     3. Fetch tasks: supabase.from('tasks').select('*').eq('user_id', session.user.id)
-     4. Fetch boards: supabase.from('saved_boards').select('*').eq('user_id', session.user.id)
-     5. Subscribe to realtime: supabase.channel('tasks').on('postgres_changes', ...).subscribe()
-  ══════════════════════════════════════════════════════════════════ */
-
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // 🔌 BACKEND: Load real user + tasks + boards from existing APIs
   useEffect(() => {
     setIsLoading(true);
     Promise.all([
@@ -2942,14 +2601,13 @@ export default function Dashboard() {
 
   const [tasks, setTasks] = useState<Task[]>([]);
 
-  // Load real tasks from /api/boards
   useEffect(() => {
     fetch('/api/boards')
       .then(r => r.json())
       .then(d => {
         const loaded: Task[] = (d.tasks ?? []).map((t: {
           id: string; title: string; priority?: string; label?: string;
-          status?: string; estimate?: string; due_date?: string; gcal_set?: boolean;
+          status?: string; estimate?: string; due_date?: string;
         }) => ({
           id: t.id,
           title: t.title,
@@ -2958,14 +2616,12 @@ export default function Dashboard() {
           status: (['todo', 'wip', 'done'].includes(t.status ?? '') ? t.status : 'todo') as TaskStatus,
           estimate: t.estimate,
           dueDate: t.due_date,
-          gcalSet: t.gcal_set,
         }));
         setTasks(loaded);
       })
       .catch(() => {});
   }, [user?.id]);
 
-  // 🔌 BACKEND: Load saved boards from API
   const [savedBoards, setSavedBoards] = useState<SavedBoard[]>([]);
   useEffect(() => {
     fetch("/api/saved/list").then(r => r.json()).then(d => {
@@ -2973,18 +2629,16 @@ export default function Dashboard() {
     }).catch(() => {});
   }, []);
 
-  // 🚧 MOCK: Chat messages — replace with: supabase.from('chat_messages').select('*').eq('user_id', user.id).order('created_at')
   const [chatMessages, setChatMessages] = useState<ChatMsg[]>([]);
   const [briefings, setBriefings]       = useState<Briefing[]>([]);
   const [burnoutAlerts]                 = useState<BurnoutAlert[]>([]);
-  const [gcalConnected, setGcalConnected] = useState(false);
   const [boardView, setBoardView]       = useState<BoardView>("input");
   const navigate = useCallback((p: Page) => setPage(p), []);
 
   const appState: AppState = {
     tasks, setTasks, savedBoards, setSavedBoards,
     chatMessages, setChatMessages, briefings, setBriefings,
-    burnoutAlerts, gcalConnected, setGcalConnected,
+    burnoutAlerts,
     dailyGoal: 5, weeklyGoal: 30,
     boardView, setBoardView, navigate,
     user, isLoading,

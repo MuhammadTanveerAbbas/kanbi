@@ -15,8 +15,6 @@ import {
   HelpCircle,
   FileText,
   Upload,
-  BookOpen,
-  Mail,
   Link as LinkIcon,
   FileType,
   ClipboardPaste,
@@ -48,13 +46,6 @@ export default function TaskGenerator({ addTask }: TaskGeneratorProps) {
   const [pdfMeta, setPdfMeta] = useState<{ pages: number; characterCount: number } | null>(null);
   const [pdfPhase, setPdfPhase] = useState<"idle" | "reading" | "extracting">("idle");
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [notionUrl, setNotionUrl] = useState("");
-  const [notionToken, setNotionToken] = useState("");
-  const [notionLoading, setNotionLoading] = useState(false);
-  const [notionPhase, setNotionPhase] = useState<"idle" | "fetching" | "extracting">("idle");
-  const [notionPageTitle, setNotionPageTitle] = useState<string | null>(null);
-  const [emailContent, setEmailContent] = useState("");
-  const [emailLoading, setEmailLoading] = useState(false);
   const [urlInput, setUrlInput] = useState("");
   const [urlPageTitle, setUrlPageTitle] = useState<string | null>(null);
   const [urlLoading, setUrlLoading] = useState(false);
@@ -256,40 +247,6 @@ export default function TaskGenerator({ addTask }: TaskGeneratorProps) {
     e.target.value = "";
   };
 
-  const extractTasksFromEmail = async () => {
-    if (!emailContent.trim()) return;
-    setError(null);
-    setEmailLoading(true);
-    try {
-      const res = await fetch("/api/parse-gmail", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ emailContent: emailContent.trim() }),
-      });
-      let data: any;
-      try {
-        data = await res.json();
-      } catch {
-        data = {};
-      }
-      if (!res.ok) {
-        setError(data.error || "Failed to extract tasks from email.");
-        return;
-      }
-      const tasks = Array.isArray(data) ? data : data.tasks || [];
-      if (tasks.length > 0) {
-        addTasksFromApiResponse(tasks);
-        setEmailContent("");
-      } else {
-        setError("No tasks found in the email.");
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to extract tasks from email.");
-    } finally {
-      setEmailLoading(false);
-    }
-  };
-
   const extractTasksFromUrl = async () => {
     if (!urlInput.trim()) return;
     setError(null);
@@ -325,44 +282,6 @@ export default function TaskGenerator({ addTask }: TaskGeneratorProps) {
     } finally {
       setUrlLoading(false);
       setUrlPhase("idle");
-    }
-  };
-
-  const importFromNotion = async () => {
-    if (!notionUrl.trim() || !notionToken.trim()) return;
-    setError(null);
-    setNotionPageTitle(null);
-    setNotionLoading(true);
-    setNotionPhase("fetching");
-    try {
-      setNotionPhase("extracting");
-      const res = await fetch("/api/parse-notion", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pageUrl: notionUrl.trim(), accessToken: notionToken.trim() }),
-      });
-      let data: any;
-      try {
-        data = await res.json();
-      } catch {
-        data = {};
-      }
-      if (!res.ok) {
-        setError(data.error || "Failed to import from Notion.");
-        return;
-      }
-      if (data.pageTitle) setNotionPageTitle(data.pageTitle);
-      const tasks = data.tasks ?? [];
-      if (Array.isArray(tasks) && tasks.length > 0) {
-        addTasksFromApiResponse(tasks);
-      } else {
-        setError("No tasks found on this page.");
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to import from Notion.");
-    } finally {
-      setNotionLoading(false);
-      setNotionPhase("idle");
     }
   };
 
@@ -438,7 +357,7 @@ export default function TaskGenerator({ addTask }: TaskGeneratorProps) {
         </div>
 
         <Tabs defaultValue="paste" className="flex-1 flex flex-col min-h-0">
-          <TabsList className="grid w-full grid-cols-5 mb-4">
+          <TabsList className="grid w-full grid-cols-3 mb-4">
             <TabsTrigger value="paste" className="text-xs sm:text-sm flex items-center gap-1 sm:gap-2">
               <ClipboardPaste className="h-4 w-4" />
               <span className="hidden sm:inline">Paste</span>
@@ -446,14 +365,6 @@ export default function TaskGenerator({ addTask }: TaskGeneratorProps) {
             <TabsTrigger value="pdf" className="text-xs sm:text-sm flex items-center gap-1 sm:gap-2">
               <FileType className="h-4 w-4" />
               <span className="hidden sm:inline">PDF</span>
-            </TabsTrigger>
-            <TabsTrigger value="notion" className="text-xs sm:text-sm flex items-center gap-1 sm:gap-2">
-              <BookOpen className="h-4 w-4" />
-              <span className="hidden sm:inline">Notion</span>
-            </TabsTrigger>
-            <TabsTrigger value="gmail" className="text-xs sm:text-sm flex items-center gap-1 sm:gap-2">
-              <Mail className="h-4 w-4" />
-              <span className="hidden sm:inline">Gmail</span>
             </TabsTrigger>
             <TabsTrigger value="url" className="text-xs sm:text-sm flex items-center gap-1 sm:gap-2">
               <LinkIcon className="h-4 w-4" />
@@ -494,89 +405,6 @@ export default function TaskGenerator({ addTask }: TaskGeneratorProps) {
                 <>
                   <Sparkles className="mr-2 h-4 w-4" />
                   Turn This Into Tasks
-                </>
-              )}
-            </Button>
-          </TabsContent>
-
-          <TabsContent value="notion" className="flex-1 flex flex-col gap-4 mt-0 data-[state=inactive]:hidden">
-            <div className="space-y-2">
-              <Label className="text-xs">Notion page URL</Label>
-              <Input
-                placeholder="https://notion.so/Your-Page-..."
-                value={notionUrl}
-                onChange={(e) => setNotionUrl(e.target.value)}
-                className="text-sm"
-              />
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Label className="text-xs">Notion Integration Token</Label>
-                <span className="text-xs text-muted-foreground" title="Go to notion.so/my-integrations → New integration → copy token → share your page with the integration">
-                  (how to get)
-                </span>
-              </div>
-              <Input
-                type="password"
-                placeholder="secret_..."
-                value={notionToken}
-                onChange={(e) => setNotionToken(e.target.value)}
-                className="text-sm"
-              />
-              <p className="text-[10px] text-muted-foreground">
-                Go to notion.so/my-integrations → New integration → copy token → share your page with the integration
-              </p>
-            </div>
-            {notionPageTitle && (
-              <p className="text-xs text-muted-foreground">Page: {notionPageTitle}</p>
-            )}
-            <Button
-              onClick={importFromNotion}
-              disabled={!notionUrl.trim() || !notionToken.trim() || notionLoading}
-              className="w-full"
-              size="lg"
-            >
-              {notionLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {notionPhase === "fetching" ? "Fetching Notion page..." : "Extracting tasks..."}
-                </>
-              ) : (
-                <>
-                  <BookOpen className="mr-2 h-4 w-4" />
-                  Import from Notion
-                </>
-              )}
-            </Button>
-          </TabsContent>
-
-          <TabsContent value="gmail" className="flex-1 flex flex-col gap-4 mt-0 data-[state=inactive]:hidden">
-            <p className="text-xs text-muted-foreground">
-              Copy the full email thread from Gmail (Ctrl+A, Ctrl+C) and paste it here
-            </p>
-            <Textarea
-              placeholder="Paste your email thread here..."
-              value={emailContent}
-              onChange={(e) => { setEmailContent(e.target.value); if (error) setError(null); }}
-              rows={6}
-              className="resize-none text-sm"
-            />
-            <p className="text-xs text-muted-foreground">{emailContent.length} characters</p>
-            <Button
-              onClick={extractTasksFromEmail}
-              disabled={!emailContent.trim() || emailLoading}
-              className="w-full"
-              size="lg"
-            >
-              {emailLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Extracting tasks...
-                </>
-              ) : (
-                <>
-                  <Mail className="mr-2 h-4 w-4" />
-                  Extract Tasks from Email
                 </>
               )}
             </Button>

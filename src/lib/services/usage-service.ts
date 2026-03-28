@@ -1,8 +1,7 @@
 /**
- * Usage Service
- * Unified service for tracking and reporting usage statistics
+ * Tracks and enforces per-user AI and board usage limits.
+ * Limits differ by subscription plan (free vs. premium).
  */
-
 import { createClient } from '@/lib/supabase/server';
 import { cachingService } from './caching-service';
 
@@ -39,11 +38,7 @@ const SUBSCRIPTION_LIMITS = {
 } as const;
 
 class UsageService {
-  /**
-   * Get user's subscription plan
-   */
   private async getUserPlan(userId: string): Promise<'free' | 'premium'> {
-    // Check cache first
     const cached = await cachingService.getCachedSubscription(userId);
     if (cached?.plan) {
       return cached.plan;
@@ -59,23 +54,15 @@ class UsageService {
         .single();
 
       const plan = subscription?.plan === 'premium' ? 'premium' : 'free';
-
-      // Cache the subscription status
       await cachingService.setCachedSubscription(userId, { plan, status: 'active' });
-
       return plan;
     } catch (error) {
       console.error('Error fetching subscription:', error);
-      // Default to free on error
       return 'free';
     }
   }
 
-  /**
-   * Get usage limits based on subscription
-   */
   async getUserLimits(userId: string): Promise<UsageLimits> {
-    // Handle anonymous/unauthenticated users
     if (userId === 'anonymous' || !userId) {
       return {
         ...SUBSCRIPTION_LIMITS.free,
@@ -92,11 +79,7 @@ class UsageService {
     };
   }
 
-  /**
-   * Get current usage statistics for a user
-   */
   async getUserUsage(userId: string, forceRefresh: boolean = false): Promise<UsageStats> {
-    // Handle anonymous/unauthenticated users
     if (userId === 'anonymous' || !userId) {
       return {
         boardsUsedToday: 0,
@@ -108,12 +91,10 @@ class UsageService {
       };
     }
 
-    // Invalidate cache if force refresh is requested
     if (forceRefresh) {
       await cachingService.invalidateUsageCache(userId);
     }
 
-    // Check cache first (unless forcing refresh)
     if (!forceRefresh) {
       const cached = await cachingService.getCachedUsage(userId);
       if (cached) {
@@ -163,7 +144,6 @@ class UsageService {
         .select('*', { count: 'exact', head: true })
         .eq('user_id', userId);
 
-      // Calculate totals
       const boardsUsedToday = todayUsage?.boards_used_count || 0;
       const aiUsedToday = todayUsage?.ai_used_count || 0;
       const boardsUsedMonth = monthUsage?.reduce((sum, row) => sum + (row.boards_used_count || 0), 0) || 0;
@@ -175,16 +155,13 @@ class UsageService {
         aiUsedToday,
         aiUsedMonth,
         totalBoards: totalBoards || 0,
-        totalAI: aiUsedMonth, // Total AI is monthly count for now
+        totalAI: aiUsedMonth,
       };
 
-      // Cache the result
       await cachingService.setCachedUsage(userId, stats);
-
       return stats;
     } catch (error) {
       console.error('Error fetching usage stats:', error);
-      // Return zero stats on error
       return {
         boardsUsedToday: 0,
         boardsUsedMonth: 0,
@@ -196,9 +173,6 @@ class UsageService {
     }
   }
 
-  /**
-   * Increment board usage counter
-   */
   async incrementBoardUsage(userId: string): Promise<void> {
     try {
       const supabase = await createClient();
@@ -213,17 +187,13 @@ class UsageService {
         throw new Error(`Failed to increment board usage: ${error.message}`);
       }
 
-      // Invalidate cache
       await cachingService.invalidateUsageCache(userId);
     } catch (error) {
       console.error('Error incrementing board usage:', error);
-      // Don't throw - allow operation to continue
+      // Non-fatal — don't block the save operation
     }
   }
 
-  /**
-   * Increment AI usage counter
-   */
   async incrementAIUsage(userId: string): Promise<void> {
     try {
       const supabase = await createClient();
@@ -238,17 +208,13 @@ class UsageService {
         throw new Error(`Failed to increment AI usage: ${error.message}`);
       }
 
-      // Invalidate cache
       await cachingService.invalidateUsageCache(userId);
     } catch (error) {
       console.error('Error incrementing AI usage:', error);
-      // Don't throw - allow operation to continue
+      // Non-fatal — don't block the AI operation
     }
   }
 
-  /**
-   * Check if user can create a board
-   */
   async canCreateBoard(userId: string): Promise<boolean> {
     try {
       const limits = await this.getUserLimits(userId);
@@ -258,14 +224,10 @@ class UsageService {
         usage.boardsUsedMonth < limits.monthlyBoardLimit;
     } catch (error) {
       console.error('Error checking board limit:', error);
-      // Default to allowing on error
       return true;
     }
   }
 
-  /**
-   * Check if user can use AI
-   */
   async canUseAI(userId: string): Promise<boolean> {
     try {
       const limits = await this.getUserLimits(userId);
@@ -275,11 +237,9 @@ class UsageService {
         usage.aiUsedMonth < limits.monthlyAILimit;
     } catch (error) {
       console.error('Error checking AI limit:', error);
-      // Default to allowing on error
       return true;
     }
   }
 }
 
-// Singleton instance
 export const usageService = new UsageService();

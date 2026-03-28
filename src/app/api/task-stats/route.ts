@@ -10,7 +10,6 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // Check cache
   const cacheKey = CACHE_KEYS.TASK_STATS(user.id);
   const cached = cacheManager.get(cacheKey);
   if (cached) return NextResponse.json(cached);

@@ -15,7 +15,6 @@ export function useTasksStore() {
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const supabase = createClient();
 
-  // Auto-save to Supabase (debounced 3 seconds)
   const autoSaveToSupabase = useCallback(async (currentTasks: Task[]) => {
     if (autoSaveTimeoutRef.current) {
       clearTimeout(autoSaveTimeoutRef.current);
@@ -40,7 +39,6 @@ export function useTasksStore() {
     }, 3000);
   }, [currentBoardId]);
 
-  // Sync task stats to Supabase
   const syncTaskStats = useCallback(async (currentTasks: Task[]) => {
     try {
       const stats = {
@@ -62,7 +60,7 @@ export function useTasksStore() {
     }
   }, []);
 
-  // Setup real-time sync for multi-tab updates
+  // Subscribe to Supabase Realtime for multi-tab sync
   useEffect(() => {
     if (typeof window === 'undefined' || !currentBoardId) return;
 
@@ -82,7 +80,7 @@ export function useTasksStore() {
     };
   }, [currentBoardId]);
 
-  // Load tasks from localStorage on mount (fallback)
+  // Load from localStorage on mount; Supabase is the source of truth for saved boards
   useEffect(() => {
     const loadTasks = () => {
       try {
@@ -115,7 +113,6 @@ export function useTasksStore() {
     }
   }, [syncTaskStats]);
 
-  // Auto-save tasks when they change
   useEffect(() => {
     if (isInitialized && tasks.length > 0) {
       try {
@@ -155,7 +152,6 @@ export function useTasksStore() {
           if (task.id === taskId) {
             const updatedTask = { ...task, ...updates };
 
-            // Track completion
             if (updates.status === 'Done' && task.status !== 'Done') {
               analytics.trackTaskCompleted();
             }

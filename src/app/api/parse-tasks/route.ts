@@ -25,20 +25,16 @@ export async function POST(request: NextRequest) {
 
     logger.info('Parse tasks request', { userId: user.id, requestId });
 
-    // Validate request body
     const body = await request.json();
     const validated = parseTasksSchema.parse(body);
 
-    // Check if user can use AI
     const canUse = await usageService.canUseAI(user.id);
     if (!canUse) {
       throw new RateLimitError('AI usage limit exceeded');
     }
 
-    // Parse tasks with enhanced extraction
     const result = await AIService.parseTasks(validated.notes);
 
-    // Track AI usage after successful parsing
     await usageService.incrementAIUsage(user.id).catch((error) => {
       logger.error('Failed to track AI usage', { userId: user.id, requestId, error: error.message });
     });

@@ -1,3 +1,7 @@
+/**
+ * Per-user (authenticated) and per-IP (anonymous) in-memory rate limiter.
+ * Keys are scoped to the request path to allow different limits per endpoint.
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 
@@ -16,18 +20,18 @@ export async function rateLimit(
   req: NextRequest,
   options: { maxRequests: number; windowMs: number } = { maxRequests: 20, windowMs: 60000 }
 ): Promise<{ success: boolean; remaining: number; limit: number; reset: number }> {
-  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() 
-    || req.headers.get('x-real-ip') 
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+    || req.headers.get('x-real-ip')
     || 'anonymous';
-  
-  // Try to get userId from session
+
+  // Prefer user-scoped keys over IP to avoid false positives behind shared NAT
   let userId: string | null = null;
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     userId = user?.id || null;
   } catch {
-    // Ignore auth errors for rate limiting
+    // Auth failure is non-fatal for rate limiting
   }
   
   const now = Date.now();

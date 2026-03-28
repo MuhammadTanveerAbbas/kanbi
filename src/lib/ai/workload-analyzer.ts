@@ -1,50 +1,42 @@
 import { Task, TaskPriority, BurnoutRisk, DeadlineCluster, EnhancedWorkloadAnalysis, UserPattern } from '@/lib/types';
 
-// Default time estimates (in minutes) by priority
 const DEFAULT_TIME_ESTIMATES: Record<TaskPriority, number> = {
-  Urgent: 120,  // 2 hours
-  High: 90,     // 1.5 hours
-  Medium: 60,   // 1 hour
-  Low: 30,      // 30 mins
+  Urgent: 120,
+  High: 90,
+  Medium: 60,
+  Low: 30,
 };
 
-// Context switching cost per task (in minutes)
 const CONTEXT_SWITCHING_COST = 15;
-
-// Default daily capacity in hours
 const DAILY_CAPACITY_HOURS = 6;
 
-/**
- * Analyze user's current workload and generate insights
- */
+/** Analyzes task workload, calculates health scores, and generates burnout risk assessments. */
 export class WorkloadAnalyzer {
   /**
-   * Calculate workload health score (0-100)
-   * 100 = perfect workload
-   * 80-99 = healthy
-   * 50-79 = busy
-   * 25-49 = overloaded
-   * 0-24 = critical
+   * Health score bands:
+   *   100 = ≤70% capacity
+   *   70–99 = 70–100% capacity
+   *   30–69 = 100–150% capacity
+   *   10–29 = 150–200% capacity
+   *   0–9   = >200% capacity
    */
   static calculateHealthScore(
     estimatedHours: number,
     capacityHours: number = DAILY_CAPACITY_HOURS
   ): number {
     if (estimatedHours === 0) return 100;
-    
+
     const ratio = estimatedHours / capacityHours;
-    
-    if (ratio <= 0.7) return 100; // Under 70% capacity = perfect
-    if (ratio <= 1.0) return Math.round(100 - (ratio - 0.7) * 100); // 70-100% = 100-70 score
-    if (ratio <= 1.5) return Math.round(70 - (ratio - 1.0) * 80); // 100-150% = 70-30 score
-    if (ratio <= 2.0) return Math.round(30 - (ratio - 1.5) * 40); // 150-200% = 30-10 score
-    
-    return Math.max(0, Math.round(10 - (ratio - 2.0) * 10)); // 200%+ = 10-0 score
+
+    if (ratio <= 0.7) return 100;
+    if (ratio <= 1.0) return Math.round(100 - (ratio - 0.7) * 100);
+    if (ratio <= 1.5) return Math.round(70 - (ratio - 1.0) * 80);
+    if (ratio <= 2.0) return Math.round(30 - (ratio - 1.5) * 40);
+
+    return Math.max(0, Math.round(10 - (ratio - 2.0) * 10));
   }
 
-  /**
-   * Estimate time for a single task based on priority and user history
-   */
+  /** Returns user's historical average for the given priority, or the default estimate. */
   static estimateTaskTime(
     priority: TaskPriority,
     userPattern?: UserPattern
@@ -55,16 +47,12 @@ export class WorkloadAnalyzer {
     return DEFAULT_TIME_ESTIMATES[priority];
   }
 
-  /**
-   * Analyze current workload with enhanced features
-   */
   static analyzeWorkload(
     tasks: Task[],
     userPattern?: UserPattern,
     userCapacity: number = 6,
     consecutiveOverloadDays: number = 0
   ): EnhancedWorkloadAnalysis {
-    // Count tasks by priority
     const taskBreakdown = {
       urgent: tasks.filter(t => t.priority === 'Urgent').length,
       high: tasks.filter(t => t.priority === 'High').length,
@@ -72,50 +60,30 @@ export class WorkloadAnalyzer {
       low: tasks.filter(t => t.priority === 'Low').length,
     };
 
-    // Calculate estimated hours
     let estimatedMinutes = 0;
     tasks.forEach(task => {
       const priority = task.priority || 'Medium';
       estimatedMinutes += this.estimateTaskTime(priority, userPattern);
     });
-    
-    // Add context switching cost
+
+    // 15-minute context-switching penalty per task transition
     const contextSwitchingCost = tasks.length > 1 ? (tasks.length - 1) * CONTEXT_SWITCHING_COST : 0;
     estimatedMinutes += contextSwitchingCost;
     const estimatedHours = Math.round((estimatedMinutes / 60) * 10) / 10;
 
-    // Calculate health score
     const healthScore = this.calculateHealthScore(estimatedHours, userCapacity);
     const overloadHours = Math.max(0, estimatedHours - userCapacity);
 
-    // Determine status
     let status: EnhancedWorkloadAnalysis['status'];
     if (healthScore >= 80) status = 'healthy';
     else if (healthScore >= 50) status = 'busy';
     else if (healthScore >= 25) status = 'overloaded';
     else status = 'critical';
 
-    // Calculate burnout risk
     const burnoutRisk = this.calculateBurnoutRisk(consecutiveOverloadDays, overloadHours);
-
-    // Detect deadline clustering
     const deadlineClusters = this.detectDeadlineClusters(tasks);
-
-    // Generate insights
-    const insights = this.generateInsights(
-      tasks.length,
-      estimatedHours,
-      taskBreakdown,
-      userPattern
-    );
-
-    // Generate suggestions
-    const suggestions = this.generateSuggestions(
-      status,
-      overloadHours,
-      taskBreakdown,
-      tasks.length
-    );
+    const insights = this.generateInsights(tasks.length, estimatedHours, taskBreakdown, userPattern);
+    const suggestions = this.generateSuggestions(status, overloadHours, taskBreakdown, tasks.length);
 
     return {
       healthScore,
@@ -135,31 +103,25 @@ export class WorkloadAnalyzer {
   }
 
   /**
-   * Calculate burnout risk based on consecutive overload days and overload hours
+   * Burnout risk score = (consecutiveOverloadDays × 0.3) + (overloadHours × 0.1).
+   * Thresholds: low <0.5, moderate <1.5, high <3.0, critical ≥3.0.
    */
   static calculateBurnoutRisk(consecutiveOverloadDays: number, overloadHours: number): BurnoutRisk {
     const score = (consecutiveOverloadDays * 0.3) + (overloadHours * 0.1);
-    
+
     let level: BurnoutRisk['level'];
     if (score < 0.5) level = 'low';
     else if (score < 1.5) level = 'moderate';
     else if (score < 3.0) level = 'high';
     else level = 'critical';
 
-    return {
-      level,
-      score: Math.round(score * 100) / 100,
-      consecutiveOverloadDays,
-      overloadHours,
-    };
+    return { level, score: Math.round(score * 100) / 100, consecutiveOverloadDays, overloadHours };
   }
 
-  /**
-   * Detect deadline clustering (≥2 tasks same day = high risk)
-   */
+  /** Flags dates with ≥2 tasks due as clusters; ≥3 tasks = high risk. */
   static detectDeadlineClusters(tasks: Task[]): DeadlineCluster[] {
     const dateMap = new Map<string, number>();
-    
+
     tasks.forEach(task => {
       if (task.dueDate) {
         const date = task.dueDate.split('T')[0];
@@ -170,20 +132,13 @@ export class WorkloadAnalyzer {
     const clusters: DeadlineCluster[] = [];
     dateMap.forEach((count, date) => {
       if (count >= 2) {
-        clusters.push({
-          date,
-          taskCount: count,
-          isHighRisk: count >= 3,
-        });
+        clusters.push({ date, taskCount: count, isHighRisk: count >= 3 });
       }
     });
 
     return clusters.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   }
 
-  /**
-   * Generate insights based on workload data
-   */
   private static generateInsights(
     totalTasks: number,
     estimatedHours: number,
@@ -192,7 +147,6 @@ export class WorkloadAnalyzer {
   ): string[] {
     const insights: string[] = [];
 
-    // Task count insight
     if (userPattern?.avgTasksPerDay) {
       const diff = totalTasks - userPattern.avgTasksPerDay;
       if (diff > 3) {
@@ -206,15 +160,12 @@ export class WorkloadAnalyzer {
       insights.push(`You have ${totalTasks} tasks today`);
     }
 
-    // Time estimate insight
     insights.push(`Estimated time: ${estimatedHours} hours`);
 
-    // Priority distribution insight
     if (taskBreakdown.urgent > 0) {
       insights.push(`${taskBreakdown.urgent} urgent task${taskBreakdown.urgent > 1 ? 's' : ''} need immediate attention`);
     }
 
-    // Experience insight
     if (userPattern?.totalCompletions) {
       if (userPattern.totalCompletions < 10) {
         insights.push(`Building your profile... ${userPattern.totalCompletions} tasks completed`);
@@ -226,9 +177,6 @@ export class WorkloadAnalyzer {
     return insights;
   }
 
-  /**
-   * Generate actionable suggestions
-   */
   private static generateSuggestions(
     status: EnhancedWorkloadAnalysis['status'],
     overloadHours: number,
@@ -265,25 +213,21 @@ export class WorkloadAnalyzer {
     return suggestions;
   }
 
-  /**
-   * Get time estimate badge text for UI
-   */
+  /** Returns a human-readable time badge string (e.g. "~1.5h" or "~30m"). */
   static getTimeEstimateBadge(
     priority: TaskPriority,
     userPattern?: UserPattern
   ): string {
     const minutes = this.estimateTaskTime(priority, userPattern);
     const hours = minutes / 60;
-    
+
     if (hours >= 1) {
       return `~${Math.round(hours * 10) / 10}h`;
     }
     return `~${minutes}m`;
   }
 
-  /**
-   * Parse user pattern from database results
-   */
+  /** Converts raw DB aggregates into a typed UserPattern, or returns undefined if no history. */
   static parseUserPattern(data: {
     avgTasksPerDay?: number;
     avgCompletionTimes?: Record<string, number>;

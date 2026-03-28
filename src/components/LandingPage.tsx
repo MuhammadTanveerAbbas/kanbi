@@ -2,7 +2,6 @@
 // KANBI LANDING PAGE v3
 // Updates: (1) Hero mock matches new dashboard (sidebar+health ring+progress bars)
 //          (2) NEW tabbed Product Showcase   Dashboard, Board, AI Chat, Autopilot
-//          (3) Features section updated   GCal, AI Chat, Autopilot all included
 import { useState, useEffect, useRef, createContext, useContext, useCallback } from "react";
 import { createClient } from '@/lib/supabase/client';
 
@@ -98,7 +97,7 @@ const IC={
   Chart:S("M18 20V10M12 20V4M6 20v-6"),
   Chat:S("M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"),
   Export:S(["M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4","M17 8l-5-5-5 5","M12 3v12"]),
-  Notion:S(["M4 4h16v16H4z","M8 9h8M8 13h5"]),
+
   Board:S(["M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18"]),
   Check:S("M20 6L9 17l-5-5","2.5"),
   Arrow:S("M5 12h14M12 5l7 7-7 7","2.2"),
@@ -173,7 +172,7 @@ function Hero(){
       <div style={{maxWidth:1140,margin:"0 auto",padding:"0 24px",textAlign:"center",position:"relative"}}>
         <div className="hero-badge" style={{display:"inline-flex",alignItems:"center",gap:8,padding:"5px 14px 5px 10px",borderRadius:100,border:"1px solid var(--ag)",background:"var(--as)",marginBottom:28}}>
           <div style={{width:20,height:20,borderRadius:6,background:"var(--as)",display:"flex",alignItems:"center",justifyContent:"center",color:"var(--ac)",flexShrink:0}}><IC.Spark size={13}/></div>
-          <span className="badge-text" style={{fontSize:"clamp(10px,2vw,12px)",color:"var(--ac)",fontWeight:500,whiteSpace:"nowrap"}}>Groq AI · Notion Sync · Google Calendar · Burnout Prevention</span>
+          <span className="badge-text" style={{fontSize:"clamp(10px,2vw,12px)",color:"var(--ac)",fontWeight:500,whiteSpace:"nowrap"}}>Groq AI · AI Chat · Autopilot · Burnout Prevention</span>
         </div>
         <h1 className="hh" style={{fontSize:"clamp(44px,7.5vw,86px)",fontWeight:800,letterSpacing:"-0.048em",lineHeight:1.04,color:"var(--tx)",marginBottom:24}}>
           <ST text="Turn hours of task" delay={0}/>{" "}
@@ -269,7 +268,7 @@ function Strip(){return(
   <div style={{borderTop:"1px solid var(--br)",borderBottom:"1px solid var(--br)",padding:"14px 0"}}>
     <div style={{maxWidth:1140,margin:"0 auto",padding:"0 24px",display:"flex",alignItems:"center",gap:8,justifyContent:"center",flexWrap:"wrap"}}>
       <span style={{fontSize:11,color:"var(--tx3)",marginRight:6}}>Works with</span>
-      {["Gmail","Outlook","Notion","PDF Upload","Google Calendar","DOCX Export","Groq AI","Supabase"].map(t=>(
+      {["PDF Upload","URL Import","DOCX Export","Groq AI","Supabase"].map(t=>(
         <span key={t} style={{padding:"4px 11px",borderRadius:6,border:"1px solid var(--br)",background:"var(--bg1)",fontSize:11,color:"var(--tx3)",fontWeight:500}}>{t}</span>
       ))}
     </div>
@@ -279,7 +278,7 @@ function Strip(){return(
 // ── PRODUCT SHOWCASE (new section with 4 tabs) ──────────────────────────
 const TABS=[
   {key:"overview",label:"Dashboard",desc:"Complete workload overview   health score, goals, activity charts, priority breakdown, and recent boards all on one screen.",features:["AI Workload Health Score (live)","Goal tracking with progress bars","30-day activity bar chart","Priority distribution donut"]},
-  {key:"board",label:"Kanban Board",desc:"Paste notes, emails, or PDFs. AI extracts every task in under 2 seconds and builds your board with priorities, labels, and estimates.",features:["4 input modes (Paste/PDF/Notion/Templates)","AI extracts tasks instantly","Per-task Google Calendar reminders","Bulk 'Set All Reminders' button"]},
+  {key:"board",label:"Kanban Board",desc:"Paste notes, emails, or PDFs. AI extracts every task in under 2 seconds and builds your board with priorities, labels, and estimates.",features:["3 input modes (Paste/PDF/Templates)","AI extracts tasks instantly","Drag-and-drop Kanban columns","Save boards for later"]},
   {key:"chat",label:"AI Chat",desc:"An AI coach with full context from your board. Create tasks, move cards, get prioritization advice   it acts directly on your board.",features:["Live mini-board in chat sidebar","Create tasks via conversation","Move tasks between columns","Full conversation history"]},
   {key:"autopilot",label:"Autopilot",desc:"AI reads your board and generates morning briefings, time-blocked schedules, and burnout alerts   all synced with your real tasks.",features:["Morning briefing from live board","AI daily schedule (time blocks)","Burnout alert panel + history","Add AI schedule to board in 1 click"]},
 ];
@@ -348,8 +347,8 @@ function MockPreview({tab}:{tab:typeof TABS[0]}){
               </div>
             ))}
           </div>
-          <div style={{padding:"6px 9px",borderRadius:7,background:"rgba(66,133,244,0.08)",border:"1px solid rgba(66,133,244,0.2)",display:"flex",alignItems:"center",gap:5}}>
-            <span style={{fontSize:9.5,color:"#4285f4",fontWeight:600}}>📅 Set All Reminders on Google Calendar</span>
+          <div style={{padding:"6px 9px",borderRadius:7,background:"rgba(16,185,129,0.08)",border:"1px solid rgba(16,185,129,0.2)",display:"flex",alignItems:"center",gap:5}}>
+            <span style={{fontSize:9.5,color:"var(--gr)",fontWeight:600}}>✓ Board saved · Export as PDF or DOCX</span>
           </div>
         </>)}
         {tab.key==="chat"&&(
@@ -422,13 +421,11 @@ function Showcase(){
   );
 }
 
-// ── UPDATED FEATURES (9 features including GCal, AI Chat, Autopilot) ────
+// ── FEATURES ────
 const FEATS=[
   {I:IC.Spark,t:"AI Task Extraction",d:"Paste any email, note, or PDF. Groq AI reads it and extracts every action item in under 2 seconds."},
   {I:IC.Shield,t:"Burnout Prevention",d:"Real-time health score. AI flags overload before you feel it and gives specific relief suggestions."},
   {I:IC.Brain,t:"AI Chat Coach",d:"Full context from your board. Create tasks, move cards, get prioritization advice   via conversation."},
-  {I:IC.Cal,t:"Google Calendar Sync",d:"Per-task reminders or bulk 'Set All'. Duration auto-fills from estimates. One click to your calendar."},
-  {I:IC.Notion,t:"Notion Two-Way Sync",d:"OAuth connected. Extracted tasks flow into Notion databases   updates sync back automatically."},
   {I:IC.Chart,t:"Pattern Learning",d:"AI learns when you're most productive and adapts scheduling to match your personal habits over time."},
   {I:IC.Export,t:"DOCX & PDF Export",d:"Export any board as a professionally formatted Word doc or PDF. Perfect for client handoffs."},
   {I:IC.Board,t:"Board Templates",d:"5 pre-built workflows: Daily, Sprint, Meeting, Project, Quick Start. Launch in one click."},
@@ -458,9 +455,9 @@ function Features(){return(
 
 function HowItWorks(){
   const steps=[
-    {n:"01",t:"Paste raw input",d:"Notes, email threads, or PDFs   any format works, zero prep required.",tag:"Email · PDF · Notion · Text",I:IC.Export},
+    {n:"01",t:"Paste raw input",d:"Notes, email threads, or PDFs   any format works, zero prep required.",tag:"Email · PDF · Text",I:IC.Export},
     {n:"02",t:"AI reads & extracts",d:"Groq AI identifies every action item, assigns priorities, time estimates, and detects dependencies.",tag:"< 2 seconds via Groq",I:IC.Spark},
-    {n:"03",t:"Board + calendar ready",d:"Tasks on your Kanban board. Set Google Calendar reminders. Autopilot generates your daily briefing.",tag:"Instant · Synced · Smart",I:IC.Zap},
+    {n:"03",t:"Board ready",d:"Tasks on your Kanban board. Autopilot generates your daily briefing. Export as PDF or DOCX.",tag:"Instant · Smart · Exportable",I:IC.Zap},
   ];
   return(
     <section id="how-it-works" style={{padding:"96px 0",borderTop:"1px solid var(--br)"}}>
@@ -535,8 +532,8 @@ function Pricing(){
   const handleProClick=()=>{
     window.location.href='/sign-up?plan=pro';
   };
-  const freeF=[{t:"30 AI task extractions/month",ok:true},{t:"Full Kanban board",ok:true},{t:"Email import",ok:true},{t:"Basic prioritization",ok:true},{t:"PDF + Notion import",ok:false},{t:"AI Chat Coach",ok:false},{t:"Google Calendar sync",ok:false},{t:"Burnout alerts",ok:false}];
-  const proF=["Unlimited AI task extractions","PDF + Notion two-way sync","AI Chat Coach (board-aware)","Google Calendar reminders","Burnout prevention & health scoring","Pattern learning & smart scheduling","DOCX & PDF export","Board templates (5 workflows)","Daily AI briefings","Priority support"];
+  const freeF=[{t:"30 AI task extractions/month",ok:true},{t:"Full Kanban board",ok:true},{t:"Email import",ok:true},{t:"Basic prioritization",ok:true},{t:"PDF import",ok:false},{t:"AI Chat Coach",ok:false},{t:"Burnout alerts",ok:false}];
+  const proF=["Unlimited AI task extractions","PDF import","AI Chat Coach (board-aware)","Burnout prevention & health scoring","Pattern learning & smart scheduling","DOCX & PDF export","Board templates (5 workflows)","Daily AI briefings","Priority support"];
   return(
     <section id="pricing" style={{padding:"96px 0",borderTop:"1px solid var(--br)"}}>
       <div style={{maxWidth:1140,margin:"0 auto",padding:"0 24px"}}>
@@ -588,8 +585,6 @@ function FAQ(){
   const [open,setOpen]=useState<number|null>(null);
   const faqs=[
     {q:"How does AI task extraction work?",a:"Kanbi uses Groq AI (llama-3.3-70b) to read any text you paste   emails, notes, PDFs. It identifies every action item, assigns priorities and time estimates in under 2 seconds."},
-    {q:"How does Google Calendar integration work?",a:"Every task card has a 'Set Reminder' button. You can also bulk-set reminders for all tasks. A popup lets you pick date, time, and add a note   then creates the event on your Google Calendar."},
-    {q:"Does Notion sync work two-way?",a:"Yes. Connect via OAuth from Settings → Integrations. Tasks flow into your Notion databases, and updates in Notion sync back to Kanbi automatically."},
     {q:"What does Autopilot actually do?",a:"Autopilot reads your live board tasks and generates a morning briefing, a time-blocked daily schedule, and burnout alerts. You can push the AI schedule directly onto your board in one click."},
     {q:"What AI model powers Kanbi?",a:"Groq's llama-3.3-70b-versatile   one of the fastest LLMs available. Task extraction typically completes in under 2 seconds."},
     {q:"Can I cancel Pro anytime?",a:"Yes. Monthly via Stripe. Cancel from Settings → Billing. Access continues to end of billing period. No lock-in, no questions."},

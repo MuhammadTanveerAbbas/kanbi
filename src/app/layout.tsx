@@ -1,6 +1,5 @@
 import { ErrorBoundaryWrapper } from "@/components/error-boundary-wrapper";
 import LayoutWrapper from "@/components/layout-wrapper";
-import "@/lib/console-suppressor";
 import { cn } from "@/lib/utils";
 import type { Metadata } from "next";
 import { Space_Grotesk } from "next/font/google";
@@ -15,9 +14,9 @@ const spaceGrotesk = Space_Grotesk({
 export const metadata: Metadata = {
   title: "KANBI - AI Task Management That Saves 2 Hours Daily",
   description:
-    "AI powered task management that turns messy notes into organized Kanban boards in 10 seconds. Features AI workload management, burnout prevention, productivity coaching, and Notion integration. Export to DOCX, PDF. $9/month.",
+    "AI powered task management that turns messy notes into organized Kanban boards in 10 seconds. Features AI workload management, burnout prevention, and productivity coaching. Export to DOCX, PDF. $9/month.",
   keywords:
-    "AI task management, kanban board, productivity app, AI workload management, burnout prevention, AI productivity coach, Notion integration, task automation, AI assistant, project management, free kanban, AI productivity tool, Groq AI",
+    "AI task management, kanban board, productivity app, AI workload management, burnout prevention, AI productivity coach, task automation, AI assistant, project management, free kanban, AI productivity tool, Groq AI",
   authors: [{ name: "Muhammad Tanveer Abbas" }],
   creator: "Muhammad Tanveer Abbas",
   publisher: "KANBI",
@@ -29,7 +28,7 @@ export const metadata: Metadata = {
     url: "https://kanbi.vercel.app",
     title: "KANBI - AI Task Management That Saves 2 Hours Daily",
     description:
-      "Turns hours of task planning into 10 seconds. Smart workload management prevents burnout. Notion integration for seamless sync. Only $9/month.",
+      "Turns hours of task planning into 10 seconds. Smart workload management prevents burnout. Only $9/month.",
     siteName: "KANBI",
     images: [
       {
@@ -44,7 +43,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "KANBI - AI Task Management That Saves 2 Hours Daily",
     description:
-      "AI powered task management with burnout prevention, productivity coaching, and Notion integration. $9/month.",
+      "AI powered task management with burnout prevention and productivity coaching. $9/month.",
     creator: "@yourtwitterhandle",
     images: ['/twitter-image'],
   },

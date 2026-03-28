@@ -20,7 +20,6 @@ export async function GET(request: NextRequest) {
     const order = searchParams.get('order') || 'desc';
     const favorite = searchParams.get('favorite');
 
-    // Validate limit parameter
     let limit: number | undefined;
     if (limitParam) {
       const parsedLimit = parseInt(limitParam, 10);
@@ -33,7 +32,6 @@ export async function GET(request: NextRequest) {
       limit = parsedLimit;
     }
 
-    // Validate sort parameter
     const validSortFields = ['created_at', 'updated_at', 'title'];
     if (!validSortFields.includes(sort)) {
       return NextResponse.json(
@@ -42,7 +40,6 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Validate order parameter
     if (order !== 'asc' && order !== 'desc') {
       return NextResponse.json(
         { error: 'Invalid order parameter. Must be either "asc" or "desc"' },
@@ -50,13 +47,11 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Build the query
     let query = supabase
       .from('saved_generations')
       .select('id, title, content, created_at, updated_at, is_favorite, category, icon')
       .eq('user_id', user.id);
 
-    // Apply search filter with sanitization
     if (search) {
       const safeSearch = search.replace(/[^a-zA-Z0-9\s\-_]/g, '').trim().slice(0, 100);
       if (safeSearch.length > 0) {
@@ -64,17 +59,14 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Apply favorite filter
     if (favorite === 'true') {
       query = query.eq('is_favorite', true);
     } else if (favorite === 'false') {
       query = query.eq('is_favorite', false);
     }
 
-    // Apply sorting
     query = query.order(sort, { ascending: order === 'asc' });
 
-    // Apply limit if specified
     if (limit) {
       query = query.limit(limit);
     }

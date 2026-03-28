@@ -14,12 +14,11 @@ export interface ChatContext {
   completedToday?: number;
 }
 
-/**
- * AI Chat Assistant for task management
- */
+/** AI-powered chat assistant with full board context awareness. */
 export class ChatAssistant {
   /**
-   * Generate AI response based on user message and task context
+   * Generates a response using the current task context and recent chat history.
+   * Falls back to rule-based responses if the AI call fails.
    */
   static async generateResponse(
     userMessage: string,
@@ -42,9 +41,6 @@ export class ChatAssistant {
     }
   }
 
-  /**
-   * Build system prompt with task context
-   */
   private static buildSystemPrompt(context: ChatContext): string {
     const { tasks, workloadHealth, estimatedHours, completedToday } = context;
     
@@ -75,9 +71,6 @@ Guidelines:
 - Focus on productivity and well-being`;
   }
 
-  /**
-   * Summarize tasks by priority
-   */
   private static summarizeTasks(tasks: Task[]): string {
     const urgent = tasks.filter(t => t.priority === 'Urgent').length;
     const high = tasks.filter(t => t.priority === 'High').length;
@@ -87,11 +80,7 @@ Guidelines:
     return `${urgent} urgent, ${high} high, ${medium} medium, ${low} low`;
   }
 
-  /**
-   * Format chat history for context
-   */
   private static formatChatHistory(history: ChatMessage[]): string {
-    // Only include last 5 messages for context
     const recentHistory = history.slice(-5);
     
     return recentHistory
@@ -99,13 +88,10 @@ Guidelines:
       .join('\n');
   }
 
-  /**
-   * Get fallback response if AI fails
-   */
+  /** Rule-based fallback responses when the AI call fails. */
   private static getFallbackResponse(userMessage: string, context: ChatContext): string {
     const msg = userMessage.toLowerCase();
     
-    // Prioritization
     if (msg.includes('first') || msg.includes('start') || msg.includes('priorit')) {
       const urgentTasks = context.tasks.filter(t => t.priority === 'Urgent');
       if (urgentTasks.length > 0) {
@@ -114,7 +100,6 @@ Guidelines:
       return "Start with your highest priority tasks first. Focus on one thing at a time for best results.";
     }
     
-    // Overwhelmed
     if (msg.includes('overwhelm') || msg.includes('too much') || msg.includes('stressed')) {
       if (context.tasks.length > 10) {
         return `I see you have ${context.tasks.length} tasks. That's a lot! Consider deferring low-priority tasks to tomorrow. Focus on the top 3-5 most important ones today.`;
@@ -122,17 +107,14 @@ Guidelines:
       return "Take a deep breath. Let's break this down into manageable chunks. What's the one thing you can accomplish right now?";
     }
     
-    // Break down
     if (msg.includes('break') && (msg.includes('down') || msg.includes('task'))) {
       return "To break down a task: 1) Identify the end goal, 2) List all steps needed, 3) Estimate time for each step, 4) Create separate tasks for each step. What task would you like to break down?";
     }
     
-    // Planning
     if (msg.includes('plan') || msg.includes('schedule')) {
       return `You have ${context.tasks.length} tasks today. I suggest: Start with urgent items, tackle high-priority tasks in your peak hours, and save low-priority tasks for when energy is lower.`;
     }
     
-    // Motivation
     if (msg.includes('motivat') || msg.includes('help') || msg.includes('stuck')) {
       return `You've got this! 💪 Start with the smallest task to build momentum. Completing even one task will make you feel accomplished and ready for the next.`;
     }
@@ -140,9 +122,6 @@ Guidelines:
     return `I'm here to help with your ${context.tasks.length} tasks! Ask me to prioritize, break down tasks, plan your day, or just chat about your workload.`;
   }
 
-  /**
-   * Generate quick action responses
-   */
   static async handleQuickAction(
     action: 'prioritize' | 'breakdown' | 'defer' | 'plan' | 'motivate',
     context: ChatContext
@@ -184,9 +163,6 @@ Guidelines:
     }
   }
 
-  /**
-   * Detect if message is asking for task breakdown
-   */
   static isBreakdownRequest(message: string): boolean {
     const msg = message.toLowerCase();
     return (msg.includes('break') && msg.includes('down')) || 
@@ -194,17 +170,11 @@ Guidelines:
            msg.includes('subtask');
   }
 
-  /**
-   * Extract task name from breakdown request
-   */
   static extractTaskName(message: string, tasks: Task[]): string | null {
-    // Look for task names in quotes
     const quotedMatch = message.match(/"([^"]+)"/);
     if (quotedMatch) {
       return quotedMatch[1];
     }
-    
-    // Look for task names after "break down"
     const breakdownMatch = message.match(/break\s+down\s+(.+?)(?:\s+into|\s+task|$)/i);
     if (breakdownMatch) {
       const potentialName = breakdownMatch[1].trim();

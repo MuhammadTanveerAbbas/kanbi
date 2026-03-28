@@ -1,13 +1,12 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Check, X, Zap, Brain, Mail, FileText, Share2, BarChart3, Lock, CheckCircle, Calendar, Lightbulb, Sparkles } from "lucide-react";
+import { Check, X, Zap, Brain, FileText, BarChart3, Lock, CheckCircle, Calendar, Lightbulb, Sparkles } from "lucide-react";
 
 const competitors = [
   { name: "Kanbi", icon: Zap, color: "text-primary" },
   { name: "Asana", icon: CheckCircle, color: "text-muted-foreground" },
   { name: "Monday", icon: Calendar, color: "text-muted-foreground" },
-  { name: "Notion", icon: Brain, color: "text-muted-foreground" },
 ];
 
 const comparisonData = [
@@ -17,15 +16,6 @@ const comparisonData = [
     kanbi: true,
     asana: false,
     monday: false,
-    notion: false,
-  },
-  {
-    feature: "Gmail Integration",
-    icon: Mail,
-    kanbi: true,
-    asana: false,
-    monday: false,
-    notion: false,
   },
   {
     feature: "PDF Parsing",
@@ -33,15 +23,6 @@ const comparisonData = [
     kanbi: true,
     asana: false,
     monday: false,
-    notion: false,
-  },
-  {
-    feature: "Notion Integration",
-    icon: Share2,
-    kanbi: true,
-    asana: true,
-    monday: true,
-    notion: true,
   },
   {
     feature: "Kanban Board",
@@ -49,7 +30,6 @@ const comparisonData = [
     kanbi: true,
     asana: true,
     monday: true,
-    notion: true,
   },
   {
     feature: "Analytics Dashboard",
@@ -57,7 +37,6 @@ const comparisonData = [
     kanbi: true,
     asana: true,
     monday: true,
-    notion: false,
   },
   {
     feature: "Free Plan Available",
@@ -65,7 +44,6 @@ const comparisonData = [
     kanbi: true,
     asana: true,
     monday: false,
-    notion: true,
   },
   {
     feature: "Affordable Pricing",
@@ -73,7 +51,6 @@ const comparisonData = [
     kanbi: true,
     asana: false,
     monday: false,
-    notion: true,
   },
 ];
 
@@ -164,13 +141,6 @@ export default function ComparisonTableSection() {
                         </td>
                         <td className="px-4 sm:px-6 py-4 text-center">
                           {row.monday ? (
-                            <Check className="w-5 h-5 text-muted-foreground/50 mx-auto" />
-                          ) : (
-                            <X className="w-5 h-5 text-muted-foreground/30 mx-auto" />
-                          )}
-                        </td>
-                        <td className="px-4 sm:px-6 py-4 text-center">
-                          {row.notion ? (
                             <Check className="w-5 h-5 text-muted-foreground/50 mx-auto" />
                           ) : (
                             <X className="w-5 h-5 text-muted-foreground/30 mx-auto" />

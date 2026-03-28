@@ -9,12 +9,10 @@ export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient();
 
-    // Get user from session
     const { data: { user } } = await supabase.auth.getUser();
     const userId = user?.id || null;
 
     if (!userId) {
-      // Return free plan for unauthenticated users
       const response = NextResponse.json<SubscriptionStatus>({
         plan: 'free',
         status: 'active',
@@ -22,7 +20,6 @@ export async function GET(request: NextRequest) {
       return addRateLimitHeaders(response, limitResult.limit, limitResult.remaining, limitResult.reset);
     }
 
-    // Check subscription in database
     const { data: subscription, error } = await supabase
       .from('subscriptions')
       .select('*')

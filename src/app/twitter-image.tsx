@@ -126,7 +126,7 @@ export default async function Image() {
               marginTop: '20px',
             }}
           >
-            {['Groq AI Powered', 'Notion Sync', 'Burnout Prevention', 'Free Forever'].map((feature) => (
+            {['Groq AI Powered', 'Burnout Prevention', 'Free Forever'].map((feature) => (
               <div
                 key={feature}
                 style={{

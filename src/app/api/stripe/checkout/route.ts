@@ -1,3 +1,4 @@
+import { createClient as createServerClient } from "@/lib/supabase/server";
 import { createClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
 import { NextRequest, NextResponse } from "next/server";
@@ -11,16 +12,23 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await request.json();
+    // Try to get userId from body first (legacy), fall back to session
+    let userId: string | null = null;
+    try {
+      const body = await request.json();
+      userId = body?.userId || null;
+    } catch { /* no body */ }
 
     if (!userId) {
-      return NextResponse.json(
-        { error: "userId is required" },
-        { status: 400 }
-      );
+      const serverClient = await createServerClient();
+      const { data: { user } } = await serverClient.auth.getUser();
+      userId = user?.id || null;
     }
 
-    // Get user profile
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select("stripe_customer_id, email")
@@ -36,7 +44,6 @@ export async function POST(request: NextRequest) {
 
     let customerId = profile.stripe_customer_id;
 
-    // Create Stripe customer if doesn't exist
     if (!customerId) {
       const customer = await stripe.customers.create({
         email: profile.email,
@@ -45,14 +52,12 @@ export async function POST(request: NextRequest) {
 
       customerId = customer.id;
 
-      // Save customer ID to profile
       await supabase
         .from("profiles")
         .update({ stripe_customer_id: customerId })
         .eq("id", userId);
     }
 
-    // Create checkout session
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       mode: "subscription",

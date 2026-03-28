@@ -1,4 +1,4 @@
-// Minimal event tracking - no data collection, just console logs for debugging
+// Minimal dev-only event tracking — no external data collection
 class Analytics {
   track(eventName: string, properties?: Record<string, any>) {
     if (process.env.NODE_ENV === 'development') {

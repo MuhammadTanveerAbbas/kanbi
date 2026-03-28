@@ -17,10 +17,9 @@ const plans = [
       "Basic task extraction",
       "Drag and drop Kanban board",
       "Priority levels & due dates",
-      "Export/Import JSON",
     ],
     cta: "Get Started Free",
-    href: "/board",
+    href: "/sign-up",
   },
   {
     name: "Premium",
@@ -29,7 +28,7 @@ const plans = [
     description: "For freelance consultants",
     features: [
       "50 AI extractions per day",
-      "PDF, Notion, Gmail & URL extraction",
+      "PDF & URL extraction",
       "Cloud sync across devices",
       "Unlimited saved generations",
       "Email support within 24h",

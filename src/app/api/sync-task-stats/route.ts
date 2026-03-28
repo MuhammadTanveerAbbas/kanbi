@@ -16,7 +16,6 @@ export async function POST(request: NextRequest) {
 
         const today = new Date().toISOString().split('T')[0];
 
-        // Upsert task stats for today
         const { error } = await supabase
             .from('task_stats')
             .upsert({
@@ -38,7 +37,6 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Failed to sync stats' }, { status: 500 });
         }
 
-        // Invalidate task stats cache
         cacheManager.invalidate(CACHE_KEYS.TASK_STATS(user.id));
 
         return NextResponse.json({ success: true });

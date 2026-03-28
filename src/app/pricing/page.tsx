@@ -19,10 +19,9 @@ const plans = [
       "Drag and drop Kanban board",
       "Priority levels & due dates",
       "Save & sync boards",
-      "Export to JSON, CSV, Markdown",
     ],
     cta: "Get Started",
-    href: "/board",
+    href: "/sign-up",
   },
   {
     name: "Premium",
@@ -35,11 +34,13 @@ const plans = [
       "AI Workload Health & Burnout Prevention",
       "AI Chat Assistant for productivity coaching",
       "AI Pattern Learning & Smart Insights",
+      "PDF import & URL extraction",
+      "Export boards as DOCX or PDF",
       "Cloud sync across devices",
       "Priority email support (24h)",
     ],
     cta: "Upgrade",
-    href: "/api/checkout/create-session",
+    href: "/api/stripe/checkout",
     popular: true,
     annual: "or $99/year (save 31%)",
   },
@@ -51,8 +52,10 @@ export default function PricingPage() {
   const handleCheckout = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/checkout/create-session", {
+      const res = await fetch("/api/stripe/checkout", {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
       });
       const data = await res.json();
       if (data.url) {

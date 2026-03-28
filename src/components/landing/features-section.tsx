@@ -26,7 +26,7 @@ const features = [
     ),
     title: "Works with everything you use",
     description:
-      "Paste text, upload PDFs, import Notion pages, forward emails, or drop URLs. AI reads them all and extracts tasks instantly. No copy-pasting between 5 different tools.",
+      "Paste text, upload PDFs, forward emails, or drop URLs. AI reads them all and extracts tasks instantly. No copy-pasting between 5 different tools.",
   },
   {
     icon: (
@@ -56,9 +56,9 @@ const features = [
     icon: (
       <Lock className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 text-primary" />
     ),
-    title: "Integrations that work for you",
+    title: "Export and own your data",
     description:
-      "Sync with Google Calendar, Gmail, Slack, Notion, and Todoist. Export to JSON, CSV, or Markdown. Your data, your way, always secure with enterprise-grade encryption.",
+      "Export to DOCX or PDF. Your data, your way, always secure with enterprise-grade encryption.",
   },
 ];
 

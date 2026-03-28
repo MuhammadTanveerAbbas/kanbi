@@ -1,4 +1,4 @@
-// AI Autopilot Engine - Autonomous Workload Management
+// AI Autopilot Engine — autonomous daily scheduling and workload management
 
 interface Task {
   id: string;
@@ -30,7 +30,7 @@ interface MorningBriefing {
   motivationalQuote: string;
 }
 
-// Calculate task duration based on priority and complexity
+/** Returns estimated task duration in minutes, using stored estimate or priority-based defaults. */
 export function estimateTaskDuration(task: Task): number {
   if (task.estimatedTime) return task.estimatedTime;
   
@@ -44,7 +44,7 @@ export function estimateTaskDuration(task: Task): number {
   return baseDurations[task.priority] || 60;
 }
 
-// Auto-prioritize tasks using AI scoring
+/** Sorts tasks by priority score, then by title length as a tiebreaker (shorter = more focused). */
 export function autoPrioritizeTasks(tasks: Task[]): Task[] {
   return tasks.sort((a, b) => {
     const priorityScore = { urgent: 4, high: 3, medium: 2, low: 1 };
@@ -58,7 +58,7 @@ export function autoPrioritizeTasks(tasks: Task[]): Task[] {
   });
 }
 
-// Generate time-blocked schedule
+/** Builds a time-blocked schedule within the user's configured work hours. */
 export function generateDailySchedule(
   tasks: Task[],
   settings: AutopilotSettings
@@ -83,15 +83,14 @@ export function generateDailySchedule(
     const endTime = `${String(Math.floor(currentMinute / 60)).padStart(2, '0')}:${String(currentMinute % 60).padStart(2, '0')}`;
     
     schedule.push({ start: startTime, end: endTime, task, duration });
-    
-    // Add break after each task
+
     currentMinute += settings.break_duration;
   }
   
   return schedule;
 }
 
-// Generate morning briefing
+/** Generates a morning briefing summary, top priorities, warnings, and a motivational quote. */
 export function generateMorningBriefing(
   tasks: Task[],
   schedule: TimeBlock[],
@@ -130,7 +129,7 @@ export function generateMorningBriefing(
   };
 }
 
-// Detect blockers and suggest adjustments
+/** Detects scheduling blockers (too many urgent tasks, long tasks, missing breaks) and returns adjustment suggestions. */
 export function detectBlockersAndAdjust(
   tasks: Task[],
   schedule: TimeBlock[]
@@ -173,7 +172,7 @@ export function detectBlockersAndAdjust(
   return adjustments;
 }
 
-// Auto-reschedule overflowed tasks
+/** Returns tasks that didn't fit today's schedule with suggested rescheduled dates. */
 export function rescheduleOverflow(
   tasks: Task[],
   scheduledTasks: Task[]

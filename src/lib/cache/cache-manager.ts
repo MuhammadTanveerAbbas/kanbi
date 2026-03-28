@@ -48,7 +48,7 @@ export const CACHE_KEYS = {
 };
 
 export const CACHE_TTL = {
-  USAGE: 5 * 60 * 1000, // 5 minutes
-  ANALYTICS: 10 * 60 * 1000, // 10 minutes
-  TASK_STATS: 5 * 60 * 1000, // 5 minutes
+  USAGE: 5 * 60 * 1000,
+  ANALYTICS: 10 * 60 * 1000,
+  TASK_STATS: 5 * 60 * 1000,
 };
