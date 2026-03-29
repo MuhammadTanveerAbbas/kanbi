@@ -190,7 +190,7 @@ class UsageService {
       await cachingService.invalidateUsageCache(userId);
     } catch (error) {
       console.error('Error incrementing board usage:', error);
-      // Non-fatal — don't block the save operation
+      // Non-fatal kanbi don't block the save operation
     }
   }
 
@@ -211,7 +211,7 @@ class UsageService {
       await cachingService.invalidateUsageCache(userId);
     } catch (error) {
       console.error('Error incrementing AI usage:', error);
-      // Non-fatal — don't block the AI operation
+      // Non-fatal kanbi don't block the AI operation
     }
   }
 

@@ -4,7 +4,7 @@
  * Static code analysis tests that read the actual source of page.tsx and assert
  * the presence of mock patterns (confirming bugs) and absence of real API calls.
  *
- * These tests MUST FAIL on unfixed code — failure confirms the bugs exist.
+ * These tests MUST FAIL on unfixed code kanbi failure confirms the bugs exist.
  * They will PASS after the fixes are implemented.
  *
  * **Validates: Requirements 1.1, 1.2, 1.3, 1.4, 1.5**

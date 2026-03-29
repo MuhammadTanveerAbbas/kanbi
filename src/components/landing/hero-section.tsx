@@ -106,14 +106,6 @@ export default function HeroSection({ setIsLoading }: HeroSectionProps) {
               </span>
               <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-white/10 to-primary/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
             </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              onClick={() => router.push("/pricing")}
-              className="w-full sm:w-auto text-base md:text-lg px-8 py-6 min-h-[48px] rounded-xl font-semibold"
-            >
-              View Pricing
-            </Button>
           </div>
 
 

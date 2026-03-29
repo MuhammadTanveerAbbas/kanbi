@@ -16,12 +16,12 @@ export const analyzeWorkloadSchema = z.object({
   tasks: z.array(z.object({
     id: z.string(),
     title: z.string(),
-    status: z.enum(['To Do', 'In Progress', 'Done']),
-    priority: z.enum(['Low', 'Medium', 'High', 'Urgent']).optional(),
+    status: z.enum(['todo', 'wip', 'done', 'To Do', 'In Progress', 'Done']),
+    priority: z.enum(['urgent', 'high', 'medium', 'low', 'Low', 'Medium', 'High', 'Urgent']).optional(),
     dueDate: z.string().optional(),
     description: z.string().optional(),
     tags: z.array(z.string()).optional(),
-    createdAt: z.string(),
+    createdAt: z.string().optional(),
   })),
   userCapacity: z.number().min(1).max(24).optional(),
 });
@@ -44,7 +44,7 @@ export const createSavedGenerationSchema = z.object({
 export const trackCompletionSchema = z.object({
   taskId: z.string(),
   taskTitle: z.string(),
-  taskPriority: z.enum(['Low', 'Medium', 'High', 'Urgent']),
+  taskPriority: z.enum(['urgent', 'high', 'medium', 'low', 'Low', 'Medium', 'High', 'Urgent']),
   timeSpentMinutes: z.number().min(0),
 });
 
@@ -54,7 +54,7 @@ export const chatSchema = z.object({
 });
 
 export const feedbackSchema = z.object({
-  type: z.enum(['bug', 'feature', 'general']),
+  type: z.enum(['bug', 'feature', 'improvement', 'other', 'general']),
   message: z.string().min(1).max(1000),
   email: z.string().email().optional(),
 });

@@ -27,9 +27,27 @@ export async function POST(request: NextRequest) {
     const userPattern = await fetchUserPattern(supabase, user.id);
     const consecutiveOverloadDays = await fetchConsecutiveOverloadDays(supabase, user.id);
 
+    const statusMap: Record<string, 'To Do' | 'In Progress' | 'Done'> = {
+      'todo': 'To Do',
+      'wip': 'In Progress',
+      'done': 'Done',
+      'To Do': 'To Do',
+      'In Progress': 'In Progress',
+      'Done': 'Done',
+    };
+
+    const normalizedTasks = validated.tasks.map(t => ({
+      ...t,
+      status: statusMap[t.status] ?? 'To Do' as const,
+      priority: t.priority
+        ? (t.priority.charAt(0).toUpperCase() + t.priority.slice(1).toLowerCase()) as import('@/lib/types').TaskPriority
+        : undefined,
+      createdAt: t.createdAt ?? new Date().toISOString(),
+    }));
+
     // Analyze workload with user capacity
     const analysis = WorkloadAnalyzer.analyzeWorkload(
-      validated.tasks,
+      normalizedTasks,
       userPattern,
       validated.userCapacity || 6,
       consecutiveOverloadDays

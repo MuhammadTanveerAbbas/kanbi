@@ -7,29 +7,34 @@ import { useState } from "react";
 
 const faqs = [
   {
-    question: "Do I need to change how I take notes?",
-    answer:
-      "No. Kanbi reads whatever you have bullet points, paragraphs, messy stream of consciousness. It's built for real meeting notes, not structured templates.",
-  },
-  {
-    question: "What if my notes are confidential client information?",
-    answer:
-      "Your data is stored with row level security in Supabase. Nobody else can access your boards. You can delete everything from settings at any time.",
-  },
-  {
     question: "How accurate is the AI task extraction?",
     answer:
-      "95%+ on structured notes. The AI is specifically prompted for consultant workflows, it understands phrases like 'follow up with', 'client needs', 'deadline is', and 'action item'.",
+      "Kanbi uses Groq's llama-3.3-70b model, achieving 95%+ accuracy on structured notes and emails. The AI is specifically prompted for productivity workflows kanbi it understands phrases like 'follow up with', 'deadline is', and 'action item'. You can always edit extracted tasks before saving.",
   },
   {
-    question: "What's the difference between Free and Pro?",
+    question: "Is my data private and secure?",
     answer:
-      "Free gives you 10 AI extractions per day — enough to test with real client work. Premium ($9/month) gives you 50/day plus PDF upload and URL crawling.",
+      "Yes. All your boards and tasks are stored with row-level security (RLS) in Supabase kanbi meaning only you can access your data. We never sell or share your data with third parties. You can delete everything from Settings at any time.",
   },
   {
-    question: "Can I export my tasks to other tools?",
+    question: "How does email and task parsing work?",
     answer:
-      "Yes. Export any board as DOCX or PDF. Perfect for client handoffs.",
+      "Paste any email, meeting notes, or PDF text into Kanbi. The AI reads the full content, identifies every action item, assigns priorities, estimates time, and detects deadlines kanbi even ones buried in casual language. It works with any format, no templates required.",
+  },
+  {
+    question: "Does Kanbi integrate with other tools?",
+    answer:
+      "Yes. Kanbi syncs with Google Calendar (push your AI schedule in one click), exports boards as DOCX or PDF for client handoffs, and supports URL import to extract tasks from web pages. More integrations are on the roadmap.",
+  },
+  {
+    question: "Is there a free plan? What are the limits?",
+    answer:
+      "The free plan is free forever kanbi no credit card required. You get 10 AI task extractions per day and 300 board uses per month, which is enough for real daily use. Pro ($9/month) unlocks 50 extractions/day, unlimited board uses, PDF import, AI Chat, and more.",
+  },
+  {
+    question: "How is Kanbi different from Asana or Monday.com?",
+    answer:
+      "Asana and Monday are great for teams but require you to manually create every task. Kanbi is built for individual freelancers and uses AI to do the heavy lifting kanbi paste your notes and your board is ready in seconds. It also includes burnout prevention and an AI coach, which traditional tools don't offer.",
   },
 ];
 

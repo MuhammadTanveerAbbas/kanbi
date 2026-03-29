@@ -1,7 +1,7 @@
 {
   "name": "kanbi",
   "version": "3.1.0",
-  "description": "AI-powered Kanban task management SaaS — transforms notes into organized boards in seconds with workload analysis, burnout prevention, and integrations.",
+  "description": "AI-powered Kanban task management SaaS kanbi transforms notes into organized boards in seconds with workload analysis, burnout prevention, and integrations.",
   "private": true,
   "scripts": {
     "dev": "next dev",

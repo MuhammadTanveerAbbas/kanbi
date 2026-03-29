@@ -49,7 +49,7 @@ export async function DELETE() {
     supabase.from('profiles').delete().eq('id', user.id),
   ]);
 
-  // Sign out — actual auth user deletion requires service role key (admin API)
+  // Sign out kanbi actual auth user deletion requires service role key (admin API)
   await supabase.auth.signOut();
   return NextResponse.json({ success: true });
 }

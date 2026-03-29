@@ -30,7 +30,8 @@ export async function updateSession(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
 
   if (user && !user.email_confirmed_at) {
-    return NextResponse.redirect(new URL('/verify-email', request.url))
+    // Only redirect if a verify-email page exists; skip to avoid broken redirect
+    // return NextResponse.redirect(new URL('/verify-email', request.url))
   }
 
   return supabaseResponse

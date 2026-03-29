@@ -334,7 +334,7 @@ interface Briefing {
 }
 interface BurnoutAlert { id: string; date: string; score: number; message: string; }
 
-/* 🔌 BACKEND: Your Supabase user shape — adjust to match your auth.users/profiles table */
+/* 🔌 BACKEND: Your Supabase user shape kanbi adjust to match your auth.users/profiles table */
 interface AuthUser {
   id: string;
   email: string;
@@ -452,7 +452,7 @@ function PriBadge({ p }: { p: Priority }) {
   );
 }
 
-/* Avatar — pulls from AuthUser or generates initials */
+/* Avatar kanbi pulls from AuthUser or generates initials */
 function Avt({ name, size = 28, avatarUrl }: { name: string; size?: number; avatarUrl?: string }) {
   const init = name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
   if (avatarUrl) {
@@ -759,13 +759,13 @@ function PageOverview() {
   ];
 
   const boardsToday   = user?.boards_used_today ?? 0;
-  const aiUsesMonth   = user?.ai_uses_this_month ?? 51;
-  const boardsLimit   = user?.plan === "pro" ? 100 : 10;
-  const aiLimit       = user?.plan === "pro" ? 1000 : 300;
+  const aiUsesMonth   = user?.ai_uses_this_month ?? 0;
+  const boardsLimit   = user?.plan === "pro" ? 50 : 10;
+  const aiLimit       = user?.plan === "pro" ? 1500 : 300;
 
   const statCards = [
     { label:"Boards Today",  value:`${boardsToday}/${boardsLimit}`, sub:`${boardsLimit - boardsToday} remaining`, icon:<Icons.Board size={13}/>, prog: boardsToday / boardsLimit * 100 },
-    { label:"AI This Month", value:`${aiUsesMonth}/${aiLimit}`, sub:`${aiLimit - aiUsesMonth} remaining`, icon:<Icons.Autopilot size={13}/>, trend:"↑ 17%", color:"var(--pu)" },
+    { label:"AI This Month", value:`${aiUsesMonth}/${aiLimit}`, sub:`${aiLimit - aiUsesMonth} remaining`, icon:<Icons.Autopilot size={13}/>, color:"var(--pu)" },
     { label:"Tasks Total",   value:String(total), sub:`${done} done · ${wip} in progress`, icon:<Icons.Target size={13}/>, color: done === total && total > 0 ? "var(--gr)" : undefined },
     { label:"Plan",          value: user?.plan === "pro" ? "Pro" : "Free", sub: user?.plan === "pro" ? "All features unlocked" : "$9/mo → Pro", icon:<Icons.Crown size={13}/>, color:"var(--am)" },
   ];
@@ -799,7 +799,7 @@ function PageOverview() {
         <div className="quick-ai-header">
           <div className="quick-ai-icon"><Icons.Sparkle size={13}/></div>
           <span className="quick-ai-title">Quick AI Extract</span>
-          <span className="quick-ai-sub">— paste any text, AI extracts tasks instantly</span>
+          <span className="quick-ai-sub">kanbi paste any text, AI extracts tasks instantly</span>
           <span className="quick-ai-badge">→ Board</span>
         </div>
         <div className="quick-ai-row">
@@ -843,7 +843,7 @@ function PageOverview() {
                 </div>
             }
             <p style={{ fontSize:10.5, color:"var(--tx3)" }}>{s.sub}</p>
-            {s.trend && <p style={{ fontSize:10.5, color:"var(--gr)", marginTop:3, fontWeight:600 }}>{s.trend}</p>}
+            {(s as { trend?: string }).trend && <p style={{ fontSize:10.5, color:"var(--gr)", marginTop:3, fontWeight:600 }}>{(s as { trend?: string }).trend}</p>}
             {s.prog !== undefined && (
               <div style={{ marginTop:10 }}>
                 <PBar value={s.prog} h={3} color="var(--ac)"/>
@@ -882,7 +882,7 @@ function PageOverview() {
               ? "Workload is balanced."
               : healthScore >= 50
               ? "Some high-priority tasks need attention."
-              : "Overloaded — consider deferring tasks."}
+              : "Overloaded kanbi consider deferring tasks."}
           </p>
         </div>
 
@@ -917,7 +917,7 @@ function PageOverview() {
       <div className="main-grid-3" style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1fr", gap:14 }}>
         <div className="card" style={{ borderRadius:13, border:"1px solid var(--br)", background:"var(--bg1)", padding:20 }}>
           <h3 style={{ fontSize:13, fontWeight:700, color:"var(--tx)", marginBottom:16,
-            fontFamily:"var(--font-display)" }}>Task Activity — Last 30 Days</h3>
+            fontFamily:"var(--font-display)" }}>Task Activity kanbi Last 30 Days</h3>
           <BarChart data={actData}/>
         </div>
         <div className="card" style={{ borderRadius:13, border:"1px solid var(--br)", background:"var(--bg1)", padding:20 }}>
@@ -994,6 +994,7 @@ function PageBoard() {
   const [inputMode, setInputMode] = useState<InputMode>("paste");
   const [inputText, setInputText] = useState("");
   const [extracting, setExtracting] = useState(false);
+  const pdfInputRef = useRef<HTMLInputElement>(null);
   const overloaded = tasks.filter(t => t.status !== "done" && (t.priority === "urgent" || t.priority === "high")).length >= 5;
 
   const syncTaskStats = async () => {
@@ -1002,6 +1003,30 @@ function PageBoard() {
     } catch {
       // Fire-and-forget: sync errors don't block UI
     }
+  };
+
+  const handlePdfUpload = async (file: File) => {
+    if (!file) return;
+    setExtracting(true);
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      const res = await fetch('/api/parse-pdf', { method: 'POST', body: form });
+      const data = await res.json();
+      if (!res.ok) { setExtracting(false); return; }
+      const extracted: Task[] = (data.tasks ?? [])
+        .map((t: { title?: string; priority?: string; estimate?: string; deadline?: string }, i: number) => ({
+          id: `KB-${Date.now()}-${i}`,
+          title: (t.title ?? '').trim(),
+          priority: (['urgent','high','medium','low'].includes(t.priority ?? '') ? t.priority : 'medium') as Priority,
+          label: 'General', status: 'todo' as TaskStatus,
+          estimate: t.estimate, dueDate: t.deadline,
+        }))
+        .filter((t: Task) => t.title.length > 2);
+      setTasks(prev => [...prev, ...extracted]);
+      syncTaskStats();
+      setBoardView('kanban');
+    } catch { /* allow retry */ } finally { setExtracting(false); }
   };
 
   const inputModes = [
@@ -1150,7 +1175,7 @@ function PageBoard() {
                 {inputMode === "paste" && (
                   <>
                     <p style={{ fontSize:11, color:"var(--tx3)", marginBottom:8 }}>
-                      Paste emails, Slack messages, notes — anything works
+                      Paste emails, Slack messages, notes kanbi anything works
                     </p>
                     <textarea
                       value={inputText} onChange={e => setInputText(e.target.value)} rows={9}
@@ -1167,11 +1192,17 @@ function PageBoard() {
                 {inputMode === "pdf" && (
                   <div style={{ border:"2px dashed var(--br)", borderRadius:12, padding:"50px 24px",
                     textAlign:"center", cursor:"pointer", transition:"all .15s" }}
+                    onClick={() => pdfInputRef.current?.click()}
+                    onDragOver={e => { e.preventDefault(); (e.currentTarget as HTMLDivElement).style.borderColor = "var(--ac)"; (e.currentTarget as HTMLDivElement).style.background = "var(--as)"; }}
+                    onDragLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = "var(--br)"; (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
+                    onDrop={e => { e.preventDefault(); (e.currentTarget as HTMLDivElement).style.borderColor = "var(--br)"; (e.currentTarget as HTMLDivElement).style.background = "transparent"; const f = e.dataTransfer.files[0]; if (f) handlePdfUpload(f); }}
                     onMouseOver={e => { (e.currentTarget as HTMLDivElement).style.borderColor = "var(--ac)"; (e.currentTarget as HTMLDivElement).style.background = "var(--as)"; }}
                     onMouseOut={e =>  { (e.currentTarget as HTMLDivElement).style.borderColor = "var(--br)"; (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}>
+                    <input ref={pdfInputRef} type="file" accept="application/pdf" style={{ display:"none" }}
+                      onChange={e => { const f = e.target.files?.[0]; if (f) handlePdfUpload(f); e.target.value = ""; }}/>
                     <Icons.Upload size={30} style={{ color:"var(--tx3)", display:"block", margin:"0 auto 14px" }}/>
                     <p style={{ fontSize:13.5, color:"var(--tx2)", marginBottom:4, fontWeight:500 }}>Drop your PDF or click to browse</p>
-                    <p style={{ fontSize:11, color:"var(--tx3)" }}>PDF, DOCX up to 10MB</p>
+                    <p style={{ fontSize:11, color:"var(--tx3)" }}>PDF up to 5MB</p>
                   </div>
                 )}
                 {inputMode === "template" && (
@@ -1265,7 +1296,7 @@ function PageBoard() {
                     ))}
                   </div>
                 </div>
-                <button className="ghost"
+                <button className="ghost" onClick={() => setInputMode("pdf")}
                   style={{ padding:"11px", borderRadius:10, border:"1px solid var(--br)",
                     background:"transparent", color:"var(--tx2)", fontSize:12, fontWeight:500 }}>
                   Import Tasks
@@ -1327,6 +1358,24 @@ function PageBoard() {
                       {kanbanTasks(key).length}
                     </span>
                     <button className="ghost"
+                      onClick={async () => {
+                        const title = window.prompt(`Add task to ${label}:`);
+                        if (!title?.trim()) return;
+                        const res = await fetch('/api/boards', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ title: title.trim(), priority: 'medium', label: 'General', status: key }),
+                        });
+                        const data = await res.json();
+                        setTasks(prev => [...prev, {
+                          id: data.id ?? `KB-${Date.now()}`,
+                          title: data.title ?? title.trim(),
+                          priority: data.priority ?? 'medium',
+                          label: data.label ?? 'General',
+                          status: key,
+                        }]);
+                        syncTaskStats();
+                      }}
                       style={{ marginLeft:"auto", background:"transparent", border:"none",
                         color:"var(--tx3)", padding:3, borderRadius:5, display:"flex" }}>
                       <Icons.Plus size={11}/>
@@ -1622,7 +1671,7 @@ function PageAutopilot() {
       };
       setBriefings(prev => [nb, ...prev]);
     } catch {
-      // Silently fail — user can retry
+      // Silently fail kanbi user can retry
     } finally {
       setGenLoading(false);
     }
@@ -1841,10 +1890,19 @@ function PageSaved() {
   );
 
   const openBoard   = (b: SavedBoard) => { setTasks(b.tasks); setBoardView("kanban"); navigate("board"); };
-  const deleteBoard = (id: string) => setSavedBoards(prev => prev.filter(b => b.id !== id));
+  const deleteBoard = (id: string) => {
+    setSavedBoards(prev => prev.filter(b => b.id !== id));
+    fetch(`/api/saved/${id}`, { method: 'DELETE' }).catch(() => {});
+  };
   const renameBoard = (id: string) => {
-    if (renameVal.trim())
+    if (renameVal.trim()) {
       setSavedBoards(prev => prev.map(b => b.id === id ? { ...b, name: renameVal.trim() } : b));
+      fetch(`/api/saved/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: renameVal.trim() }),
+      }).catch(() => {});
+    }
     setRenamingId(null); setRenameVal("");
   };
   const moveBoard = (id: string, folder: string) => {
@@ -2205,7 +2263,7 @@ function IntegrationsTab() {
         </div>
       </div>
 
-      {/* Sync settings — only shown when connected */}
+      {/* Sync settings kanbi only shown when connected */}
       {calConnected && (
         <div style={{ borderRadius:12, border:"1px solid var(--br)", background:"var(--bg1)", padding:"18px 20px" }}>
           <p style={{ fontSize:12.5, fontWeight:700, color:"var(--tx)", marginBottom:14, fontFamily:"var(--font-display)" }}>
@@ -2439,11 +2497,15 @@ function PageSettings({ theme, toggleTheme }: { theme: Theme; toggleTheme: () =>
                     {user?.plan === "pro" ? "Pro Plan" : "Free Plan"}
                   </p>
                   <p style={{ fontSize:12, color:"var(--tx3)", wordBreak:"break-word" }}>
-                    {user?.plan === "pro" ? "100 boards/day · 1000 AI uses/month" : "10 boards/day · 300 AI uses/month"}
+                    {user?.plan === "pro" ? "50 boards/day · 1500 AI uses/month" : "10 boards/day · 300 AI uses/month"}
                   </p>
                 </div>
                 {user?.plan !== "pro" && (
-                  <button className="btn-primary" onClick={() => window.location.href = "/pricing"}
+                  <button className="btn-primary" onClick={async () => {
+                    const res = await fetch('/api/stripe/checkout', { method: 'POST' });
+                    const data = await res.json();
+                    if (data.url) window.location.href = data.url;
+                  }}
                     style={{ height:36, padding:"0 16px", borderRadius:9, background:"var(--ac)",
                       border:"none", color:"#fff", fontSize:12, fontWeight:700, flexShrink:0, whiteSpace:"nowrap" }}>
                     Upgrade to Pro · $9/mo
@@ -2531,7 +2593,7 @@ function Sidebar({ page, setPage, theme, toggleTheme }: {
   ];
 
   const boardsUsed  = user?.boards_used_today ?? 0;
-  const boardsLimit = user?.plan === "pro" ? 100 : 10;
+  const boardsLimit = user?.plan === "pro" ? 50 : 10;
   const usagePct    = Math.min((boardsUsed / boardsLimit) * 100, 100);
   const usageColor  = usagePct >= 90 ? "var(--rd)" : usagePct >= 70 ? "var(--am)" : "var(--ac)";
 
@@ -2625,7 +2687,11 @@ function Sidebar({ page, setPage, theme, toggleTheme }: {
 
         {/* Upgrade */}
         {user?.plan !== "pro" && (
-          <button onClick={() => window.location.href = "/pricing"}
+          <button onClick={async () => {
+            const res = await fetch('/api/stripe/checkout', { method: 'POST' });
+            const data = await res.json();
+            if (data.url) window.location.href = data.url;
+          }}
             style={{
               width:"100%", padding:"10px 13px", borderRadius:12,
               border:"1px solid rgba(245,158,11,0.2)",
@@ -2755,7 +2821,7 @@ function Topbar({ page }: { page: Page }) {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   ROOT — Dashboard
+   ROOT kanbi Dashboard
 ═══════════════════════════════════════════════════════════════════════════ */
 export default function Dashboard() {
   const [page, setPage]   = useState<Page>("overview");
@@ -2822,8 +2888,15 @@ export default function Dashboard() {
 
   const [savedBoards, setSavedBoards] = useState<SavedBoard[]>([]);
   useEffect(() => {
-    fetch("/api/saved/list").then(r => r.json()).then(d => {
-      if (Array.isArray(d)) setSavedBoards(d);
+    fetch("/api/saved").then(r => r.json()).then(d => {
+      if (Array.isArray(d)) setSavedBoards(d.map((b: { id: string; title?: string; content?: string; created_at?: string; updated_at?: string }) => ({
+        id: b.id,
+        name: b.title ?? "Untitled Board",
+        taskCount: (() => { try { return JSON.parse(b.content ?? "[]").length; } catch { return 0; } })(),
+        folder: "Personal",
+        lastEdited: b.updated_at ? new Date(b.updated_at).toLocaleDateString() : "Unknown",
+        tasks: (() => { try { return JSON.parse(b.content ?? "[]"); } catch { return []; } })(),
+      })));
     }).catch(() => {});
   }, []);
 

@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID ?? "";
-const REDIRECT_URI = `${process.env.NEXT_PUBLIC_APP_URL}/api/integrations/google-calendar/callback`;
+const APP_URL = (process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, ""); // strip trailing slash
+const REDIRECT_URI = `${APP_URL}/api/integrations/google-calendar/callback`;
 
 export async function GET() {
   const supabase = await createClient();
@@ -12,6 +13,10 @@ export async function GET() {
   if (!GOOGLE_CLIENT_ID) {
     // Dev mode: simulate connection
     return NextResponse.json({ connected: true });
+  }
+
+  if (!APP_URL) {
+    return NextResponse.json({ error: "NEXT_PUBLIC_APP_URL is not set" }, { status: 500 });
   }
 
   const params = new URLSearchParams({
@@ -28,5 +33,6 @@ export async function GET() {
   });
 
   const url = `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
-  return NextResponse.json({ url });
+  // redirect_uri is included for debugging kanbi remove in production if desired
+  return NextResponse.json({ url, redirect_uri: REDIRECT_URI });
 }

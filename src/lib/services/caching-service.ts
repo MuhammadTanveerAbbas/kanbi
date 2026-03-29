@@ -75,7 +75,7 @@ class CachingService {
   }
 
   /**
-   * Deduplicates concurrent requests for the same key — only one fetch fires,
+   * Deduplicates concurrent requests for the same key kanbi only one fetch fires,
    * all callers await the same promise.
    */
   async deduplicateRequest<T>(
@@ -98,7 +98,7 @@ class CachingService {
     this.cache.clear();
   }
 
-  /** Evicts expired entries — called automatically every 60 seconds. */
+  /** Evicts expired entries kanbi called automatically every 60 seconds. */
   cleanup(): void {
     const now = Date.now();
     for (const [key, entry] of this.cache.entries()) {

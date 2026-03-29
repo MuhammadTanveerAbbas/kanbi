@@ -113,7 +113,7 @@ export default function PricingSection() {
               <span className="text-4xl sm:text-5xl font-bold text-white">$9</span>
               <span className="text-gray-400 text-sm">/month</span>
             </div>
-            <p className="text-xs text-gray-500 mb-2">or $99/year — save 31%</p>
+            <p className="text-xs text-gray-500 mb-2">or $99/year kanbi save 31%</p>
             <p className="text-sm text-gray-400 mb-6">For professionals who need AI superpowers every day.</p>
             <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }} className="mb-7 relative">
               <Button

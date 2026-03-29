@@ -11,8 +11,37 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const body = await request.json();
-        const { urgent, high, medium, low, total, completed } = body;
+        // Try to use client-provided counts first; fall back to computing from tasks table
+        let urgent = 0, high = 0, medium = 0, low = 0, total = 0, completed = 0;
+
+        try {
+            const body = await request.json();
+            if (body && typeof body.total === 'number') {
+                urgent = body.urgent || 0;
+                high = body.high || 0;
+                medium = body.medium || 0;
+                low = body.low || 0;
+                total = body.total || 0;
+                completed = body.completed || 0;
+            } else {
+                throw new Error('no body counts');
+            }
+        } catch {
+            // Compute from tasks table
+            const { data: tasks } = await supabase
+                .from('tasks')
+                .select('priority, status')
+                .eq('user_id', user.id);
+
+            if (tasks) {
+                total = tasks.length;
+                completed = tasks.filter(t => t.status === 'done').length;
+                urgent = tasks.filter(t => t.priority === 'urgent').length;
+                high = tasks.filter(t => t.priority === 'high').length;
+                medium = tasks.filter(t => t.priority === 'medium').length;
+                low = tasks.filter(t => t.priority === 'low').length;
+            }
+        }
 
         const today = new Date().toISOString().split('T')[0];
 
@@ -21,12 +50,12 @@ export async function POST(request: NextRequest) {
             .upsert({
                 user_id: user.id,
                 date: today,
-                urgent_count: urgent || 0,
-                high_count: high || 0,
-                medium_count: medium || 0,
-                low_count: low || 0,
-                total_count: total || 0,
-                completed_count: completed || 0,
+                urgent_count: urgent,
+                high_count: high,
+                medium_count: medium,
+                low_count: low,
+                total_count: total,
+                completed_count: completed,
                 updated_at: new Date().toISOString(),
             }, {
                 onConflict: 'user_id,date',

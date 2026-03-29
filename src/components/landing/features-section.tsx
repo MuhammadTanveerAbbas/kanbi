@@ -8,6 +8,8 @@ import {
   Target,
   Clipboard,
   BarChart3,
+  Calendar,
+  Zap,
 } from "lucide-react";
 
 const features = [
@@ -15,41 +17,65 @@ const features = [
     icon: (
       <Bot className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 text-primary" />
     ),
-    title: "AI that saves you 2 hours per day",
+    title: "AI task extraction in under 2 seconds",
     description:
-      "Stop manually creating tasks. AI extracts action items, assigns priorities, and detects deadlines from your messy notes in seconds. What took 30 minutes now takes 10 seconds.",
+      "Stop manually creating tasks. Paste any notes, email, or PDF and Groq AI extracts every action item, assigns priorities, and detects deadlines instantly.",
   },
   {
     icon: (
       <FileText className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 text-primary" />
     ),
-    title: "Works with everything you use",
+    title: "Works with text, PDFs, emails, and URLs",
     description:
-      "Paste text, upload PDFs, forward emails, or drop URLs. AI reads them all and extracts tasks instantly. No copy-pasting between 5 different tools.",
+      "Paste text, upload a PDF, or drop a URL. Kanbi reads them all and extracts tasks in one step. No copy-pasting between tools.",
   },
   {
     icon: (
       <Target className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 text-primary" />
     ),
-    title: "AI prevents burnout before it happens",
+    title: "Real-time workload health scoring",
     description:
-      "Real-time workload health scoring analyzes your task load and warns you when you're overcommitted. Get smart suggestions to rebalance work before you crash.",
+      "AI analyzes your task load and calculates a live health score. When you're overcommitted, it flags burnout risk and suggests which tasks to defer.",
   },
   {
     icon: (
       <Clipboard className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 text-primary" />
     ),
-    title: "AI Chat that knows your work",
+    title: "AI Chat with full board context",
     description:
-      "Talk to an AI productivity coach that understands your tasks, deadlines, and patterns. Get instant help prioritizing, planning, and staying on track.",
+      "Ask your AI coach anything about your tasks. It reads your live board, helps you prioritize, and can create or move tasks directly via conversation.",
   },
   {
     icon: (
       <BarChart3 className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 text-primary" />
     ),
-    title: "AI learns your productivity patterns",
+    title: "Completion tracking and task insights",
     description:
-      "Track completion trends, identify bottlenecks, and get personalized insights. AI learns when you're most productive and suggests optimal task scheduling.",
+      "Track your task completion history over time. See priority breakdowns, spot bottlenecks, and understand where your time actually goes.",
+  },
+  {
+    icon: (
+      <Calendar className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 text-primary" />
+    ),
+    title: "Google Calendar sync and board export",
+    description:
+      "Push tasks with due dates to Google Calendar in one click. Export any saved board as a DOCX or PDF for client handoffs.",
+  },
+  {
+    icon: (
+      <Zap className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 text-primary" />
+    ),
+    title: "Autopilot: AI-generated daily schedule",
+    description:
+      "Autopilot reads your board and generates a time-blocked daily schedule with a morning briefing, blocker detection, and overflow rescheduling kanbi all saved automatically.",
+  },
+  {
+    icon: (
+      <Bot className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 text-primary" />
+    ),
+    title: "Save, search, and favorite your boards",
+    description:
+      "Every board you generate can be saved to your library. Search by title or content, mark favorites, and reload any past board instantly.",
   },
 ];
 
@@ -82,7 +108,7 @@ export default function FeaturesSection() {
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: index * 0.1 }}
+              transition={{ duration: 0.6, delay: index * 0.08 }}
             >
               <Card className="h-full border-2 hover:border-primary/30 transition-all duration-300 bg-card/50 backdrop-blur-sm hover:shadow-lg hover:shadow-primary/10 hover:-translate-y-2 group">
                 <CardContent className="p-4 sm:p-6 md:p-8">

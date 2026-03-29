@@ -77,7 +77,7 @@ export async function POST() {
         },
         body: JSON.stringify({
           summary: `[Kanbi] ${task.title}`,
-          description: `Priority: ${task.priority ?? "medium"} — synced from Kanbi`,
+          description: `Priority: ${task.priority ?? "medium"} kanbi synced from Kanbi`,
           start: { dateTime: dueDate.toISOString() },
           end: { dateTime: endDate.toISOString() },
           reminders: {

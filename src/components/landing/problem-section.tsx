@@ -19,7 +19,7 @@ const problems = [
     ),
     title: "Your notes live in many different places",
     description:
-      "Email threads, PDF briefs, meeting recordings — Kanbi reads them all. Paste, upload, or link, and get tasks either way.",
+      "Email threads, PDF briefs, meeting recordings kanbi Kanbi reads them all. Paste, upload, or link, and get tasks either way.",
   },
   {
     icon: (

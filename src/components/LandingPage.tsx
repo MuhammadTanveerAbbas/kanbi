@@ -125,7 +125,7 @@ function Navbar(){
     const supabase=createClient();
     supabase.auth.getUser().then(({data})=>setUser(data.user));
   },[]);
-  const links=[["Features","#features"],["How It Works","#how-it-works"],["Product","#showcase"],["Pricing","#pricing"],["FAQ","#faq"]];
+  const links=[["Features","#features"],["How It Works","#how-it-works"],["Product","#showcase"],["Pricing","/pricing"],["FAQ","#faq"]];
   return(<>
     <nav style={{position:"fixed",top:0,left:0,right:0,zIndex:200,height:56,display:"flex",alignItems:"center",borderBottom:`1px solid ${scrolled?"var(--br)":"transparent"}`,background:scrolled?"var(--nb)":"transparent",backdropFilter:scrolled?"blur(24px)":"none",WebkitBackdropFilter:scrolled?"blur(24px)":"none",transition:"background .3s,border-color .3s"}}>
       <div style={{position:"absolute",bottom:-1,left:0,height:1,background:"linear-gradient(90deg,var(--ac),var(--pu))",width:`${prog*100}%`,transition:"width .1s linear"}}/>
@@ -423,13 +423,15 @@ function Showcase(){
 
 // ── FEATURES ────
 const FEATS=[
-  {I:IC.Spark,t:"AI Task Extraction",d:"Paste any email, note, or PDF. Groq AI reads it and extracts every action item in under 2 seconds."},
-  {I:IC.Shield,t:"Burnout Prevention",d:"Real-time health score. AI flags overload before you feel it and gives specific relief suggestions."},
-  {I:IC.Brain,t:"AI Chat Coach",d:"Full context from your board. Create tasks, move cards, get prioritization advice   via conversation."},
-  {I:IC.Chart,t:"Pattern Learning",d:"AI learns when you're most productive and adapts scheduling to match your personal habits over time."},
-  {I:IC.Export,t:"DOCX & PDF Export",d:"Export any board as a professionally formatted Word doc or PDF. Perfect for client handoffs."},
-  {I:IC.Board,t:"Board Templates",d:"5 pre-built workflows: Daily, Sprint, Meeting, Project, Quick Start. Launch in one click."},
-  {I:IC.Chat,t:"Daily AI Briefings",d:"Every morning: an AI summary of today's priorities, risk flags, and a suggested time-blocked schedule."},
+  {I:IC.Spark,t:"AI task extraction in under 2 seconds",d:"Paste any notes, email, or PDF. Groq AI reads it and extracts every action item, assigns priorities, and detects deadlines instantly."},
+  {I:IC.Shield,t:"Real-time workload health scoring",d:"AI calculates a live health score from your task load. When you're overcommitted it flags burnout risk and suggests which tasks to defer."},
+  {I:IC.Brain,t:"AI Chat with full board context",d:"Ask your AI coach anything about your tasks. It reads your live board, helps you prioritize, and can create or move tasks directly via conversation."},
+  {I:IC.Chart,t:"Completion tracking and task insights",d:"Track your task completion history over time. See priority breakdowns, spot bottlenecks, and understand where your time actually goes."},
+  {I:IC.Export,t:"DOCX & PDF export",d:"Export any saved board as a professionally formatted Word doc or PDF. Perfect for client handoffs."},
+  {I:IC.Board,t:"Works with text, PDFs, emails, and URLs",d:"Paste text, upload a PDF, or drop a URL. Kanbi reads them all and extracts tasks in one step. No copy-pasting between tools."},
+  {I:IC.Cal,t:"Autopilot: AI-generated daily schedule",d:"Autopilot reads your board and generates a time-blocked daily schedule with a morning briefing, blocker detection, and overflow rescheduling."},
+  {I:IC.Zap,t:"Google Calendar sync",d:"Push tasks with due dates to Google Calendar in one click. Reminders are set automatically so nothing slips through."},
+  {I:IC.Board,t:"Save, search, and favorite your boards",d:"Every board you generate can be saved to your library. Search by title or content, mark favorites, and reload any past board instantly."},
 ];
 
 function Features(){return(
@@ -486,12 +488,16 @@ function HowItWorks(){
 
 function ComparisonTable(){
   const features=[
-    {f:"Task extraction speed",old:"Manual (2+ hours)",kanbi:"AI (< 2 seconds)"},
-    {f:"Burnout detection",old:"None",kanbi:"Real-time health score"},
-    {f:"Calendar integration",old:"Manual copy-paste",kanbi:"One-click sync"},
-    {f:"AI coaching",old:"Not available",kanbi:"24/7 chat assistant"},
-    {f:"Pattern learning",old:"None",kanbi:"Adapts to your habits"},
-    {f:"Daily briefings",old:"Manual planning",kanbi:"AI-generated"},
+    {f:"Task extraction speed",notion:"Manual entry",asana:"Manual entry",kanbi:"Groq AI in under 2 seconds"},
+    {f:"Burnout detection",notion:"None",asana:"None",kanbi:"Real-time health score"},
+    {f:"Calendar integration",notion:"Manual / limited",asana:"Google & Outlook sync",kanbi:"One-click Google Calendar sync"},
+    {f:"AI coaching",notion:"AI writing assist only",asana:"None",kanbi:"Chat assistant with board context"},
+    {f:"Historical task data",notion:"Manual tracking",asana:"Reporting (paid)",kanbi:"Completion history used for estimates"},
+    {f:"Daily briefings",notion:"None",asana:"None",kanbi:"AI-generated from live board"},
+    {f:"Email & PDF parsing",notion:"None",asana:"None",kanbi:"Instant AI extraction"},
+    {f:"Workload balancing",notion:"None",asana:"Workload view (paid)",kanbi:"AI health score + relief suggestions"},
+    {f:"Board export",notion:"PDF export",asana:"PDF / CSV (paid)",kanbi:"DOCX or PDF in one click"},
+    {f:"Saved board library",notion:"Pages / databases",asana:"Projects",kanbi:"Search, favorite, and reload boards"},
   ];
   return(
     <section style={{padding:"96px 0",borderTop:"1px solid var(--br)"}}>
@@ -502,25 +508,33 @@ function ComparisonTable(){
           <p style={{fontSize:15,color:"var(--tx2)",maxWidth:480,margin:"0 auto"}}>See the difference AI-powered task management makes.</p>
         </div>
         <div className="cmp-table" style={{borderRadius:14,border:"1px solid var(--br)",background:"var(--bg1)",overflow:"hidden"}}>
-          <div style={{display:"grid",gridTemplateColumns:"2fr 1.5fr 1.5fr",borderBottom:"1px solid var(--br)",background:"var(--bg2)"}}>
+          <div style={{display:"grid",gridTemplateColumns:"2fr 1.5fr 1.5fr 1.5fr",borderBottom:"1px solid var(--br)",background:"var(--bg2)"}}>
             <div style={{padding:"14px 20px",fontSize:12,fontWeight:700,color:"var(--tx3)",textTransform:"uppercase",letterSpacing:"0.06em"}}>Feature</div>
-            <div style={{padding:"14px 20px",fontSize:12,fontWeight:700,color:"var(--tx3)",textTransform:"uppercase",letterSpacing:"0.06em",borderLeft:"1px solid var(--br)"}}>Traditional Tools</div>
+            <div style={{padding:"14px 20px",fontSize:12,fontWeight:700,color:"var(--tx3)",textTransform:"uppercase",letterSpacing:"0.06em",borderLeft:"1px solid var(--br)"}}>Notion</div>
+            <div style={{padding:"14px 20px",fontSize:12,fontWeight:700,color:"var(--tx3)",textTransform:"uppercase",letterSpacing:"0.06em",borderLeft:"1px solid var(--br)"}}>Asana</div>
             <div style={{padding:"14px 20px",fontSize:12,fontWeight:700,color:"var(--ac)",textTransform:"uppercase",letterSpacing:"0.06em",borderLeft:"1px solid var(--br)",display:"flex",alignItems:"center",gap:6}}><IC.Zap size={13}/>Kanbi</div>
           </div>
           {features.map((row,i)=>(
-            <div key={row.f} style={{display:"grid",gridTemplateColumns:"2fr 1.5fr 1.5fr",borderBottom:i<features.length-1?"1px solid var(--br)":"none"}}>
+            <div key={row.f} style={{display:"grid",gridTemplateColumns:"2fr 1.5fr 1.5fr 1.5fr",borderBottom:i<features.length-1?"1px solid var(--br)":"none"}}>
               <div style={{padding:"16px 20px",fontSize:13.5,color:"var(--tx)",fontWeight:500}}>{row.f}</div>
-              <div style={{padding:"16px 20px",fontSize:13,color:"var(--tx3)",borderLeft:"1px solid var(--br)"}}>{row.old}</div>
+              <div style={{padding:"16px 20px",fontSize:13,color:"var(--tx3)",borderLeft:"1px solid var(--br)"}}>{row.notion}</div>
+              <div style={{padding:"16px 20px",fontSize:13,color:"var(--tx3)",borderLeft:"1px solid var(--br)"}}>{row.asana}</div>
               <div style={{padding:"16px 20px",fontSize:13,color:"var(--tx)",fontWeight:500,borderLeft:"1px solid var(--br)",background:"var(--as)"}}>{row.kanbi}</div>
             </div>
           ))}
         </div>
         <div style={{marginTop:36,borderRadius:14,border:"1px solid var(--br)",background:"var(--bg1)",padding:"26px 30px",display:"flex",alignItems:"flex-start",gap:20,flexWrap:"wrap"}}>
-          <div style={{width:44,height:44,borderRadius:"50%",background:"var(--as)",border:"1px solid var(--ag)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:700,color:"var(--ac)",flexShrink:0}}>MT</div>
-          <div style={{flex:1,minWidth:240}}>
-            <p style={{fontSize:"clamp(14px,2.5vw,19px)",color:"var(--tx)",lineHeight:1.5,marginBottom:10,fontWeight:500,letterSpacing:"-0.02em"}}>"I built Kanbi because I was spending 2+ hours every morning just organizing my tasks. Now I paste my emails and Groq AI does it in seconds."</p>
-            <p style={{fontSize:13,fontWeight:600,color:"var(--tx)"}}>Muhammad Tanveer Abbas</p>
-            <p style={{fontSize:12,color:"var(--tx3)"}}>Founder · Kanbi · Full-Stack Engineer · Faisalabad, Pakistan</p>
+          <div style={{display:"flex",alignItems:"flex-start",gap:14,flexWrap:"wrap"}}>
+            <div style={{width:48,height:48,borderRadius:12,background:"linear-gradient(135deg,var(--ac),var(--pu))",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,boxShadow:"0 0 18px var(--ag)"}}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>
+              </svg>
+            </div>
+            <div style={{flex:1,minWidth:200}}>
+              <p style={{fontSize:"clamp(13px,2vw,15px)",color:"var(--tx2)",lineHeight:1.65,marginBottom:12,fontStyle:"italic"}}>"I built Kanbi because I was spending 2+ hours every morning just organizing my tasks kanbi going through emails, copy-pasting into Notion, manually setting priorities. It was exhausting before the real work even started. Now I paste my emails and Groq AI extracts every task, sets the priorities, and builds the board in seconds. That's the whole point of Kanbi."</p>
+              <p style={{fontSize:13,fontWeight:600,color:"var(--tx)"}}>Muhammad Tanveer Abbas</p>
+              <p style={{fontSize:12,color:"var(--tx3)"}}>Founder · Kanbi · Full-Stack Engineer · Faisalabad, Pakistan</p>
+            </div>
           </div>
         </div>
       </div>
@@ -580,7 +594,7 @@ function Pricing(){
             </div>
           </div>
         </div>
-        <p style={{textAlign:"center",fontSize:12,color:"var(--tx3)",marginTop:18}}>No contracts. Questions? <a href="mailto:support@kanbi.app" style={{color:"var(--ac)"}}>support@kanbi.app</a></p>
+        <p style={{textAlign:"center",fontSize:12,color:"var(--tx3)",marginTop:18}}>No contracts. Questions? <a href="mailto:themvpguy.contact@gmail.com" style={{color:"var(--ac)"}}>themvpguy.contact@gmail.com</a></p>
       </div>
     </section>
   );
@@ -589,10 +603,12 @@ function Pricing(){
 function FAQ(){
   const [open,setOpen]=useState<number|null>(null);
   const faqs=[
-    {q:"How does AI task extraction work?",a:"Kanbi uses Groq AI (llama-3.3-70b) to read any text you paste   emails, notes, PDFs. It identifies every action item, assigns priorities and time estimates in under 2 seconds."},
-    {q:"What does Autopilot actually do?",a:"Autopilot reads your live board tasks and generates a morning briefing, a time-blocked daily schedule, and burnout alerts. You can push the AI schedule directly onto your board in one click."},
-    {q:"What AI model powers Kanbi?",a:"Groq's llama-3.3-70b-versatile   one of the fastest LLMs available. Task extraction typically completes in under 2 seconds."},
-    {q:"Can I cancel Pro anytime?",a:"Yes. Monthly via Stripe. Cancel from Settings → Billing. Access continues to end of billing period. No lock-in, no questions."},
+    {q:"How accurate is the AI task extraction?",a:"Kanbi uses Groq's llama-3.3-70b model, achieving 95%+ accuracy on structured notes and emails. The AI is specifically prompted for productivity workflows kanbi it understands phrases like 'follow up with', 'deadline is', and 'action item'. You can always edit extracted tasks before saving."},
+    {q:"Is my data private and secure?",a:"Yes. All your boards and tasks are stored with row-level security (RLS) in Supabase kanbi meaning only you can access your data. We never sell or share your data. You can delete everything from Settings at any time."},
+    {q:"How does email and task parsing work?",a:"Paste any email, meeting notes, or PDF text into Kanbi. The AI reads the full content, identifies every action item, assigns priorities, estimates time, and detects deadlines kanbi even ones buried in casual language. It works with any format, no templates required."},
+    {q:"Does Kanbi integrate with other tools?",a:"Yes. Kanbi syncs with Google Calendar (push your AI schedule in one click), exports boards as DOCX or PDF for client handoffs, and supports URL import to extract tasks from web pages. More integrations are on the roadmap."},
+    {q:"Is there a free plan? What are the limits?",a:"The free plan is free forever kanbi no credit card required. You get 10 AI task extractions per day and 300 board uses per month, which is enough for real daily use. Pro ($9/month) unlocks 50 extractions/day, unlimited board uses, PDF import, AI Chat, and more."},
+    {q:"How is Kanbi different from Asana or Monday.com?",a:"Asana and Monday are great for teams but require you to manually create every task. Kanbi is built for individual freelancers and uses AI to do the heavy lifting kanbi paste your notes and your board is ready in seconds. It also includes burnout prevention and an AI coach, which traditional tools don't offer."},
   ];
   return(
     <section id="faq" style={{padding:"96px 0",borderTop:"1px solid var(--br)"}}>
@@ -631,7 +647,7 @@ function CTABanner(){
           <p style={{fontSize:15,color:"var(--tx2)",maxWidth:460,margin:"0 auto 34px",lineHeight:1.65}}>Start free. Upgrade to Pro for AI superpowers. Cancel anytime.</p>
           <div className="cr" style={{display:"flex",gap:12,justifyContent:"center",flexWrap:"wrap"}}>
             <button onClick={handleGetStarted} style={{height:48,padding:"0 28px",borderRadius:10,background:"var(--inv)",color:"var(--inv2)",fontSize:14,fontWeight:700,display:"inline-flex",alignItems:"center",gap:9,transition:"opacity .15s",border:"none"}} onMouseOver={e=>(e.currentTarget.style.opacity=".88")} onMouseOut={e=>(e.currentTarget.style.opacity="1")}>Start Free   No Card Needed <IC.Arrow size={15}/></button>
-            <a href="#pricing" style={{height:48,padding:"0 22px",borderRadius:10,border:"1px solid var(--brh)",fontSize:14,color:"var(--tx2)",display:"inline-flex",alignItems:"center",transition:"all .15s"}} onMouseOver={e=>{e.currentTarget.style.borderColor="var(--ag)";e.currentTarget.style.color="var(--tx)"}} onMouseOut={e=>{e.currentTarget.style.borderColor="var(--brh)";e.currentTarget.style.color="var(--tx2)"}}>View Pricing →</a>
+            <a href="#faq" style={{height:48,padding:"0 22px",borderRadius:10,border:"1px solid var(--brh)",fontSize:14,color:"var(--tx2)",display:"inline-flex",alignItems:"center",transition:"all .15s"}} onMouseOver={e=>{e.currentTarget.style.borderColor="var(--ag)";e.currentTarget.style.color="var(--tx)"}} onMouseOut={e=>{e.currentTarget.style.borderColor="var(--brh)";e.currentTarget.style.color="var(--tx2)"}}>See FAQ →</a>
           </div>
         </div>
       </div>
@@ -652,7 +668,7 @@ function Footer(){
             </div>
             <p style={{fontSize:13,color:"var(--tx2)",lineHeight:1.7,maxWidth:260,marginBottom:16}}>AI task management that saves freelancers 2+ hours every day. Powered by Groq, Supabase, and Stripe.</p>
             <div style={{display:"flex",gap:7}}>
-              {[{I:<IC.Github size={15}/>,h:"https://github.com/MuhammadTanveerAbbas"},{I:<IC.TW size={15}/>,h:"https://twitter.com"},{I:<IC.LI size={15}/>,h:"https://linkedin.com/in/MuhammadTanveerAbbas"}].map((s,i)=>(
+              {[{I:<IC.Github size={15}/>,h:"https://github.com/MuhammadTanveerAbbas"},{I:<IC.TW size={15}/>,h:"https://twitter.com/m_tanveerabbas"},{I:<IC.LI size={15}/>,h:"https://linkedin.com/in/MuhammadTanveerAbbas"}].map((s,i)=>(
                 <a key={i} href={s.h} target="_blank" rel="noreferrer" style={{width:30,height:30,borderRadius:7,border:"1px solid var(--br)",background:"var(--bg1)",display:"flex",alignItems:"center",justifyContent:"center",color:"var(--tx2)",transition:"all .15s"}} onMouseOver={e=>{e.currentTarget.style.borderColor="var(--brh)";e.currentTarget.style.color="var(--tx)"}} onMouseOut={e=>{e.currentTarget.style.borderColor="var(--br)";e.currentTarget.style.color="var(--tx2)"}}>{s.I}</a>
               ))}
               <button onClick={toggle} style={{width:30,height:30,borderRadius:7,border:"1px solid var(--br)",background:"var(--bg1)",display:"flex",alignItems:"center",justifyContent:"center",color:"var(--tx2)",cursor:"pointer",transition:"all .15s"}} onMouseOver={e=>{e.currentTarget.style.borderColor="var(--brh)";e.currentTarget.style.color="var(--tx)"}} onMouseOut={e=>{e.currentTarget.style.borderColor="var(--br)";e.currentTarget.style.color="var(--tx2)"}}>
@@ -661,9 +677,9 @@ function Footer(){
             </div>
           </div>
           {[
-            {h:"Product",links:[["Pricing","#pricing"],["Features","#features"],["How It Works","#how-it-works"],["Dashboard","/dashboard"],["Sign Up","/sign-up"]]},
-            {h:"Resources",links:[["Privacy","/privacy"],["Terms","/terms"],["Sign In","/sign-in"],["Pricing","/pricing"],["Support","mailto:support@kanbi.app"]]},
-            {h:"Connect",links:[["Email","mailto:support@kanbi.app"],["GitHub","https://github.com/MuhammadTanveerAbbas"],["LinkedIn","https://linkedin.com/in/MuhammadTanveerAbbas"],["Twitter","https://twitter.com"]]},
+            {h:"Product",links:[["Features","#features"],["How It Works","#how-it-works"],["Dashboard","/dashboard"],["Sign Up","/sign-up"]]},
+            {h:"Resources",links:[["Privacy","/privacy"],["Terms","/terms"],["Sign In","/sign-in"],["Support","mailto:themvpguy.contact@gmail.com"]]},
+            {h:"Connect",links:[["Email","mailto:themvpguy.contact@gmail.com"],["GitHub","https://github.com/MuhammadTanveerAbbas"],["LinkedIn","https://linkedin.com/in/MuhammadTanveerAbbas"],["Twitter","https://twitter.com/m_tanveerabbas"]]},
           ].map(col=>(
             <div key={col.h}>
               <p style={{fontSize:11,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",color:"var(--tx3)",marginBottom:14}}>{col.h}</p>
@@ -699,7 +715,7 @@ export default function LandingPage(){
       <Styles theme={theme}/>
       <div style={{minHeight:"100vh",background:"var(--bg)",color:"var(--tx)"}}>
         <Navbar/>
-        <main><Hero/><Strip/><Showcase/><Features/><HowItWorks/><Pricing/><ComparisonTable/><FAQ/><CTABanner/></main>
+        <main><Hero/><Strip/><Showcase/><Features/><HowItWorks/><ComparisonTable/><FAQ/><CTABanner/></main>
         <Footer/>
       </div>
     </ThemeCtx.Provider>

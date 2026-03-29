@@ -44,16 +44,8 @@ export default function FinalCtaSection({ setIsLoading }: FinalCtaSectionProps) 
               onClick={handleClick}
               className="px-8 py-6 text-base font-semibold rounded-xl shadow-2xl hover:shadow-primary/50 transition-all duration-300 group"
             >
-              {user ? "Go to Dashboard" : "Start Free — No Credit Card"}
+              {user ? "Go to Dashboard" : "Start Free kanbi No Credit Card"}
               <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
-            </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              onClick={() => router.push("/pricing")}
-              className="px-8 py-6 text-base font-semibold rounded-xl"
-            >
-              View Pricing
             </Button>
           </div>
           <p className="text-xs text-muted-foreground mt-4">

@@ -1,4 +1,4 @@
-// Minimal dev-only event tracking — no external data collection
+// Minimal dev-only event tracking kanbi no external data collection
 class Analytics {
   track(eventName: string, properties?: Record<string, any>) {
     if (process.env.NODE_ENV === 'development') {

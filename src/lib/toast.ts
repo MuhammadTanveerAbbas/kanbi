@@ -1,4 +1,4 @@
-// Toast notification utility — lightweight alternative to a full toast library
+// Toast notification utility kanbi lightweight alternative to a full toast library
 export type ToastType = 'success' | 'error' | 'info' | 'warning';
 
 interface ToastOptions {

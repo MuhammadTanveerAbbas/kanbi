@@ -21,7 +21,7 @@ const PRIV_SECS: Section[] = [
   { id: 'children-privacy', title: "9. Children's Privacy", content: ['Kanbi is not intended for children under 13, and we do not knowingly collect personal information from children under that age.'] },
   { id: 'international-transfers', title: '10. International Data Transfers', content: ['Data may be processed in countries outside your own. By using the Service, you consent to those transfers where permitted by law.'] },
   { id: 'policy-changes', title: '11. Changes to This Policy', content: ['We may update this Privacy Policy from time to time. Material updates are reflected by changing the effective date and posting the updated policy.'] },
-  { id: 'privacy-contact', title: '12. Contact Us', content: ['For privacy questions, contact: muhammadtanveerabbas.dev@gmail.com'] },
+  { id: 'privacy-contact', title: '12. Contact Us', content: ['For privacy questions, contact: themvpguy.contact@gmail.com'] },
 ]
 
 const TERMS_SECS: Section[] = [
@@ -38,7 +38,7 @@ const TERMS_SECS: Section[] = [
   { id: 'termination', title: '11. Termination', content: ['We may suspend or terminate access for violations of these terms or to protect the Service and users.'] },
   { id: 'changes', title: '12. Changes to Terms', content: ['We may revise these terms at any time. Continued use after updates means you accept the revised terms.'] },
   { id: 'governing-law', title: '13. Governing Law', content: ['These terms are governed by applicable law and subject to the jurisdiction stated by Kanbi.'] },
-  { id: 'terms-contact', title: '14. Contact Information', content: ['For terms questions, contact: muhammadtanveerabbas.dev@gmail.com'] },
+  { id: 'terms-contact', title: '14. Contact Information', content: ['For terms questions, contact: themvpguy.contact@gmail.com'] },
 ]
 
 export default function LegalPages() {
@@ -89,14 +89,16 @@ export default function LegalPages() {
           min-height: 100vh;
           background: var(--bg);
           color: var(--tx);
-          padding: 32px 20px 72px;
+          padding: 40px 20px 80px;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         }
         .layout {
-          max-width: 1160px;
+          max-width: 1100px;
           margin: 0 auto;
           display: grid;
-          grid-template-columns: minmax(0, 1fr) 280px;
-          gap: 32px;
+          grid-template-columns: minmax(0, 1fr) 260px;
+          gap: 48px;
+          align-items: start;
         }
         .content {
           min-width: 0;
@@ -107,7 +109,7 @@ export default function LegalPages() {
           align-items: center;
           justify-content: space-between;
           gap: 12px;
-          margin-bottom: 20px;
+          margin-bottom: 32px;
         }
         .navgroup {
           display: flex;
@@ -116,68 +118,90 @@ export default function LegalPages() {
         .chip {
           border: 1px solid var(--br);
           background: var(--bg2);
-          color: var(--tx);
+          color: var(--tx2);
           border-radius: 999px;
-          padding: 8px 12px;
+          padding: 7px 14px;
           text-decoration: none;
           font-size: 13px;
-          transition: all 0.2s ease;
+          font-weight: 500;
+          transition: all 0.18s ease;
         }
         .chip:hover {
           border-color: var(--brh);
           background: var(--bg3);
+          color: var(--tx);
         }
         .chip.active {
           background: var(--as);
           border-color: var(--ac);
           color: var(--ac);
+          font-weight: 600;
+        }
+        .page-header {
+          margin-bottom: 36px;
+          padding-bottom: 28px;
+          border-bottom: 1px solid var(--br);
         }
         h1 {
-          margin: 0;
-          font-size: clamp(30px, 4.5vw, 44px);
+          margin: 0 0 10px;
+          font-size: clamp(28px, 4vw, 42px);
           line-height: 1.1;
-          letter-spacing: -0.02em;
+          letter-spacing: -0.025em;
+          font-weight: 700;
+          color: var(--tx);
         }
         .updated {
-          color: var(--tx2);
-          margin: 8px 0 28px;
-          font-size: 14px;
+          color: var(--tx3);
+          margin: 0;
+          font-size: 13px;
+          font-weight: 500;
         }
         .section {
           border: 1px solid var(--br);
-          border-radius: 14px;
-          padding: 18px 18px 16px;
+          border-radius: 12px;
+          padding: 22px 24px 20px;
           background: var(--bg1);
-          margin-bottom: 14px;
-          scroll-margin-top: 84px;
+          margin-bottom: 12px;
+          scroll-margin-top: 88px;
+          transition: border-color 0.18s;
+        }
+        .section:hover {
+          border-color: var(--brh);
         }
         .section h2 {
-          margin: 0 0 10px;
-          font-size: 20px;
+          margin: 0 0 12px;
+          font-size: 16px;
+          font-weight: 600;
+          color: var(--tx);
+          letter-spacing: -0.01em;
         }
         .section p {
           margin: 0 0 10px;
-          line-height: 1.7;
+          line-height: 1.75;
           color: var(--tx2);
+          font-size: 14px;
         }
         .section p:last-child {
           margin-bottom: 0;
         }
         .toc {
           position: sticky;
-          top: 22px;
+          top: 24px;
           align-self: start;
           border: 1px solid var(--br);
-          border-radius: 14px;
+          border-radius: 12px;
           background: var(--bg1);
-          padding: 14px;
+          padding: 16px;
+          max-height: calc(100vh - 48px);
+          overflow-y: auto;
         }
         .toc h3 {
-          margin: 0 0 8px;
-          font-size: 13px;
+          margin: 0 0 10px;
+          font-size: 11px;
           text-transform: uppercase;
-          letter-spacing: 0.05em;
+          letter-spacing: 0.07em;
           color: var(--tx3);
+          font-weight: 700;
         }
         .toc button {
           width: 100%;
@@ -186,10 +210,13 @@ export default function LegalPages() {
           border-left: 2px solid transparent;
           background: transparent;
           color: var(--tx2);
-          padding: 8px 8px 8px 10px;
-          border-radius: 8px;
+          padding: 7px 8px 7px 10px;
+          border-radius: 6px;
           cursor: pointer;
-          font-size: 13px;
+          font-size: 12.5px;
+          line-height: 1.4;
+          transition: all 0.15s;
+          display: block;
         }
         .toc button:hover {
           background: var(--bg2);
@@ -199,8 +226,9 @@ export default function LegalPages() {
           border-left-color: var(--ac);
           color: var(--ac);
           background: var(--as);
+          font-weight: 500;
         }
-        @media (max-width: 900px) {
+        @media (max-width: 860px) {
           .layout {
             grid-template-columns: 1fr;
           }
@@ -210,29 +238,16 @@ export default function LegalPages() {
         }
         .legal-page {
           --bg: #07090d;
-          --bg1: #0e1219;
-          --bg2: #141a23;
-          --bg3: #1a2230;
-          --br: #1f2b3a;
-          --brh: #2a3a50;
-          --tx: #f3f7ff;
-          --tx2: #b9c6db;
-          --tx3: #89a0c3;
-          --ac: #6ea8ff;
-          --as: rgba(110, 168, 255, 0.14);
-        }
-        :global(.light) .legal-page {
-          --bg: #f6f8fc;
-          --bg1: #ffffff;
-          --bg2: #eef3fa;
-          --bg3: #e7edf7;
-          --br: #dbe5f2;
-          --brh: #c8d7ea;
-          --tx: #0f1c2f;
-          --tx2: #3e526d;
+          --bg1: #0d1117;
+          --bg2: #131920;
+          --bg3: #192028;
+          --br: #1e2a38;
+          --brh: #283a50;
+          --tx: #eef2ff;
+          --tx2: #a8b8d0;
           --tx3: #6a7f9d;
-          --ac: #0f62fe;
-          --as: rgba(15, 98, 254, 0.1);
+          --ac: #6ea8ff;
+          --as: rgba(110, 168, 255, 0.1);
         }
       `}</style>
 
@@ -241,21 +256,23 @@ export default function LegalPages() {
           <div className="topbar">
             <div className="navgroup">
               <Link href="/" className="chip">
-                Home
+                ← Home
               </Link>
             </div>
             <div className="navgroup">
               <Link href="/privacy" className={`chip ${!isTerms ? 'active' : ''}`}>
-                Privacy
+                Privacy Policy
               </Link>
               <Link href="/terms" className={`chip ${isTerms ? 'active' : ''}`}>
-                Terms
+                Terms of Service
               </Link>
             </div>
           </div>
 
-          <h1>{pageTitle}</h1>
-          <p className="updated">Last updated: {updatedDate}</p>
+          <div className="page-header">
+            <h1>{pageTitle}</h1>
+            <p className="updated">Last updated: {updatedDate}</p>
+          </div>
 
           {sections.map((section) => (
             <section id={section.id} key={section.id} className="section">

@@ -14,7 +14,7 @@
 
 ## What is Kanbi?
 
-Kanbi turns messy notes, emails, PDFs, and URLs into a clean Kanban board in under 2 seconds using Groq AI. It includes workload analysis, burnout detection, an AI productivity coach, and a full SaaS billing layer — all in one Next.js app.
+Kanbi turns messy notes, emails, PDFs, and URLs into a clean Kanban board in under 2 seconds using Groq AI. It includes workload analysis, burnout detection, an AI productivity coach, and a full SaaS billing layer kanbi all in one Next.js app.
 
 ---
 
@@ -40,6 +40,7 @@ Kanbi turns messy notes, emails, PDFs, and URLs into a clean Kanban board in und
 
 **Platform**
 - Stripe subscriptions (Free / Premium at $9/month)
+- Google Calendar integration (OAuth 2.0, sync tasks with due dates)
 - Export boards as DOCX or PDF
 - Dark/light mode with system detection
 - Keyboard shortcuts, onboarding tour, responsive design
@@ -91,13 +92,15 @@ Copy `.env.example` to `.env.local` and fill in the values.
 | `NEXT_PUBLIC_SUPABASE_URL` | Yes | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | Supabase public anon key |
 | `SUPABASE_SERVICE_ROLE_KEY` | Yes | Supabase service role key (server-side only) |
-| `GROQ_API_KEY` | Yes | Groq API key — [console.groq.com](https://console.groq.com/keys) |
+| `GROQ_API_KEY` | Yes | Groq API key kanbi [console.groq.com](https://console.groq.com/keys) |
 | `STRIPE_SECRET_KEY` | Yes | Stripe secret key |
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Yes | Stripe publishable key |
 | `STRIPE_WEBHOOK_SECRET` | Yes | Stripe webhook signing secret |
 | `STRIPE_PRICE_ID` | Yes | Stripe price ID for the premium plan |
 | `NEXT_PUBLIC_APP_URL` | Yes | Public base URL (e.g. `https://kanbi.vercel.app`) |
 | `NEXT_PUBLIC_USE_AI` | Yes | Set to `true` to enable AI features |
+| `GOOGLE_CLIENT_ID` | No | Google OAuth client ID (required for Calendar integration) |
+| `GOOGLE_CLIENT_SECRET` | No | Google OAuth client secret (required for Calendar integration) |
 
 ---
 
@@ -168,9 +171,14 @@ kanbi/
 | `/api/ai/analyze-workload` | POST | Workload health analysis |
 | `/api/ai/status` | GET | AI service status |
 | `/api/ai/track-completion` | POST | Track task completions for AI learning |
-| `/api/autopilot` | GET | Get autopilot settings |
+| `/api/autopilot` | POST | Generate autopilot briefing (legacy) |
 | `/api/autopilot/briefing` | POST | Generate morning briefing |
-| `/api/autopilot/settings` | PATCH | Update autopilot settings |
+| `/api/autopilot/settings` | GET/POST | Get or update autopilot settings |
+| `/api/integrations/google-calendar/auth` | GET | Start Google Calendar OAuth flow |
+| `/api/integrations/google-calendar/callback` | GET | OAuth callback handler |
+| `/api/integrations/google-calendar/status` | GET | Check connection status |
+| `/api/integrations/google-calendar/sync` | POST | Sync tasks with due dates to calendar |
+| `/api/integrations/google-calendar/disconnect` | POST | Disconnect Google Calendar |
 | `/api/stripe/checkout` | POST | Create Stripe checkout session |
 | `/api/stripe/portal` | POST | Open Stripe billing portal |
 | `/api/webhooks/stripe` | POST | Stripe webhook handler |
@@ -224,15 +232,16 @@ For production, update:
 | AI extractions/month | 300 | 1,500 |
 | Board saves/day | 10 | 50 |
 | Board saves/month | 300 | 1,500 |
-| AI Chat + Autopilot | — | ✓ |
-| PDF import | — | ✓ |
-| DOCX & PDF export | — | ✓ |
+| AI Chat + Autopilot | ✓ | ✓ |
+| PDF import | ✓ | ✓ |
+| DOCX & PDF export | ✓ | ✓ |
+| Google Calendar sync | ✓ | ✓ |
 
 ---
 
 ## License
 
-MIT — see [LICENSE](LICENSE)
+MIT kanbi see [LICENSE](LICENSE)
 
 ---
 

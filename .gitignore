@@ -17,7 +17,7 @@
 /blob-report/
 /playwright/.cache/
 
-# Environment variables — never commit these
+# Environment variables kanbi never commit these
 .env
 .env.local
 .env.development.local

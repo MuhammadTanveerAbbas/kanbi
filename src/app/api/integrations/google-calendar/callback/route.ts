@@ -3,8 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID ?? "";
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET ?? "";
-const REDIRECT_URI = `${process.env.NEXT_PUBLIC_APP_URL}/api/integrations/google-calendar/callback`;
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+const APP_URL = (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
+const REDIRECT_URI = `${APP_URL}/api/integrations/google-calendar/callback`;
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);

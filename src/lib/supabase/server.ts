@@ -18,7 +18,7 @@ export async function createClient() {
               cookieStore.set(name, value, options)
             )
           } catch {
-            // setAll called from a Server Component — safe to ignore since
+            // setAll called from a Server Component kanbi safe to ignore since
             // middleware handles session refresh.
           }
         },

@@ -41,7 +41,7 @@ export default function StatsSection() {
             Built for real productivity
           </h2>
           <p className="text-xs sm:text-sm md:text-base lg:text-lg text-muted-foreground max-w-2xl mx-auto px-2">
-            Groq AI, Supabase, and Stripe — production-grade infrastructure under the hood.
+            Groq AI, Supabase, and Stripe kanbi production-grade infrastructure under the hood.
           </p>
         </motion.div>
 

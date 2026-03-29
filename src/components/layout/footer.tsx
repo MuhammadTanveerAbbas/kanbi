@@ -28,12 +28,6 @@ export default function Footer() {
             </h3>
             <div className="flex flex-col gap-2">
               <Link
-                href="/pricing"
-                className="text-xs sm:text-sm text-muted-foreground hover:text-primary transition-colors"
-              >
-                Pricing
-              </Link>
-              <Link
                 href="/privacy"
                 className="text-xs sm:text-sm text-muted-foreground hover:text-primary transition-colors"
               >
@@ -55,7 +49,7 @@ export default function Footer() {
             </h3>
             <div className="flex flex-col gap-3">
               <a
-                href="mailto:support@kanbi.app"
+                href="mailto:themvpguy.contact@gmail.com"
                 className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground hover:text-primary transition-colors"
               >
                 <Mail className="h-4 w-4 flex-shrink-0" />
@@ -71,7 +65,7 @@ export default function Footer() {
                 <span>LinkedIn</span>
               </a>
               <a
-                href="https://twitter.com"
+                href="https://twitter.com/m_tanveerabbas"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground hover:text-primary transition-colors"

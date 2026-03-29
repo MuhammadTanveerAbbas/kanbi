@@ -1,4 +1,4 @@
-// AI Autopilot Engine — autonomous daily scheduling and workload management
+// AI Autopilot Engine kanbi autonomous daily scheduling and workload management
 
 interface Task {
   id: string;
