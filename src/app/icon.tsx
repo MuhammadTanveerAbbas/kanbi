@@ -20,7 +20,7 @@ export default function Icon() {
           alignItems: 'center',
           justifyContent: 'center',
           background: 'linear-gradient(135deg, #5e6fe8 0%, #a78bfa 100%)',
-          borderRadius: '14px',
+          borderRadius: '12px',
         }}
       >
         <svg
