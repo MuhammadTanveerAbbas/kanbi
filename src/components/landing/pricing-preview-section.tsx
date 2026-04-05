@@ -33,7 +33,7 @@ const plans = [
       "PDF import & URL extraction",
       "AI Chat Coach & Burnout Prevention",
       "Export as DOCX or PDF",
-      "Google Calendar sync",
+      "Autopilot scheduling & briefings",
       "Priority email support (24h)",
     ],
     cta: "View Full Pricing",

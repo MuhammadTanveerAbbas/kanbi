@@ -24,7 +24,7 @@ const faqs = [
   {
     question: "Does Kanbi integrate with other tools?",
     answer:
-      "Yes. Kanbi syncs with Google Calendar (push your AI schedule in one click), exports boards as DOCX or PDF for client handoffs, and supports URL import to extract tasks from web pages. More integrations are on the roadmap.",
+      "Yes. Kanbi exports boards as DOCX or PDF for client handoffs and supports URL import to extract tasks from web pages. Calendar and third-party integrations are actively in development and coming soon.",
   },
   {
     question: "Is there a free plan? What are the limits?",

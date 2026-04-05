@@ -124,7 +124,6 @@ const FREE_FEATURES = [
   { t: "AI Chat Coach", ok: false },
   { t: "Burnout alerts & health score", ok: false },
   { t: "DOCX & PDF export", ok: false },
-  { t: "Google Calendar sync", ok: false },
   { t: "Autopilot briefings", ok: false },
 ];
 
@@ -136,7 +135,6 @@ const PRO_FEATURES = [
   { t: "Burnout prevention & health scoring", highlight: true },
   { t: "DOCX & PDF export", highlight: false },
   { t: "Autopilot scheduling & briefings", highlight: true },
-  { t: "Google Calendar sync", highlight: false },
   { t: "Priority email support (24h)", highlight: false },
   { t: "Everything in Free", highlight: false },
 ];
@@ -233,7 +231,7 @@ const CMP_ROWS = [
   { f: "Health score", free: "kanbi", pro: "✓" },
   { f: "DOCX & PDF export", free: "kanbi", pro: "✓" },
   { f: "Autopilot briefings", free: "kanbi", pro: "✓" },
-  { f: "Google Calendar sync", free: "kanbi", pro: "✓" },
+  { f: "Calendar integrations", free: "kanbi", pro: "Coming soon" },
   { f: "Priority support", free: "kanbi", pro: "24h email" },
 ];
 

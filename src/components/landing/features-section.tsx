@@ -57,9 +57,9 @@ const features = [
     icon: (
       <Calendar className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 text-primary" />
     ),
-    title: "Google Calendar sync and board export",
+    title: "Board export as DOCX and PDF",
     description:
-      "Push tasks with due dates to Google Calendar in one click. Export any saved board as a DOCX or PDF for client handoffs.",
+      "Export any saved board as a formatted DOCX or PDF in one click. Perfect for client handoffs, reports, or keeping an offline record of your work.",
   },
   {
     icon: (

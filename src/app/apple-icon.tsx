@@ -24,14 +24,11 @@ export default function AppleIcon() {
         }}
       >
         <svg
-          width="100"
-          height="100"
+          width="110"
+          height="110"
           viewBox="0 0 24 24"
-          fill="none"
-          stroke="#ffffff"
-          strokeWidth="2.2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
+          fill="#ffffff"
+          stroke="none"
         >
           <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
         </svg>

@@ -22,7 +22,7 @@ const PRO_FEATURES = [
   "PDF import & URL extraction",
   "Export boards as DOCX or PDF",
   "Autopilot scheduling & morning briefings",
-  "Google Calendar sync",
+  "DOCX & PDF board export",
   "Priority email support (24h)",
 ];
 

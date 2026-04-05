@@ -36,7 +36,6 @@ Kanbi solves the gap between raw, unstructured notes and an actionable task boar
 - 🧠 **Workload Analysis** — Real-time burnout risk detection, deadline clustering, and workload health scoring
 - 💬 **AI Productivity Coach** — Conversational assistant with full board context for planning, prioritization, and advice
 - 🚀 **Autopilot Mode** — Morning briefings, auto-scheduling, and intelligent task adjustments based on your workload
-- 📅 **Google Calendar Sync** — OAuth 2.0 integration to sync tasks with due dates directly to your calendar
 - 📤 **Board Export** — Export any board as a formatted DOCX or PDF file
 - 📊 **Analytics Dashboard** — Task stats, activity charts, daily/weekly goal tracking, and AI insight feed
 - 🎨 **Board Templates** — Pre-built templates for Daily, Sprint, Meeting, Project, and Quick Start workflows
@@ -128,9 +127,9 @@ NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_your_stripe_publishable_key
 STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret
 STRIPE_PRICE_ID=price_your_price_id
 
-# Google OAuth & Calendar Integration
-GOOGLE_CLIENT_ID=your_google_oauth_client_id
-GOOGLE_CLIENT_SECRET=your_google_oauth_client_secret
+# Google OAuth & Calendar Integration (coming soon — not active)
+# GOOGLE_CLIENT_ID=your_google_oauth_client_id
+# GOOGLE_CLIENT_SECRET=your_google_oauth_client_secret
 
 # App
 NEXT_PUBLIC_APP_URL=http://localhost:3000
@@ -161,7 +160,7 @@ kanbi/
 │   │   │   ├── extract/     # Text task extraction
 │   │   │   ├── parse-pdf/   # PDF task extraction
 │   │   │   ├── parse-url/   # URL task extraction
-│   │   │   ├── integrations/# Google Calendar OAuth + sync
+│   │   │   ├── integrations/# Third-party integrations (coming soon)
 │   │   │   ├── stripe/      # Checkout and billing portal
 │   │   │   └── webhooks/    # Stripe webhook handler
 │   │   └── dashboard/       # Board, chat, autopilot, saved, settings pages
@@ -206,16 +205,16 @@ kanbi/
 
 ## 💰 Usage Limits
 
-|                        | Free | Premium ($9/mo) |
-| ---------------------- | ---- | --------------- |
-| AI extractions / day   | 10   | 50              |
-| AI extractions / month | 300  | 1,500           |
-| Board saves / day      | 10   | 50              |
-| Board saves / month    | 300  | 1,500           |
-| AI Chat + Autopilot    | ✓    | ✓               |
-| PDF import             | ✓    | ✓               |
-| DOCX & PDF export      | ✓    | ✓               |
-| Google Calendar sync   | ✓    | ✓               |
+|                        | Free        | Premium ($9/mo) |
+| ---------------------- | ----------- | --------------- |
+| AI extractions / day   | 10          | 50              |
+| AI extractions / month | 300         | 1,500           |
+| Board saves / day      | 10          | 50              |
+| Board saves / month    | 300         | 1,500           |
+| AI Chat + Autopilot    | ✓           | ✓               |
+| PDF import             | ✓           | ✓               |
+| DOCX & PDF export      | ✓           | ✓               |
+| Google Calendar sync   | Coming soon | Coming soon     |
 
 ---
 
@@ -246,7 +245,7 @@ For production, update:
 - [x] Workload analysis and burnout detection
 - [x] AI productivity coach (chat)
 - [x] Autopilot morning briefings
-- [x] Google Calendar integration
+- [x] Google Calendar integration (coming soon)
 - [x] Stripe subscriptions
 - [x] Board export (DOCX + PDF)
 - [x] Analytics dashboard

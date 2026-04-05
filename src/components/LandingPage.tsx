@@ -179,7 +179,7 @@ function Hero(){
           <span style={{position:"relative",display:"inline-block"}}><Wavy/><ST text="planning" delay={0.34} style={{color:"var(--ac)",fontWeight:800} as React.CSSProperties}/></span>
           <br/>{"into "}<span style={{color:"var(--ac)",fontWeight:800}}><ST text="10 seconds" delay={0.56}/></span>
         </h1>
-        <p style={{fontSize:17,color:"var(--tx2)",maxWidth:540,margin:"0 auto 40px",lineHeight:1.7}}>Paste notes, emails, or PDFs. Kanbi's Groq AI extracts every task, prioritizes intelligently, prevents burnout   and syncs with your calendar. <strong style={{color:"var(--tx)",fontWeight:500}}>2+ hours saved every day.</strong></p>
+        <p style={{fontSize:17,color:"var(--tx2)",maxWidth:540,margin:"0 auto 40px",lineHeight:1.7}}>Paste notes, emails, or PDFs. Kanbi's Groq AI extracts every task, prioritizes intelligently, prevents burnout   and keeps your workload healthy. <strong style={{color:"var(--tx)",fontWeight:500}}>2+ hours saved every day.</strong></p>
         <div className="cr" style={{display:"flex",gap:12,justifyContent:"center",flexWrap:"wrap"}}>
           <button onClick={handleGetStarted} style={{height:48,padding:"0 26px",borderRadius:10,background:"var(--ac)",color:"#fff",fontSize:14,fontWeight:600,display:"inline-flex",alignItems:"center",gap:9,boxShadow:"0 0 0 1px var(--ag),0 10px 38px var(--ag)",transition:"background .15s",border:"none"}} onMouseOver={e=>(e.currentTarget.style.background="var(--ach)")} onMouseOut={e=>(e.currentTarget.style.background="var(--ac)")}>Start for Free <IC.Arrow size={15}/></button>
           <a href="#showcase" style={{height:48,padding:"0 22px",borderRadius:10,border:"1px solid var(--br)",fontSize:14,color:"var(--tx2)",display:"inline-flex",alignItems:"center",gap:6,transition:"all .15s"}} onMouseOver={e=>{e.currentTarget.style.borderColor="var(--brh)";e.currentTarget.style.color="var(--tx)"}} onMouseOut={e=>{e.currentTarget.style.borderColor="var(--br)";e.currentTarget.style.color="var(--tx2)"}}>See product <IC.ChevD size={14}/></a>
@@ -226,7 +226,7 @@ function Hero(){
                     <div className="pulse" style={{width:4,height:4,borderRadius:"50%",background:"var(--ac)"}}/>
                     <span style={{fontSize:9.5,color:"var(--ac)",fontWeight:500}}>AI extracted 7 tasks</span>
                   </div>
-                  <div style={{padding:"3px 8px",borderRadius:5,border:"1px solid rgba(66,133,244,0.3)",background:"rgba(66,133,244,0.08)",fontSize:9,color:"#4285f4",fontWeight:600}}>📅 Set Reminders</div>
+                  <div style={{padding:"3px 8px",borderRadius:5,border:"1px solid rgba(167,139,250,0.3)",background:"rgba(167,139,250,0.08)",fontSize:9,color:"#a78bfa",fontWeight:600}}>✨ Autopilot On</div>
                 </div>
               </div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,padding:12}}>
@@ -430,7 +430,7 @@ const FEATS=[
   {I:IC.Export,t:"DOCX & PDF export",d:"Export any saved board as a professionally formatted Word doc or PDF. Perfect for client handoffs."},
   {I:IC.Board,t:"Works with text, PDFs, emails, and URLs",d:"Paste text, upload a PDF, or drop a URL. Kanbi reads them all and extracts tasks in one step. No copy-pasting between tools."},
   {I:IC.Cal,t:"Autopilot: AI-generated daily schedule",d:"Autopilot reads your board and generates a time-blocked daily schedule with a morning briefing, blocker detection, and overflow rescheduling."},
-  {I:IC.Zap,t:"Google Calendar sync",d:"Push tasks with due dates to Google Calendar in one click. Reminders are set automatically so nothing slips through."},
+  {I:IC.Zap,t:"DOCX & PDF board export",d:"Export any saved board as a formatted DOCX or PDF in one click. Great for client handoffs, project reports, or keeping an offline copy of your work."},
   {I:IC.Board,t:"Save, search, and favorite your boards",d:"Every board you generate can be saved to your library. Search by title or content, mark favorites, and reload any past board instantly."},
 ];
 
@@ -490,7 +490,7 @@ function ComparisonTable(){
   const features=[
     {f:"Task extraction speed",notion:"Manual entry",asana:"Manual entry",kanbi:"Groq AI in under 2 seconds"},
     {f:"Burnout detection",notion:"None",asana:"None",kanbi:"Real-time health score"},
-    {f:"Calendar integration",notion:"Manual / limited",asana:"Google & Outlook sync",kanbi:"One-click Google Calendar sync"},
+    {f:"Calendar integration",notion:"Manual / limited",asana:"Google & Outlook sync",kanbi:"Coming soon"},
     {f:"AI coaching",notion:"AI writing assist only",asana:"None",kanbi:"Chat assistant with board context"},
     {f:"Historical task data",notion:"Manual tracking",asana:"Reporting (paid)",kanbi:"Completion history used for estimates"},
     {f:"Daily briefings",notion:"None",asana:"None",kanbi:"AI-generated from live board"},
@@ -552,7 +552,7 @@ function Pricing(){
     }catch{window.location.href='/sign-up';}
   };
   const freeF=[{t:"10 AI task extractions per day",ok:true},{t:"300 board uses per month",ok:true},{t:"Full Kanban board",ok:true},{t:"Priority levels & due dates",ok:true},{t:"PDF import",ok:false},{t:"AI Chat Coach",ok:false},{t:"Burnout alerts",ok:false}];
-  const proF=["50 AI task extractions per day","Unlimited board uses","PDF import & URL extraction","AI Chat Coach (board-aware)","Burnout prevention & health scoring","DOCX & PDF export","Autopilot scheduling & briefings","Google Calendar sync","Priority email support (24h)"];
+  const proF=["50 AI task extractions per day","Unlimited board uses","PDF import & URL extraction","AI Chat Coach (board-aware)","Burnout prevention & health scoring","DOCX & PDF export","Autopilot scheduling & briefings","Priority email support (24h)"];
   return(
     <section id="pricing" style={{padding:"96px 0",borderTop:"1px solid var(--br)"}}>
       <div style={{maxWidth:1140,margin:"0 auto",padding:"0 24px"}}>
@@ -606,7 +606,7 @@ function FAQ(){
     {q:"How accurate is the AI task extraction?",a:"Kanbi uses Groq's llama-3.3-70b model, achieving 95%+ accuracy on structured notes and emails. The AI is specifically prompted for productivity workflows kanbi it understands phrases like 'follow up with', 'deadline is', and 'action item'. You can always edit extracted tasks before saving."},
     {q:"Is my data private and secure?",a:"Yes. All your boards and tasks are stored with row-level security (RLS) in Supabase kanbi meaning only you can access your data. We never sell or share your data. You can delete everything from Settings at any time."},
     {q:"How does email and task parsing work?",a:"Paste any email, meeting notes, or PDF text into Kanbi. The AI reads the full content, identifies every action item, assigns priorities, estimates time, and detects deadlines kanbi even ones buried in casual language. It works with any format, no templates required."},
-    {q:"Does Kanbi integrate with other tools?",a:"Yes. Kanbi syncs with Google Calendar (push your AI schedule in one click), exports boards as DOCX or PDF for client handoffs, and supports URL import to extract tasks from web pages. More integrations are on the roadmap."},
+    {q:"Does Kanbi integrate with other tools?",a:"Yes. Kanbi exports boards as DOCX or PDF for client handoffs and supports URL import to extract tasks from web pages. Calendar and third-party integrations are actively in development and coming soon."},
     {q:"Is there a free plan? What are the limits?",a:"The free plan is free forever kanbi no credit card required. You get 10 AI task extractions per day and 300 board uses per month, which is enough for real daily use. Pro ($9/month) unlocks 50 extractions/day, unlimited board uses, PDF import, AI Chat, and more."},
     {q:"How is Kanbi different from Asana or Monday.com?",a:"Asana and Monday are great for teams but require you to manually create every task. Kanbi is built for individual freelancers and uses AI to do the heavy lifting kanbi paste your notes and your board is ready in seconds. It also includes burnout prevention and an AI coach, which traditional tools don't offer."},
   ];
