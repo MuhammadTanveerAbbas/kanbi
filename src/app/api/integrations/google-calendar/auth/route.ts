@@ -1,23 +1,20 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID ?? "";
-const APP_URL = (process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, ""); // strip trailing slash
-const REDIRECT_URI = `${APP_URL}/api/integrations/google-calendar/callback`;
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   if (!GOOGLE_CLIENT_ID) {
-    // Dev mode: simulate connection
-    return NextResponse.json({ connected: true });
+    return NextResponse.json({ error: "GOOGLE_CLIENT_ID is not configured" }, { status: 500 });
   }
 
-  if (!APP_URL) {
-    return NextResponse.json({ error: "NEXT_PUBLIC_APP_URL is not set" }, { status: 500 });
-  }
+  // Derive origin from the incoming request — works for both local and production
+  const { origin } = new URL(req.url);
+  const REDIRECT_URI = `${origin}/api/integrations/google-calendar/callback`;
 
   const params = new URLSearchParams({
     client_id: GOOGLE_CLIENT_ID,
@@ -33,6 +30,5 @@ export async function GET() {
   });
 
   const url = `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
-  // redirect_uri is included for debugging kanbi remove in production if desired
-  return NextResponse.json({ url, redirect_uri: REDIRECT_URI });
+  return NextResponse.json({ url });
 }

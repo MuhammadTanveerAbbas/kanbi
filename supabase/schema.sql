@@ -1,18 +1,14 @@
 -- ================================================
--- KANBI - Complete Unified Database Schema
--- ================================================
--- AI powered Task Management SaaS Platform
--- Run this ONCE in Supabase SQL Editor
+-- KANBI — Complete Database Schema
+-- Run once in Supabase Dashboard → SQL Editor
 -- ================================================
 
--- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- ================================================
--- CORE TABLES
+-- TABLES
 -- ================================================
 
--- User profiles
 CREATE TABLE IF NOT EXISTS profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   email TEXT NOT NULL,
@@ -23,9 +19,6 @@ CREATE TABLE IF NOT EXISTS profiles (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS has_seen_onboarding BOOLEAN DEFAULT FALSE;
-
--- Kanban boards
 CREATE TABLE IF NOT EXISTS boards (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
@@ -36,7 +29,6 @@ CREATE TABLE IF NOT EXISTS boards (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Tasks within boards
 CREATE TABLE IF NOT EXISTS tasks (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   board_id UUID NOT NULL REFERENCES boards(id) ON DELETE CASCADE,
@@ -53,12 +45,11 @@ CREATE TABLE IF NOT EXISTS tasks (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Subscription management
 CREATE TABLE IF NOT EXISTS subscriptions (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-  plan TEXT NOT NULL CHECK (plan IN ('free', 'premium')) DEFAULT 'free',
-  status TEXT NOT NULL CHECK (status IN ('active', 'canceled', 'past_due', 'trialing', 'incomplete')) DEFAULT 'active',
+  plan TEXT NOT NULL DEFAULT 'free' CHECK (plan IN ('free', 'premium')),
+  status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'canceled', 'past_due', 'trialing', 'incomplete')),
   stripe_subscription_id TEXT UNIQUE,
   current_period_end TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -66,7 +57,6 @@ CREATE TABLE IF NOT EXISTS subscriptions (
   UNIQUE(user_id)
 );
 
--- Usage tracking and limits
 CREATE TABLE IF NOT EXISTS usage_tracking (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
@@ -79,10 +69,6 @@ CREATE TABLE IF NOT EXISTS usage_tracking (
   UNIQUE(user_id, date)
 );
 
-ALTER TABLE usage_tracking ADD COLUMN IF NOT EXISTS boards_used_count INTEGER NOT NULL DEFAULT 0;
-ALTER TABLE usage_tracking ADD COLUMN IF NOT EXISTS ai_used_count INTEGER NOT NULL DEFAULT 0;
-
--- Saved boards
 CREATE TABLE IF NOT EXISTS saved_generations (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
@@ -95,12 +81,6 @@ CREATE TABLE IF NOT EXISTS saved_generations (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-ALTER TABLE saved_generations ADD COLUMN IF NOT EXISTS content TEXT;
-ALTER TABLE saved_generations ADD COLUMN IF NOT EXISTS category VARCHAR(50) DEFAULT 'other';
-ALTER TABLE saved_generations ADD COLUMN IF NOT EXISTS icon VARCHAR(50) DEFAULT 'file';
-ALTER TABLE saved_generations ADD COLUMN IF NOT EXISTS is_favorite BOOLEAN DEFAULT FALSE;
-
--- Board tags
 CREATE TABLE IF NOT EXISTS board_tags (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   board_id UUID NOT NULL REFERENCES saved_generations(id) ON DELETE CASCADE,
@@ -109,7 +89,6 @@ CREATE TABLE IF NOT EXISTS board_tags (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Task statistics
 CREATE TABLE IF NOT EXISTS task_stats (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
@@ -125,17 +104,11 @@ CREATE TABLE IF NOT EXISTS task_stats (
   UNIQUE(user_id, date)
 );
 
--- Webhook events (Stripe idempotency)
 CREATE TABLE IF NOT EXISTS processed_webhook_events (
   id TEXT PRIMARY KEY,
   processed_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- ================================================
--- INTEGRATIONS TABLE
--- ================================================
-
--- Integrations table for storing OAuth tokens
 CREATE TABLE IF NOT EXISTS integrations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -149,13 +122,6 @@ CREATE TABLE IF NOT EXISTS integrations (
   UNIQUE(user_id, provider)
 );
 
-ALTER TABLE integrations ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT '{}';
-
--- ================================================
--- AI WORKLOAD MANAGEMENT TABLES
--- ================================================
-
--- Task completion tracking for AI learning
 CREATE TABLE IF NOT EXISTS task_completions (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
@@ -166,7 +132,6 @@ CREATE TABLE IF NOT EXISTS task_completions (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- AI-generated insights
 CREATE TABLE IF NOT EXISTS ai_insights (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
@@ -177,7 +142,6 @@ CREATE TABLE IF NOT EXISTS ai_insights (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Daily workload snapshots
 CREATE TABLE IF NOT EXISTS workload_snapshots (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
@@ -193,7 +157,6 @@ CREATE TABLE IF NOT EXISTS workload_snapshots (
   UNIQUE(user_id, date)
 );
 
--- AI chat assistant messages
 CREATE TABLE IF NOT EXISTS chat_messages (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
@@ -203,11 +166,6 @@ CREATE TABLE IF NOT EXISTS chat_messages (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- ================================================
--- AI AUTOPILOT TABLES
--- ================================================
-
--- Morning briefings
 CREATE TABLE IF NOT EXISTS morning_briefings (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
@@ -220,7 +178,6 @@ CREATE TABLE IF NOT EXISTS morning_briefings (
   UNIQUE(user_id, date)
 );
 
--- Auto-scheduled tasks
 CREATE TABLE IF NOT EXISTS auto_schedule (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
@@ -234,7 +191,6 @@ CREATE TABLE IF NOT EXISTS auto_schedule (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Autopilot adjustments log
 CREATE TABLE IF NOT EXISTS autopilot_adjustments (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
@@ -246,7 +202,6 @@ CREATE TABLE IF NOT EXISTS autopilot_adjustments (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Autopilot user settings
 CREATE TABLE IF NOT EXISTS autopilot_settings (
   user_id UUID PRIMARY KEY REFERENCES profiles(id) ON DELETE CASCADE,
   enabled BOOLEAN DEFAULT TRUE,
@@ -265,40 +220,63 @@ CREATE TABLE IF NOT EXISTS autopilot_settings (
 -- INDEXES
 -- ================================================
 
--- Core indexes
+-- boards
 CREATE INDEX IF NOT EXISTS idx_boards_user_id ON boards(user_id);
 CREATE INDEX IF NOT EXISTS idx_boards_updated_at ON boards(updated_at);
-CREATE INDEX IF NOT EXISTS idx_tasks_board_id ON tasks(board_id);
+
+-- tasks
 CREATE INDEX IF NOT EXISTS idx_tasks_user_id ON tasks(user_id);
+CREATE INDEX IF NOT EXISTS idx_tasks_board_id ON tasks(board_id);
+CREATE INDEX IF NOT EXISTS idx_tasks_created_at ON tasks(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_tasks_user_status ON tasks(user_id, status);
+
+-- subscriptions
 CREATE INDEX IF NOT EXISTS idx_subscriptions_user_id ON subscriptions(user_id);
-CREATE INDEX IF NOT EXISTS idx_subscriptions_stripe_subscription_id ON subscriptions(stripe_subscription_id);
+CREATE INDEX IF NOT EXISTS idx_subscriptions_stripe_id ON subscriptions(stripe_subscription_id);
+
+-- usage_tracking
 CREATE INDEX IF NOT EXISTS idx_usage_tracking_user_id ON usage_tracking(user_id);
 CREATE INDEX IF NOT EXISTS idx_usage_tracking_date ON usage_tracking(date);
 CREATE INDEX IF NOT EXISTS idx_usage_tracking_user_date ON usage_tracking(user_id, date);
+
+-- saved_generations
 CREATE INDEX IF NOT EXISTS idx_saved_generations_user_id ON saved_generations(user_id);
-CREATE INDEX IF NOT EXISTS idx_saved_generations_created_at ON saved_generations(created_at);
+CREATE INDEX IF NOT EXISTS idx_saved_generations_created_at ON saved_generations(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_saved_generations_favorite ON saved_generations(user_id, is_favorite);
 CREATE INDEX IF NOT EXISTS idx_saved_generations_category ON saved_generations(user_id, category);
-CREATE INDEX IF NOT EXISTS idx_board_tags_board_id ON board_tags(board_id);
-CREATE INDEX IF NOT EXISTS idx_task_stats_user_date ON task_stats(user_id, date);
 
--- Integration indexes
+-- board_tags
+CREATE INDEX IF NOT EXISTS idx_board_tags_board_id ON board_tags(board_id);
+
+-- task_stats
+CREATE INDEX IF NOT EXISTS idx_task_stats_user_id ON task_stats(user_id);
+CREATE INDEX IF NOT EXISTS idx_task_stats_user_date ON task_stats(user_id, date);
+CREATE INDEX IF NOT EXISTS idx_task_stats_date ON task_stats(date DESC);
+
+-- integrations
 CREATE INDEX IF NOT EXISTS idx_integrations_user_id ON integrations(user_id);
 CREATE INDEX IF NOT EXISTS idx_integrations_provider ON integrations(provider);
 
--- AI indexes
+-- task_completions
 CREATE INDEX IF NOT EXISTS idx_task_completions_user_id ON task_completions(user_id);
 CREATE INDEX IF NOT EXISTS idx_task_completions_completed_at ON task_completions(completed_at);
 CREATE INDEX IF NOT EXISTS idx_task_completions_user_date ON task_completions(user_id, completed_at);
+
+-- ai_insights
 CREATE INDEX IF NOT EXISTS idx_ai_insights_user_id ON ai_insights(user_id);
 CREATE INDEX IF NOT EXISTS idx_ai_insights_created_at ON ai_insights(created_at);
 CREATE INDEX IF NOT EXISTS idx_ai_insights_unread ON ai_insights(user_id, is_read);
+
+-- workload_snapshots
 CREATE INDEX IF NOT EXISTS idx_workload_snapshots_user_date ON workload_snapshots(user_id, date);
+
+-- chat_messages
 CREATE INDEX IF NOT EXISTS idx_chat_messages_user_id ON chat_messages(user_id);
-CREATE INDEX IF NOT EXISTS idx_chat_messages_created_at ON chat_messages(created_at);
+CREATE INDEX IF NOT EXISTS idx_chat_messages_created_at ON chat_messages(created_at ASC);
 CREATE INDEX IF NOT EXISTS idx_chat_messages_user_date ON chat_messages(user_id, created_at);
 
--- Autopilot indexes
+-- autopilot
+CREATE INDEX IF NOT EXISTS idx_autopilot_settings_user_id ON autopilot_settings(user_id);
 CREATE INDEX IF NOT EXISTS idx_morning_briefings_user_date ON morning_briefings(user_id, date DESC);
 CREATE INDEX IF NOT EXISTS idx_auto_schedule_user_date ON auto_schedule(user_id, scheduled_date);
 CREATE INDEX IF NOT EXISTS idx_autopilot_adjustments_user ON autopilot_adjustments(user_id, created_at DESC);
@@ -307,7 +285,6 @@ CREATE INDEX IF NOT EXISTS idx_autopilot_adjustments_user ON autopilot_adjustmen
 -- FUNCTIONS
 -- ================================================
 
--- Increment generation count
 CREATE OR REPLACE FUNCTION increment_generation_count(p_user_id UUID, p_date DATE)
 RETURNS VOID AS $$
 BEGIN
@@ -319,7 +296,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SET search_path = public;
 
--- Increment board usage
 CREATE OR REPLACE FUNCTION increment_board_usage(p_user_id UUID, p_date DATE)
 RETURNS VOID AS $$
 BEGIN
@@ -331,7 +307,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SET search_path = public;
 
--- Increment AI usage
 CREATE OR REPLACE FUNCTION increment_ai_usage(p_user_id UUID, p_date DATE)
 RETURNS VOID AS $$
 BEGIN
@@ -343,82 +318,57 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SET search_path = public;
 
--- Calculate average completion time by priority
 CREATE OR REPLACE FUNCTION get_avg_completion_time(p_user_id UUID, p_priority TEXT)
 RETURNS INTEGER AS $$
-DECLARE
-  avg_time INTEGER;
+DECLARE avg_time INTEGER;
 BEGIN
   SELECT COALESCE(AVG(time_spent_minutes)::INTEGER,
     CASE p_priority
-      WHEN 'Urgent' THEN 120
-      WHEN 'High' THEN 90
-      WHEN 'Medium' THEN 60
-      WHEN 'Low' THEN 30
-      ELSE 60
+      WHEN 'Urgent' THEN 120 WHEN 'High' THEN 90
+      WHEN 'Medium' THEN 60  WHEN 'Low'  THEN 30 ELSE 60
     END
   ) INTO avg_time
   FROM task_completions
-  WHERE user_id = p_user_id
-    AND task_priority = p_priority
+  WHERE user_id = p_user_id AND task_priority = p_priority
     AND completed_at > NOW() - INTERVAL '30 days';
-
   RETURN avg_time;
 END;
 $$ LANGUAGE plpgsql SET search_path = public;
 
--- Get daily task completion average
 CREATE OR REPLACE FUNCTION get_daily_task_average(p_user_id UUID)
 RETURNS DECIMAL AS $$
-DECLARE
-  avg_tasks DECIMAL;
+DECLARE avg_tasks DECIMAL;
 BEGIN
   SELECT COALESCE(AVG(daily_count), 0) INTO avg_tasks
   FROM (
     SELECT DATE(completed_at) as completion_date, COUNT(*) as daily_count
     FROM task_completions
-    WHERE user_id = p_user_id
-      AND completed_at > NOW() - INTERVAL '30 days'
+    WHERE user_id = p_user_id AND completed_at > NOW() - INTERVAL '30 days'
     GROUP BY DATE(completed_at)
   ) daily_stats;
-
   RETURN avg_tasks;
 END;
 $$ LANGUAGE plpgsql SET search_path = public;
 
--- Cleanup old data
 CREATE OR REPLACE FUNCTION cleanup_old_ai_data()
 RETURNS VOID AS $$
 BEGIN
-  DELETE FROM task_completions WHERE completed_at < NOW() - INTERVAL '90 days';
-  DELETE FROM ai_insights WHERE is_read = TRUE AND created_at < NOW() - INTERVAL '30 days';
+  DELETE FROM task_completions   WHERE completed_at < NOW() - INTERVAL '90 days';
+  DELETE FROM ai_insights        WHERE is_read = TRUE AND created_at < NOW() - INTERVAL '30 days';
   DELETE FROM workload_snapshots WHERE date < CURRENT_DATE - INTERVAL '60 days';
-  DELETE FROM chat_messages WHERE created_at < NOW() - INTERVAL '30 days';
-  DELETE FROM usage_tracking WHERE date < CURRENT_DATE - INTERVAL '90 days';
+  DELETE FROM chat_messages      WHERE created_at < NOW() - INTERVAL '30 days';
+  DELETE FROM usage_tracking     WHERE date < CURRENT_DATE - INTERVAL '90 days';
   DELETE FROM autopilot_adjustments WHERE created_at < NOW() - INTERVAL '60 days';
 END;
 $$ LANGUAGE plpgsql SET search_path = public;
 
--- Reset daily usage
-CREATE OR REPLACE FUNCTION reset_daily_usage()
-RETURNS VOID AS $$
-BEGIN
-  UPDATE usage_tracking
-  SET generations_count = 0, boards_used_count = 0, ai_used_count = 0
-  WHERE date < CURRENT_DATE;
-END;
-$$ LANGUAGE plpgsql SET search_path = public;
-
--- Handle new user creation
 CREATE OR REPLACE FUNCTION handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
   INSERT INTO public.profiles (id, email, full_name)
   VALUES (NEW.id, NEW.email, COALESCE(NEW.raw_user_meta_data->>'full_name', ''))
   ON CONFLICT (id) DO UPDATE SET
-    email = EXCLUDED.email,
-    full_name = EXCLUDED.full_name,
-    updated_at = NOW();
+    email = EXCLUDED.email, full_name = EXCLUDED.full_name, updated_at = NOW();
 
   INSERT INTO public.subscriptions (user_id, plan, status)
   VALUES (NEW.id, 'free', 'active')
@@ -448,168 +398,169 @@ CREATE TRIGGER on_auth_user_created
 -- ROW LEVEL SECURITY
 -- ================================================
 
--- Profiles
-ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Users can view own profile" ON profiles;
-CREATE POLICY "Users can view own profile" ON profiles FOR SELECT USING (auth.uid() = id);
+ALTER TABLE profiles                ENABLE ROW LEVEL SECURITY;
+ALTER TABLE boards                  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE tasks                   ENABLE ROW LEVEL SECURITY;
+ALTER TABLE subscriptions           ENABLE ROW LEVEL SECURITY;
+ALTER TABLE usage_tracking          ENABLE ROW LEVEL SECURITY;
+ALTER TABLE saved_generations       ENABLE ROW LEVEL SECURITY;
+ALTER TABLE board_tags              ENABLE ROW LEVEL SECURITY;
+ALTER TABLE task_stats              ENABLE ROW LEVEL SECURITY;
+ALTER TABLE integrations            ENABLE ROW LEVEL SECURITY;
+ALTER TABLE task_completions        ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ai_insights             ENABLE ROW LEVEL SECURITY;
+ALTER TABLE workload_snapshots      ENABLE ROW LEVEL SECURITY;
+ALTER TABLE chat_messages           ENABLE ROW LEVEL SECURITY;
+ALTER TABLE morning_briefings       ENABLE ROW LEVEL SECURITY;
+ALTER TABLE auto_schedule           ENABLE ROW LEVEL SECURITY;
+ALTER TABLE autopilot_adjustments   ENABLE ROW LEVEL SECURITY;
+ALTER TABLE autopilot_settings      ENABLE ROW LEVEL SECURITY;
+ALTER TABLE processed_webhook_events ENABLE ROW LEVEL SECURITY;
+
+-- profiles
+DROP POLICY IF EXISTS "Users can view own profile"   ON profiles;
 DROP POLICY IF EXISTS "Users can update own profile" ON profiles;
+CREATE POLICY "Users can view own profile"   ON profiles FOR SELECT USING (auth.uid() = id);
 CREATE POLICY "Users can update own profile" ON profiles FOR UPDATE USING (auth.uid() = id);
 
--- Boards
-ALTER TABLE boards ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Users can view own boards" ON boards;
-CREATE POLICY "Users can view own boards" ON boards FOR SELECT USING (auth.uid() = user_id);
+-- boards
+DROP POLICY IF EXISTS "Users can view own boards"   ON boards;
 DROP POLICY IF EXISTS "Users can insert own boards" ON boards;
-CREATE POLICY "Users can insert own boards" ON boards FOR INSERT WITH CHECK (auth.uid() = user_id);
 DROP POLICY IF EXISTS "Users can update own boards" ON boards;
-CREATE POLICY "Users can update own boards" ON boards FOR UPDATE USING (auth.uid() = user_id);
 DROP POLICY IF EXISTS "Users can delete own boards" ON boards;
+CREATE POLICY "Users can view own boards"   ON boards FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert own boards" ON boards FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update own boards" ON boards FOR UPDATE USING (auth.uid() = user_id);
 CREATE POLICY "Users can delete own boards" ON boards FOR DELETE USING (auth.uid() = user_id);
 
--- Tasks
-ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Users can view own tasks" ON tasks;
-CREATE POLICY "Users can view own tasks" ON tasks FOR SELECT USING (auth.uid() = user_id);
+-- tasks
+DROP POLICY IF EXISTS "Users can view own tasks"   ON tasks;
 DROP POLICY IF EXISTS "Users can insert own tasks" ON tasks;
-CREATE POLICY "Users can insert own tasks" ON tasks FOR INSERT WITH CHECK (auth.uid() = user_id);
 DROP POLICY IF EXISTS "Users can update own tasks" ON tasks;
-CREATE POLICY "Users can update own tasks" ON tasks FOR UPDATE USING (auth.uid() = user_id);
 DROP POLICY IF EXISTS "Users can delete own tasks" ON tasks;
+CREATE POLICY "Users can view own tasks"   ON tasks FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert own tasks" ON tasks FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update own tasks" ON tasks FOR UPDATE USING (auth.uid() = user_id);
 CREATE POLICY "Users can delete own tasks" ON tasks FOR DELETE USING (auth.uid() = user_id);
 
--- Subscriptions
-ALTER TABLE subscriptions ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Users can view own subscription" ON subscriptions;
-CREATE POLICY "Users can view own subscription" ON subscriptions FOR SELECT USING (auth.uid() = user_id);
+-- subscriptions
+DROP POLICY IF EXISTS "Users can view own subscription"   ON subscriptions;
 DROP POLICY IF EXISTS "Users can update own subscription" ON subscriptions;
+CREATE POLICY "Users can view own subscription"   ON subscriptions FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Users can update own subscription" ON subscriptions FOR UPDATE USING (auth.uid() = user_id);
 
--- Usage Tracking
-ALTER TABLE usage_tracking ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Users can view own usage" ON usage_tracking;
-CREATE POLICY "Users can view own usage" ON usage_tracking FOR SELECT USING (auth.uid() = user_id);
+-- usage_tracking
+DROP POLICY IF EXISTS "Users can view own usage"   ON usage_tracking;
 DROP POLICY IF EXISTS "Users can insert own usage" ON usage_tracking;
-CREATE POLICY "Users can insert own usage" ON usage_tracking FOR INSERT WITH CHECK (auth.uid() = user_id);
 DROP POLICY IF EXISTS "Users can update own usage" ON usage_tracking;
+CREATE POLICY "Users can view own usage"   ON usage_tracking FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert own usage" ON usage_tracking FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can update own usage" ON usage_tracking FOR UPDATE USING (auth.uid() = user_id);
 
--- Saved Boards
-ALTER TABLE saved_generations ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Users can view own saved boards" ON saved_generations;
-CREATE POLICY "Users can view own saved boards" ON saved_generations FOR SELECT USING (auth.uid() = user_id);
+-- saved_generations
+DROP POLICY IF EXISTS "Users can view own saved boards"   ON saved_generations;
 DROP POLICY IF EXISTS "Users can insert own saved boards" ON saved_generations;
-CREATE POLICY "Users can insert own saved boards" ON saved_generations FOR INSERT WITH CHECK (auth.uid() = user_id);
 DROP POLICY IF EXISTS "Users can update own saved boards" ON saved_generations;
-CREATE POLICY "Users can update own saved boards" ON saved_generations FOR UPDATE USING (auth.uid() = user_id);
 DROP POLICY IF EXISTS "Users can delete own saved boards" ON saved_generations;
+CREATE POLICY "Users can view own saved boards"   ON saved_generations FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert own saved boards" ON saved_generations FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update own saved boards" ON saved_generations FOR UPDATE USING (auth.uid() = user_id);
 CREATE POLICY "Users can delete own saved boards" ON saved_generations FOR DELETE USING (auth.uid() = user_id);
 
--- Board Tags
-ALTER TABLE board_tags ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Users can view tags for own boards" ON board_tags;
-CREATE POLICY "Users can view tags for own boards" ON board_tags FOR SELECT
-  USING (EXISTS (SELECT 1 FROM saved_generations WHERE saved_generations.id = board_tags.board_id AND saved_generations.user_id = auth.uid()));
+-- board_tags
+DROP POLICY IF EXISTS "Users can view tags for own boards"   ON board_tags;
 DROP POLICY IF EXISTS "Users can insert tags for own boards" ON board_tags;
-CREATE POLICY "Users can insert tags for own boards" ON board_tags FOR INSERT
-  WITH CHECK (EXISTS (SELECT 1 FROM saved_generations WHERE saved_generations.id = board_tags.board_id AND saved_generations.user_id = auth.uid()));
 DROP POLICY IF EXISTS "Users can delete tags for own boards" ON board_tags;
+CREATE POLICY "Users can view tags for own boards"   ON board_tags FOR SELECT
+  USING (EXISTS (SELECT 1 FROM saved_generations WHERE id = board_tags.board_id AND user_id = auth.uid()));
+CREATE POLICY "Users can insert tags for own boards" ON board_tags FOR INSERT
+  WITH CHECK (EXISTS (SELECT 1 FROM saved_generations WHERE id = board_tags.board_id AND user_id = auth.uid()));
 CREATE POLICY "Users can delete tags for own boards" ON board_tags FOR DELETE
-  USING (EXISTS (SELECT 1 FROM saved_generations WHERE saved_generations.id = board_tags.board_id AND saved_generations.user_id = auth.uid()));
+  USING (EXISTS (SELECT 1 FROM saved_generations WHERE id = board_tags.board_id AND user_id = auth.uid()));
 
--- Task Statistics
-ALTER TABLE task_stats ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Users can view own task stats" ON task_stats;
-CREATE POLICY "Users can view own task stats" ON task_stats FOR SELECT USING (auth.uid() = user_id);
+-- task_stats
+DROP POLICY IF EXISTS "Users can view own task stats"   ON task_stats;
 DROP POLICY IF EXISTS "Users can insert own task stats" ON task_stats;
-CREATE POLICY "Users can insert own task stats" ON task_stats FOR INSERT WITH CHECK (auth.uid() = user_id);
 DROP POLICY IF EXISTS "Users can update own task stats" ON task_stats;
+CREATE POLICY "Users can view own task stats"   ON task_stats FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert own task stats" ON task_stats FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can update own task stats" ON task_stats FOR UPDATE USING (auth.uid() = user_id);
 
--- Integrations
-ALTER TABLE integrations ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Users can view their own integrations" ON integrations;
-CREATE POLICY "Users can view their own integrations" ON integrations FOR SELECT USING (auth.uid() = user_id);
+-- integrations
+DROP POLICY IF EXISTS "Users can view their own integrations"   ON integrations;
 DROP POLICY IF EXISTS "Users can insert their own integrations" ON integrations;
-CREATE POLICY "Users can insert their own integrations" ON integrations FOR INSERT WITH CHECK (auth.uid() = user_id);
 DROP POLICY IF EXISTS "Users can update their own integrations" ON integrations;
-CREATE POLICY "Users can update their own integrations" ON integrations FOR UPDATE USING (auth.uid() = user_id);
 DROP POLICY IF EXISTS "Users can delete their own integrations" ON integrations;
+CREATE POLICY "Users can view their own integrations"   ON integrations FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert their own integrations" ON integrations FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update their own integrations" ON integrations FOR UPDATE USING (auth.uid() = user_id);
 CREATE POLICY "Users can delete their own integrations" ON integrations FOR DELETE USING (auth.uid() = user_id);
 
--- Task Completions
-ALTER TABLE task_completions ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Users can view own completions" ON task_completions;
-CREATE POLICY "Users can view own completions" ON task_completions FOR SELECT USING (auth.uid() = user_id);
+-- task_completions
+DROP POLICY IF EXISTS "Users can view own completions"   ON task_completions;
 DROP POLICY IF EXISTS "Users can insert own completions" ON task_completions;
+CREATE POLICY "Users can view own completions"   ON task_completions FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Users can insert own completions" ON task_completions FOR INSERT WITH CHECK (auth.uid() = user_id);
 
--- AI Insights
-ALTER TABLE ai_insights ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Users can view own insights" ON ai_insights;
-CREATE POLICY "Users can view own insights" ON ai_insights FOR SELECT USING (auth.uid() = user_id);
+-- ai_insights
+DROP POLICY IF EXISTS "Users can view own insights"   ON ai_insights;
 DROP POLICY IF EXISTS "Users can insert own insights" ON ai_insights;
-CREATE POLICY "Users can insert own insights" ON ai_insights FOR INSERT WITH CHECK (auth.uid() = user_id);
 DROP POLICY IF EXISTS "Users can update own insights" ON ai_insights;
-CREATE POLICY "Users can update own insights" ON ai_insights FOR UPDATE USING (auth.uid() = user_id);
 DROP POLICY IF EXISTS "Users can delete own insights" ON ai_insights;
+CREATE POLICY "Users can view own insights"   ON ai_insights FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert own insights" ON ai_insights FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update own insights" ON ai_insights FOR UPDATE USING (auth.uid() = user_id);
 CREATE POLICY "Users can delete own insights" ON ai_insights FOR DELETE USING (auth.uid() = user_id);
 
--- Workload Snapshots
-ALTER TABLE workload_snapshots ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Users can view own snapshots" ON workload_snapshots;
-CREATE POLICY "Users can view own snapshots" ON workload_snapshots FOR SELECT USING (auth.uid() = user_id);
+-- workload_snapshots
+DROP POLICY IF EXISTS "Users can view own snapshots"   ON workload_snapshots;
 DROP POLICY IF EXISTS "Users can insert own snapshots" ON workload_snapshots;
-CREATE POLICY "Users can insert own snapshots" ON workload_snapshots FOR INSERT WITH CHECK (auth.uid() = user_id);
 DROP POLICY IF EXISTS "Users can update own snapshots" ON workload_snapshots;
+CREATE POLICY "Users can view own snapshots"   ON workload_snapshots FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert own snapshots" ON workload_snapshots FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can update own snapshots" ON workload_snapshots FOR UPDATE USING (auth.uid() = user_id);
 
--- Chat Messages
-ALTER TABLE chat_messages ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Users can view own messages" ON chat_messages;
-CREATE POLICY "Users can view own messages" ON chat_messages FOR SELECT USING (auth.uid() = user_id);
+-- chat_messages
+DROP POLICY IF EXISTS "Users can view own messages"   ON chat_messages;
 DROP POLICY IF EXISTS "Users can insert own messages" ON chat_messages;
-CREATE POLICY "Users can insert own messages" ON chat_messages FOR INSERT WITH CHECK (auth.uid() = user_id);
 DROP POLICY IF EXISTS "Users can delete own messages" ON chat_messages;
+CREATE POLICY "Users can view own messages"   ON chat_messages FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert own messages" ON chat_messages FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can delete own messages" ON chat_messages FOR DELETE USING (auth.uid() = user_id);
 
--- Morning Briefings
-ALTER TABLE morning_briefings ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Users can view own briefings" ON morning_briefings;
-CREATE POLICY "Users can view own briefings" ON morning_briefings FOR SELECT USING (auth.uid() = user_id);
+-- morning_briefings
+DROP POLICY IF EXISTS "Users can view own briefings"   ON morning_briefings;
 DROP POLICY IF EXISTS "Users can insert own briefings" ON morning_briefings;
-CREATE POLICY "Users can insert own briefings" ON morning_briefings FOR INSERT WITH CHECK (auth.uid() = user_id);
 DROP POLICY IF EXISTS "Users can update own briefings" ON morning_briefings;
+CREATE POLICY "Users can view own briefings"   ON morning_briefings FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert own briefings" ON morning_briefings FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can update own briefings" ON morning_briefings FOR UPDATE USING (auth.uid() = user_id);
 
--- Auto Schedule
-ALTER TABLE auto_schedule ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Users can view own schedule" ON auto_schedule;
-CREATE POLICY "Users can view own schedule" ON auto_schedule FOR SELECT USING (auth.uid() = user_id);
+-- auto_schedule
+DROP POLICY IF EXISTS "Users can view own schedule"   ON auto_schedule;
 DROP POLICY IF EXISTS "Users can insert own schedule" ON auto_schedule;
-CREATE POLICY "Users can insert own schedule" ON auto_schedule FOR INSERT WITH CHECK (auth.uid() = user_id);
 DROP POLICY IF EXISTS "Users can update own schedule" ON auto_schedule;
-CREATE POLICY "Users can update own schedule" ON auto_schedule FOR UPDATE USING (auth.uid() = user_id);
 DROP POLICY IF EXISTS "Users can delete own schedule" ON auto_schedule;
+CREATE POLICY "Users can view own schedule"   ON auto_schedule FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert own schedule" ON auto_schedule FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update own schedule" ON auto_schedule FOR UPDATE USING (auth.uid() = user_id);
 CREATE POLICY "Users can delete own schedule" ON auto_schedule FOR DELETE USING (auth.uid() = user_id);
 
--- Autopilot Adjustments
-ALTER TABLE autopilot_adjustments ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Users can view own adjustments" ON autopilot_adjustments;
-CREATE POLICY "Users can view own adjustments" ON autopilot_adjustments FOR SELECT USING (auth.uid() = user_id);
+-- autopilot_adjustments
+DROP POLICY IF EXISTS "Users can view own adjustments"   ON autopilot_adjustments;
 DROP POLICY IF EXISTS "Users can insert own adjustments" ON autopilot_adjustments;
+CREATE POLICY "Users can view own adjustments"   ON autopilot_adjustments FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Users can insert own adjustments" ON autopilot_adjustments FOR INSERT WITH CHECK (auth.uid() = user_id);
 
--- Autopilot Settings
-ALTER TABLE autopilot_settings ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Users can view own settings" ON autopilot_settings;
-CREATE POLICY "Users can view own settings" ON autopilot_settings FOR SELECT USING (auth.uid() = user_id);
+-- autopilot_settings
+DROP POLICY IF EXISTS "Users can view own settings"   ON autopilot_settings;
 DROP POLICY IF EXISTS "Users can insert own settings" ON autopilot_settings;
-CREATE POLICY "Users can insert own settings" ON autopilot_settings FOR INSERT WITH CHECK (auth.uid() = user_id);
 DROP POLICY IF EXISTS "Users can update own settings" ON autopilot_settings;
+CREATE POLICY "Users can view own settings"   ON autopilot_settings FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert own settings" ON autopilot_settings FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can update own settings" ON autopilot_settings FOR UPDATE USING (auth.uid() = user_id);
 
--- Webhook Events
-ALTER TABLE processed_webhook_events ENABLE ROW LEVEL SECURITY;
+-- processed_webhook_events (service-level access)
 DROP POLICY IF EXISTS "Allow all webhook events" ON processed_webhook_events;
 CREATE POLICY "Allow all webhook events" ON processed_webhook_events FOR ALL USING (true);
 
@@ -617,33 +568,25 @@ CREATE POLICY "Allow all webhook events" ON processed_webhook_events FOR ALL USI
 -- STORAGE
 -- ================================================
 
-INSERT INTO storage.buckets (id, name, public) VALUES ('files', 'files', false) ON CONFLICT (id) DO NOTHING;
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('files', 'files', false)
+ON CONFLICT (id) DO NOTHING;
 
 DROP POLICY IF EXISTS "Users can upload own files" ON storage.objects;
+DROP POLICY IF EXISTS "Users can view own files"   ON storage.objects;
+DROP POLICY IF EXISTS "Users can delete own files" ON storage.objects;
 CREATE POLICY "Users can upload own files" ON storage.objects FOR INSERT
   WITH CHECK (bucket_id = 'files' AND auth.uid()::text = (storage.foldername(name))[1]);
-DROP POLICY IF EXISTS "Users can view own files" ON storage.objects;
-CREATE POLICY "Users can view own files" ON storage.objects FOR SELECT
+CREATE POLICY "Users can view own files"   ON storage.objects FOR SELECT
   USING (bucket_id = 'files' AND auth.uid()::text = (storage.foldername(name))[1]);
-DROP POLICY IF EXISTS "Users can delete own files" ON storage.objects;
 CREATE POLICY "Users can delete own files" ON storage.objects FOR DELETE
   USING (bucket_id = 'files' AND auth.uid()::text = (storage.foldername(name))[1]);
 
 -- ================================================
--- SUCCESS MESSAGE
+-- DONE
 -- ================================================
 
 DO $$
 BEGIN
-  RAISE NOTICE '✅ KANBI Database Schema Created Successfully!';
-  RAISE NOTICE '';
-  RAISE NOTICE '📊 Core Tables: profiles, subscriptions, usage_tracking, saved_generations, board_tags, task_stats';
-  RAISE NOTICE '🔗 Integration Tables: integrations';
-  RAISE NOTICE '🤖 AI Tables: task_completions, ai_insights, workload_snapshots, chat_messages';
-  RAISE NOTICE '🚀 Autopilot Tables: morning_briefings, auto_schedule, autopilot_adjustments, autopilot_settings';
-  RAISE NOTICE '🔒 Row Level Security: Enabled on all tables';
-  RAISE NOTICE '⚡ Functions: Usage tracking, AI learning, cleanup utilities';
-  RAISE NOTICE '📁 Storage: File bucket configured';
-  RAISE NOTICE '';
-  RAISE NOTICE '🎉 Your KANBI database is ready to use!';
+  RAISE NOTICE '✅ KANBI schema applied successfully.';
 END $$;

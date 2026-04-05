@@ -1,6 +1,8 @@
 import Groq from 'groq-sdk'
 import { createClient } from '@/lib/supabase/server'
 
+const GROQ_MODEL = 'openai/gpt-oss-120b'
+
 function getGroq() {
   return new Groq({ apiKey: process.env.GROQ_API_KEY })
 }
@@ -70,7 +72,7 @@ export async function POST(req: Request): Promise<Response> {
     }
 
     const completion = await getGroq().chat.completions.create({
-      model: 'llama-3.3-70b-versatile',
+      model: GROQ_MODEL,
       max_tokens: 1200,
       temperature: 0.2,
       messages: [

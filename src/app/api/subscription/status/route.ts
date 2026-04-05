@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
 
     const { data: subscription, error } = await supabase
       .from('subscriptions')
-      .select('*')
+      .select('plan, status, current_period_end')
       .eq('user_id', userId)
       .eq('status', 'active')
       .single();

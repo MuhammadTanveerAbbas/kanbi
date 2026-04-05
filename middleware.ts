@@ -1,6 +1,9 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+const PUBLIC_PATHS = ['/', '/sign-in', '/sign-up', '/forgot', '/reset-password', '/pricing', '/features', '/privacy', '/terms']
+const AUTH_PATHS = ['/sign-in', '/sign-up', '/forgot', '/reset-password']
+
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
 
@@ -21,8 +24,21 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // Calling getUser() refreshes the session cookie on every request.
-  await supabase.auth.getUser()
+  // Refresh session on every request (keeps JWT alive)
+  const { data: { user } } = await supabase.auth.getUser()
+
+  const { pathname } = request.nextUrl
+
+  // If logged in and trying to access auth pages → redirect to dashboard
+  if (user && AUTH_PATHS.some(p => pathname === p || pathname.startsWith(p + '/'))) {
+    return NextResponse.redirect(new URL('/dashboard', request.url))
+  }
+
+  // If NOT logged in and trying to access protected routes → redirect to sign-in
+  const isPublic = PUBLIC_PATHS.some(p => pathname === p || pathname.startsWith(p + '/'))
+  if (!user && !isPublic && pathname.startsWith('/dashboard')) {
+    return NextResponse.redirect(new URL('/sign-in', request.url))
+  }
 
   return supabaseResponse
 }

@@ -30,9 +30,9 @@ const config = {
     },
     extend: {
       fontFamily: {
-        sans: ["var(--font-space-grotesk)", "sans-serif"],
-        headline: ["var(--font-space-grotesk)", "sans-serif"],
-        glitch: ["var(--font-rubik-glitch)", "sans-serif"],
+        sans: ["var(--font-geist)", "-apple-system", "sans-serif"],
+        headline: ["var(--font-geist)", "sans-serif"],
+        mono: ["var(--font-geist)", "monospace"],
       },
       colors: {
         border: "hsl(var(--border))",

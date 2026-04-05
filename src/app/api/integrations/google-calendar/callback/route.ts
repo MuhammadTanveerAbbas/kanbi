@@ -3,20 +3,25 @@ import { createClient } from "@/lib/supabase/server";
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID ?? "";
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET ?? "";
-const APP_URL = (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
-const REDIRECT_URI = `${APP_URL}/api/integrations/google-calendar/callback`;
 
 export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
+  const { searchParams, origin } = new URL(req.url);
   const code = searchParams.get("code");
   const userId = searchParams.get("state");
+  const error = searchParams.get("error");
+
+  // Use request origin so it works in both local dev and production
+  const REDIRECT_URI = `${origin}/api/integrations/google-calendar/callback`;
+
+  if (error) {
+    return NextResponse.redirect(`${origin}/dashboard?cal_error=${encodeURIComponent(error)}&page=settings`);
+  }
 
   if (!code || !userId) {
-    return NextResponse.redirect(`${APP_URL}/dashboard?cal_error=missing_params`);
+    return NextResponse.redirect(`${origin}/dashboard?cal_error=missing_params&page=settings`);
   }
 
   try {
-    // Exchange code for tokens
     const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -30,11 +35,14 @@ export async function GET(req: NextRequest) {
     });
 
     const tokens = await tokenRes.json();
-    if (!tokens.access_token) throw new Error("No access token");
 
-    // Store tokens in Supabase
+    if (!tokens.access_token) {
+      console.error("Token exchange failed:", tokens);
+      throw new Error(tokens.error_description ?? "No access token returned");
+    }
+
     const supabase = await createClient();
-    await supabase.from("user_integrations").upsert({
+    const { error: dbError } = await supabase.from("integrations").upsert({
       user_id: userId,
       provider: "google_calendar",
       access_token: tokens.access_token,
@@ -43,11 +51,16 @@ export async function GET(req: NextRequest) {
         ? new Date(Date.now() + tokens.expires_in * 1000).toISOString()
         : null,
       connected_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     }, { onConflict: "user_id,provider" });
 
-    return NextResponse.redirect(`${APP_URL}/dashboard?cal_connected=1&page=settings`);
-  } catch (err) {
+    if (dbError) throw new Error(dbError.message);
+
+    return NextResponse.redirect(`${origin}/dashboard?cal_connected=1&page=settings`);
+  } catch (err: any) {
     console.error("Google Calendar OAuth error:", err);
-    return NextResponse.redirect(`${APP_URL}/dashboard?cal_error=oauth_failed`);
+    return NextResponse.redirect(
+      `${origin}/dashboard?cal_error=${encodeURIComponent(err.message ?? "oauth_failed")}&page=settings`
+    );
   }
 }

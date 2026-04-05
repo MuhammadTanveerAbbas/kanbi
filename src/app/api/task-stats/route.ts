@@ -16,7 +16,7 @@ export async function GET() {
 
   const { data, error } = await supabase
     .from('task_stats')
-    .select('*')
+    .select('urgent_count, high_count, medium_count, low_count, total_count, completed_count')
     .eq('user_id', user.id)
     .order('date', { ascending: false })
     .limit(1)

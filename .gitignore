@@ -54,3 +54,6 @@ Thumbs.db
 *.pem
 .npm
 .node_repl_history
+
+# Build output
+dist

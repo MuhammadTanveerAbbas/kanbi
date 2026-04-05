@@ -11,7 +11,7 @@ export async function GET(
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { id } = await params;
-    const { data, error } = await supabase.from('tasks').select('*').eq('id', id).eq('user_id', user.id).single();
+    const { data, error } = await supabase.from('tasks').select('id, title, status, priority, label, due_date, estimate, created_at, updated_at').eq('id', id).eq('user_id', user.id).single();
     if (error || !data) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     return NextResponse.json(data);
   } catch (error: any) {

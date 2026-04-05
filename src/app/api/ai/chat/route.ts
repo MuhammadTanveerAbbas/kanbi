@@ -100,7 +100,7 @@ export async function GET(request: NextRequest) {
 
     const { data: messages, error } = await supabase
       .from('chat_messages')
-      .select('*')
+      .select('id, role, message, created_at')
       .eq('user_id', user.id)
       .order('created_at', { ascending: true })
       .limit(50);

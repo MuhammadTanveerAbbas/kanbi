@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import AuthLayout from "@/components/auth/AuthLayout";
 import { AuthField, AuthButton, SocialAuth } from "@/components/auth/AuthComponents";
@@ -16,12 +16,19 @@ const I = {
 
 export default function SignInPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [remember, setRemember] = useState(false);
+
+  // Show error from OAuth callback redirect (e.g. Google denied)
+  useEffect(() => {
+    const err = searchParams.get("error");
+    if (err) setErrors({ general: decodeURIComponent(err) });
+  }, [searchParams]);
 
   const validate = () => {
     const e: Record<string, string> = {};

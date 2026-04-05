@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 
 async function getValidToken(supabase: Awaited<ReturnType<typeof createClient>>, userId: string) {
   const { data: integration } = await supabase
-    .from("user_integrations")
+    .from("integrations")
     .select("access_token, refresh_token, expires_at")
     .eq("user_id", userId)
     .eq("provider", "google_calendar")
@@ -11,7 +11,6 @@ async function getValidToken(supabase: Awaited<ReturnType<typeof createClient>>,
 
   if (!integration) return null;
 
-  // Refresh if expired
   const isExpired = integration.expires_at
     ? new Date(integration.expires_at) < new Date(Date.now() + 60_000)
     : false;
@@ -29,14 +28,16 @@ async function getValidToken(supabase: Awaited<ReturnType<typeof createClient>>,
     });
     const tokens = await res.json();
     if (tokens.access_token) {
-      await supabase.from("user_integrations").update({
+      await supabase.from("integrations").update({
         access_token: tokens.access_token,
         expires_at: tokens.expires_in
           ? new Date(Date.now() + tokens.expires_in * 1000).toISOString()
           : null,
+        updated_at: new Date().toISOString(),
       }).eq("user_id", userId).eq("provider", "google_calendar");
       return tokens.access_token as string;
     }
+    return null; // refresh failed
   }
 
   return integration.access_token as string;
@@ -50,26 +51,28 @@ export async function POST() {
   const token = await getValidToken(supabase, user.id);
   if (!token) return NextResponse.json({ error: "Google Calendar not connected" }, { status: 400 });
 
-  // Fetch tasks with due dates from the most recent board
-  const { data: boards } = await supabase
-    .from("boards")
-    .select("tasks")
+  // Fetch tasks with due dates from the tasks table (not boards.tasks column)
+  const { data: tasks, error: tasksError } = await supabase
+    .from("tasks")
+    .select("id, title, due_date, priority, gcal_set, gcal_event_id")
     .eq("user_id", user.id)
-    .order("updated_at", { ascending: false })
-    .limit(1);
+    .not("due_date", "is", null)
+    .eq("gcal_set", false) // only sync tasks not yet pushed
+    .order("due_date", { ascending: true })
+    .limit(50);
 
-  const tasks: Array<{ title: string; dueDate?: string; priority?: string }> =
-    boards?.[0]?.tasks ?? [];
+  if (tasksError) return NextResponse.json({ error: tasksError.message }, { status: 500 });
+  if (!tasks?.length) return NextResponse.json({ success: true, synced: 0, message: "No tasks with due dates to sync" });
 
-  const tasksWithDates = tasks.filter(t => t.dueDate);
   let synced = 0;
+  const syncedIds: string[] = [];
 
-  for (const task of tasksWithDates) {
+  for (const task of tasks) {
     try {
-      const dueDate = new Date(task.dueDate!);
+      const dueDate = new Date(task.due_date);
       const endDate = new Date(dueDate.getTime() + 60 * 60 * 1000); // +1 hour
 
-      await fetch("https://www.googleapis.com/calendar/v3/calendars/primary/events", {
+      const eventRes = await fetch("https://www.googleapis.com/calendar/v3/calendars/primary/events", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -77,7 +80,7 @@ export async function POST() {
         },
         body: JSON.stringify({
           summary: `[Kanbi] ${task.title}`,
-          description: `Priority: ${task.priority ?? "medium"} kanbi synced from Kanbi`,
+          description: `Priority: ${task.priority ?? "medium"} — synced from Kanbi`,
           start: { dateTime: dueDate.toISOString() },
           end: { dateTime: endDate.toISOString() },
           reminders: {
@@ -86,9 +89,19 @@ export async function POST() {
           },
         }),
       });
-      synced++;
+
+      if (eventRes.ok) {
+        const event = await eventRes.json();
+        syncedIds.push(task.id);
+        // Mark task as synced with the calendar event ID
+        await supabase.from("tasks").update({
+          gcal_set: true,
+          gcal_event_id: event.id,
+        }).eq("id", task.id);
+        synced++;
+      }
     } catch {
-      // Skip individual failures
+      // Skip individual failures, continue with rest
     }
   }
 

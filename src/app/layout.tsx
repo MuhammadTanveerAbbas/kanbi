@@ -1,13 +1,14 @@
 import { ErrorBoundaryWrapper } from "@/components/error-boundary-wrapper";
 import LayoutWrapper from "@/components/layout-wrapper";
+import { Providers } from "@/components/providers";
 import { cn } from "@/lib/utils";
 import type { Metadata } from "next";
-import { Space_Grotesk } from "next/font/google";
+import { Geist } from "next/font/google";
 import "./globals.css";
 
-const spaceGrotesk = Space_Grotesk({
+const geist = Geist({
   subsets: ["latin"],
-  variable: "--font-space-grotesk",
+  variable: "--font-geist",
   display: "swap",
 });
 
@@ -74,11 +75,13 @@ export default function RootLayout({
   return (
     <html lang="en" className="scroll-smooth" data-scroll-behavior="smooth" suppressHydrationWarning>
       <body
-        className={cn("antialiased font-sans", spaceGrotesk.variable)}
+        className={cn("antialiased font-sans", geist.variable)}
         suppressHydrationWarning
       >
         <ErrorBoundaryWrapper>
-          <LayoutWrapper>{children}</LayoutWrapper>
+          <Providers>
+            <LayoutWrapper>{children}</LayoutWrapper>
+          </Providers>
         </ErrorBoundaryWrapper>
       </body>
     </html>

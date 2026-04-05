@@ -12,13 +12,11 @@ export function useAuth() {
   const supabase = createClient()
 
   useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
+    // Get existing session immediately — no flicker
+    supabase.auth.getUser().then(({ data: { user } }) => {
       setUser(user)
       setLoading(false)
-    }
-
-    getUser()
+    })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
@@ -26,24 +24,21 @@ export function useAuth() {
         setLoading(false)
 
         if (event === 'SIGNED_OUT') {
-          router.push('/sign-in')
+          router.push('/')
+        }
+        if (event === 'SIGNED_IN') {
+          router.push('/dashboard')
         }
       }
     )
 
-    return () => {
-      subscription.unsubscribe()
-    }
-  }, [router, supabase.auth])
+    return () => subscription.unsubscribe()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const signOut = async () => {
     await supabase.auth.signOut()
-    router.push('/sign-in')
+    router.push('/')
   }
 
-  return {
-    user,
-    loading,
-    signOut,
-  }
+  return { user, loading, signOut }
 }

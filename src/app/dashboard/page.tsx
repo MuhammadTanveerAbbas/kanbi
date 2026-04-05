@@ -31,7 +31,7 @@ const LIGHT_VARS = `
 function GlobalStyles({ theme }: { theme: "dark" | "light" }) {
   return (
     <style suppressHydrationWarning>{`
-      @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+      @import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&display=swap');
 
       *,*::before,*::after { box-sizing:border-box; margin:0; padding:0 }
       html { font-size:16px }
@@ -42,9 +42,9 @@ function GlobalStyles({ theme }: { theme: "dark" | "light" }) {
         --gr:#10b981; --am:#f59e0b; --rd:#ef4444; --pu:#a78bfa; --ur:#f97316;
         --inv:${theme==="dark"?"#fff":"#07070e"}; --inv2:${theme==="dark"?"#07070e":"#fff"};
         --radius-sm:8px; --radius-md:12px; --radius-lg:16px; --radius-xl:22px;
-        --font-display:'Plus Jakarta Sans',sans-serif;
-        --font-body:'Inter',-apple-system,sans-serif;
-        --font-mono:'JetBrains Mono',monospace;
+        --font-display:'Geist',-apple-system,sans-serif;
+        --font-body:'Geist',-apple-system,sans-serif;
+        --font-mono:'Geist',-apple-system,monospace;
         --sidebar-w:252px;
       }
 
@@ -2366,7 +2366,7 @@ function PageSettings({ theme, toggleTheme }: { theme: Theme; toggleTheme: () =>
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
-    router.push("/sign-in");
+    router.push("/");
   };
 
   return (
@@ -2726,7 +2726,7 @@ function Sidebar({ page, setPage, theme, toggleTheme }: {
               display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
             {theme === "dark" ? <Icons.Sun size={13}/> : <Icons.Moon size={13}/>}
           </button>
-          <button className="ghost" onClick={async () => { const s = createClient(); await s.auth.signOut(); window.location.href = "/sign-in"; }}
+          <button className="ghost" onClick={async () => { const s = createClient(); await s.auth.signOut(); window.location.href = "/"; }}
             style={{ width:30, height:30, borderRadius:8, border:"1px solid var(--br)",
               background:"transparent", color:"var(--tx3)", cursor:"pointer",
               display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>

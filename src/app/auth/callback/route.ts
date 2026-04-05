@@ -5,7 +5,15 @@ import { NextResponse } from 'next/server'
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
+  const error = searchParams.get('error')
+  const errorDescription = searchParams.get('error_description')
   const next = searchParams.get('next') ?? '/dashboard'
+
+  // OAuth provider returned an error (e.g. user denied access)
+  if (error) {
+    const msg = errorDescription ?? error
+    return NextResponse.redirect(`${origin}/sign-in?error=${encodeURIComponent(msg)}`)
+  }
 
   if (code) {
     const cookieStore = await cookies()
@@ -23,11 +31,18 @@ export async function GET(request: Request) {
         },
       }
     )
-    const { error } = await supabase.auth.exchangeCodeForSession(code)
-    if (!error) {
+
+    const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
+
+    if (!exchangeError) {
       return NextResponse.redirect(`${origin}${next}`)
     }
+
+    console.error('OAuth code exchange failed:', exchangeError.message)
+    return NextResponse.redirect(
+      `${origin}/sign-in?error=${encodeURIComponent(exchangeError.message)}`
+    )
   }
 
-  return NextResponse.redirect(`${origin}/sign-in?error=auth`)
+  return NextResponse.redirect(`${origin}/sign-in?error=missing_code`)
 }

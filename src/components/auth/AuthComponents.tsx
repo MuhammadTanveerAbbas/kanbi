@@ -175,18 +175,28 @@ export function AuthButton({ children, loading, icon, onClick, type = "submit", 
 
 export function SocialAuth({ mode }: { mode: "signin" | "signup" }) {
   const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState("");
+
   const handleGoogleAuth = async () => {
     setLoading(true);
-    const { createClient } = await import("@/lib/supabase/client");
-    const supabase = createClient();
-    await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-        queryParams: { access_type: "offline", prompt: "consent" },
-      },
-    });
-    setLoading(false);
+    setError("");
+    try {
+      const { createClient } = await import("@/lib/supabase/client");
+      const supabase = createClient();
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+          queryParams: { access_type: "offline", prompt: "consent" },
+          skipBrowserRedirect: false,
+        },
+      });
+      if (error) setError(error.message);
+    } catch (e: any) {
+      setError(e?.message ?? "Google sign-in failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -194,6 +204,9 @@ export function SocialAuth({ mode }: { mode: "signin" | "signup" }) {
       <AuthButton variant="ghost" icon={I.google(16)} onClick={handleGoogleAuth} type="button" loading={loading}>
         {mode === "signin" ? "Sign in" : "Sign up"} with Google
       </AuthButton>
+      {error && (
+        <p style={{ fontSize: 12, color: "var(--rd)", textAlign: "center" }}>⚠ {error}</p>
+      )}
       <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "4px 0" }}>
         <div style={{ flex: 1, height: 1, background: "var(--br)" }} />
         <span style={{ fontSize: 12, color: "var(--tx3)", whiteSpace: "nowrap" }}>or continue with email</span>

@@ -13,7 +13,9 @@ export interface GenerationOptions {
   model?: AIModel;
 }
 
-/** Unified AI service backed by Groq (llama-3.3-70b-versatile). */
+const GROQ_MODEL = 'openai/gpt-oss-120b';
+
+/** Unified AI service backed by Groq (openai/gpt-oss-120b). */
 export class AIService {
   /**
    * Generate content via Groq.
@@ -69,7 +71,7 @@ export class AIService {
           content: prompt,
         },
       ],
-      model: 'llama-3.3-70b-versatile',
+      model: GROQ_MODEL,
       temperature: 0.7,
       max_tokens: length === 'short' ? 200 : length === 'medium' ? 500 : 1000,
     });
@@ -126,7 +128,7 @@ Return ONLY valid JSON array, no markdown.`;
           { role: 'system', content: systemPrompt },
           { role: 'user', content: notes.trim() },
         ],
-        model: 'llama-3.3-70b-versatile',
+        model: GROQ_MODEL,
         temperature: 0.3,
         max_tokens: 2048,
       });
@@ -144,7 +146,7 @@ Return ONLY valid JSON array, no markdown.`;
       const processingTime = Date.now() - startTime;
 
       const metadata: ExtractionMetadata = {
-        model: 'llama-3.3-70b-versatile',
+        model: GROQ_MODEL,
         tokens,
         processingTime,
         fallbackUsed: false,
@@ -298,7 +300,7 @@ Return ONLY valid JSON array, no markdown.`;
           { role: 'system', content: systemPrompt },
           { role: 'user', content: emailContent.trim() },
         ],
-        model: 'llama-3.3-70b-versatile',
+        model: GROQ_MODEL,
         temperature: 0.3,
         max_tokens: 2048,
       });
@@ -328,7 +330,7 @@ Return ONLY valid JSON array, no markdown.`;
           { role: 'system', content: systemPrompt },
           { role: 'user', content: webContent.trim() },
         ],
-        model: 'llama-3.3-70b-versatile',
+        model: GROQ_MODEL,
         temperature: 0.3,
         max_tokens: 2048,
       });

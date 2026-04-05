@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     // Get autopilot settings
     const { data: settings } = await supabase
       .from('autopilot_settings')
-      .select('*')
+      .select('work_hours_start, work_hours_end, break_duration, max_daily_tasks, auto_reschedule, auto_prioritize, briefing_time')
       .eq('user_id', user.id)
       .single();
 
@@ -116,21 +116,21 @@ export async function GET(request: NextRequest) {
 
     const { data: briefing } = await supabase
       .from('morning_briefings')
-      .select('*')
+      .select('id, date, summary, priorities, schedule, warnings, created_at')
       .eq('user_id', user.id)
       .eq('date', today)
       .single();
 
     const { data: schedule } = await supabase
       .from('auto_schedule')
-      .select('*')
+      .select('id, task_id, task_title, scheduled_date, time_block, priority, estimated_duration')
       .eq('user_id', user.id)
       .eq('scheduled_date', today)
       .order('time_block', { ascending: true });
 
     const { data: adjustments } = await supabase
       .from('autopilot_adjustments')
-      .select('*')
+      .select('id, adjustment_type, task_id, reason, new_value, old_value, created_at')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(10);

@@ -8,7 +8,7 @@ export async function POST() {
 
   // Revoke token with Google
   const { data: integration } = await supabase
-    .from("user_integrations")
+    .from("integrations")
     .select("access_token")
     .eq("user_id", user.id)
     .eq("provider", "google_calendar")
@@ -23,7 +23,7 @@ export async function POST() {
   }
 
   await supabase
-    .from("user_integrations")
+    .from("integrations")
     .delete()
     .eq("user_id", user.id)
     .eq("provider", "google_calendar");

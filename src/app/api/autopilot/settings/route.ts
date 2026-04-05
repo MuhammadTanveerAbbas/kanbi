@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
 
     const { data: settings } = await supabase
       .from('autopilot_settings')
-      .select('*')
+      .select('enabled, work_hours_start, work_hours_end, break_duration, max_daily_tasks, auto_reschedule, auto_prioritize, briefing_time')
       .eq('user_id', user.id)
       .single();
 
