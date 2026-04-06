@@ -162,6 +162,7 @@ function GlobalStyles({ theme }: { theme: "dark" | "light" }) {
         .page-pad { padding:16px 14px 80px !important }
         .kanban-grid { overflow-x:auto; grid-template-columns:repeat(3,minmax(260px,1fr)) !important }
         .chat-sidebar { display:none !important }
+        .chat-page { height:calc(100vh - 56px - 64px) !important; min-height:0 !important }
         .settings-grid { grid-template-columns:1fr !important; gap:16px !important }
         .settings-tabs { display:flex; flex-direction:row; flex-wrap:wrap; gap:4px; margin-bottom:16px; position:static !important }
         .settings-tabs button { flex:1; min-width:calc(50% - 4px); justify-content:center !important; padding:7px 8px !important; font-size:11.5px !important }
@@ -1446,7 +1447,7 @@ function PageChat() {
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior:"smooth" }); }, [chatMessages]);
 
   return (
-    <div style={{ height:"100%", display:"flex", overflow:"hidden" }}>
+    <div className="chat-page" style={{ height:"100%", display:"flex", overflow:"hidden" }}>
       {/* Main chat */}
       <div style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
         {/* Chat header */}
