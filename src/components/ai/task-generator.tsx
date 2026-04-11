@@ -18,6 +18,7 @@ import {
   Link as LinkIcon,
   FileType,
   ClipboardPaste,
+  LayoutGrid,
 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -350,8 +351,8 @@ export default function TaskGenerator({ addTask }: TaskGeneratorProps) {
       <CardContent className="p-6 flex flex-col h-full">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-primary" />
-            <h2 className="font-semibold">Add Your Tasks</h2>
+            <LayoutGrid className="h-5 w-5 text-primary" />
+            <h2 className="font-semibold">Quick AI Extract</h2>
             {!isOnline && <WifiOff className="h-4 w-4 text-muted-foreground" />}
           </div>
         </div>
