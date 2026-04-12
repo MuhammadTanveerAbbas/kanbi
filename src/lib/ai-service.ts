@@ -1,7 +1,7 @@
 import Groq from 'groq-sdk';
 import { ExtractedTask, TaskExtractionResult, TaskDuplicate, ExtractionMetadata } from './types';
+import { GROQ_API_KEY, GROQ_MODEL } from './constants';
 
-const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
 const groq = GROQ_API_KEY ? new Groq({ apiKey: GROQ_API_KEY }) : null;
 
 export type AIModel = 'groq';
@@ -13,9 +13,7 @@ export interface GenerationOptions {
   model?: AIModel;
 }
 
-const GROQ_MODEL = 'openai/gpt-oss-120b';
-
-/** Unified AI service backed by Groq (openai/gpt-oss-120b). */
+/** Unified AI service backed by Groq (llama-3.3-70b-versatile). */
 export class AIService {
   /**
    * Generate content via Groq.

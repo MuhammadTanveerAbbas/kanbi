@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { usageService } from '@/lib/services/usage-service';
 import { AIService } from '@/lib/ai-service';
 import { rateLimit, rateLimitResponse } from '@/lib/rate-limiter';
+import { FETCH_TIMEOUT } from '@/lib/constants';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const cheerio = require('cheerio') as { load: (html: string) => (sel: string | unknown) => { remove: () => void; text: () => string; attr: (n: string) => string | undefined; each: (fn: (i: number, el: unknown) => void) => void } };
 
@@ -59,7 +60,7 @@ export async function POST(request: NextRequest) {
 
     const res = await fetch(url, {
       headers: { 'User-Agent': 'Mozilla/5.0 (compatible; KanbiBot/1.0)' },
-      signal: AbortSignal.timeout(15000)
+      signal: AbortSignal.timeout(FETCH_TIMEOUT)
     });
 
     if (!res.ok) {

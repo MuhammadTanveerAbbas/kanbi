@@ -1,4 +1,5 @@
 import { Task, TaskPriority, BurnoutRisk, DeadlineCluster, EnhancedWorkloadAnalysis, UserPattern } from '@/lib/types';
+import { DAILY_CAPACITY_HOURS, CONTEXT_SWITCHING_COST, TASK_PRIORITIES, HEALTH_SCORE_THRESHOLDS } from '@/lib/constants';
 
 const DEFAULT_TIME_ESTIMATES: Record<TaskPriority, number> = {
   Urgent: 120,
@@ -6,9 +7,6 @@ const DEFAULT_TIME_ESTIMATES: Record<TaskPriority, number> = {
   Medium: 60,
   Low: 30,
 };
-
-const CONTEXT_SWITCHING_COST = 15;
-const DAILY_CAPACITY_HOURS = 6;
 
 /** Analyzes task workload, calculates health scores, and generates burnout risk assessments. */
 export class WorkloadAnalyzer {
@@ -27,13 +25,14 @@ export class WorkloadAnalyzer {
     if (estimatedHours === 0) return 100;
 
     const ratio = estimatedHours / capacityHours;
+    const { EXCELLENT, GOOD, MODERATE, POOR } = HEALTH_SCORE_THRESHOLDS;
 
-    if (ratio <= 0.7) return 100;
-    if (ratio <= 1.0) return Math.round(100 - (ratio - 0.7) * 100);
-    if (ratio <= 1.5) return Math.round(70 - (ratio - 1.0) * 80);
-    if (ratio <= 2.0) return Math.round(30 - (ratio - 1.5) * 40);
+    if (ratio <= EXCELLENT) return 100;
+    if (ratio <= GOOD) return Math.round(100 - (ratio - EXCELLENT) * 100);
+    if (ratio <= MODERATE) return Math.round(70 - (ratio - GOOD) * 80);
+    if (ratio <= POOR) return Math.round(30 - (ratio - MODERATE) * 40);
 
-    return Math.max(0, Math.round(10 - (ratio - 2.0) * 10));
+    return Math.max(0, Math.round(10 - (ratio - POOR) * 10));
   }
 
   /** Returns user's historical average for the given priority, or the default estimate. */

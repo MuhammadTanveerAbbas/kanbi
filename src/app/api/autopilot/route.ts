@@ -1,10 +1,9 @@
 import Groq from 'groq-sdk'
 import { createClient } from '@/lib/supabase/server'
-
-const GROQ_MODEL = 'openai/gpt-oss-120b'
+import { GROQ_MODEL, GROQ_API_KEY } from '@/lib/constants'
 
 function getGroq() {
-  return new Groq({ apiKey: process.env.GROQ_API_KEY })
+  return new Groq({ apiKey: GROQ_API_KEY })
 }
 
 interface AutoTask {

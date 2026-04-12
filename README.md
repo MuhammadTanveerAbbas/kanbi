@@ -32,18 +32,18 @@ Kanbi solves the gap between raw, unstructured notes and an actionable task boar
 
 ## ✨ Features
 
-- 🤖 **AI Task Extraction** — Paste text, upload a PDF, or drop a URL and get a structured Kanban board instantly via Groq AI
-- 🧠 **Workload Analysis** — Real-time burnout risk detection, deadline clustering, and workload health scoring
-- 💬 **AI Productivity Coach** — Conversational assistant with full board context for planning, prioritization, and advice
-- 🚀 **Autopilot Mode** — Morning briefings, auto-scheduling, and intelligent task adjustments based on your workload
-- 📤 **Board Export** — Export any board as a formatted DOCX or PDF file
-- 📊 **Analytics Dashboard** — Task stats, activity charts, daily/weekly goal tracking, and AI insight feed
-- 🎨 **Board Templates** — Pre-built templates for Daily, Sprint, Meeting, Project, and Quick Start workflows
-- 💳 **Stripe Subscriptions** — Free and Premium ($9/mo) tiers with usage limits enforced via RLS
-- 🔒 **Row Level Security** — All database tables protected with Supabase RLS policies
-- 🌗 **Dark / Light Mode** — System-aware theme with manual toggle
-- ⌨️ **Keyboard Shortcuts** — Power-user shortcuts throughout the app
-- 📱 **Responsive Design** — Fully usable on mobile, tablet, and desktop
+- 🤖 **AI Task Extraction** Paste text, upload a PDF, or drop a URL and get a structured Kanban board instantly via Groq AI
+- 🧠 **Workload Analysis** Real-time burnout risk detection, deadline clustering, and workload health scoring
+- 💬 **AI Productivity Coach** Conversational assistant with full board context for planning, prioritization, and advice
+- 🚀 **Autopilot Mode** Morning briefings, auto-scheduling, and intelligent task adjustments based on your workload
+- 📤 **Board Export** Export any board as a formatted DOCX or PDF file
+- 📊 **Analytics Dashboard** Task stats, activity charts, daily/weekly goal tracking, and AI insight feed
+- 🎨 **Board Templates** Pre-built templates for Daily, Sprint, Meeting, Project, and Quick Start workflows
+- 💳 **Stripe Subscriptions** Free and Premium ($9/mo) tiers with usage limits enforced via RLS
+- 🔒 **Row Level Security** All database tables protected with Supabase RLS policies
+- 🌗 **Dark / Light Mode** System-aware theme with manual toggle
+- ⌨️ **Keyboard Shortcuts** Power-user shortcuts throughout the app
+- 📱 **Responsive Design** Fully usable on mobile, tablet, and desktop
 
 ---
 
@@ -113,21 +113,21 @@ http://localhost:3000
 Create a `.env.local` file in the root directory:
 
 ```env
-# Supabase — Required
+# Supabase  Required
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 
-# Groq AI — Required
+# Groq AI  Required
 GROQ_API_KEY=your_groq_api_key
 
-# Stripe — Required for payments
+# Stripe  Required for payments
 STRIPE_SECRET_KEY=sk_test_your_stripe_secret_key
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_your_stripe_publishable_key
 STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret
 STRIPE_PRICE_ID=price_your_price_id
 
-# Google OAuth & Calendar Integration (coming soon — not active)
+# Google OAuth & Calendar Integration (coming soon  not active)
 # GOOGLE_CLIENT_ID=your_google_oauth_client_id
 # GOOGLE_CLIENT_SECRET=your_google_oauth_client_secret
 

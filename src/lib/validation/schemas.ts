@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { TASK_STATUSES, TASK_PRIORITIES } from '@/lib/constants';
 
 export const parseTasksSchema = z.object({
   notes: z.string().min(1, 'Notes are required').max(10000, 'Notes too long. Max 10,000 characters'),
@@ -16,8 +17,8 @@ export const analyzeWorkloadSchema = z.object({
   tasks: z.array(z.object({
     id: z.string(),
     title: z.string(),
-    status: z.enum(['todo', 'wip', 'done', 'To Do', 'In Progress', 'Done']),
-    priority: z.enum(['urgent', 'high', 'medium', 'low', 'Low', 'Medium', 'High', 'Urgent']).optional(),
+    status: z.enum(TASK_STATUSES as unknown as [string, ...string[]]),
+    priority: z.enum(TASK_PRIORITIES as unknown as [string, ...string[]]).optional(),
     dueDate: z.string().optional(),
     description: z.string().optional(),
     tags: z.array(z.string()).optional(),

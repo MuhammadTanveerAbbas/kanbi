@@ -8,6 +8,7 @@ import {
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { LogoIcon, LogoBadge } from "@/components/logo";
+import ReactMarkdown from "react-markdown";
 
 const DARK_VARS = `
   --bg:#07070e; --bg1:#0e0e18; --bg2:#13131f; --bg3:#18182a;
@@ -163,9 +164,15 @@ function GlobalStyles({ theme }: { theme: "dark" | "light" }) {
         .kanban-grid { overflow-x:auto; grid-template-columns:repeat(3,minmax(260px,1fr)) !important }
         .chat-sidebar { display:none !important }
         .chat-page { height:calc(100vh - 56px - 64px) !important; min-height:0 !important }
-        .settings-grid { grid-template-columns:1fr !important; gap:16px !important }
-        .settings-tabs { display:flex; flex-direction:row; flex-wrap:wrap; gap:4px; margin-bottom:16px; position:static !important }
-        .settings-tabs button { flex:1; min-width:calc(50% - 4px); justify-content:center !important; padding:7px 8px !important; font-size:11.5px !important }
+        .settings-grid { gap:10px !important }
+        .settings-tabs { grid-template-columns:repeat(3,1fr) !important; gap:6px !important }
+        .settings-tabs button { font-size:10.5px !important; padding:10px 6px !important }
+        .settings-tabs button span:first-child { font-size:14px !important }
+        .settings-panel { padding:16px !important; border-radius:11px !important }
+        .settings-appearance-row { flex-direction:column !important; align-items:flex-start !important; gap:10px !important }
+        .settings-appearance-row button { width:100% !important; justify-content:center !important }
+        .settings-billing-row { flex-direction:column !important; align-items:flex-start !important; gap:10px !important }
+        .settings-billing-row button { width:100% !important; justify-content:center !important }
         .integration-card { flex-direction:column !important; align-items:flex-start !important; gap:12px !important }
         .integration-card > div:first-child { align-self:center }
         .integration-card > div:nth-child(2) { text-align:center; width:100% }
@@ -188,9 +195,13 @@ function GlobalStyles({ theme }: { theme: "dark" | "light" }) {
         .quick-ai-row { flex-wrap:wrap }
         .quick-ai-btn { width:100%; justify-content:center }
         .topbar-title { font-size:13px !important }
+        .topbar-icon { width:28px !important; height:28px !important; border-radius:8px !important }
         .chat-prompts { grid-template-columns:1fr !important }
         .kanban-grid { grid-template-columns:repeat(3,minmax(240px,1fr)) !important }
-        .settings-tabs button { min-width:100% !important; font-size:11px !important }
+        .settings-tabs { grid-template-columns:repeat(2,1fr) !important; gap:5px !important }
+        .settings-tabs button { font-size:10px !important; padding:8px 4px !important }
+        .settings-tabs button span:nth-child(2) { font-size:10px !important }
+        .settings-panel { padding:12px !important }
         .integration-card { padding:12px 14px !important }
         .integration-card p { font-size:12px !important }
         .integration-card button { font-size:11px !important; height:30px !important }
@@ -373,13 +384,67 @@ const useApp = () => useContext(AppCtx);
    ICONS  (stroke-based SVG, all custom)
 ═══════════════════════════════════════════════════════════════════════════ */
 type IC = { size?: number; style?: React.CSSProperties };
-const Ic = (d: string | string[], s = 16, sw = "1.75", fill = "none") =>
-  ({ size = s, style }: IC) => (
+const Ic = (d: string | string[], s = 16, sw = "1.75", fill = "none"): ((props: IC) => React.ReactNode) => {
+  return ({ size = s, style }: IC) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill={fill} stroke="currentColor"
       strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round" style={style}>
       {(Array.isArray(d) ? d : [d]).map((p, i) => <path key={i} d={p} />)}
     </svg>
   );
+};
+
+/* ── Purple Star Nav Icons ─────────────────────────────────────────────── */
+type IC2 = { size?: number; style?: React.CSSProperties };
+
+// Overview: 4-point star
+const StarIcon = ({ size = 16, style }: IC2) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" style={style}>
+    <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/>
+  </svg>
+);
+
+// Board: kanban columns with star accent
+const BoardStarIcon = ({ size = 16, style }: IC2) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" style={style}>
+    <rect x="3" y="3" width="5" height="18" rx="1.5"/>
+    <rect x="10" y="3" width="5" height="12" rx="1.5"/>
+    <rect x="17" y="3" width="4" height="8" rx="1.5"/>
+    <path d="M19 16l.6 1.8H22l-1.5 1.1.6 1.8L19 19.7l-1.5 1 .6-1.8L16.5 17.8h1.9z" fill="#a78bfa" stroke="none"/>
+  </svg>
+);
+
+// Saved: bookmark with star
+const SavedStarIcon = ({ size = 16, style }: IC2) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" style={style}>
+    <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+    <path d="M12 7l.8 2.4H15l-1.9 1.4.7 2.2L12 11.8l-1.8 1.2.7-2.2L9 9.4h2.2z" fill="#a78bfa" stroke="none"/>
+  </svg>
+);
+
+// Chat: bubble with star
+const ChatStarIcon = ({ size = 16, style }: IC2) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" style={style}>
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+    <path d="M12 6l.7 2H15l-1.7 1.2.6 2L12 10l-1.9 1.2.6-2L9 8h2.3z" fill="#a78bfa" stroke="none"/>
+  </svg>
+);
+
+// Autopilot: sparkle/star burst
+const PilotStarIcon = ({ size = 16, style }: IC2) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" style={style}>
+    <path d="M12 2l1.5 4.5L18 8l-4.5 1.5L12 14l-1.5-4.5L6 8l4.5-1.5z"/>
+    <path d="M5 17l.6 1.8H7.5l-1.5 1.1.5 1.8L5 20.5l-1.5 1 .5-1.8L2.5 18.6H4.4z" fill="#a78bfa" stroke="none"/>
+    <path d="M19 14l.5 1.4H21l-1.2.9.4 1.4L19 16.8l-1.2.9.4-1.4-1.2-.9h1.5z" fill="#a78bfa" stroke="none"/>
+  </svg>
+);
+
+// Settings: gear with star center
+const SettingsStarIcon = ({ size = 16, style }: IC2) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" style={style}>
+    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+    <path d="M12 10.5l.5 1.5H14l-1.2.9.4 1.4L12 13.3l-1.2.9.4-1.4L10 12h1.5z" fill="#a78bfa" stroke="none"/>
+  </svg>
+);
 
 const Icons = {
   LayoutGrid: Ic(["M3 3h7v7H3z","M14 3h7v7h-7z","M3 14h7v7H3z","M14 14h7v7h-7z"]),
@@ -407,6 +472,8 @@ const Icons = {
   Logout:     Ic(["M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4","M16 17l5-5-5-5","M21 12H9"]),
   Shield:     Ic("M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"),
   Card:       Ic(["M1 4h22v16H1z","M1 9h22"]),
+  Lock:       Ic("M12 1a5 5 0 0 0-5 5v4H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-2V6a5 5 0 0 0-5-5zm0 2a3 3 0 0 1 3 3v4H9V6a3 3 0 0 1 3-3zm1 10a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"),
+  Download:   Ic(["M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4","M7 10l5 5 5-5","M12 15V3"]),
 
   Pdf:        Ic(["M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z","M14 2v6h6"]),
   Paste:      Ic(["M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2","M15 2H9a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1z"]),
@@ -527,81 +594,362 @@ function Skeleton({ w = "100%", h = 16, style }: { w?: string|number; h?: number
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   MINI CHARTS
+   CHARTS  Activity Line, Priority Donut, Completion Ring
 ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Activity Line Chart ── */
 function BarChart({ data }: { data: { label: string; value: number; color?: string }[] }) {
+  const [hovered, setHovered] = useState<number | null>(null);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { const t = setTimeout(() => setMounted(true), 60); return () => clearTimeout(t); }, []);
+
+  const isEmpty = data.length === 0 || data.every(d => d.value === 0);
   const max = Math.max(...data.map(d => d.value), 1);
+  const W = 100, H = 80; // viewBox units (%)
+
+  if (isEmpty) {
+    return (
+      <div style={{ height:120, display:"flex", flexDirection:"column", alignItems:"center",
+        justifyContent:"center", gap:10 }}>
+        <svg width={36} height={36} viewBox="0 0 24 24" fill="none" stroke="var(--tx3)"
+          strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+        </svg>
+        <span style={{ fontSize:11.5, color:"var(--tx3)", fontWeight:500, textAlign:"center" }}>
+          Complete tasks to see activity
+        </span>
+      </div>
+    );
+  }
+
+  // Build SVG polyline points (percentage-based viewBox 0-100)
+  const pts = data.map((d, i) => {
+    const x = data.length === 1 ? 50 : (i / (data.length - 1)) * 96 + 2;
+    const y = H - (d.value / max) * (H - 8) - 4;
+    return { x, y, ...d };
+  });
+  const polyline = pts.map(p => `${p.x},${p.y}`).join(" ");
+  // Area fill path
+  const area = `M${pts[0].x},${H} ` + pts.map(p => `L${p.x},${p.y}`).join(" ") + ` L${pts[pts.length-1].x},${H} Z`;
+
+  const total = data.reduce((s, d) => s + d.value, 0);
+  const hoveredPt = hovered !== null ? pts[hovered] : null;
+
   return (
-    <div style={{ display:"flex", alignItems:"flex-end", gap:4, height:80 }}>
-      {data.map((d, i) => (
-        <div key={i} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", gap:4 }}>
-          <div
-            title={`${d.label}: ${d.value}`}
+    <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+      <div style={{ position:"relative", width:"100%", paddingBottom:"52%" }}>
+        <svg viewBox={`0 0 100 ${H}`} preserveAspectRatio="none"
+          style={{ position:"absolute", inset:0, width:"100%", height:"100%", overflow:"visible" }}>
+          <defs>
+            <linearGradient id="lineArea" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="var(--ac)" stopOpacity="0.22"/>
+              <stop offset="100%" stopColor="var(--ac)" stopOpacity="0"/>
+            </linearGradient>
+            <linearGradient id="lineStroke" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stopColor="var(--pu)"/>
+              <stop offset="100%" stopColor="var(--ac)"/>
+            </linearGradient>
+            <filter id="lineglow">
+              <feGaussianBlur stdDeviation="1.2" result="blur"/>
+              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+
+          {/* Horizontal grid lines */}
+          {[0.25, 0.5, 0.75, 1].map(f => (
+            <line key={f}
+              x1="0" y1={H - f * (H - 8) - 4}
+              x2="100" y2={H - f * (H - 8) - 4}
+              stroke="var(--br)" strokeWidth="0.4" strokeDasharray="2,3"/>
+          ))}
+
+          {/* Area fill */}
+          <path d={area} fill="url(#lineArea)"
+            style={{ transition: mounted ? "opacity .6s" : "none", opacity: mounted ? 1 : 0 }}/>
+
+          {/* Hover vertical line */}
+          {hoveredPt && (
+            <line x1={hoveredPt.x} y1={4} x2={hoveredPt.x} y2={H}
+              stroke="var(--ac)" strokeWidth="0.5" strokeDasharray="2,2" opacity="0.6"/>
+          )}
+
+          {/* Line */}
+          <polyline points={polyline} fill="none" stroke="url(#lineStroke)"
+            strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
+            filter="url(#lineglow)"
             style={{
-              width: "100%", borderRadius: "3px 3px 0 0",
-              background: d.color ?? `linear-gradient(180deg, var(--ach), var(--ac))`,
-              height: `${(d.value / max) * 80}%`, minHeight: 3,
-              transition: `height .8s cubic-bezier(.34,1.56,.64,1) ${i * .045}s`,
-              cursor: "default",
-            }}
-          />
-          <span style={{ fontSize: 8, color:"var(--tx3)", fontWeight:500, fontFamily:"var(--font-mono)" }}>{d.label}</span>
+              strokeDasharray: mounted ? "none" : "200",
+              strokeDashoffset: mounted ? "0" : "200",
+              transition: "stroke-dashoffset 1.2s cubic-bezier(.4,0,.2,1)",
+            }}/>
+
+          {/* Dots */}
+          {pts.map((p, i) => (
+            <g key={i}>
+              <circle cx={p.x} cy={p.y} r="3.5" fill="transparent"
+                onMouseEnter={() => setHovered(i)}
+                onMouseLeave={() => setHovered(null)}
+                style={{ cursor:"crosshair" }}/>
+              <circle cx={p.x} cy={p.y}
+                r={hovered === i ? 3 : (p.value > 0 ? 1.8 : 1)}
+                fill={hovered === i ? "#fff" : "var(--ac)"}
+                stroke={hovered === i ? "var(--ac)" : "none"}
+                strokeWidth="1.5"
+                style={{ transition:"r .15s, fill .15s", pointerEvents:"none",
+                  filter: hovered === i ? "drop-shadow(0 0 4px var(--ac))" : "none" }}/>
+            </g>
+          ))}
+
+          {/* Tooltip */}
+          {hoveredPt && (() => {
+            const tx = hoveredPt.x > 80 ? hoveredPt.x - 22 : hoveredPt.x + 2;
+            const ty = hoveredPt.y > 20 ? hoveredPt.y - 14 : hoveredPt.y + 6;
+            return (
+              <g style={{ pointerEvents:"none" }}>
+                <rect x={tx - 1} y={ty - 7} width={24} height={14} rx="3"
+                  fill="var(--bg3)" stroke="var(--brh)" strokeWidth="0.5"/>
+                <text x={tx + 11} y={ty + 2.5} textAnchor="middle"
+                  fill="var(--tx)" fontSize="5.5" fontWeight="700" fontFamily="var(--font-mono)">
+                  {hoveredPt.value}
+                </text>
+                <text x={tx + 11} y={ty + 8.5} textAnchor="middle"
+                  fill="var(--tx3)" fontSize="4.5" fontFamily="var(--font-mono)">
+                  {hoveredPt.label}
+                </text>
+              </g>
+            );
+          })()}
+        </svg>
+      </div>
+
+      {/* Footer */}
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center",
+        paddingTop:8, borderTop:"1px solid var(--br)" }}>
+        <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+          <div style={{ width:20, height:2, borderRadius:1,
+            background:"linear-gradient(90deg, var(--pu), var(--ac))" }}/>
+          <span style={{ fontSize:10.5, color:"var(--tx3)" }}>Completed tasks</span>
         </div>
-      ))}
+        <div style={{ display:"flex", gap:14 }}>
+          <span style={{ fontSize:10.5, color:"var(--tx3)" }}>
+            Peak <span style={{ color:"var(--tx)", fontWeight:700, fontFamily:"var(--font-mono)" }}>{max}</span>
+          </span>
+          <span style={{ fontSize:10.5, color:"var(--tx3)" }}>
+            Total <span style={{ color:"var(--ac)", fontWeight:700, fontFamily:"var(--font-mono)" }}>{total}</span>
+          </span>
+        </div>
+      </div>
     </div>
   );
 }
 
+/* ── Priority Donut Chart ── */
 function DonutChart({ segs, size = 110 }: { segs: { value: number; color: string; label: string }[]; size?: number }) {
-  const total = segs.reduce((a, s) => a + s.value, 0) || 1;
-  const r = size * .36, cx = size / 2, cy = size / 2, circ = 2 * Math.PI * r;
-  const sw = size * .085;
+  const [hovered, setHovered] = useState<number | null>(null);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { const t = setTimeout(() => setMounted(true), 80); return () => clearTimeout(t); }, []);
+
+  const rawTotal = segs.reduce((a, s) => a + s.value, 0);
+  const hasData = rawTotal > 0;
+  const total = rawTotal || 1;
+  const r = size * 0.34, cx = size / 2, cy = size / 2;
+  const circ = 2 * Math.PI * r;
+  const sw = size * 0.1;
+  const rHover = r + sw * 0.18;
+
   let cum = 0;
-  const nonZero = segs.filter(s => s.value > 0);
+  const arcs = segs.map((s, i) => {
+    const pct = s.value / total;
+    const startAngle = cum * 2 * Math.PI - Math.PI / 2;
+    const endAngle = (cum + pct) * 2 * Math.PI - Math.PI / 2;
+    cum += pct;
+    // midpoint for tooltip
+    const midAngle = (startAngle + endAngle) / 2;
+    const tx = cx + (r + sw * 1.1) * Math.cos(midAngle);
+    const ty = cy + (r + sw * 1.1) * Math.sin(midAngle);
+    return { ...s, pct, startAngle, endAngle, midAngle, tx, ty, idx: i };
+  });
+
+  const hovSeg = hovered !== null ? arcs[hovered] : null;
+  const centerLabel = hovSeg
+    ? { val: hovSeg.value, lbl: hovSeg.label, col: hovSeg.color }
+    : hasData
+    ? (() => { const d = [...arcs].sort((a,b) => b.value - a.value)[0]; return { val: d.value, lbl: d.label, col: d.color }; })()
+    : null;
+
   return (
-    <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:14 }}>
+    <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:16 }}>
       <div style={{ position:"relative", flexShrink:0 }}>
-        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform:"rotate(-90deg)" }}>
+        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}
+          style={{ overflow:"visible" }}>
+          <defs>
+            {segs.map((s, i) => (
+              <filter key={i} id={`dseg${i}`}>
+                <feGaussianBlur stdDeviation="2" result="blur"/>
+                <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+              </filter>
+            ))}
+          </defs>
+
+          {/* Track */}
           <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--br)" strokeWidth={sw}/>
-          {nonZero.map((s, i) => {
-            const pct = s.value / total;
-            const gap = nonZero.length > 1 ? 3 : 0;
-            const dash = pct * circ - gap;
-            const off = -(cum * circ);
-            cum += pct;
+
+          {/* Segments */}
+          {hasData ? arcs.map((arc, i) => {
+            if (arc.value === 0) return null;
+            const isHov = hovered === i;
+            const curR = isHov ? rHover : r;
+            const curCirc = 2 * Math.PI * curR;
+            const gap = arcs.filter(a => a.value > 0).length > 1 ? (isHov ? 2 : 3) : 0;
+            const dash = arc.pct * (mounted ? curCirc : 0) - gap;
+            const off = -(arc.startAngle + Math.PI / 2) / (2 * Math.PI) * curCirc;
             return (
-              <circle key={i} cx={cx} cy={cy} r={r} fill="none" stroke={s.color}
-                strokeWidth={sw} strokeLinecap="round"
-                strokeDasharray={`${Math.max(dash, 0)} ${circ}`}
+              <circle key={i} cx={cx} cy={cy} r={curR} fill="none"
+                stroke={arc.color} strokeWidth={isHov ? sw * 1.22 : sw}
+                strokeLinecap="round"
+                strokeDasharray={`${Math.max(dash, 0)} ${curCirc}`}
                 strokeDashoffset={off}
+                filter={isHov ? `url(#dseg${i})` : undefined}
                 style={{
-                  transition: `stroke-dasharray .9s cubic-bezier(.4,0,.2,1) ${i * .1}s`,
-                  filter: `drop-shadow(0 0 5px ${s.color}88)`,
-                }}/>
+                  transition: "r .2s, stroke-width .2s, stroke-dasharray .9s cubic-bezier(.4,0,.2,1)",
+                  cursor:"pointer",
+                  transformOrigin:`${cx}px ${cy}px`,
+                }}
+                onMouseEnter={() => setHovered(i)}
+                onMouseLeave={() => setHovered(null)}/>
             );
-          })}
+          }) : null}
         </svg>
+
+        {/* Center label */}
+        <div style={{ position:"absolute", inset:0, display:"flex", flexDirection:"column",
+          alignItems:"center", justifyContent:"center", pointerEvents:"none",
+          transition:"all .2s" }}>
+          {centerLabel ? (
+            <>
+              <span style={{ fontSize: size * 0.17, fontWeight:800, color: hovered !== null ? centerLabel.col : "var(--tx)",
+                letterSpacing:"-0.04em", fontFamily:"var(--font-display)", lineHeight:1,
+                transition:"color .2s" }}>
+                {centerLabel.val}%
+              </span>
+              <span style={{ fontSize: size * 0.082, fontWeight:600,
+                marginTop:2, letterSpacing:"0.01em", transition:"color .2s",
+                color: hovered !== null ? centerLabel.col : "var(--tx3)" } as React.CSSProperties}>
+                {centerLabel.lbl}
+              </span>
+            </>
+          ) : (
+            <span style={{ fontSize: size * 0.13, color:"var(--tx3)", fontWeight:700 }}></span>
+          )}
+        </div>
+      </div>
+
+      {/* Legend */}
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"6px 16px", width:"100%" }}>
+        {segs.map((s, i) => (
+          <div key={s.label}
+            onMouseEnter={() => setHovered(i)}
+            onMouseLeave={() => setHovered(null)}
+            style={{ display:"flex", alignItems:"center", gap:7, cursor:"default",
+              opacity: hovered !== null && hovered !== i ? 0.4 : 1,
+              transition:"opacity .2s" }}>
+            <div style={{ width:8, height:8, borderRadius:"50%", background:s.color, flexShrink:0,
+              boxShadow: hovered === i ? `0 0 8px ${s.color}` : s.value > 0 ? `0 0 4px ${s.color}66` : "none",
+              transition:"box-shadow .2s", opacity: s.value > 0 ? 1 : 0.3 }}/>
+            <span style={{ fontSize:10.5, color:"var(--tx3)", flex:1, overflow:"hidden",
+              textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{s.label}</span>
+            <span style={{ fontSize:10.5, fontWeight:700, fontFamily:"var(--font-mono)",
+              color: s.value > 0 ? "var(--tx)" : "var(--tx3)" }}>{s.value}%</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ── Completion Ring Chart ── */
+function CompletionChart({ done, wip, todo, total }: { done: number; wip: number; todo: number; total: number }) {
+  const [hovered, setHovered] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { const t = setTimeout(() => setMounted(true), 100); return () => clearTimeout(t); }, []);
+
+  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+  const isComplete = done === total && total > 0;
+  const ringColor = isComplete ? "var(--gr)" : pct >= 60 ? "var(--ac)" : pct >= 30 ? "var(--am)" : "var(--rd)";
+
+  const size = 120;
+  const r = 44, cx = size / 2, cy = size / 2;
+  const circ = 2 * Math.PI * r;
+  const dashOffset = circ * (1 - (mounted ? pct / 100 : 0));
+
+  const stats = [
+    { key:"done",  label:"Done",        value:done, color:"var(--gr)" },
+    { key:"wip",   label:"In Progress", value:wip,  color:"var(--ac)" },
+    { key:"todo",  label:"To Do",       value:todo, color:"var(--tx3)" },
+    { key:"total", label:"Total",       value:total,color:"var(--tx)"  },
+  ];
+
+  return (
+    <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", gap:16 }}>
+      {/* Ring */}
+      <div style={{ position:"relative", width:size, height:size }}>
+        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}
+          style={{ transform:"rotate(-90deg)", overflow:"visible" }}>
+          <defs>
+            <filter id="ringGlow">
+              <feGaussianBlur stdDeviation="2.5" result="blur"/>
+              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+          {/* Track */}
+          <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--br)" strokeWidth="9"/>
+          {/* WIP arc (behind done) */}
+          {wip > 0 && total > 0 && (
+            <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--ac)" strokeWidth="9"
+              strokeLinecap="round" opacity="0.35"
+              strokeDasharray={`${circ * (wip / total) * (mounted ? 1 : 0)} ${circ}`}
+              strokeDashoffset={-circ * (done / total)}
+              style={{ transition:"stroke-dasharray 1.1s cubic-bezier(.4,0,.2,1) .1s" }}/>
+          )}
+          {/* Done arc */}
+          <circle cx={cx} cy={cy} r={r} fill="none" stroke={ringColor} strokeWidth="9"
+            strokeLinecap="round"
+            strokeDasharray={circ} strokeDashoffset={dashOffset}
+            filter="url(#ringGlow)"
+            style={{ transition:"stroke-dashoffset 1.1s cubic-bezier(.4,0,.2,1), stroke .3s" }}/>
+        </svg>
+        {/* Center */}
         <div style={{ position:"absolute", inset:0, display:"flex", flexDirection:"column",
           alignItems:"center", justifyContent:"center" }}>
-          <span style={{ fontSize: size * .18, fontWeight:800, color:"var(--tx)",
-            letterSpacing:"-0.04em", fontFamily:"var(--font-display)", lineHeight:1 }}>
-            {nonZero[0]?.value ?? 0}%
+          <span style={{ fontSize:24, fontWeight:800, color:"var(--tx)", letterSpacing:"-0.05em",
+            fontFamily:"var(--font-display)", lineHeight:1, transition:"color .3s" }}>
+            {pct}%
           </span>
-          <span style={{ fontSize: size * .085, color:"var(--tx3)", fontWeight:600,
-            letterSpacing:"0.04em", marginTop:1 }}>
-            {nonZero[0]?.label ?? ""}
+          <span style={{ fontSize:9.5, color:"var(--tx3)", fontWeight:600, marginTop:3,
+            letterSpacing:"0.04em", textTransform:"uppercase" }}>
+            {isComplete && total > 0 ? "Complete" : "Done"}
           </span>
         </div>
       </div>
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"5px 14px", width:"100%" }}>
-        {segs.map(s => (
-          <div key={s.label} style={{ display:"flex", alignItems:"center", gap:6 }}>
-            <div style={{ width:7, height:7, borderRadius:"50%", background:s.color,
-              flexShrink:0, boxShadow:`0 0 5px ${s.color}88` }}/>
-            <span style={{ fontSize:10.5, color:"var(--tx3)", flex:1, whiteSpace:"nowrap",
-              overflow:"hidden", textOverflow:"ellipsis" }}>{s.label}</span>
-            <span style={{ fontSize:10.5, fontWeight:700, color:"var(--tx)",
-              fontFamily:"var(--font-mono)" }}>{s.value}%</span>
+
+      {/* Stat tiles */}
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"7px 8px", width:"100%" }}>
+        {stats.map(s => (
+          <div key={s.key}
+            onMouseEnter={() => setHovered(s.key)}
+            onMouseLeave={() => setHovered(null)}
+            style={{ textAlign:"center", padding:"8px 6px", borderRadius:9,
+              background: hovered === s.key ? "var(--bg3)" : "var(--bg2)",
+              border:`1px solid ${hovered === s.key ? "var(--brh)" : "var(--br)"}`,
+              cursor:"default", transition:"all .18s" }}>
+            <div style={{ fontSize:18, fontWeight:800, color:s.color,
+              fontFamily:"var(--font-display)", letterSpacing:"-0.04em",
+              lineHeight:1, transition:"transform .18s",
+              transform: hovered === s.key ? "scale(1.12)" : "scale(1)" }}>
+              {s.value}
+            </div>
+            <div style={{ fontSize:9.5, color:"var(--tx3)", marginTop:3,
+              fontWeight: hovered === s.key ? 600 : 400 }}>{s.label}</div>
           </div>
         ))}
       </div>
@@ -736,12 +1084,10 @@ function PageOverview() {
     navigate('board');
   };
 
-  const [actData, setActData] = useState<{ label: string; value: number; color?: string }[]>([]);
   const [weeklyDone, setWeeklyDone] = useState(0);
   useEffect(() => {
     fetch("/api/task-activity").then(r => r.json()).then(d => {
       if (Array.isArray(d) && d.length > 0) {
-        setActData(d);
         setWeeklyDone(d.slice(-7).reduce((s: number, i: { value: number }) => s + i.value, 0));
       }
     }).catch(() => {});
@@ -751,13 +1097,6 @@ function PageOverview() {
   const highCount    = tasks.filter(t => t.priority === "high").length;
   const mediumCount  = tasks.filter(t => t.priority === "medium").length;
   const lowCount     = tasks.filter(t => t.priority === "low").length;
-  const priTotal     = urgentCount + highCount + mediumCount + lowCount || 1;
-  const priSegs = [
-    { value: Math.round(urgentCount / priTotal * 100), color:"var(--ur)", label:"Urgent" },
-    { value: Math.round(highCount   / priTotal * 100), color:"var(--rd)", label:"High"   },
-    { value: Math.round(mediumCount / priTotal * 100), color:"var(--am)", label:"Medium" },
-    { value: Math.round(lowCount    / priTotal * 100), color:"var(--tx3)",label:"Low"    },
-  ];
 
   const boardsToday   = user?.boards_used_today ?? 0;
   const aiUsesMonth   = user?.ai_uses_this_month ?? 0;
@@ -798,7 +1137,7 @@ function PageOverview() {
       {/* Quick AI input */}
       <div className="quick-ai-bar">
         <div className="quick-ai-header">
-          <div className="quick-ai-icon"><Icons.Sparkle size={13}/></div>
+          <div className="quick-ai-icon"><Icons.Zap size={13}/></div>
           <span className="quick-ai-title">Quick AI Extract</span>
           <span className="quick-ai-sub">kanbi paste any text, AI extracts tasks instantly</span>
           <span className="quick-ai-badge">→ Board</span>
@@ -826,7 +1165,39 @@ function PageOverview() {
         </div>
       </div>
 
-      {/* Stat cards */}
+      {/* Quick Actions */}
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:12 }}>
+        {[
+          { label:"New Task", icon:<Icons.Plus size={16}/>, action:"board", color:"var(--ac)" },
+          { label:"View Board", icon:<Icons.Layers size={16}/>, action:"board", color:"var(--pu)" },
+          { label:"AI Chat", icon:<Icons.Zap size={16}/>, action:"chat", color:"var(--am)" },
+          { label:"Settings", icon:<Icons.Settings size={16}/>, action:"settings", color:"var(--gr)" },
+        ].map(a => (
+          <button key={a.label}
+            onClick={() => navigate(a.action as any)}
+            style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:10,
+              padding:"18px 16px", borderRadius:13, background:"var(--bg1)", border:"1px solid var(--br)",
+              color:"var(--tx2)", fontSize:12, fontWeight:600, cursor:"pointer",
+              transition:"all .2s ease" }}
+            onMouseOver={e => {
+              (e.currentTarget as HTMLButtonElement).style.borderColor = (a as any).color;
+              (e.currentTarget as HTMLButtonElement).style.background = "var(--bg2)";
+              (e.currentTarget as HTMLButtonElement).style.color = (a as any).color;
+            }}
+            onMouseOut={e => {
+              (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--br)";
+              (e.currentTarget as HTMLButtonElement).style.background = "var(--bg1)";
+              (e.currentTarget as HTMLButtonElement).style.color = "var(--tx2)";
+            }}>
+            <div style={{ color:(a as any).color, display:"flex", alignItems:"center", justifyContent:"center" }}>
+              {a.icon}
+            </div>
+            {a.label}
+          </button>
+        ))}
+      </div>
+
+
       <div className="main-grid-4 stagger" style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:12 }}>
         {statCards.map((s, i) => (
           <div key={s.label} className="card fade-up"
@@ -854,8 +1225,8 @@ function PageOverview() {
         ))}
       </div>
 
-      {/* Health + Goals */}
-      <div className="main-grid-2" style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 }}>
+      {/* Health + Goals + Quick Stats */}
+      <div className="main-grid-3" style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:14 }}>
         {/* Workload Health */}
         <div className="card" style={{ borderRadius:13, border:"1px solid var(--br)", background:"var(--bg1)", padding:20 }}>
           <h3 style={{ fontSize:13, fontWeight:600, color:"var(--tx2)", marginBottom:18,
@@ -883,7 +1254,7 @@ function PageOverview() {
               ? "Workload is balanced."
               : healthScore >= 50
               ? "Some high-priority tasks need attention."
-              : "Overloaded kanbi consider deferring tasks."}
+              : "Overloaded  consider deferring low-priority tasks."}
           </p>
         </div>
 
@@ -912,45 +1283,32 @@ function PageOverview() {
             ))}
           </div>
         </div>
-      </div>
 
-      {/* Charts row */}
-      <div className="main-grid-3" style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1fr", gap:14 }}>
+        {/* Priority Overview */}
         <div className="card" style={{ borderRadius:13, border:"1px solid var(--br)", background:"var(--bg1)", padding:20 }}>
-          <h3 style={{ fontSize:13, fontWeight:700, color:"var(--tx)", marginBottom:16,
-            fontFamily:"var(--font-display)" }}>Task Activity kanbi Last 30 Days</h3>
-          <BarChart data={actData}/>
-        </div>
-        <div className="card" style={{ borderRadius:13, border:"1px solid var(--br)", background:"var(--bg1)", padding:20 }}>
-          <h3 style={{ fontSize:13, fontWeight:700, color:"var(--tx)", marginBottom:16,
-            fontFamily:"var(--font-display)" }}>Priority Split</h3>
-          <DonutChart segs={priSegs} size={110}/>
-        </div>
-        <div className="card" style={{ borderRadius:13, border:"1px solid var(--br)", background:"var(--bg1)",
-          padding:20, textAlign:"center" }}>
-          <h3 style={{ fontSize:13, fontWeight:700, color:"var(--tx)", marginBottom:16,
-            fontFamily:"var(--font-display)" }}>Completion</h3>
-          <div style={{ position:"relative", width:76, height:76, margin:"0 auto 10px" }}>
-            <svg width="76" height="76" viewBox="0 0 76 76" style={{ transform:"rotate(-90deg)" }}>
-              <circle cx="38" cy="38" r="30" fill="none" stroke="var(--br)" strokeWidth="7"/>
-              <circle cx="38" cy="38" r="30" fill="none" stroke="var(--gr)" strokeWidth="7"
-                strokeLinecap="round"
-                strokeDasharray={2 * Math.PI * 30}
-                strokeDashoffset={2 * Math.PI * 30 * (1 - (total > 0 ? done / total : 0))}
-                style={{ transition:"stroke-dashoffset .9s ease", filter:"drop-shadow(0 0 6px var(--gr))" }}/>
-            </svg>
-            <div style={{ position:"absolute", inset:0, display:"flex", alignItems:"center", justifyContent:"center" }}>
-              <span style={{ fontSize:17, fontWeight:800, color:"var(--tx)", letterSpacing:"-0.04em",
-                fontFamily:"var(--font-display)" }}>
-                {total > 0 ? Math.round((done / total) * 100) : 0}%
-              </span>
-            </div>
+          <h3 style={{ fontSize:13, fontWeight:700, color:"var(--tx)", fontFamily:"var(--font-display)",
+            marginBottom:16 }}>Priority Breakdown</h3>
+          <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+            {[
+              { label:"Urgent", count:urgentCount, color:"var(--ur)" },
+              { label:"High", count:highCount, color:"var(--rd)" },
+              { label:"Medium", count:mediumCount, color:"var(--am)" },
+              { label:"Low", count:lowCount, color:"var(--tx3)" },
+            ].map(p => (
+              <div key={p.label} style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+                <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                  <div style={{ width:6, height:6, borderRadius:"50%", background:p.color }}/>
+                  <span style={{ fontSize:12, color:"var(--tx2)" }}>{p.label}</span>
+                </div>
+                <span style={{ fontSize:12, fontWeight:700, color:p.color, fontFamily:"var(--font-mono)" }}>{p.count}</span>
+              </div>
+            ))}
           </div>
-          <p style={{ fontSize:11, color:"var(--tx3)" }}>{done} of {total} done</p>
         </div>
       </div>
 
-      {/* Recent Boards */}
+
+
       {savedBoards.length > 0 && (
         <div className="card" style={{ borderRadius:13, border:"1px solid var(--br)", background:"var(--bg1)", padding:20 }}>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
@@ -1184,7 +1542,8 @@ function PageBoard() {
                       className="input-focus"
                       style={{ width:"100%", background:"var(--inp)", border:"1px solid var(--br)",
                         borderRadius:10, padding:"12px 14px", fontSize:13, color:"var(--tx)",
-                        resize:"vertical", lineHeight:1.65 }}/>
+                        resize:"none", lineHeight:1.65, height:220, minHeight:220, maxHeight:220,
+                        overflowY:"auto", boxSizing:"border-box" }}/>
                     <p style={{ fontSize:10, color:"var(--tx3)", marginTop:8 }}>
                       AI-powered extraction · Smart deadline detection · Privacy first
                     </p>
@@ -1409,15 +1768,6 @@ function PageChat() {
   const bottomRef = useRef<HTMLDivElement>(null);
   const ts = () => new Date().toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" });
 
-  const quickPrompts = [
-    { text:"What should I work on first?",   icon:<Icons.Target size={14}/> },
-    { text:"Help me plan my day",            icon:<Icons.Calendar size={14}/> },
-    { text:"I'm feeling overwhelmed",        icon:<Icons.AlertTri size={14}/> },
-    { text:"Prioritize my tasks",            icon:<Icons.Autopilot size={14}/> },
-    { text:"Create task: Review proposal",   icon:<Icons.Plus size={14}/> },
-    { text:"Move login bug to In Progress",  icon:<Icons.Board size={14}/> },
-  ];
-
   const send = useCallback(async (text: string) => {
     if (!text.trim()) return;
     const uid = Date.now().toString();
@@ -1454,10 +1804,14 @@ function PageChat() {
         <div style={{ padding:"14px 22px", borderBottom:"1px solid var(--br)",
           display:"flex", alignItems:"center", gap:12, flexShrink:0 }}>
           <div style={{ width:36, height:36, borderRadius:10,
-            background:"linear-gradient(135deg, var(--as), rgba(167,139,250,0.12))",
-            border:"1px solid var(--ag)", display:"flex", alignItems:"center",
-            justifyContent:"center", color:"var(--ac)" }}>
-            <Icons.Brain size={17}/>
+            background:"linear-gradient(135deg, #6366f1, #a78bfa)",
+            border:"none", display:"flex", alignItems:"center",
+            justifyContent:"center", boxShadow:"0 2px 12px rgba(99,102,241,0.4)" }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 2l1.8 5.4L19 9l-5.2 1.8L12 16l-1.8-5.2L5 9l5.2-1.6z" fill="rgba(255,255,255,0.25)" stroke="#fff"/>
+              <path d="M5 17l.8 2.4L8 20.2l-2.2.8L5 23.4l-.8-2.4L2 20.2l2.2-.8z" fill="rgba(255,255,255,0.4)" stroke="#fff" strokeWidth="1.4"/>
+              <path d="M19 2l.6 1.8L21.4 4.4l-1.8.6L19 6.8l-.6-1.8L16.6 4.4l1.8-.6z" fill="rgba(255,255,255,0.4)" stroke="#fff" strokeWidth="1.4"/>
+            </svg>
           </div>
           <div style={{ flex:1 }}>
             <p style={{ fontSize:13.5, fontWeight:700, color:"var(--tx)", fontFamily:"var(--font-display)" }}>AI Assistant</p>
@@ -1482,42 +1836,50 @@ function PageChat() {
           {chatMessages.length === 0 ? (
             <div className="fade-in" style={{ display:"flex", flexDirection:"column", alignItems:"center",
               justifyContent:"center", minHeight:"100%", padding:"24px" }}>
-              <div style={{ width:52, height:52, borderRadius:14,
-                background:"linear-gradient(135deg, var(--as), rgba(167,139,250,0.12))",
+              <div style={{ width:64, height:64, borderRadius:18,
+                background:"linear-gradient(135deg, #6366f1, #a78bfa)",
                 display:"flex", alignItems:"center", justifyContent:"center",
-                color:"var(--ac)", marginBottom:18 }}>
-                <Icons.Brain size={24}/>
+                boxShadow:"0 4px 24px rgba(99,102,241,0.45), 0 0 0 1px rgba(99,102,241,0.2)",
+                marginBottom:18, position:"relative" }}>
+                {/* outer ring */}
+                <div style={{ position:"absolute", inset:-4, borderRadius:22,
+                  border:"1px solid rgba(99,102,241,0.25)", pointerEvents:"none" }}/>
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 2l1.8 5.4L19 9l-5.2 1.8L12 16l-1.8-5.2L5 9l5.2-1.6z" fill="rgba(255,255,255,0.2)" stroke="#fff"/>
+                  <path d="M5 17l.8 2.4L8 20.2l-2.2.8L5 23.4l-.8-2.4L2 20.2l2.2-.8z" fill="rgba(255,255,255,0.35)" stroke="#fff" strokeWidth="1.3"/>
+                  <path d="M19 2l.6 1.8L21.4 4.4l-1.8.6L19 6.8l-.6-1.8L16.6 4.4l1.8-.6z" fill="rgba(255,255,255,0.35)" stroke="#fff" strokeWidth="1.3"/>
+                </svg>
               </div>
               <p style={{ fontSize:15, fontWeight:700, color:"var(--tx)", marginBottom:8,
                 fontFamily:"var(--font-display)", textAlign:"center" }}>What can I help you with?</p>
-              <p style={{ fontSize:12.5, color:"var(--tx3)", lineHeight:1.65, textAlign:"center", marginBottom:22 }}>
+              <p style={{ fontSize:12.5, color:"var(--tx3)", lineHeight:1.65, textAlign:"center" }}>
                 I can prioritize tasks, create new items, plan your day, and more.
               </p>
-              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, width:"100%", maxWidth:520 }} className="chat-prompts">
-                {quickPrompts.map(q => (
-                  <button key={q.text} onClick={() => send(q.text)}
-                    className="ghost"
-                    style={{ padding:"11px 14px", borderRadius:9, border:"1px solid var(--br)",
-                      background:"var(--bg1)", color:"var(--tx2)", fontSize:12,
-                      textAlign:"left", cursor:"pointer", display:"flex", alignItems:"center", gap:9, transition:"all .15s" }}
-                    onMouseOver={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--brh)"; (e.currentTarget as HTMLButtonElement).style.background = "var(--bg2)"; (e.currentTarget as HTMLButtonElement).style.color = "var(--tx)"; }}
-                    onMouseOut={e  => { (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--br)";  (e.currentTarget as HTMLButtonElement).style.background = "var(--bg1)"; (e.currentTarget as HTMLButtonElement).style.color = "var(--tx2)"; }}>
-                    <span style={{ color:"var(--ac)", flexShrink:0 }}>{q.icon}</span>{q.text}
-                  </button>
-                ))}
-              </div>
             </div>
           ) : (
             <div style={{ display:"flex", flexDirection:"column", gap:14, maxWidth:660, margin:"0 auto" }}>
-              {chatMessages.map((m) => (
+              {chatMessages.map((m) => {
+                const [copied, setCopied] = useState(false);
+                const handleCopy = () => {
+                  navigator.clipboard.writeText(m.content);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                };
+                return (
                 <div key={m.id} className="fade-up"
                   style={{ display:"flex", gap:10, alignItems:"flex-start",
-                    flexDirection: m.role === "user" ? "row-reverse" : "row" }}>
+                    flexDirection: m.role === "user" ? "row-reverse" : "row",
+                    position:"relative" }}>
                   {m.role === "ai" && (
                     <div style={{ width:30, height:30, borderRadius:8, flexShrink:0,
-                      background:"var(--as)", border:"1px solid var(--ag)", display:"flex",
-                      alignItems:"center", justifyContent:"center", color:"var(--ac)" }}>
-                      <Icons.Brain size={13}/>
+                      background:"linear-gradient(135deg, #6366f1, #a78bfa)",
+                      boxShadow:"0 2px 8px rgba(99,102,241,0.35)",
+                      display:"flex", alignItems:"center", justifyContent:"center" }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 2l1.8 5.4L19 9l-5.2 1.8L12 16l-1.8-5.2L5 9l5.2-1.6z" fill="rgba(255,255,255,0.25)" stroke="#fff"/>
+                        <path d="M5 17l.8 2.4L8 20.2l-2.2.8L5 23.4l-.8-2.4L2 20.2l2.2-.8z" fill="rgba(255,255,255,0.4)" stroke="#fff" strokeWidth="1.3"/>
+                        <path d="M19 2l.6 1.8L21.4 4.4l-1.8.6L19 6.8l-.6-1.8L16.6 4.4l1.8-.6z" fill="rgba(255,255,255,0.4)" stroke="#fff" strokeWidth="1.3"/>
+                      </svg>
                     </div>
                   )}
                   <div style={{
@@ -1526,21 +1888,74 @@ function PageChat() {
                     background: m.role === "user" ? "var(--ac)" : "var(--bg1)",
                     border: m.role === "user" ? "none" : "1px solid var(--br)",
                     color: m.role === "user" ? "#fff" : "var(--tx)",
+                    position:"relative"
                   }}>
-                    <p style={{ fontSize:13, lineHeight:1.6, whiteSpace:"pre-wrap" }}>{m.content}</p>
+                    {m.role === "ai" && (
+                      <button
+                        onClick={handleCopy}
+                        style={{
+                          position:"absolute", top:8, right:8,
+                          background:"rgba(0,0,0,0.2)", border:"none",
+                          borderRadius:"4px", padding:"4px 6px",
+                          cursor:"pointer", display:"flex", alignItems:"center",
+                          justifyContent:"center", opacity:0.6,
+                          transition:"opacity 0.2s",
+                          color: m.role === "ai" ? "var(--tx)" : "#fff"
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.opacity = "1"}
+                        onMouseLeave={(e) => e.currentTarget.style.opacity = "0.6"}
+                        title={copied ? "Copied!" : "Copy"}
+                      >
+                        {copied ? (
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                          </svg>
+                        ) : (
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                          </svg>
+                        )}
+                      </button>
+                    )}
+                    {m.role === "ai" ? (
+                      <div style={{ fontSize:13, lineHeight:1.6 }}>
+                        <ReactMarkdown
+                          components={{
+                            p: ({node, ...props}) => <p style={{ margin:"0 0 8px 0" }} {...props} />,
+                            ul: ({node, ...props}) => <ul style={{ margin:"8px 0", paddingLeft:"20px" }} {...props} />,
+                            ol: ({node, ...props}) => <ol style={{ margin:"8px 0", paddingLeft:"20px" }} {...props} />,
+                            li: ({node, ...props}) => <li style={{ margin:"4px 0" }} {...props} />,
+                            strong: ({node, ...props}) => <strong style={{ fontWeight:600 }} {...props} />,
+                            em: ({node, ...props}) => <em style={{ fontStyle:"italic" }} {...props} />,
+                            code: ({node, ...props}) => <code style={{ background:"rgba(0,0,0,0.1)", padding:"2px 6px", borderRadius:"4px", fontFamily:"var(--font-mono)", fontSize:"0.9em" }} {...props} />,
+                          }}
+                        >
+                          {m.content}
+                        </ReactMarkdown>
+                      </div>
+                    ) : (
+                      <p style={{ fontSize:13, lineHeight:1.6, whiteSpace:"pre-wrap" }}>{m.content}</p>
+                    )}
                     <p style={{ fontSize:9.5, opacity:.55, marginTop:5,
                       textAlign: m.role === "user" ? "right" : "left",
                       fontFamily:"var(--font-mono)" }}>{m.ts}</p>
                   </div>
                 </div>
-              ))}
+                );
+              })}
 
               {loading && (
                 <div className="fade-in" style={{ display:"flex", gap:10, alignItems:"center" }}>
                   <div style={{ width:30, height:30, borderRadius:8, flexShrink:0,
-                    background:"var(--as)", border:"1px solid var(--ag)",
-                    display:"flex", alignItems:"center", justifyContent:"center", color:"var(--ac)" }}>
-                    <Icons.Brain size={13}/>
+                    background:"linear-gradient(135deg, #6366f1, #a78bfa)",
+                    boxShadow:"0 2px 8px rgba(99,102,241,0.35)",
+                    display:"flex", alignItems:"center", justifyContent:"center" }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 2l1.8 5.4L19 9l-5.2 1.8L12 16l-1.8-5.2L5 9l5.2-1.6z" fill="rgba(255,255,255,0.25)" stroke="#fff"/>
+                      <path d="M5 17l.8 2.4L8 20.2l-2.2.8L5 23.4l-.8-2.4L2 20.2l2.2-.8z" fill="rgba(255,255,255,0.4)" stroke="#fff" strokeWidth="1.3"/>
+                      <path d="M19 2l.6 1.8L21.4 4.4l-1.8.6L19 6.8l-.6-1.8L16.6 4.4l1.8-.6z" fill="rgba(255,255,255,0.4)" stroke="#fff" strokeWidth="1.3"/>
+                    </svg>
                   </div>
                   <div style={{ padding:"11px 15px", borderRadius:"4px 14px 14px 14px",
                     background:"var(--bg1)", border:"1px solid var(--br)", display:"flex", gap:5, alignItems:"center" }}>
@@ -2104,52 +2519,29 @@ function PageSaved() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   INTEGRATIONS TAB — coming soon
+   INTEGRATIONS TAB  coming soon
 ═══════════════════════════════════════════════════════════════════════════ */
 function IntegrationsTab() {
   const integrations = [
     {
       name: "Google Calendar",
       desc: "Sync tasks with due dates and get reminders alongside your schedule.",
-      icon: (
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-          <rect x="3" y="4" width="18" height="17" rx="2" fill="#fff" stroke="#e0e0e0" strokeWidth="1"/>
-          <rect x="3" y="8" width="18" height="2" fill="#4285F4"/>
-          <rect x="7" y="2" width="2" height="4" rx="1" fill="#4285F4"/>
-          <rect x="15" y="2" width="2" height="4" rx="1" fill="#4285F4"/>
-          <text x="12" y="19" textAnchor="middle" fontSize="7" fontWeight="700" fill="#4285F4">CAL</text>
-        </svg>
-      ),
+      icon: "📅",
     },
     {
       name: "Notion",
       desc: "Push boards and tasks directly into your Notion workspace.",
-      icon: (
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-          <rect x="3" y="3" width="18" height="18" rx="3" fill="#fff" stroke="#e0e0e0" strokeWidth="1"/>
-          <text x="12" y="16" textAnchor="middle" fontSize="10" fontWeight="800" fill="#000">N</text>
-        </svg>
-      ),
+      icon: "📝",
     },
     {
       name: "Slack",
       desc: "Get daily briefings and burnout alerts delivered to your Slack channel.",
-      icon: (
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-          <rect x="3" y="3" width="18" height="18" rx="3" fill="#4A154B"/>
-          <text x="12" y="16" textAnchor="middle" fontSize="10" fontWeight="800" fill="#fff">#</text>
-        </svg>
-      ),
+      icon: "💬",
     },
     {
       name: "Linear",
       desc: "Import issues from Linear and manage them on your Kanbi board.",
-      icon: (
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-          <rect x="3" y="3" width="18" height="18" rx="3" fill="#5E6AD2"/>
-          <text x="12" y="16" textAnchor="middle" fontSize="10" fontWeight="800" fill="#fff">L</text>
-        </svg>
-      ),
+      icon: "🔗",
     },
   ];
 
@@ -2160,15 +2552,15 @@ function IntegrationsTab() {
 
       <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
         {integrations.map(({ name, desc, icon }) => (
-          <div key={name} style={{
+          <div key={name} className="integration-card" style={{
             borderRadius:12, border:"1px solid var(--br)", background:"var(--bg2)",
             padding:"16px 18px", display:"flex", alignItems:"center", gap:14, flexWrap:"wrap",
             opacity:0.7,
           }}>
             <div style={{
-              width:42, height:42, borderRadius:10, background:"#fff",
+              width:42, height:42, borderRadius:10, background:"rgba(94,111,232,0.1)",
               display:"flex", alignItems:"center", justifyContent:"center",
-              flexShrink:0, boxShadow:"0 2px 8px rgba(0,0,0,0.14)",
+              flexShrink:0, fontSize:"20px",
             }}>
               {icon}
             </div>
@@ -2233,12 +2625,12 @@ function PageSettings({ theme, toggleTheme }: { theme: Theme; toggleTheme: () =>
   };
 
   const tabs = [
-    { key:"profile",      label:"Profile",      icon:<Icons.Settings size={13}/>   },
-    { key:"security",     label:"Security",     icon:<Icons.Shield size={13}/>     },
-    { key:"billing",      label:"Billing",      icon:<Icons.Card size={13}/>       },
-    { key:"integrations", label:"Integrations", icon:<Icons.Layers size={13}/>     },
-    { key:"appearance",   label:"Appearance",   icon:<Icons.Sun size={13}/>        },
-    { key:"danger",       label:"Danger Zone",  icon:<Icons.Trash size={13}/>      },
+    { key:"profile",      label:"Profile",      icon:<Icons.Settings size={16}/>   },
+    { key:"security",     label:"Security",     icon:<Icons.Shield size={16}/>     },
+    { key:"billing",      label:"Billing",      icon:<Icons.Card size={16}/>       },
+    { key:"appearance",   label:"Appearance",   icon:<Icons.Sun size={16}/>        },
+    { key:"data",         label:"Data & Export",icon:<Icons.Download size={16}/>   },
+    { key:"danger",       label:"Danger Zone",  icon:<Icons.Trash size={16}/>      },
   ];
 
   const handleSaveProfile = async () => {
@@ -2267,25 +2659,33 @@ function PageSettings({ theme, toggleTheme }: { theme: Theme; toggleTheme: () =>
         <p style={{ fontSize:13, color:"var(--tx2)" }}>Manage your account and preferences</p>
       </div>
 
-      <div className="settings-grid" style={{ display:"grid", gridTemplateColumns:"210px 1fr", gap:24, alignItems:"start" }}>
+      <div className="settings-grid" style={{ display:"grid", gridTemplateColumns:"1fr", gap:12 }}>
         {/* Tabs */}
-        <div className="settings-tabs" style={{ display:"flex", flexDirection:"column", gap:3, position:"sticky", top:0 }}>
+        <div className="settings-tabs" style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:8 }}>
           {tabs.map(t => (
             <button key={t.key} onClick={() => setTab(t.key)} className="nav-btn"
-              style={{ padding:"9px 12px", borderRadius:9, border:"none",
-                background: tab === t.key ? "var(--as)" : "transparent",
+              data-active={tab === t.key ? "true" : "false"}
+              style={{ padding:"12px 10px", borderRadius:12, border: tab === t.key ? "2px solid var(--ac)" : "1.5px solid var(--br)",
+                background: tab === t.key ? "rgba(99,102,241,0.08)" : "var(--bg2)",
                 color: tab === t.key ? "var(--ac)" : "var(--tx2)",
-                fontSize:13, fontWeight: tab === t.key ? 700 : 400,
-                cursor:"pointer", display:"flex", alignItems:"center", gap:10,
-                textAlign:"left", borderLeft: tab === t.key ? "2px solid var(--ac)" : "2px solid transparent" }}>
-              <span style={{ color: tab === t.key ? "var(--ac)" : "var(--tx3)" }}>{t.icon}</span>
-              {t.label}
+                fontSize:12, fontWeight: tab === t.key ? 700 : 500,
+                cursor:"pointer", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:6,
+                whiteSpace:"nowrap", transition:"all 0.2s ease", position:"relative" }}>
+              <span style={{ color: tab === t.key ? "var(--ac)" : "var(--tx3)", display:"flex", alignItems:"center", justifyContent:"center" }}>{t.icon}</span>
+              <span style={{ fontSize:11, lineHeight:1.2, textAlign:"center" }}>{t.label}</span>
+              {(t.key === "data") && (
+                <span style={{
+                  fontSize:8, fontWeight:700, color:"var(--am)", background:"rgba(245,158,11,0.15)",
+                  border:"0.5px solid rgba(245,158,11,0.3)", padding:"1px 5px", borderRadius:99,
+                  letterSpacing:"0.05em", textTransform:"uppercase", marginTop:2
+                }}>Soon</span>
+              )}
             </button>
           ))}
         </div>
 
         {/* Panel */}
-        <div style={{ borderRadius:14, border:"1px solid var(--br)", background:"var(--bg1)", padding:26 }}>
+        <div className="settings-panel" style={{ borderRadius:14, border:"1px solid var(--br)", background:"var(--bg1)", padding:26 }}>
           {tab === "profile" && (
             <div>
               <h3 style={{ fontSize:15, fontWeight:800, color:"var(--tx)", marginBottom:4, fontFamily:"var(--font-display)" }}>Profile</h3>
@@ -2380,7 +2780,7 @@ function PageSettings({ theme, toggleTheme }: { theme: Theme; toggleTheme: () =>
             <div>
               <h3 style={{ fontSize:15, fontWeight:800, color:"var(--tx)", marginBottom:4, fontFamily:"var(--font-display)" }}>Billing</h3>
               <p style={{ fontSize:12.5, color:"var(--tx2)", marginBottom:22 }}>Manage your subscription</p>
-              <div style={{ borderRadius:12, border:"1px solid var(--br)", padding:"18px", marginBottom:16,
+              <div className="settings-billing-row" style={{ borderRadius:12, border:"1px solid var(--br)", padding:"18px", marginBottom:16,
                 display:"flex", alignItems:"center", gap:16, flexWrap:"wrap" }}>
                 <div style={{ flex:1, minWidth:0 }}>
                   <p style={{ fontSize:14, fontWeight:700, color:"var(--tx)", fontFamily:"var(--font-display)" }}>
@@ -2405,15 +2805,11 @@ function PageSettings({ theme, toggleTheme }: { theme: Theme; toggleTheme: () =>
             </div>
           )}
 
-          {tab === "integrations" && (
-            <IntegrationsTab />
-          )}
-
           {tab === "appearance" && (
             <div>
               <h3 style={{ fontSize:15, fontWeight:800, color:"var(--tx)", marginBottom:4, fontFamily:"var(--font-display)" }}>Appearance</h3>
               <p style={{ fontSize:12.5, color:"var(--tx2)", marginBottom:22 }}>Customize how Kanbi looks</p>
-              <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"16px 18px",
+              <div className="settings-appearance-row" style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"16px 18px",
                 borderRadius:11, border:"1px solid var(--br)", background:"var(--bg2)" }}>
                 <div>
                   <p style={{ fontSize:13.5, fontWeight:500, color:"var(--tx)", marginBottom:3 }}>Theme</p>
@@ -2458,6 +2854,18 @@ function PageSettings({ theme, toggleTheme }: { theme: Theme; toggleTheme: () =>
               </div>
             </div>
           )}
+
+          {tab === "data" && (
+            <div>
+              <h3 style={{ fontSize:15, fontWeight:800, color:"var(--tx)", marginBottom:4, fontFamily:"var(--font-display)" }}>Data & Export</h3>
+              <p style={{ fontSize:12.5, color:"var(--tx2)", marginBottom:22 }}>Export and manage your data</p>
+              <div style={{ borderRadius:12, border:"1px solid var(--br)", background:"var(--bg2)", padding:"20px", textAlign:"center" }}>
+                <div style={{ fontSize:40, marginBottom:12, display:"flex", justifyContent:"center" }}><Icons.Download size={32} style={{ color:"var(--tx3)" }}/></div>
+                <p style={{ fontSize:13.5, fontWeight:600, color:"var(--tx)", marginBottom:6 }}>Coming Soon</p>
+                <p style={{ fontSize:12, color:"var(--tx3)" }}>Export your boards, tasks, and data in multiple formats coming soon.</p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -2473,13 +2881,13 @@ function Sidebar({ page, setPage, theme, toggleTheme }: {
   const { user } = useApp();
 
   const mainNav: [Page, string, ReactNode][] = [
-    ["overview",  "Overview",     <Icons.Overview size={15}/>  ],
-    ["board",     "Board",        <Icons.Board size={15}/>     ],
-    ["saved",     "Saved Boards", <Icons.Saved size={15}/>     ],
+    ["overview",  "Overview",     <StarIcon size={15}/>        ],
+    ["board",     "Board",        <BoardStarIcon size={15}/>   ],
+    ["saved",     "Saved Boards", <SavedStarIcon size={15}/>   ],
   ];
   const aiNav: [Page, string, ReactNode, string?][] = [
-    ["chat",      "AI Chat",      <Icons.Chat size={15}/>,      "AI"   ],
-    ["autopilot", "Autopilot",    <Icons.Autopilot size={15}/>, "AUTO" ],
+    ["chat",      "AI Chat",      <ChatStarIcon size={15}/>,    "AI"   ],
+    ["autopilot", "Autopilot",    <PilotStarIcon size={15}/>,   "AUTO" ],
   ];
 
   const boardsUsed  = user?.boards_used_today ?? 0;
@@ -2559,7 +2967,7 @@ function Sidebar({ page, setPage, theme, toggleTheme }: {
         {aiNav.map(([k, l, i, b]) => <NavBtn key={k} k={k} label={l} icon={i} badge={b}/>)}
 
         <div className="nav-section-label" style={{ marginTop:18 }}>Account</div>
-        <NavBtn k="settings" label="Settings" icon={<Icons.Settings size={15}/>}/>
+        <NavBtn k="settings" label="Settings" icon={<SettingsStarIcon size={15}/>}/>
       </nav>
 
       {/* Bottom */}
@@ -2633,12 +3041,12 @@ function Sidebar({ page, setPage, theme, toggleTheme }: {
 ═══════════════════════════════════════════════════════════════════════════ */
 function BottomNav({ page, setPage }: { page: Page; setPage: (p: Page) => void }) {
   const items: [Page, string, ReactNode][] = [
-    ["overview",  "Home",     <Icons.Overview size={19}/>  ],
-    ["board",     "Board",    <Icons.Board size={19}/>     ],
-    ["chat",      "Chat",     <Icons.Chat size={19}/>      ],
-    ["autopilot", "Pilot",    <Icons.Autopilot size={19}/> ],
-    ["saved",     "Saved",    <Icons.Saved size={19}/>     ],
-    ["settings",  "Settings", <Icons.Settings size={19}/> ],
+    ["overview",  "Home",     <StarIcon size={19}/>        ],
+    ["board",     "Board",    <BoardStarIcon size={19}/>   ],
+    ["chat",      "Chat",     <ChatStarIcon size={19}/>    ],
+    ["autopilot", "Pilot",    <PilotStarIcon size={19}/>   ],
+    ["saved",     "Saved",    <SavedStarIcon size={19}/>   ],
+    ["settings",  "Settings", <SettingsStarIcon size={19}/>],
   ];
   return (
     <div className="bottom-nav" style={{
@@ -2666,40 +3074,106 @@ function BottomNav({ page, setPage }: { page: Page; setPage: (p: Page) => void }
 /* ═══════════════════════════════════════════════════════════════════════════
    TOPBAR
 ═══════════════════════════════════════════════════════════════════════════ */
-const PAGE_META: Record<Page, { title: string; sub: string }> = {
-  overview:  { title:"Dashboard",     sub:"Your workload at a glance"      },
-  board:     { title:"Kanban Board",  sub:"Extract and manage tasks"       },
-  chat:      { title:"AI Chat",       sub:"Your productivity coach"        },
-  autopilot: { title:"AI Autopilot",  sub:"Autonomous workload management" },
-  saved:     { title:"Saved Boards",  sub:"All your boards and projects"   },
-  settings:  { title:"Settings",      sub:"Account preferences"            },
+const PAGE_META: Record<Page, { title: string; sub: string; icon: React.ReactNode; gradient: string }> = {
+  overview:  {
+    title:"Dashboard", sub:"Your workload at a glance",
+    gradient:"linear-gradient(135deg,#6366f1,#a78bfa)",
+    icon:(
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/>
+        <rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>
+      </svg>
+    ),
+  },
+  board:     {
+    title:"Kanban Board", sub:"Extract and manage tasks",
+    gradient:"linear-gradient(135deg,#6366f1,#06b6d4)",
+    icon:(
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="3" width="5" height="18" rx="1.5"/><rect x="10" y="3" width="5" height="12" rx="1.5"/><rect x="17" y="3" width="4" height="8" rx="1.5"/>
+      </svg>
+    ),
+  },
+  chat:      {
+    title:"AI Chat", sub:"Your productivity coach",
+    gradient:"linear-gradient(135deg,#6366f1,#ec4899)",
+    icon:(
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+      </svg>
+    ),
+  },
+  autopilot: {
+    title:"AI Autopilot", sub:"Autonomous workload management",
+    gradient:"linear-gradient(135deg,#f59e0b,#6366f1)",
+    icon:(
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .962 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.962 0z"/>
+      </svg>
+    ),
+  },
+  saved:     {
+    title:"Saved Boards", sub:"All your boards and projects",
+    gradient:"linear-gradient(135deg,#10b981,#6366f1)",
+    icon:(
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+      </svg>
+    ),
+  },
+  settings:  {
+    title:"Settings", sub:"Account preferences",
+    gradient:"linear-gradient(135deg,#64748b,#6366f1)",
+    icon:(
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+    ),
+  },
 };
 
 function Topbar({ page }: { page: Page }) {
   const { user } = useApp();
+  const meta = PAGE_META[page];
   return (
     <div style={{
       height:56, borderBottom:"1px solid var(--br)",
       background:"var(--bg1)", display:"flex", alignItems:"center",
-      justifyContent:"space-between", padding:"0 26px", flexShrink:0,
-      boxShadow:"0 1px 0 var(--br)",
+      justifyContent:"space-between", padding:"0 20px", flexShrink:0,
+      boxShadow:"0 1px 12px rgba(0,0,0,0.12)",
     }}>
-      <div style={{ display:"flex", alignItems:"center", gap:14 }}>
-        <div>
+      {/* Left: icon + title */}
+      <div style={{ display:"flex", alignItems:"center", gap:10, minWidth:0 }}>
+        <div className="topbar-icon" style={{
+          width:34, height:34, borderRadius:10, flexShrink:0,
+          background:meta.gradient,
+          display:"flex", alignItems:"center", justifyContent:"center",
+          boxShadow:"0 2px 10px rgba(99,102,241,0.35)",
+        }}>
+          {meta.icon}
+        </div>
+        <div style={{ minWidth:0 }}>
           <h2 className="topbar-title" style={{
             fontSize:15, fontWeight:700, color:"var(--tx)",
             fontFamily:"var(--font-display)", lineHeight:1.2,
-            letterSpacing:"-0.03em",
+            letterSpacing:"-0.03em", whiteSpace:"nowrap",
+            overflow:"hidden", textOverflow:"ellipsis",
           }}>
-            {PAGE_META[page].title}
+            {meta.title}
           </h2>
-          <p className="topbar-sub" style={{ fontSize:11, color:"var(--tx3)", lineHeight:1, marginTop:1 }}>
-            {PAGE_META[page].sub}
+          <p className="topbar-sub" style={{
+            fontSize:11, color:"var(--tx3)", lineHeight:1, marginTop:2,
+            whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis",
+          }}>
+            {meta.sub}
           </p>
         </div>
       </div>
-      <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-        <div style={{ display:"flex", alignItems:"center", gap:6, padding:"4px 10px",
+
+      {/* Right: live badge + avatar */}
+      <div style={{ display:"flex", alignItems:"center", gap:10, flexShrink:0 }}>
+        <div style={{ display:"flex", alignItems:"center", gap:6, padding:"5px 11px",
           borderRadius:99, background:"var(--as)", border:"1px solid var(--ag)" }}>
           <div className="pulse" style={{ width:5, height:5, borderRadius:"50%", background:"var(--gr)" }}/>
           <span style={{ fontSize:10.5, color:"var(--ac)", fontWeight:600, fontFamily:"var(--font-mono)" }}>Live</span>

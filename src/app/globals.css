@@ -91,14 +91,29 @@ img, video, svg {
     @apply outline-none ring-2 ring-primary ring-offset-2 ring-offset-background;
   }
   
-  /* Hide scrollbar for Chrome, Safari and Opera */
-  ::-webkit-scrollbar {
-    display: none;
+  /* Hide scrollbar across all browsers without affecting scroll behavior */
+  *,
+  *::before,
+  *::after {
+    scrollbar-width: none;        /* Firefox */
+    -ms-overflow-style: none;     /* IE / Edge */
   }
-  /* Hide scrollbar for IE, Edge and Firefox */
+
+  *::-webkit-scrollbar {
+    display: none;                /* Chrome, Safari, Opera */
+    width: 0;
+    height: 0;
+  }
+
   html {
-    scrollbar-width: none;  /* Firefox */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
     overflow-x: hidden;
+  }
+
+  body {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
   }
 }
 

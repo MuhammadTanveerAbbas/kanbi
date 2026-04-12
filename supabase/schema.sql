@@ -1,5 +1,5 @@
 -- ================================================
--- KANBI — Complete Database Schema
+-- KANBI  Complete Database Schema
 -- Run once in Supabase Dashboard → SQL Editor
 -- ================================================
 

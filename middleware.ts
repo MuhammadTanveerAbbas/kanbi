@@ -1,6 +1,10 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+// Note: Using middleware for Supabase auth is the recommended approach
+// The "proxy" pattern mentioned in Next.js docs is still experimental
+// and not fully compatible with Supabase SSR yet
+
 const PUBLIC_PATHS = ['/', '/sign-in', '/sign-up', '/forgot', '/reset-password', '/pricing', '/features', '/privacy', '/terms']
 const AUTH_PATHS = ['/sign-in', '/sign-up', '/forgot', '/reset-password']
 

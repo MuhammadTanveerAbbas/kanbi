@@ -36,15 +36,23 @@ function EmptyState({
 }: EmptyStateProps) {
   return (
     <div className="text-center py-12 px-4">
-      <div className="mb-4">{icon}</div>
-      <h3 className="text-lg font-medium mb-2">{title}</h3>
-      <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
+      <div className="mb-6 flex justify-center">{icon}</div>
+      <h3 className="text-base font-semibold text-foreground mb-2">{title}</h3>
+      <p className="text-sm text-muted-foreground mb-8 max-w-sm mx-auto leading-relaxed">
         {description}
       </p>
-      <div className="space-y-2">
-        {action && <Button onClick={action.onClick}>{action.label}</Button>}
+      <div className="flex flex-col gap-3 justify-center">
+        {action && (
+          <Button onClick={action.onClick} className="w-full sm:w-auto">
+            {action.label}
+          </Button>
+        )}
         {secondaryAction && (
-          <Button variant="outline" onClick={secondaryAction.onClick}>
+          <Button
+            variant="outline"
+            onClick={secondaryAction.onClick}
+            className="w-full sm:w-auto"
+          >
             {secondaryAction.label}
           </Button>
         )}
@@ -60,14 +68,22 @@ export function NoTasksEmptyState({
   onShowExample: () => void;
 }) {
   return (
-    <div
-      className="text-center py-20 border-2 border-dashed rounded-lg transition-all"
-      style={{ backgroundColor: "#141414" }}
-    >
-      <div>
-        <Sparkles className="mx-auto h-12 w-12 text-primary mb-4" />
+    <div className="text-center py-16 px-4 border border-border rounded-lg bg-card/50 backdrop-blur-sm transition-all duration-300 hover:bg-card/70">
+      <div className="mb-6 flex justify-center">
+        <div className="p-3 rounded-lg bg-primary/10">
+          <Sparkles className="h-8 w-8 text-primary" />
+        </div>
       </div>
-      <h3 className="text-lg font-medium mb-2">Ready to get organized?</h3>
+      <h3 className="text-lg font-semibold text-foreground mb-2">
+        Ready to get organized?
+      </h3>
+      <p className="text-sm text-muted-foreground max-w-sm mx-auto mb-6">
+        Create your first task or import existing ones to get started.
+      </p>
+      <Button onClick={onShowExample} className="gap-2">
+        <Sparkles className="h-4 w-4" />
+        Show Example
+      </Button>
     </div>
   );
 }
@@ -80,18 +96,30 @@ export function ColumnEmptyState({
 }) {
   const configs = {
     "To Do": {
-      icon: <Square className="h-8 w-8 text-slate-500 opacity-50" />,
+      icon: (
+        <div className="p-2 rounded-lg bg-muted/50 w-fit mx-auto mb-3">
+          <Square className="h-6 w-6 text-muted-foreground" />
+        </div>
+      ),
       title: "No tasks yet",
       description:
         'Drag tasks here or click "Add Something Here" to get started.',
     },
     "In Progress": {
-      icon: <Play className="h-8 w-8 text-blue-500 opacity-50" />,
+      icon: (
+        <div className="p-2 rounded-lg bg-blue-500/10 w-fit mx-auto mb-3">
+          <Play className="h-6 w-6 text-blue-400" />
+        </div>
+      ),
       title: "Nothing in progress",
       description: "Drag tasks here when you start working on them.",
     },
     Done: {
-      icon: <CheckCircle className="h-8 w-8 text-green-500 opacity-50" />,
+      icon: (
+        <div className="p-2 rounded-lg bg-green-500/10 w-fit mx-auto mb-3">
+          <CheckCircle className="h-6 w-6 text-green-400" />
+        </div>
+      ),
       title: "Nothing finished yet",
       description: "Completed tasks will appear here. You've got this!",
     },
@@ -100,9 +128,12 @@ export function ColumnEmptyState({
   const config = configs[status];
 
   return (
-    <div className="text-center py-8 rounded-lg bg-muted/30">
+    <div className="text-center py-8 px-4 rounded-lg bg-muted/20 border border-border/50 transition-colors duration-200">
       {config.icon}
-      <p className="text-sm text-muted-foreground mt-2">{config.description}</p>
+      <h4 className="text-sm font-medium text-foreground mb-1">
+        {config.title}
+      </h4>
+      <p className="text-xs text-muted-foreground">{config.description}</p>
     </div>
   );
 }
@@ -117,7 +148,11 @@ export function NoSearchResultsEmptyState({
 }) {
   return (
     <EmptyState
-      icon={<Search className="h-10 w-10 text-muted-foreground mx-auto" />}
+      icon={
+        <div className="p-3 rounded-lg bg-muted/50">
+          <Search className="h-8 w-8 text-muted-foreground" />
+        </div>
+      }
       title="No tasks found"
       description={`No tasks match "${searchTerm}". Try a different search term or clear the search to see all tasks.`}
       action={{
@@ -131,10 +166,14 @@ export function NoSearchResultsEmptyState({
 // Import/Export empty states
 export function NoDataToExportEmptyState() {
   return (
-    <Card className="border-dashed">
-      <CardContent className="p-6">
+    <Card className="border-dashed border-border/50 bg-card/50">
+      <CardContent className="p-8">
         <EmptyState
-          icon={<Download className="h-8 w-8 text-muted-foreground mx-auto" />}
+          icon={
+            <div className="p-3 rounded-lg bg-muted/50">
+              <Download className="h-8 w-8 text-muted-foreground" />
+            </div>
+          }
           title="Nothing to export yet"
           description="Create some tasks first, then you can save them to a file for backup or sharing."
         />
@@ -145,10 +184,14 @@ export function NoDataToExportEmptyState() {
 
 export function ImportPromptEmptyState({ onImport }: { onImport: () => void }) {
   return (
-    <Card className="border-dashed">
-      <CardContent className="p-6">
+    <Card className="border-dashed border-border/50 bg-card/50">
+      <CardContent className="p-8">
         <EmptyState
-          icon={<Upload className="h-8 w-8 text-muted-foreground mx-auto" />}
+          icon={
+            <div className="p-3 rounded-lg bg-muted/50">
+              <Upload className="h-8 w-8 text-muted-foreground" />
+            </div>
+          }
           title="Import your tasks"
           description="Have tasks saved in a file? Import them to get back to work quickly."
           action={{
@@ -171,7 +214,11 @@ export function ErrorRecoveryEmptyState({
 }) {
   return (
     <EmptyState
-      icon={<FileText className="h-10 w-10 text-muted-foreground mx-auto" />}
+      icon={
+        <div className="p-3 rounded-lg bg-destructive/10">
+          <FileText className="h-8 w-8 text-destructive" />
+        </div>
+      }
       title="Something went wrong"
       description="Don't worry - your tasks are safe. Let's try to get you back on track."
       action={{

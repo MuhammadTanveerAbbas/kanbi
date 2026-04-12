@@ -5,6 +5,7 @@ import { Task, TaskStatus, TaskPriority } from '@/lib/types';
 import { analytics } from '@/lib/analytics';
 import { createClient } from '@/lib/supabase/client';
 import { RealtimeService } from '@/lib/services/realtime-service';
+import { AUTO_SAVE_DELAY } from '@/lib/constants';
 
 export function useTasksStore() {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -36,7 +37,7 @@ export function useTasksStore() {
         console.error('Auto-save error:', error);
         setSaveError('Auto-save failed');
       }
-    }, 3000);
+    }, AUTO_SAVE_DELAY);
   }, [currentBoardId]);
 
   const syncTaskStats = useCallback(async (currentTasks: Task[]) => {

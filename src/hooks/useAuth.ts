@@ -12,7 +12,7 @@ export function useAuth() {
   const supabase = createClient()
 
   useEffect(() => {
-    // Get existing session immediately — no flicker
+    // Get existing session immediately  no flicker
     supabase.auth.getUser().then(({ data: { user } }) => {
       setUser(user)
       setLoading(false)

@@ -4,6 +4,7 @@ import { UsageStats } from '@/lib/dashboard-types';
 import { usageService } from '@/lib/services/usage-service';
 import { cacheManager, CACHE_KEYS, CACHE_TTL } from '@/lib/cache/cache-manager';
 import { rateLimit, rateLimitResponse, addRateLimitHeaders } from '@/lib/rate-limiter';
+import { USAGE_LIMITS } from '@/lib/constants';
 
 export async function GET(request: NextRequest) {
   const limitResult = await rateLimit(request, { maxRequests: 30, windowMs: 60000 });
@@ -94,17 +95,17 @@ export async function GET(request: NextRequest) {
       {
         totalGenerations: 0,
         todayCount: 0,
-        todayLimit: 10,
+        todayLimit: USAGE_LIMITS.FREE.DAILY_AI,
         monthCount: 0,
-        monthLimit: 300,
+        monthLimit: USAGE_LIMITS.FREE.MONTHLY_AI,
         boardsUsedToday: 0,
         boardsUsedMonth: 0,
-        boardsTodayLimit: 10,
-        boardsMonthLimit: 300,
+        boardsTodayLimit: USAGE_LIMITS.FREE.DAILY_BOARDS,
+        boardsMonthLimit: USAGE_LIMITS.FREE.MONTHLY_BOARDS,
         aiUsedToday: 0,
         aiUsedMonth: 0,
-        aiTodayLimit: 10,
-        aiMonthLimit: 300,
+        aiTodayLimit: USAGE_LIMITS.FREE.DAILY_AI,
+        aiMonthLimit: USAGE_LIMITS.FREE.MONTHLY_AI,
         plan: 'free',
       },
       { status: 200 }

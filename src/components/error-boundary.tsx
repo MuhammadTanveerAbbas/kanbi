@@ -84,56 +84,60 @@ export class ErrorBoundary extends Component<Props, State> {
       }
 
       return (
-        <div className="flex items-center justify-center min-h-screen p-4 bg-muted/20">
-          <Card className="max-w-md w-full">
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5 text-destructive" />
-                <CardTitle>Something went wrong</CardTitle>
+        <div className="flex items-center justify-center min-h-screen p-4 bg-background">
+          <Card className="max-w-md w-full border-border/50 bg-card/50 backdrop-blur-sm">
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 rounded-lg bg-destructive/10">
+                  <AlertTriangle className="h-5 w-5 text-destructive" />
+                </div>
+                <CardTitle className="text-lg font-semibold">
+                  Something went wrong
+                </CardTitle>
               </div>
-              <CardDescription>
+              <CardDescription className="text-sm text-muted-foreground">
                 Don't worry - your tasks are safe. Let's get you back on track.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {this.state.error && (
-                <div className="p-3 bg-muted rounded-md">
-                  <p className="text-sm font-mono text-muted-foreground">
+                <div className="p-3 bg-muted/30 border border-border/50 rounded-lg">
+                  <p className="text-xs font-mono text-muted-foreground break-words">
                     {this.state.error.message}
                   </p>
                 </div>
               )}
               
-              <div className="space-y-2">
+              <div className="flex flex-col gap-2">
                 <Button
                   onClick={this.handleRefresh}
-                  className="w-full"
+                  className="w-full gap-2"
                   variant="default"
                 >
-                  <RefreshCw className="mr-2 h-4 w-4" />
+                  <RefreshCw className="h-4 w-4" />
                   Refresh Page
                 </Button>
                 
                 <Button
                   onClick={this.handleGoHome}
-                  className="w-full"
+                  className="w-full gap-2"
                   variant="outline"
                 >
-                  <Home className="mr-2 h-4 w-4" />
+                  <Home className="h-4 w-4" />
                   Go to Home
                 </Button>
                 
                 <Button
                   onClick={this.handleExportData}
-                  className="w-full"
+                  className="w-full gap-2"
                   variant="outline"
                 >
-                  <Download className="mr-2 h-4 w-4" />
+                  <Download className="h-4 w-4" />
                   Save My Tasks First
                 </Button>
               </div>
               
-              <p className="text-xs text-muted-foreground text-center">
+              <p className="text-xs text-muted-foreground text-center leading-relaxed">
                 If this keeps happening, try clearing your browser data or contact support.
               </p>
             </CardContent>

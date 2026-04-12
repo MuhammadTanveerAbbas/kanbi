@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "GOOGLE_CLIENT_ID is not configured" }, { status: 500 });
   }
 
-  // Derive origin from the incoming request — works for both local and production
+  // Derive origin from the incoming request  works for both local and production
   const { origin } = new URL(req.url);
   const REDIRECT_URI = `${origin}/api/integrations/google-calendar/callback`;
 
