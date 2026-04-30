@@ -1,1 +1,1 @@
-{"name": "kanbi"}
+{"name": "kanbi", "installCommand": "pnpm install --no-frozen-lockfile"}
