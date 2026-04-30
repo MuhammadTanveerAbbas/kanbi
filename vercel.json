@@ -1,4 +1,10 @@
 {
   "buildCommand": "pnpm build",
-  "installCommand": "pnpm install --no-frozen-lockfile"
+  "installCommand": "pnpm install --no-frozen-lockfile",
+  "crons": [
+    {
+      "path": "/api/keep-alive",
+      "schedule": "every 5 days"
+    }
+  ]
 }
