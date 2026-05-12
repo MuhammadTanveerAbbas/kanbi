@@ -49,7 +49,14 @@ export async function DELETE() {
     supabase.from('profiles').delete().eq('id', user.id),
   ]);
 
-  // Sign out kanbi actual auth user deletion requires service role key (admin API)
+  // Delete the auth user via admin API (requires service role key)
+  const { createClient: createAdmin } = await import('@supabase/supabase-js');
+  const adminClient = createAdmin(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+  await adminClient.auth.admin.deleteUser(user.id);
+
   await supabase.auth.signOut();
   return NextResponse.json({ success: true });
 }

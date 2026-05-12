@@ -67,6 +67,7 @@ export async function POST(request: NextRequest) {
           quantity: 1,
         },
       ],
+      metadata: { supabase_user_id: userId },
       success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?upgraded=true`,
       cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/#pricing`,
     });

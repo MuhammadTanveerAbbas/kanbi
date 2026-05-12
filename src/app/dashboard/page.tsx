@@ -7,7 +7,6 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { LogoIcon, LogoBadge } from "@/components/logo";
 import ReactMarkdown from "react-markdown";
 
 const DARK_VARS = `
@@ -1039,7 +1038,7 @@ function TaskCard({
    PAGE: OVERVIEW
 ═══════════════════════════════════════════════════════════════════════════ */
 function PageOverview() {
-  const { tasks, setTasks, savedBoards, navigate, dailyGoal, weeklyGoal, user, isLoading } = useApp();
+  const { tasks, setTasks, savedBoards, navigate, dailyGoal, weeklyGoal, user, isLoading, setBoardView } = useApp();
   const done  = tasks.filter(t => t.status === "done").length;
   const total = tasks.length;
   const wip   = tasks.filter(t => t.status === "wip").length;
@@ -1066,21 +1065,17 @@ function PageOverview() {
         body: JSON.stringify({ title: quickInput.trim(), priority: 'medium', label: 'General', status: 'todo' }),
       });
       const data = await res.json();
-      if (res.ok) {
-        setTasks(prev => [...prev, {
-          id: data.id, title: data.title,
-          priority: data.priority ?? 'medium',
-          label: data.label ?? 'General',
-          status: data.status ?? 'todo',
-        }]);
-      } else {
-        setTasks(prev => [...prev, { id: `KB-${Date.now()}`, title: quickInput.trim(), priority: 'medium', label: 'General', status: 'todo' }]);
-      }
+      const newTask: Task = res.ok
+        ? { id: data.id, title: data.title, priority: (data.priority ?? 'medium') as Priority, label: data.label ?? 'General', status: (data.status ?? 'todo') as TaskStatus }
+        : { id: `KB-${Date.now()}`, title: quickInput.trim(), priority: 'medium', label: 'General', status: 'todo' };
+      setTasks(prev => [...prev, newTask]);
     } catch {
       setTasks(prev => [...prev, { id: `KB-${Date.now()}`, title: quickInput.trim(), priority: 'medium', label: 'General', status: 'todo' }]);
     }
     fetch('/api/sync-task-stats', { method: 'POST' }).catch(() => {});
-    setQuickInput(''); setAddLoading(false);
+    setQuickInput('');
+    setAddLoading(false);
+    setBoardView('kanban');
     navigate('board');
   };
 
@@ -1307,37 +1302,127 @@ function PageOverview() {
         </div>
       </div>
 
-
-
+      {/* ── Recent Boards ── */}
       {savedBoards.length > 0 && (
-        <div className="card" style={{ borderRadius:13, border:"1px solid var(--br)", background:"var(--bg1)", padding:20 }}>
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
-            <h3 style={{ fontSize:13, fontWeight:700, color:"var(--tx)", fontFamily:"var(--font-display)" }}>Recent Boards</h3>
+        <div className="fade-up" style={{ animationDelay: ".25s" }}>
+          {/* Section header */}
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
+            <div>
+              <h2 style={{ fontSize:16, fontWeight:800, color:"var(--tx)", fontFamily:"var(--font-display)",
+                letterSpacing:"-0.03em", marginBottom:3 }}>Recent Boards</h2>
+              <p style={{ fontSize:11.5, color:"var(--tx3)" }}>Jump back into your latest work</p>
+            </div>
             <button onClick={() => navigate("saved")} className="ghost"
-              style={{ fontSize:11, color:"var(--ac)", background:"transparent", border:"none",
-                padding:"3px 8px", borderRadius:6, display:"flex", alignItems:"center", gap:4 }}>
-              View all <Icons.ChevR size={11}/>
+              style={{ fontSize:12, color:"var(--ac)", background:"var(--as)", border:"1px solid var(--ag)",
+                padding:"6px 14px", borderRadius:8, display:"flex", alignItems:"center", gap:6,
+                fontWeight:600, transition:"all .2s" }}
+              onMouseOver={e => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(99,102,241,0.18)"; }}
+              onMouseOut={e  => { (e.currentTarget as HTMLButtonElement).style.background = "var(--as)"; }}>
+              View all <Icons.ArrowR size={12}/>
             </button>
           </div>
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))", gap:10 }}>
-            {savedBoards.slice(0, 4).map(b => (
-              <div key={b.id}
-                style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 12px",
-                  borderRadius:9, background:"var(--bg2)", border:"1px solid var(--br)",
-                  cursor:"pointer", transition:"all .15s" }}
-                onMouseOver={e => { (e.currentTarget as HTMLDivElement).style.borderColor = "var(--brh)"; }}
-                onMouseOut={e  => { (e.currentTarget as HTMLDivElement).style.borderColor = "var(--br)";  }}>
-                <div style={{ width:32, height:32, borderRadius:8, background:"var(--as)",
-                  display:"flex", alignItems:"center", justifyContent:"center", color:"var(--ac)", flexShrink:0 }}>
-                  <Icons.Layers size={13}/>
+
+          {/* Board cards grid */}
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))", gap:14 }}
+            className="saved-grid">
+            {savedBoards.slice(0, 4).map((b, idx) => {
+              const ACCENTS = ["var(--ac)","var(--pu)","var(--gr)","var(--am)"] as const;
+              const BGSOF  = ["rgba(99,102,241,0.08)","rgba(167,139,250,0.08)","rgba(16,185,129,0.08)","rgba(245,158,11,0.08)"] as const;
+              const BORDER = ["rgba(99,102,241,0.22)","rgba(167,139,250,0.22)","rgba(16,185,129,0.22)","rgba(245,158,11,0.22)"] as const;
+              const accent = ACCENTS[idx % 4];
+              const donePct = b.tasks.length > 0
+                ? Math.round((b.tasks.filter(t => t.status === "done").length / b.tasks.length) * 100)
+                : 0;
+              return (
+                <div key={b.id}
+                  onClick={() => { setTasks(b.tasks); setBoardView("kanban"); navigate("board"); }}
+                  style={{
+                    borderRadius:16, border:"1px solid var(--br)", background:"var(--bg1)",
+                    padding:20, cursor:"pointer", position:"relative", overflow:"hidden",
+                    transition:"border-color .2s, transform .2s, box-shadow .2s",
+                  }}
+                  onMouseOver={e => {
+                    const el = e.currentTarget as HTMLDivElement;
+                    el.style.borderColor = BORDER[idx % 4];
+                    el.style.transform = "translateY(-2px)";
+                    el.style.boxShadow = `0 8px 32px rgba(0,0,0,0.18)`;
+                  }}
+                  onMouseOut={e => {
+                    const el = e.currentTarget as HTMLDivElement;
+                    el.style.borderColor = "var(--br)";
+                    el.style.transform = "translateY(0)";
+                    el.style.boxShadow = "none";
+                  }}>
+
+                  {/* Top accent bar */}
+                  <div style={{
+                    position:"absolute", top:0, left:0, right:0, height:3,
+                    background:`linear-gradient(90deg, ${accent}, transparent 80%)`,
+                    borderRadius:"16px 16px 0 0",
+                  }}/>
+
+                  {/* Icon + folder badge */}
+                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:14 }}>
+                    <div style={{
+                      width:42, height:42, borderRadius:11,
+                      background:BGSOF[idx % 4], border:`1px solid ${BORDER[idx % 4]}`,
+                      display:"flex", alignItems:"center", justifyContent:"center",
+                      color:accent, flexShrink:0,
+                    }}>
+                      <Icons.Layers size={17}/>
+                    </div>
+                    <span style={{
+                      fontSize:10, padding:"3px 9px", borderRadius:100,
+                      background:"var(--bg2)", border:"1px solid var(--br)",
+                      color:"var(--tx3)", fontFamily:"var(--font-mono)", fontWeight:600,
+                    }}>{b.folder}</span>
+                  </div>
+
+                  {/* Board name */}
+                  <p style={{
+                    fontSize:14, fontWeight:700, color:"var(--tx)", marginBottom:6,
+                    fontFamily:"var(--font-display)", letterSpacing:"-0.02em",
+                    overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap",
+                  }}>{b.name}</p>
+
+                  {/* Meta row */}
+                  <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:14 }}>
+                    <span style={{ display:"flex", alignItems:"center", gap:4, fontSize:11, color:"var(--tx3)" }}>
+                      <div style={{ width:5, height:5, borderRadius:"50%", background:accent }}/>
+                      {b.taskCount} tasks
+                    </span>
+                    <span style={{ display:"flex", alignItems:"center", gap:4, fontSize:11, color:"var(--tx3)" }}>
+                      <Icons.Clock size={10}/>{b.lastEdited}
+                    </span>
+                  </div>
+
+                  {/* Progress */}
+                  <div style={{ marginBottom:14 }}>
+                    <div style={{ display:"flex", justifyContent:"space-between", marginBottom:5 }}>
+                      <span style={{ fontSize:10.5, color:"var(--tx3)" }}>Completion</span>
+                      <span style={{ fontSize:10.5, fontWeight:700, color:accent, fontFamily:"var(--font-mono)" }}>{donePct}%</span>
+                    </div>
+                    <PBar value={donePct} h={4} color={accent}/>
+                  </div>
+
+                  {/* CTA */}
+                  <div style={{
+                    display:"flex", alignItems:"center", justifyContent:"space-between",
+                    paddingTop:12, borderTop:"1px solid var(--br)",
+                  }}>
+                    <span style={{ fontSize:11, color:"var(--tx3)" }}>
+                      {b.tasks.filter(t => t.status === "done").length}/{b.taskCount} done
+                    </span>
+                    <span style={{
+                      fontSize:11.5, fontWeight:700, color:accent,
+                      display:"flex", alignItems:"center", gap:4,
+                    }}>
+                      Open <Icons.ArrowR size={11}/>
+                    </span>
+                  </div>
                 </div>
-                <div style={{ flex:1, minWidth:0 }}>
-                  <p style={{ fontSize:12, fontWeight:600, color:"var(--tx)", overflow:"hidden",
-                    textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{b.name}</p>
-                  <p style={{ fontSize:10, color:"var(--tx3)" }}>{b.taskCount} tasks · {b.lastEdited}</p>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
@@ -1758,6 +1843,87 @@ function PageBoard() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   CHAT MESSAGE  (extracted to fix useState-in-map hook violation)
+═══════════════════════════════════════════════════════════════════════════ */
+function ChatMessage({ m }: { m: ChatMsg }) {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = () => {
+    navigator.clipboard.writeText(m.content);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+  return (
+    <div className="fade-up"
+      style={{ display:"flex", gap:10, alignItems:"flex-start",
+        flexDirection: m.role === "user" ? "row-reverse" : "row",
+        position:"relative" }}>
+      {m.role === "ai" && (
+        <div style={{ width:30, height:30, borderRadius:8, flexShrink:0,
+          background:"linear-gradient(135deg, #6366f1, #a78bfa)",
+          boxShadow:"0 2px 8px rgba(99,102,241,0.35)",
+          display:"flex", alignItems:"center", justifyContent:"center" }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 2l1.8 5.4L19 9l-5.2 1.8L12 16l-1.8-5.2L5 9l5.2-1.6z" fill="rgba(255,255,255,0.25)" stroke="#fff"/>
+            <path d="M5 17l.8 2.4L8 20.2l-2.2.8L5 23.4l-.8-2.4L2 20.2l2.2-.8z" fill="rgba(255,255,255,0.4)" stroke="#fff" strokeWidth="1.3"/>
+            <path d="M19 2l.6 1.8L21.4 4.4l-1.8.6L19 6.8l-.6-1.8L16.6 4.4l1.8-.6z" fill="rgba(255,255,255,0.4)" stroke="#fff" strokeWidth="1.3"/>
+          </svg>
+        </div>
+      )}
+      <div style={{
+        maxWidth:"78%", padding:"11px 15px",
+        borderRadius: m.role === "user" ? "14px 4px 14px 14px" : "4px 14px 14px 14px",
+        background: m.role === "user" ? "var(--ac)" : "var(--bg1)",
+        border: m.role === "user" ? "none" : "1px solid var(--br)",
+        color: m.role === "user" ? "#fff" : "var(--tx)",
+        position:"relative"
+      }}>
+        {m.role === "ai" && (
+          <button onClick={handleCopy}
+            style={{ position:"absolute", top:8, right:8,
+              background:"rgba(0,0,0,0.2)", border:"none", borderRadius:"4px",
+              padding:"4px 6px", cursor:"pointer", display:"flex", alignItems:"center",
+              justifyContent:"center", opacity:0.6, transition:"opacity 0.2s", color:"var(--tx)" }}
+            onMouseEnter={e => e.currentTarget.style.opacity = "1"}
+            onMouseLeave={e => e.currentTarget.style.opacity = "0.6"}
+            title={copied ? "Copied!" : "Copy"}>
+            {copied ? (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+            ) : (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+              </svg>
+            )}
+          </button>
+        )}
+        {m.role === "ai" ? (
+          <div style={{ fontSize:13, lineHeight:1.6 }}>
+            <ReactMarkdown
+              components={{
+                p: ({node, ...props}) => <p style={{ margin:"0 0 8px 0" }} {...props} />,
+                ul: ({node, ...props}) => <ul style={{ margin:"8px 0", paddingLeft:"20px" }} {...props} />,
+                ol: ({node, ...props}) => <ol style={{ margin:"8px 0", paddingLeft:"20px" }} {...props} />,
+                li: ({node, ...props}) => <li style={{ margin:"4px 0" }} {...props} />,
+                strong: ({node, ...props}) => <strong style={{ fontWeight:600 }} {...props} />,
+                em: ({node, ...props}) => <em style={{ fontStyle:"italic" }} {...props} />,
+                code: ({node, ...props}) => <code style={{ background:"rgba(0,0,0,0.1)", padding:"2px 6px", borderRadius:"4px", fontFamily:"var(--font-mono)", fontSize:"0.9em" }} {...props} />,
+              }}
+            >{m.content}</ReactMarkdown>
+          </div>
+        ) : (
+          <p style={{ fontSize:13, lineHeight:1.6, whiteSpace:"pre-wrap" }}>{m.content}</p>
+        )}
+        <p style={{ fontSize:9.5, opacity:.55, marginTop:5,
+          textAlign: m.role === "user" ? "right" : "left",
+          fontFamily:"var(--font-mono)" }}>{m.ts}</p>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    PAGE: AI CHAT
 ═══════════════════════════════════════════════════════════════════════════ */
 function PageChat() {
@@ -1858,92 +2024,9 @@ function PageChat() {
             </div>
           ) : (
             <div style={{ display:"flex", flexDirection:"column", gap:14, maxWidth:660, margin:"0 auto" }}>
-              {chatMessages.map((m) => {
-                const [copied, setCopied] = useState(false);
-                const handleCopy = () => {
-                  navigator.clipboard.writeText(m.content);
-                  setCopied(true);
-                  setTimeout(() => setCopied(false), 2000);
-                };
-                return (
-                <div key={m.id} className="fade-up"
-                  style={{ display:"flex", gap:10, alignItems:"flex-start",
-                    flexDirection: m.role === "user" ? "row-reverse" : "row",
-                    position:"relative" }}>
-                  {m.role === "ai" && (
-                    <div style={{ width:30, height:30, borderRadius:8, flexShrink:0,
-                      background:"linear-gradient(135deg, #6366f1, #a78bfa)",
-                      boxShadow:"0 2px 8px rgba(99,102,241,0.35)",
-                      display:"flex", alignItems:"center", justifyContent:"center" }}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M12 2l1.8 5.4L19 9l-5.2 1.8L12 16l-1.8-5.2L5 9l5.2-1.6z" fill="rgba(255,255,255,0.25)" stroke="#fff"/>
-                        <path d="M5 17l.8 2.4L8 20.2l-2.2.8L5 23.4l-.8-2.4L2 20.2l2.2-.8z" fill="rgba(255,255,255,0.4)" stroke="#fff" strokeWidth="1.3"/>
-                        <path d="M19 2l.6 1.8L21.4 4.4l-1.8.6L19 6.8l-.6-1.8L16.6 4.4l1.8-.6z" fill="rgba(255,255,255,0.4)" stroke="#fff" strokeWidth="1.3"/>
-                      </svg>
-                    </div>
-                  )}
-                  <div style={{
-                    maxWidth:"78%", padding:"11px 15px",
-                    borderRadius: m.role === "user" ? "14px 4px 14px 14px" : "4px 14px 14px 14px",
-                    background: m.role === "user" ? "var(--ac)" : "var(--bg1)",
-                    border: m.role === "user" ? "none" : "1px solid var(--br)",
-                    color: m.role === "user" ? "#fff" : "var(--tx)",
-                    position:"relative"
-                  }}>
-                    {m.role === "ai" && (
-                      <button
-                        onClick={handleCopy}
-                        style={{
-                          position:"absolute", top:8, right:8,
-                          background:"rgba(0,0,0,0.2)", border:"none",
-                          borderRadius:"4px", padding:"4px 6px",
-                          cursor:"pointer", display:"flex", alignItems:"center",
-                          justifyContent:"center", opacity:0.6,
-                          transition:"opacity 0.2s",
-                          color: m.role === "ai" ? "var(--tx)" : "#fff"
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.opacity = "1"}
-                        onMouseLeave={(e) => e.currentTarget.style.opacity = "0.6"}
-                        title={copied ? "Copied!" : "Copy"}
-                      >
-                        {copied ? (
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <polyline points="20 6 9 17 4 12"></polyline>
-                          </svg>
-                        ) : (
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                          </svg>
-                        )}
-                      </button>
-                    )}
-                    {m.role === "ai" ? (
-                      <div style={{ fontSize:13, lineHeight:1.6 }}>
-                        <ReactMarkdown
-                          components={{
-                            p: ({node, ...props}) => <p style={{ margin:"0 0 8px 0" }} {...props} />,
-                            ul: ({node, ...props}) => <ul style={{ margin:"8px 0", paddingLeft:"20px" }} {...props} />,
-                            ol: ({node, ...props}) => <ol style={{ margin:"8px 0", paddingLeft:"20px" }} {...props} />,
-                            li: ({node, ...props}) => <li style={{ margin:"4px 0" }} {...props} />,
-                            strong: ({node, ...props}) => <strong style={{ fontWeight:600 }} {...props} />,
-                            em: ({node, ...props}) => <em style={{ fontStyle:"italic" }} {...props} />,
-                            code: ({node, ...props}) => <code style={{ background:"rgba(0,0,0,0.1)", padding:"2px 6px", borderRadius:"4px", fontFamily:"var(--font-mono)", fontSize:"0.9em" }} {...props} />,
-                          }}
-                        >
-                          {m.content}
-                        </ReactMarkdown>
-                      </div>
-                    ) : (
-                      <p style={{ fontSize:13, lineHeight:1.6, whiteSpace:"pre-wrap" }}>{m.content}</p>
-                    )}
-                    <p style={{ fontSize:9.5, opacity:.55, marginTop:5,
-                      textAlign: m.role === "user" ? "right" : "left",
-                      fontFamily:"var(--font-mono)" }}>{m.ts}</p>
-                  </div>
-                </div>
-                );
-              })}
+              {chatMessages.map((m) => (
+                <ChatMessage key={m.id} m={m}/>
+              ))}
 
               {loading && (
                 <div className="fade-in" style={{ display:"flex", gap:10, alignItems:"center" }}>
@@ -2060,8 +2143,11 @@ function PageAutopilot() {
   const healthScore  = tasks.length === 0 ? 100 :
     Math.round(Math.max(0, 100 - (tasks.filter(t=>t.priority==="urgent"||t.priority==="high").length / Math.max(tasks.length,1)) * 42));
 
+  const [briefingError, setBriefingError] = useState("");
+
   const handleGenerate = async () => {
     setGenLoading(true);
+    setBriefingError("");
     try {
       const res = await fetch('/api/autopilot/briefing', {
         method: 'POST',
@@ -2072,6 +2158,7 @@ function PageAutopilot() {
         }),
       });
       const data = await res.json();
+      if (!res.ok) { setBriefingError(data.error ?? "Failed to generate briefing. Please try again."); return; }
       const nb: Briefing = {
         id: Date.now().toString(),
         date: new Date().toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" }),
@@ -2087,7 +2174,7 @@ function PageAutopilot() {
       };
       setBriefings(prev => [nb, ...prev]);
     } catch {
-      // Silently fail kanbi user can retry
+      setBriefingError("Network error. Please check your connection and try again.");
     } finally {
       setGenLoading(false);
     }
@@ -2124,6 +2211,18 @@ function PageAutopilot() {
           }
         </button>
       </div>
+
+      {briefingError && (
+        <div style={{ display:"flex", alignItems:"center", gap:9, padding:"10px 14px",
+          borderRadius:10, background:"rgba(239,68,68,0.07)", border:"1px solid rgba(239,68,68,0.2)" }}>
+          <Icons.AlertTri size={13} style={{ color:"var(--rd)", flexShrink:0 }}/>
+          <span style={{ fontSize:12, color:"var(--rd)", flex:1 }}>{briefingError}</span>
+          <button onClick={() => setBriefingError("")} style={{ background:"transparent",
+            border:"none", color:"var(--rd)", cursor:"pointer", padding:2, display:"flex" }}>
+            <Icons.X size={11}/>
+          </button>
+        </div>
+      )}
 
       {/* Live sync status */}
       <div style={{ display:"flex", alignItems:"center", gap:11, padding:"12px 16px",
@@ -2625,12 +2724,13 @@ function PageSettings({ theme, toggleTheme }: { theme: Theme; toggleTheme: () =>
   };
 
   const tabs = [
-    { key:"profile",      label:"Profile",      icon:<Icons.Settings size={16}/>   },
-    { key:"security",     label:"Security",     icon:<Icons.Shield size={16}/>     },
-    { key:"billing",      label:"Billing",      icon:<Icons.Card size={16}/>       },
-    { key:"appearance",   label:"Appearance",   icon:<Icons.Sun size={16}/>        },
-    { key:"data",         label:"Data & Export",icon:<Icons.Download size={16}/>   },
-    { key:"danger",       label:"Danger Zone",  icon:<Icons.Trash size={16}/>      },
+    { key:"profile",        label:"Profile",       icon:<Icons.Settings size={16}/>  },
+    { key:"security",       label:"Security",      icon:<Icons.Shield size={16}/>    },
+    { key:"billing",        label:"Billing",       icon:<Icons.Card size={16}/>      },
+    { key:"appearance",     label:"Appearance",    icon:<Icons.Sun size={16}/>       },
+    { key:"integrations",   label:"Integrations",  icon:<Icons.Google size={16}/>    },
+    { key:"data",           label:"Data & Export", icon:<Icons.Download size={16}/>  },
+    { key:"danger",         label:"Danger Zone",   icon:<Icons.Trash size={16}/>     },
   ];
 
   const handleSaveProfile = async () => {
@@ -2661,7 +2761,7 @@ function PageSettings({ theme, toggleTheme }: { theme: Theme; toggleTheme: () =>
 
       <div className="settings-grid" style={{ display:"grid", gridTemplateColumns:"1fr", gap:12 }}>
         {/* Tabs */}
-        <div className="settings-tabs" style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:8 }}>
+        <div className="settings-tabs" style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:8 }}>
           {tabs.map(t => (
             <button key={t.key} onClick={() => setTab(t.key)} className="nav-btn"
               data-active={tab === t.key ? "true" : "false"}
@@ -2855,6 +2955,8 @@ function PageSettings({ theme, toggleTheme }: { theme: Theme; toggleTheme: () =>
             </div>
           )}
 
+          {tab === "integrations" && <IntegrationsTab/>}
+
           {tab === "data" && (
             <div>
               <h3 style={{ fontSize:15, fontWeight:800, color:"var(--tx)", marginBottom:4, fontFamily:"var(--font-display)" }}>Data & Export</h3>
@@ -2900,21 +3002,33 @@ function Sidebar({ page, setPage, theme, toggleTheme }: {
     return (
       <button onClick={() => setPage(k)} className="nav-btn"
         style={{
-          width:"100%", padding:"8px 12px", borderRadius:10, border:"none",
-          background: active ? "linear-gradient(135deg, rgba(99,102,241,0.15), rgba(167,139,250,0.08))" : "transparent",
+          width:"100%", padding:"7px 10px 7px 8px", borderRadius:10, border:"none",
+          background: active ? "rgba(99,102,241,0.1)" : "transparent",
           color: active ? "var(--ac)" : "var(--tx2)",
           fontSize:13, fontWeight: active ? 600 : 400,
-          cursor:"pointer", display:"flex", alignItems:"center", gap:10,
-          textAlign:"left", marginBottom:2,
-          boxShadow: active ? "inset 0 0 0 1px rgba(99,102,241,0.2)" : "none",
+          cursor:"pointer", display:"flex", alignItems:"center", gap:9,
+          textAlign:"left", marginBottom:2, position:"relative",
           transition:"all .15s", letterSpacing:"-0.01em",
         }}>
+        {/* Active left accent bar */}
+        {active && (
+          <span style={{
+            position:"absolute", left:0, top:"20%", bottom:"20%",
+            width:3, borderRadius:99,
+            background:"linear-gradient(180deg, var(--ac), var(--pu))",
+            boxShadow:"0 0 8px rgba(99,102,241,0.6)",
+          }}/>
+        )}
+        {/* Icon container */}
         <span style={{
-          width:28, height:28, borderRadius:8, flexShrink:0,
+          width:32, height:32, borderRadius:9, flexShrink:0,
           display:"flex", alignItems:"center", justifyContent:"center",
-          background: active ? "rgba(99,102,241,0.15)" : "transparent",
-          color: active ? "var(--ac)" : "var(--tx3)",
-          transition:"all .15s",
+          background: active
+            ? "linear-gradient(135deg, rgba(99,102,241,0.22), rgba(167,139,250,0.14))"
+            : "rgba(255,255,255,0.03)",
+          border: active ? "1px solid rgba(99,102,241,0.25)" : "1px solid transparent",
+          boxShadow: active ? "0 2px 10px rgba(99,102,241,0.25), inset 0 1px 0 rgba(255,255,255,0.08)" : "none",
+          transition:"all .18s",
         }}>{icon}</span>
         <span style={{ flex:1 }}>{label}</span>
         {badge && (
@@ -2923,6 +3037,7 @@ function Sidebar({ page, setPage, theme, toggleTheme }: {
             background: badge === "AI" ? "var(--as)" : "rgba(167,139,250,0.12)",
             color: badge === "AI" ? "var(--ac)" : "var(--pu)",
             fontWeight:700, fontFamily:"var(--font-mono)", letterSpacing:"0.04em",
+            border: `1px solid ${badge === "AI" ? "var(--ag)" : "rgba(167,139,250,0.2)"}`,
           }}>{badge}</span>
         )}
       </button>
