@@ -1,245 +1,233 @@
-/**
- * Tracks and enforces per-user AI and board usage limits.
- * Limits differ by subscription plan (free vs. premium).
- */
-import { createClient } from '@/lib/supabase/server';
-import { cachingService } from './caching-service';
+import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { USAGE_LIMITS } from '@/lib/constants'
+import { logger } from '@/lib/logging/logger'
 
-export interface UsageStats {
-  boardsUsedToday: number;
-  boardsUsedMonth: number;
-  aiUsedToday: number;
-  aiUsedMonth: number;
-  totalBoards: number;
-  totalAI: number;
+export interface UserUsage {
+  aiUsedToday: number
+  aiUsedMonth: number
+  boardsUsedToday: number
+  boardsUsedMonth: number
 }
 
-export interface UsageLimits {
-  dailyBoardLimit: number;
-  monthlyBoardLimit: number;
-  dailyAILimit: number;
-  monthlyAILimit: number;
-  plan: 'free' | 'premium';
+export interface UserLimits {
+  plan: 'free' | 'premium'
+  dailyAILimit: number
+  monthlyAILimit: number
+  dailyBoardLimit: number
+  monthlyBoardLimit: number
 }
-
-const SUBSCRIPTION_LIMITS = {
-  free: {
-    dailyBoardLimit: 10,
-    monthlyBoardLimit: 300,
-    dailyAILimit: 10,
-    monthlyAILimit: 300,
-  },
-  premium: {
-    dailyBoardLimit: 50,
-    monthlyBoardLimit: 1500,
-    dailyAILimit: 50,
-    monthlyAILimit: 1500,
-  },
-} as const;
 
 class UsageService {
-  private async getUserPlan(userId: string): Promise<'free' | 'premium'> {
-    const cached = await cachingService.getCachedSubscription(userId);
-    if (cached?.plan) {
-      return cached.plan;
+  async getUserLimits(userId: string | null): Promise<UserLimits> {
+    if (!userId) {
+      return {
+        plan: 'free',
+        dailyAILimit: USAGE_LIMITS.FREE.DAILY_AI,
+        monthlyAILimit: USAGE_LIMITS.FREE.MONTHLY_AI,
+        dailyBoardLimit: USAGE_LIMITS.FREE.DAILY_BOARDS,
+        monthlyBoardLimit: USAGE_LIMITS.FREE.MONTHLY_BOARDS,
+      }
     }
 
     try {
-      const supabase = await createClient();
-      const { data: subscription } = await supabase
+      const supabase = await createClient()
+      const { data: subscription, error } = await supabase
         .from('subscriptions')
         .select('plan')
         .eq('user_id', userId)
         .eq('status', 'active')
-        .single();
+        .single()
 
-      const plan = subscription?.plan === 'premium' ? 'premium' : 'free';
-      await cachingService.setCachedSubscription(userId, { plan, status: 'active' });
-      return plan;
+      if (error && error.code !== 'PGRST116') {
+        logger.error('Error fetching subscription:', { message: error.message })
+      }
+
+      const plan = subscription?.plan === 'premium' ? 'premium' : 'free'
+      const limits = USAGE_LIMITS[plan.toUpperCase() as 'FREE' | 'PREMIUM']
+
+      return {
+        plan,
+        dailyAILimit: limits.DAILY_AI,
+        monthlyAILimit: limits.MONTHLY_AI,
+        dailyBoardLimit: limits.DAILY_BOARDS,
+        monthlyBoardLimit: limits.MONTHLY_BOARDS,
+      }
     } catch (error) {
-      console.error('Error fetching subscription:', error);
-      return 'free';
-    }
-  }
-
-  async getUserLimits(userId: string): Promise<UsageLimits> {
-    if (userId === 'anonymous' || !userId) {
+      logger.error('Error fetching subscription:', { error })
       return {
-        ...SUBSCRIPTION_LIMITS.free,
         plan: 'free',
-      };
-    }
-
-    const plan = await this.getUserPlan(userId);
-    const limits = SUBSCRIPTION_LIMITS[plan];
-
-    return {
-      ...limits,
-      plan,
-    };
-  }
-
-  async getUserUsage(userId: string, forceRefresh: boolean = false): Promise<UsageStats> {
-    if (userId === 'anonymous' || !userId) {
-      return {
-        boardsUsedToday: 0,
-        boardsUsedMonth: 0,
-        aiUsedToday: 0,
-        aiUsedMonth: 0,
-        totalBoards: 0,
-        totalAI: 0,
-      };
-    }
-
-    if (forceRefresh) {
-      await cachingService.invalidateUsageCache(userId);
-    }
-
-    if (!forceRefresh) {
-      const cached = await cachingService.getCachedUsage(userId);
-      if (cached) {
-        return cached;
+        dailyAILimit: USAGE_LIMITS.FREE.DAILY_AI,
+        monthlyAILimit: USAGE_LIMITS.FREE.MONTHLY_AI,
+        dailyBoardLimit: USAGE_LIMITS.FREE.DAILY_BOARDS,
+        monthlyBoardLimit: USAGE_LIMITS.FREE.MONTHLY_BOARDS,
       }
     }
+  }
+
+  async getTodayUsage(userId: string): Promise<UserUsage> {
+    const supabase = await createClient()
+    const today = new Date().toISOString().split('T')[0]
 
     try {
-      const supabase = await createClient();
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const todayStr = today.toISOString().split('T')[0];
-
-      // Get this month's date range
-      const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-      const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59);
-      const monthStartStr = monthStart.toISOString().split('T')[0];
-      const monthEndStr = monthEnd.toISOString().split('T')[0];
-
-      // Get today's usage - use maybeSingle to handle no rows gracefully
       const { data: todayUsage, error: todayError } = await supabase
         .from('usage_tracking')
-        .select('boards_used_count, ai_used_count')
+        .select('generations_count, boards_used_count, ai_used_count')
         .eq('user_id', userId)
-        .eq('date', todayStr)
-        .maybeSingle();
+        .eq('date', today)
+        .single()
 
-      if (todayError) {
-        console.error('Error fetching today usage:', todayError);
+      if (todayError && todayError.code !== 'PGRST116') {
+        logger.error('Error fetching today usage:', { message: todayError.message })
       }
 
-      // Get monthly usage
+      return {
+        aiUsedToday: todayUsage?.ai_used_count || 0,
+        aiUsedMonth: 0,
+        boardsUsedToday: todayUsage?.boards_used_count || 0,
+        boardsUsedMonth: 0,
+      }
+    } catch (error) {
+      logger.error('Error fetching today usage:', { error })
+      return { aiUsedToday: 0, aiUsedMonth: 0, boardsUsedToday: 0, boardsUsedMonth: 0 }
+    }
+  }
+
+  async getMonthUsage(userId: string): Promise<{ aiUsedMonth: number; boardsUsedMonth: number }> {
+    const supabase = await createClient()
+
+    try {
+      const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]
+
       const { data: monthUsage, error: monthError } = await supabase
         .from('usage_tracking')
-        .select('boards_used_count, ai_used_count')
+        .select('ai_used_count, boards_used_count')
         .eq('user_id', userId)
-        .gte('date', monthStartStr)
-        .lte('date', monthEndStr);
+        .gte('date', monthStart)
 
-      if (monthError) {
-        console.error('Error fetching month usage:', monthError);
+      if (monthError && monthError.code !== 'PGRST116') {
+        logger.error('Error fetching month usage:', { message: monthError.message })
       }
 
-      // Get total counts
-      const { count: totalBoards } = await supabase
-        .from('saved_generations')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', userId);
+      const aiUsedMonth = monthUsage?.reduce((sum, row) => sum + (row.ai_used_count || 0), 0) ?? 0
+      const boardsUsedMonth = monthUsage?.reduce((sum, row) => sum + (row.boards_used_count || 0), 0) ?? 0
 
-      const boardsUsedToday = todayUsage?.boards_used_count || 0;
-      const aiUsedToday = todayUsage?.ai_used_count || 0;
-      const boardsUsedMonth = monthUsage?.reduce((sum, row) => sum + (row.boards_used_count || 0), 0) || 0;
-      const aiUsedMonth = monthUsage?.reduce((sum, row) => sum + (row.ai_used_count || 0), 0) || 0;
-
-      const stats: UsageStats = {
-        boardsUsedToday,
-        boardsUsedMonth,
-        aiUsedToday,
-        aiUsedMonth,
-        totalBoards: totalBoards || 0,
-        totalAI: aiUsedMonth,
-      };
-
-      await cachingService.setCachedUsage(userId, stats);
-      return stats;
+      return { aiUsedMonth, boardsUsedMonth }
     } catch (error) {
-      console.error('Error fetching usage stats:', error);
-      return {
-        boardsUsedToday: 0,
-        boardsUsedMonth: 0,
-        aiUsedToday: 0,
-        aiUsedMonth: 0,
-        totalBoards: 0,
-        totalAI: 0,
-      };
+      logger.error('Error fetching month usage:', { error })
+      return { aiUsedMonth: 0, boardsUsedMonth: 0 }
     }
+  }
+
+  async getUserUsage(userId: string, _forceRefresh = false): Promise<UserUsage> {
+    const [today, month] = await Promise.all([
+      this.getTodayUsage(userId),
+      this.getMonthUsage(userId),
+    ])
+
+    return {
+      ...today,
+      ...month,
+    }
+  }
+
+  async canUseAI(userId: string): Promise<boolean> {
+    const limits = await this.getUserLimits(userId)
+    const usage = await this.getUserUsage(userId)
+
+    return usage.aiUsedToday < limits.dailyAILimit && usage.aiUsedMonth < limits.monthlyAILimit
+  }
+
+  async canCreateBoard(userId: string): Promise<boolean> {
+    const limits = await this.getUserLimits(userId)
+    const usage = await this.getUserUsage(userId)
+
+    return usage.boardsUsedToday < limits.dailyBoardLimit
   }
 
   async incrementBoardUsage(userId: string): Promise<void> {
     try {
-      const supabase = await createClient();
-      const today = new Date().toISOString().split('T')[0];
+      const supabase = await createClient()
+      const today = new Date().toISOString().split('T')[0]
 
       const { error } = await supabase.rpc('increment_board_usage', {
         p_user_id: userId,
         p_date: today,
-      });
+      })
 
       if (error) {
-        throw new Error(`Failed to increment board usage: ${error.message}`);
+        logger.error('Error incrementing board usage:', { message: error.message })
       }
-
-      await cachingService.invalidateUsageCache(userId);
     } catch (error) {
-      console.error('Error incrementing board usage:', error);
-      // Non-fatal kanbi don't block the save operation
+      logger.error('Error incrementing board usage:', { error })
     }
   }
 
   async incrementAIUsage(userId: string): Promise<void> {
     try {
-      const supabase = await createClient();
-      const today = new Date().toISOString().split('T')[0];
+      const supabase = await createClient()
+      const today = new Date().toISOString().split('T')[0]
 
       const { error } = await supabase.rpc('increment_ai_usage', {
         p_user_id: userId,
         p_date: today,
-      });
+      })
 
       if (error) {
-        throw new Error(`Failed to increment AI usage: ${error.message}`);
+        logger.error('Error incrementing AI usage:', { message: error.message })
       }
-
-      await cachingService.invalidateUsageCache(userId);
     } catch (error) {
-      console.error('Error incrementing AI usage:', error);
-      // Non-fatal kanbi don't block the AI operation
+      logger.error('Error incrementing AI usage:', { error })
     }
   }
 
-  async canCreateBoard(userId: string): Promise<boolean> {
-    try {
-      const limits = await this.getUserLimits(userId);
-      const usage = await this.getUserUsage(userId);
+  async checkBoardLimit(userId: string): Promise<{ allowed: boolean; remaining: number }> {
+    const supabase = await createClient()
 
-      return usage.boardsUsedToday < limits.dailyBoardLimit &&
-        usage.boardsUsedMonth < limits.monthlyBoardLimit;
+    try {
+      const limits = await this.getUserLimits(userId)
+      const today = new Date().toISOString().split('T')[0]
+
+      const { data } = await supabase
+        .from('usage_tracking')
+        .select('boards_used_count')
+        .eq('user_id', userId)
+        .eq('date', today)
+        .single()
+
+      const used = data?.boards_used_count || 0
+      const remaining = Math.max(0, limits.dailyBoardLimit - used)
+
+      return { allowed: remaining > 0, remaining }
     } catch (error) {
-      console.error('Error checking board limit:', error);
-      return true;
+      logger.error('Error checking board limit:', { error })
+      return { allowed: true, remaining: 0 }
     }
   }
 
-  async canUseAI(userId: string): Promise<boolean> {
-    try {
-      const limits = await this.getUserLimits(userId);
-      const usage = await this.getUserUsage(userId);
+  async checkAILimit(userId: string): Promise<{ allowed: boolean; remaining: number }> {
+    const supabase = await createClient()
 
-      return usage.aiUsedToday < limits.dailyAILimit &&
-        usage.aiUsedMonth < limits.monthlyAILimit;
+    try {
+      const limits = await this.getUserLimits(userId)
+      const today = new Date().toISOString().split('T')[0]
+
+      const { data } = await supabase
+        .from('usage_tracking')
+        .select('ai_used_count')
+        .eq('user_id', userId)
+        .eq('date', today)
+        .single()
+
+      const used = data?.ai_used_count || 0
+      const remaining = Math.max(0, limits.dailyAILimit - used)
+
+      return { allowed: remaining > 0, remaining }
     } catch (error) {
-      console.error('Error checking AI limit:', error);
-      return true;
+      logger.error('Error checking AI limit:', { error })
+      return { allowed: true, remaining: 0 }
     }
   }
 }
 
-export const usageService = new UsageService();
+export const usageService = new UsageService()

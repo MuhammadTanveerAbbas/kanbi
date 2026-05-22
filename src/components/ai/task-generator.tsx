@@ -338,7 +338,7 @@ export default function TaskGenerator({ addTask }: TaskGeneratorProps) {
 
       const randomExample =
         examples[Math.floor(Math.random() * examples.length)];
-      setNotes(randomExample);
+      setNotes(randomExample ?? '');
     } catch (error) {
       setError("Couldn't generate example. Try typing your own tasks.");
     } finally {

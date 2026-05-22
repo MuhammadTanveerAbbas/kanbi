@@ -1,5 +1,6 @@
 import Groq from 'groq-sdk'
 import { createClient } from '@/lib/supabase/server'
+import { logger } from '@/lib/logging/logger'
 import { GROQ_MODEL, GROQ_API_KEY } from '@/lib/constants'
 
 function getGroq() {
@@ -12,24 +13,22 @@ interface AutoTask {
 
 interface AutopilotBody {
   tasks: AutoTask[]
-  userId: string
 }
 
 export async function POST(req: Request): Promise<Response> {
+  const requestId = crypto.randomUUID()
+
   try {
     const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    const { data: { user } } = await supabase.auth.getUser()
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
     const body = (await req.json()) as AutopilotBody
-    if (!body.userId || !Array.isArray(body.tasks)) {
+    if (!Array.isArray(body.tasks)) {
       return Response.json({ error: 'Invalid request body' }, { status: 400 })
     }
-    if (body.userId !== user.id) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+
+    logger.info('Autopilot request', { userId: user.id, requestId })
 
     const pending = body.tasks.filter((task) => task.status !== 'done')
     const completion = await getGroq().chat.completions.create({
@@ -50,7 +49,7 @@ export async function POST(req: Request): Promise<Response> {
 
     if (briefing.burnoutRisk) {
       await supabase.from('burnout_alerts').insert({
-        user_id: body.userId,
+        user_id: user.id,
         score: 40,
         message: briefing.healthNote ?? 'Potential burnout risk detected',
       })
@@ -59,6 +58,7 @@ export async function POST(req: Request): Promise<Response> {
     return Response.json(briefing)
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Internal server error'
+    logger.error('Autopilot error:', { error: message })
     return Response.json({ error: message }, { status: 500 })
   }
 }

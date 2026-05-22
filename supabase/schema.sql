@@ -3,8 +3,6 @@
 -- Run once in Supabase Dashboard → SQL Editor
 -- ================================================
 
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
 -- ================================================
 -- TABLES
 -- ================================================
@@ -20,7 +18,7 @@ CREATE TABLE IF NOT EXISTS profiles (
 );
 
 CREATE TABLE IF NOT EXISTS boards (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   folder TEXT NOT NULL DEFAULT 'General',
@@ -30,7 +28,7 @@ CREATE TABLE IF NOT EXISTS boards (
 );
 
 CREATE TABLE IF NOT EXISTS tasks (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   board_id UUID NOT NULL REFERENCES boards(id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
@@ -46,7 +44,7 @@ CREATE TABLE IF NOT EXISTS tasks (
 );
 
 CREATE TABLE IF NOT EXISTS subscriptions (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   plan TEXT NOT NULL DEFAULT 'free' CHECK (plan IN ('free', 'premium')),
   status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'canceled', 'past_due', 'trialing', 'incomplete')),
@@ -58,7 +56,7 @@ CREATE TABLE IF NOT EXISTS subscriptions (
 );
 
 CREATE TABLE IF NOT EXISTS usage_tracking (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   date DATE NOT NULL,
   generations_count INTEGER NOT NULL DEFAULT 0,
@@ -70,7 +68,7 @@ CREATE TABLE IF NOT EXISTS usage_tracking (
 );
 
 CREATE TABLE IF NOT EXISTS saved_generations (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
   content TEXT,
@@ -82,7 +80,7 @@ CREATE TABLE IF NOT EXISTS saved_generations (
 );
 
 CREATE TABLE IF NOT EXISTS board_tags (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   board_id UUID NOT NULL REFERENCES saved_generations(id) ON DELETE CASCADE,
   tag_name VARCHAR(50) NOT NULL,
   color VARCHAR(7) NOT NULL DEFAULT '#6b7280',
@@ -90,7 +88,7 @@ CREATE TABLE IF NOT EXISTS board_tags (
 );
 
 CREATE TABLE IF NOT EXISTS task_stats (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   date DATE NOT NULL DEFAULT CURRENT_DATE,
   urgent_count INTEGER DEFAULT 0,
@@ -123,7 +121,7 @@ CREATE TABLE IF NOT EXISTS integrations (
 );
 
 CREATE TABLE IF NOT EXISTS task_completions (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   task_title TEXT NOT NULL,
   task_priority TEXT CHECK (task_priority IN ('Low', 'Medium', 'High', 'Urgent')),
@@ -133,7 +131,7 @@ CREATE TABLE IF NOT EXISTS task_completions (
 );
 
 CREATE TABLE IF NOT EXISTS ai_insights (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   insight_type TEXT NOT NULL CHECK (insight_type IN ('workload', 'pattern', 'suggestion', 'warning')),
   message TEXT NOT NULL,
@@ -143,7 +141,7 @@ CREATE TABLE IF NOT EXISTS ai_insights (
 );
 
 CREATE TABLE IF NOT EXISTS workload_snapshots (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   date DATE NOT NULL DEFAULT CURRENT_DATE,
   total_tasks INTEGER DEFAULT 0,
@@ -158,7 +156,7 @@ CREATE TABLE IF NOT EXISTS workload_snapshots (
 );
 
 CREATE TABLE IF NOT EXISTS chat_messages (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   role TEXT NOT NULL CHECK (role IN ('user', 'assistant')),
   message TEXT NOT NULL,
@@ -167,7 +165,7 @@ CREATE TABLE IF NOT EXISTS chat_messages (
 );
 
 CREATE TABLE IF NOT EXISTS morning_briefings (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   date DATE NOT NULL,
   summary TEXT NOT NULL,
@@ -179,7 +177,7 @@ CREATE TABLE IF NOT EXISTS morning_briefings (
 );
 
 CREATE TABLE IF NOT EXISTS auto_schedule (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   task_id TEXT NOT NULL,
   task_title TEXT NOT NULL,
@@ -192,7 +190,7 @@ CREATE TABLE IF NOT EXISTS auto_schedule (
 );
 
 CREATE TABLE IF NOT EXISTS autopilot_adjustments (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   adjustment_type TEXT NOT NULL CHECK (adjustment_type IN ('reschedule', 'reprioritize', 'delegate', 'defer', 'break_down', 'add_break')),
   task_id TEXT NOT NULL,
@@ -280,6 +278,39 @@ CREATE INDEX IF NOT EXISTS idx_autopilot_settings_user_id ON autopilot_settings(
 CREATE INDEX IF NOT EXISTS idx_morning_briefings_user_date ON morning_briefings(user_id, date DESC);
 CREATE INDEX IF NOT EXISTS idx_auto_schedule_user_date ON auto_schedule(user_id, scheduled_date);
 CREATE INDEX IF NOT EXISTS idx_autopilot_adjustments_user ON autopilot_adjustments(user_id, created_at DESC);
+
+-- ================================================
+-- FUNCTIONS
+-- ================================================
+
+-- ================================================
+-- updated_at TRIGGER
+-- ================================================
+
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SET search_path = public;
+
+-- Apply to all tables with updated_at column
+DO $$
+DECLARE
+  t text;
+BEGIN
+  FOR t IN
+    SELECT table_name FROM information_schema.columns
+    WHERE column_name = 'updated_at' AND table_schema = 'public'
+  LOOP
+    EXECUTE format(
+      'DROP TRIGGER IF EXISTS set_updated_at ON %I; CREATE TRIGGER set_updated_at BEFORE UPDATE ON %I FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();',
+      t, t
+    );
+  END LOOP;
+END;
+$$;
 
 -- ================================================
 -- FUNCTIONS
@@ -560,9 +591,8 @@ CREATE POLICY "Users can view own settings"   ON autopilot_settings FOR SELECT U
 CREATE POLICY "Users can insert own settings" ON autopilot_settings FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can update own settings" ON autopilot_settings FOR UPDATE USING (auth.uid() = user_id);
 
--- processed_webhook_events (service-level access)
+-- processed_webhook_events (service-level access only)
 DROP POLICY IF EXISTS "Allow all webhook events" ON processed_webhook_events;
-CREATE POLICY "Allow all webhook events" ON processed_webhook_events FOR ALL USING (true);
 
 -- ================================================
 -- STORAGE

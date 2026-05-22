@@ -42,7 +42,7 @@ function useInView(ref: React.RefObject<HTMLElement | null>, thr = 0.1) {
   const [v, setV] = useState(false);
   useEffect(() => {
     const el = ref.current; if (!el) return;
-    const o = new IntersectionObserver(([e]) => { if (e.isIntersecting) { setV(true); o.disconnect(); } }, { threshold: thr });
+    const o = new IntersectionObserver(([e]) => { if (e?.isIntersecting) { setV(true); o.disconnect(); } }, { threshold: thr });
     o.observe(el); return () => o.disconnect();
   }, []);
   return v;

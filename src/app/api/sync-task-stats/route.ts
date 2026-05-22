@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { logger } from '@/lib/logging/logger';
 import { cacheManager, CACHE_KEYS } from '@/lib/cache/cache-manager';
 
 export async function POST(request: NextRequest) {
@@ -11,7 +12,6 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        // Try to use client-provided counts first; fall back to computing from tasks table
         let urgent = 0, high = 0, medium = 0, low = 0, total = 0, completed = 0;
 
         try {
@@ -27,7 +27,6 @@ export async function POST(request: NextRequest) {
                 throw new Error('no body counts');
             }
         } catch {
-            // Compute from tasks table
             const { data: tasks } = await supabase
                 .from('tasks')
                 .select('priority, status')
@@ -62,7 +61,7 @@ export async function POST(request: NextRequest) {
             });
 
         if (error) {
-            console.error('Error syncing task stats:', error);
+            logger.error('Error syncing task stats:', { message: error.message });
             return NextResponse.json({ error: 'Failed to sync stats' }, { status: 500 });
         }
 
@@ -70,7 +69,7 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json({ success: true });
     } catch (error) {
-        console.error('Sync task stats error:', error);
+        logger.error('Sync task stats error:', { error });
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { logger } from '@/lib/logging/logger';
 import {
   generateDailySchedule,
   generateMorningBriefing,
@@ -8,6 +9,8 @@ import {
 } from '@/lib/ai/autopilot-engine';
 
 export async function POST(request: NextRequest) {
+  const requestId = crypto.randomUUID();
+
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -17,8 +20,12 @@ export async function POST(request: NextRequest) {
     }
 
     const { tasks } = await request.json();
+    if (!Array.isArray(tasks)) {
+      return NextResponse.json({ error: 'Tasks array required' }, { status: 400 });
+    }
 
-    // Get autopilot settings
+    logger.info('Briefing request', { userId: user.id, requestId });
+
     const { data: settings } = await supabase
       .from('autopilot_settings')
       .select('work_hours_start, work_hours_end, break_duration, max_daily_tasks, auto_reschedule, auto_prioritize, briefing_time')
@@ -34,7 +41,6 @@ export async function POST(request: NextRequest) {
 
     const userSettings = settings || defaultSettings;
 
-    // Get current workload health
     const { data: snapshot } = await supabase
       .from('workload_snapshots')
       .select('health_score')
@@ -45,13 +51,11 @@ export async function POST(request: NextRequest) {
 
     const healthScore = snapshot?.health_score || 75;
 
-    // Generate schedule
     const schedule = generateDailySchedule(tasks, userSettings);
     const briefing = generateMorningBriefing(tasks, schedule, healthScore);
     const adjustments = detectBlockersAndAdjust(tasks, schedule);
     const overflow = rescheduleOverflow(tasks, schedule.map(s => s.task));
 
-    // Save briefing
     const today = new Date().toISOString().split('T')[0];
     await supabase
       .from('morning_briefings')
@@ -64,9 +68,8 @@ export async function POST(request: NextRequest) {
         warnings: briefing.warnings
       });
 
-    // Save schedule
     await supabase.from('auto_schedule').delete().eq('user_id', user.id).eq('scheduled_date', today);
-    
+
     for (const block of schedule) {
       await supabase.from('auto_schedule').insert({
         user_id: user.id,
@@ -79,7 +82,6 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Save adjustments
     for (const adj of adjustments) {
       await supabase.from('autopilot_adjustments').insert({
         user_id: user.id,
@@ -91,14 +93,9 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    return NextResponse.json({
-      briefing,
-      adjustments,
-      overflow,
-      schedule
-    });
+    return NextResponse.json({ briefing, adjustments, overflow, schedule });
   } catch (error) {
-    console.error('Briefing generation error:', error);
+    logger.error('Briefing generation error:', { error });
     return NextResponse.json({ error: 'Failed to generate briefing' }, { status: 500 });
   }
 }
@@ -144,7 +141,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ briefing, schedule, adjustments: formattedAdjustments });
   } catch (error) {
-    console.error('Fetch briefing error:', error);
+    logger.error('Fetch briefing error:', { error });
     return NextResponse.json({ error: 'Failed to fetch briefing' }, { status: 500 });
   }
 }

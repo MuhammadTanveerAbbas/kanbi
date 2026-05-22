@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { SubscriptionStatus } from '@/lib/dashboard-types';
 import { rateLimit, rateLimitResponse, addRateLimitHeaders } from '@/lib/rate-limiter';
+import { logger } from '@/lib/logging/logger';
 
 export async function GET(request: NextRequest) {
   const limitResult = await rateLimit(request, { maxRequests: 30, windowMs: 60000 });
@@ -28,7 +29,7 @@ export async function GET(request: NextRequest) {
       .single();
 
     if (error && error.code !== 'PGRST116') {
-      console.error('Subscription query error:', error);
+      logger.error('Subscription query error:', { message: error.message });
     }
 
     if (subscription && subscription.plan === 'premium') {
@@ -46,7 +47,7 @@ export async function GET(request: NextRequest) {
     });
     return addRateLimitHeaders(response, limitResult.limit, limitResult.remaining, limitResult.reset);
   } catch (error) {
-    console.error('Subscription status error:', error);
+    logger.error('Subscription status error:', { error });
     return NextResponse.json<SubscriptionStatus>(
       { plan: 'free', status: 'active' },
       { status: 200 }

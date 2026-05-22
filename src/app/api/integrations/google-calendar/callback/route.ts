@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { logger } from "@/lib/logging/logger";
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID ?? "";
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET ?? "";
@@ -10,7 +11,6 @@ export async function GET(req: NextRequest) {
   const userId = searchParams.get("state");
   const error = searchParams.get("error");
 
-  // Use request origin so it works in both local dev and production
   const REDIRECT_URI = `${origin}/api/integrations/google-calendar/callback`;
 
   if (error) {
@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
     const tokens = await tokenRes.json();
 
     if (!tokens.access_token) {
-      console.error("Token exchange failed:", tokens);
+      logger.error("Token exchange failed:", { error: tokens });
       throw new Error(tokens.error_description ?? "No access token returned");
     }
 
@@ -58,7 +58,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.redirect(`${origin}/dashboard?cal_connected=1&page=settings`);
   } catch (err: any) {
-    console.error("Google Calendar OAuth error:", err);
+    logger.error("Google Calendar OAuth error:", { error: err.message });
     return NextResponse.redirect(
       `${origin}/dashboard?cal_error=${encodeURIComponent(err.message ?? "oauth_failed")}&page=settings`
     );

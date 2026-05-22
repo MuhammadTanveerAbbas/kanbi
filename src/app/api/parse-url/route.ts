@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { usageService } from '@/lib/services/usage-service';
 import { AIService } from '@/lib/ai-service';
+import { logger } from '@/lib/logging/logger';
 import { rateLimit, rateLimitResponse } from '@/lib/rate-limiter';
 import { FETCH_TIMEOUT } from '@/lib/constants';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -102,7 +103,7 @@ export async function POST(request: NextRequest) {
     const tasks = await AIService.parseTasksFromWebPage(text);
 
     await usageService.incrementAIUsage(user.id).catch((err) => {
-      console.error('Failed to track AI usage:', err);
+      logger.error('Failed to track AI usage:', { error: err });
     });
 
     return NextResponse.json({
@@ -110,7 +111,7 @@ export async function POST(request: NextRequest) {
       pageTitle: title || undefined,
     });
   } catch (error: unknown) {
-    console.error('Parse URL error:', error);
+    logger.error('Parse URL error:', { error });
     if (error instanceof Error && error.name === 'AbortError') {
       return NextResponse.json(
         { error: 'URL took too long to load. Try a different URL.' },

@@ -1,5 +1,10 @@
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
+
+const updateProfileSchema = z.object({
+  full_name: z.string().min(1, 'Name is required').max(100, 'Name too long').trim(),
+});
 
 export async function GET() {
   const supabase = await createClient();
@@ -28,10 +33,22 @@ export async function PATCH(request: Request) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const { full_name } = await request.json();
-  if (!full_name?.trim()) return NextResponse.json({ error: 'Name required' }, { status: 400 });
+  const body = await request.json();
+  const parsed = updateProfileSchema.safeParse(body);
 
-  await supabase.from('profiles').upsert({ id: user.id, full_name: full_name.trim(), email: user.email });
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: parsed.error.errors[0]?.message || 'Invalid input' },
+      { status: 400 }
+    );
+  }
+
+  await supabase.from('profiles').upsert({
+    id: user.id,
+    full_name: parsed.data.full_name,
+    email: user.email,
+  });
+
   return NextResponse.json({ success: true });
 }
 

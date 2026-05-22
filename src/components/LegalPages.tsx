@@ -56,13 +56,13 @@ export default function LegalPages() {
 
   useEffect(() => {
     if (!sections.length) return
-    setActiveId(sections[0].id)
+    setActiveId(sections[0]!.id)
 
     const observer = new IntersectionObserver(
       (entries) => {
         const visibleEntries = entries.filter((entry) => entry.isIntersecting)
         if (visibleEntries.length === 0) return
-        const topEntry = visibleEntries.sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0]
+        const topEntry = visibleEntries.sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0]!
         setActiveId(topEntry.target.id)
       },
       { rootMargin: '-20% 0px -60% 0px', threshold: [0.2, 0.4, 0.7] },

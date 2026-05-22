@@ -123,7 +123,7 @@ export class WorkloadAnalyzer {
 
     tasks.forEach(task => {
       if (task.dueDate) {
-        const date = task.dueDate.split('T')[0];
+        const date = task.dueDate.split('T')[0] ?? '';
         dateMap.set(date, (dateMap.get(date) || 0) + 1);
       }
     });

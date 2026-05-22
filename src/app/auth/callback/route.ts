@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
+import { logger } from '@/lib/logging/logger'
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
@@ -9,7 +10,6 @@ export async function GET(request: Request) {
   const errorDescription = searchParams.get('error_description')
   const next = searchParams.get('next') ?? '/dashboard'
 
-  // OAuth provider returned an error (e.g. user denied access)
   if (error) {
     const msg = errorDescription ?? error
     return NextResponse.redirect(`${origin}/sign-in?error=${encodeURIComponent(msg)}`)
@@ -38,7 +38,7 @@ export async function GET(request: Request) {
       return NextResponse.redirect(`${origin}${next}`)
     }
 
-    console.error('OAuth code exchange failed:', exchangeError.message)
+    logger.error('OAuth code exchange failed:', { message: exchangeError.message })
     return NextResponse.redirect(
       `${origin}/sign-in?error=${encodeURIComponent(exchangeError.message)}`
     )

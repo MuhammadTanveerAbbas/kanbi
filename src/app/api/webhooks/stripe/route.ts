@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
-import { createServerClient } from '@/lib/supabase'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { logger } from '@/lib/logging/logger'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -33,10 +33,10 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const supabaseClient = await createServerClient()
+  const supabaseAdmin = createAdminClient()
 
   try {
-    const { data: existing } = await supabaseClient
+    const { data: existing } = await supabaseAdmin
       .from('processed_webhook_events')
       .select('id')
       .eq('id', event.id)
@@ -57,18 +57,22 @@ export async function POST(request: NextRequest) {
         }
 
         try {
-          const subscriptionData = await stripe.subscriptions.retrieve(
+          const sub = await stripe.subscriptions.retrieve(
             session.subscription as string
           )
 
-          const { error: upsertErr } = await supabaseClient
+          const currentPeriodEnd = 'current_period_end' in sub
+            ? new Date((sub as any).current_period_end * 1000).toISOString()
+            : null
+
+          const { error: upsertErr } = await supabaseAdmin
             .from('subscriptions')
             .upsert({
               user_id: userId,
               plan: 'premium',
-              status: subscriptionData.status === 'active' ? 'active' : 'incomplete',
-              stripe_subscription_id: subscriptionData.id,
-              current_period_end: new Date(((subscriptionData as any).current_period_end || 0) * 1000).toISOString(),
+              status: sub.status === 'active' ? 'active' : 'incomplete',
+              stripe_subscription_id: sub.id,
+              current_period_end: currentPeriodEnd,
               updated_at: new Date().toISOString(),
             }, {
               onConflict: 'user_id',
@@ -86,14 +90,14 @@ export async function POST(request: NextRequest) {
         const customerId = subscription.customer as string
 
         try {
-          const { data: profile } = await supabaseClient
+          const { data: profile } = await supabaseAdmin
             .from('profiles')
             .select('id')
             .eq('stripe_customer_id', customerId)
             .single()
 
           if (profile) {
-            const { error: updateErr } = await supabaseClient
+            const { error: updateErr } = await supabaseAdmin
               .from('subscriptions')
               .update({
                 plan: 'free',
@@ -116,17 +120,16 @@ export async function POST(request: NextRequest) {
         const customerId = invoice.customer as string
 
         try {
-          const { data: profile } = await supabaseClient
+          const { data: profile } = await supabaseAdmin
             .from('profiles')
             .select('id')
             .eq('stripe_customer_id', customerId)
             .single()
 
           if (profile) {
-            const subscriptionData = await stripe.subscriptions.retrieve(
-              (invoice as any).subscription as string
-            )
-            const { error: updateErr } = await supabaseClient
+            const subscriptionId = (invoice as any).subscription as string
+            const subscriptionData = await stripe.subscriptions.retrieve(subscriptionId)
+            const { error: updateErr } = await supabaseAdmin
               .from('subscriptions')
               .update({
                 status: subscriptionData.status === 'past_due' ? 'past_due' : 'canceled',
@@ -142,22 +145,26 @@ export async function POST(request: NextRequest) {
       }
 
       case 'customer.subscription.updated': {
-        const subscriptionData = event.data.object as Stripe.Subscription
-        const customerId = subscriptionData.customer as string
+        const subData = event.data.object as Stripe.Subscription
+        const customerId = subData.customer as string
 
         try {
-          const { data: profile } = await supabaseClient
+          const { data: profile } = await supabaseAdmin
             .from('profiles')
             .select('id')
             .eq('stripe_customer_id', customerId)
             .single()
 
           if (profile) {
-            const { error: updateErr } = await supabaseClient
+            const currentPeriodEnd = 'current_period_end' in subData
+              ? new Date((subData as any).current_period_end * 1000).toISOString()
+              : null
+
+            const { error: updateErr } = await supabaseAdmin
               .from('subscriptions')
               .update({
-                status: subscriptionData.status === 'active' ? 'active' : 'canceled',
-                current_period_end: new Date(((subscriptionData as any).current_period_end || 0) * 1000).toISOString(),
+                status: subData.status === 'active' ? 'active' : 'canceled',
+                current_period_end: currentPeriodEnd,
                 updated_at: new Date().toISOString(),
               })
               .eq('user_id', profile.id)
@@ -173,14 +180,9 @@ export async function POST(request: NextRequest) {
         logger.info(`Unhandled event type: ${event.type}`, {})
     }
 
-    try {
-      await supabaseClient
-        .from('processed_webhook_events')
-        .insert({ id: event.id })
-    } catch (insertErr) {
-      const isConflict = (insertErr as { code?: string })?.code === '23505'
-      if (!isConflict) logger.error('[webhook] Failed to record processed event', { error: insertErr })
-    }
+    await supabaseAdmin
+      .from('processed_webhook_events')
+      .insert({ id: event.id })
 
     return NextResponse.json({ received: true })
   } catch (error) {

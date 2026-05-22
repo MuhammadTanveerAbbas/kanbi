@@ -629,7 +629,7 @@ function BarChart({ data }: { data: { label: string; value: number; color?: stri
   });
   const polyline = pts.map(p => `${p.x},${p.y}`).join(" ");
   // Area fill path
-  const area = `M${pts[0].x},${H} ` + pts.map(p => `L${p.x},${p.y}`).join(" ") + ` L${pts[pts.length-1].x},${H} Z`;
+  const area = `M${pts[0]!.x},${H} ` + pts.map(p => `L${p.x},${p.y}`).join(" ") + ` L${pts[pts.length-1]!.x},${H} Z`;
 
   const total = data.reduce((s, d) => s + d.value, 0);
   const hoveredPt = hovered !== null ? pts[hovered] : null;
@@ -773,7 +773,7 @@ function DonutChart({ segs, size = 110 }: { segs: { value: number; color: string
   const centerLabel = hovSeg
     ? { val: hovSeg.value, lbl: hovSeg.label, col: hovSeg.color }
     : hasData
-    ? (() => { const d = [...arcs].sort((a,b) => b.value - a.value)[0]; return { val: d.value, lbl: d.label, col: d.color }; })()
+    ? (() => { const d = [...arcs].sort((a,b) => b.value - a.value)[0]!; return { val: d.value, lbl: d.label, col: d.color }; })()
     : null;
 
   return (
@@ -1343,7 +1343,7 @@ function PageOverview() {
                   }}
                   onMouseOver={e => {
                     const el = e.currentTarget as HTMLDivElement;
-                    el.style.borderColor = BORDER[idx % 4];
+                    el.style.borderColor = BORDER[idx % 4] ?? '';
                     el.style.transform = "translateY(-2px)";
                     el.style.boxShadow = `0 8px 32px rgba(0,0,0,0.18)`;
                   }}
@@ -2259,10 +2259,10 @@ function PageAutopilot() {
             </div>
           ) : (
             <div style={{ display:"flex", flexDirection:"column", gap:13 }}>
-              <p style={{ fontSize:11, color:"var(--tx3)", fontWeight:700, fontFamily:"var(--font-mono)" }}>{briefings[0].date}</p>
-              <p style={{ fontSize:12.5, color:"var(--tx2)", lineHeight:1.7 }}>{briefings[0].summary}</p>
+              <p style={{ fontSize:11, color:"var(--tx3)", fontWeight:700, fontFamily:"var(--font-mono)" }}>{briefings[0]!.date}</p>
+              <p style={{ fontSize:12.5, color:"var(--tx2)", lineHeight:1.7 }}>{briefings[0]!.summary}</p>
               <div style={{ padding:"10px 13px", borderRadius:9, background:"var(--as)", border:"1px solid var(--ag)" }}>
-                <p style={{ fontSize:11.5, color:"var(--ac)" }}>{briefings[0].healthNote}</p>
+                <p style={{ fontSize:11.5, color:"var(--ac)" }}>{briefings[0]!.healthNote}</p>
               </div>
             </div>
           )}
@@ -2287,7 +2287,7 @@ function PageAutopilot() {
             </div>
           ) : (
             <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-              {briefings[0].schedule.map((s, i) => (
+              {briefings[0]!.schedule.map((s, i) => (
                 <div key={i} style={{ display:"flex", alignItems:"center", gap:11, padding:"9px 12px",
                   borderRadius:9, background:"var(--bg2)", border:"1px solid var(--br)" }}>
                   <span style={{ fontSize:10, fontWeight:700, color:"var(--ac)", fontFamily:"var(--font-mono)",

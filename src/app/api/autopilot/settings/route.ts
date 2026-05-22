@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { logger } from '@/lib/logging/logger';
 
 export async function GET(request: NextRequest) {
   try {
@@ -27,7 +28,7 @@ export async function GET(request: NextRequest) {
       briefing_time: '08:00'
     }});
   } catch (error) {
-    console.error('Fetch settings error:', error);
+    logger.error('Fetch settings error:', { error });
     return NextResponse.json({ error: 'Failed to fetch settings' }, { status: 500 });
   }
 }
@@ -57,7 +58,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ settings: data });
   } catch (error) {
-    console.error('Update settings error:', error);
+    logger.error('Update settings error:', { error });
     return NextResponse.json({ error: 'Failed to update settings' }, { status: 500 });
   }
 }

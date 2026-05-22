@@ -1,35 +1,26 @@
 import { createClient as createServerClient } from "@/lib/supabase/server";
-import { createClient } from "@supabase/supabase-js";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { logger } from "@/lib/logging/logger";
 import Stripe from "stripe";
 import { NextRequest, NextResponse } from "next/server";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: '2026-02-25.clover',
+});
 
 export async function POST(request: NextRequest) {
   try {
-    // Try to get userId from body first (legacy), fall back to session
-    let userId: string | null = null;
-    try {
-      const body = await request.json();
-      userId = body?.userId || null;
-    } catch { /* no body */ }
+    const serverClient = await createServerClient();
+    const { data: { user } } = await serverClient.auth.getUser();
 
-    if (!userId) {
-      const serverClient = await createServerClient();
-      const { data: { user } } = await serverClient.auth.getUser();
-      userId = user?.id || null;
-    }
-
-    if (!userId) {
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { data: profile, error: profileError } = await supabase
+    const userId = user.id;
+    const adminClient = createAdminClient();
+
+    const { data: profile, error: profileError } = await adminClient
       .from("profiles")
       .select("stripe_customer_id, email")
       .eq("id", userId)
@@ -52,7 +43,7 @@ export async function POST(request: NextRequest) {
 
       customerId = customer.id;
 
-      await supabase
+      await adminClient
         .from("profiles")
         .update({ stripe_customer_id: customerId })
         .eq("id", userId);
@@ -74,7 +65,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ url: session.url });
   } catch (error) {
-    console.error("Checkout error:", error);
+    logger.error("Checkout error:", { error });
     return NextResponse.json(
       { error: "Failed to create checkout session" },
       { status: 500 }

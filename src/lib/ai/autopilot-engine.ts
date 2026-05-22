@@ -64,8 +64,8 @@ export function generateDailySchedule(
   settings: AutopilotSettings
 ): TimeBlock[] {
   const schedule: TimeBlock[] = [];
-  const [startHour, startMin] = settings.work_hours_start.split(':').map(Number);
-  const [endHour, endMin] = settings.work_hours_end.split(':').map(Number);
+  const [startHour, startMin] = settings.work_hours_start.split(':').map(Number) as [number, number];
+  const [endHour, endMin] = settings.work_hours_end.split(':').map(Number) as [number, number];
   
   const workMinutes = (endHour * 60 + endMin) - (startHour * 60 + startMin);
   let currentMinute = startHour * 60 + startMin;
@@ -125,7 +125,7 @@ export function generateMorningBriefing(
     priorities,
     schedule,
     warnings,
-    motivationalQuote: quotes[Math.floor(Math.random() * quotes.length)]
+    motivationalQuote: quotes[Math.floor(Math.random() * quotes.length)] ?? 'Make today count.'
   };
 }
 
@@ -182,7 +182,7 @@ export function rescheduleOverflow(
   
   return overflow.map((task, i) => ({
     task,
-    newDate: new Date(Date.now() + (i + 1) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    newDate: new Date(Date.now() + (i + 1) * 24 * 60 * 60 * 1000).toISOString().split('T')[0] ?? '',
     reason: task.priority === 'low' ? 'Low priority - deferred to maintain focus' : 'Capacity reached - rescheduled to next available slot'
   }));
 }

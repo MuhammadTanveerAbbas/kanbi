@@ -231,5 +231,5 @@ export function getPasswordStrength(pw: string): { score: number; label: string;
     { label: "Good", color: "var(--gr)" },
     { label: "Strong", color: "var(--gr)" },
   ];
-  return { score, ...map[score] };
+  return { score, ...map[score]! };
 }

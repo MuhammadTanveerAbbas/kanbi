@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { z } from 'zod';
+import { logger } from '@/lib/logging/logger';
 import { rateLimit, rateLimitResponse, addRateLimitHeaders } from '@/lib/rate-limiter';
 import { cacheManager, CACHE_KEYS } from '@/lib/cache/cache-manager';
 
@@ -41,7 +42,7 @@ export async function DELETE(
       .eq('user_id', user.id);
 
     if (error) {
-      console.error('Delete error:', error);
+      logger.error('Delete error:', { message: error.message });
       return NextResponse.json(
         { error: 'Failed to delete generation' },
         { status: 500 }
@@ -55,7 +56,7 @@ export async function DELETE(
     const response = NextResponse.json({ success: true });
     return addRateLimitHeaders(response, limitResult.limit, limitResult.remaining, limitResult.reset);
   } catch (error) {
-    console.error('Delete generation error:', error);
+    logger.error('Delete generation error:', { error });
     return NextResponse.json(
       { error: 'Failed to delete generation' },
       { status: 500 }
@@ -101,7 +102,7 @@ export async function PATCH(
       .single();
 
     if (error) {
-      console.error('Update error:', error);
+      logger.error('Update error:', { message: error.message });
       return NextResponse.json(
         { error: 'Failed to update generation' },
         { status: 500 }
@@ -111,7 +112,7 @@ export async function PATCH(
     const response = NextResponse.json(data);
     return addRateLimitHeaders(response, limitResult.limit, limitResult.remaining, limitResult.reset);
   } catch (error) {
-    console.error('Update generation error:', error);
+    logger.error('Update generation error:', { error });
     return NextResponse.json(
       { error: 'Failed to update generation' },
       { status: 500 }

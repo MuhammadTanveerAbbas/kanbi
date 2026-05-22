@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { usageService } from '@/lib/services/usage-service';
 import { AIService } from '@/lib/ai-service';
+import { logger } from '@/lib/logging/logger';
 import { rateLimit, rateLimitResponse } from '@/lib/rate-limiter';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
@@ -70,7 +71,7 @@ export async function POST(request: NextRequest) {
     const tasks = await AIService.parseTasks(text.trim());
 
     await usageService.incrementAIUsage(user.id).catch((err) => {
-      console.error('Failed to track AI usage:', err);
+      logger.error('Failed to track AI usage:', { error: err });
     });
 
     return NextResponse.json({
@@ -78,7 +79,7 @@ export async function POST(request: NextRequest) {
       meta: { pages: numpages, characterCount: text.length },
     });
   } catch (error: unknown) {
-    console.error('Parse PDF error:', error);
+    logger.error('Parse PDF error:', { error });
     const message = error instanceof Error ? error.message : 'Failed to parse PDF';
     return NextResponse.json(
       { error: message },

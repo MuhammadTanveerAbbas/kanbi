@@ -1,4 +1,5 @@
 import Groq from 'groq-sdk';
+import { logger } from '@/lib/logging/logger';
 import { ExtractedTask, TaskExtractionResult, TaskDuplicate, ExtractionMetadata } from './types';
 import { GROQ_API_KEY, GROQ_MODEL } from './constants';
 
@@ -32,7 +33,7 @@ export class AIService {
       }
       return await this.generateWithGroq(input, tone, length, format);
     } catch (error) {
-      console.error('Error with Groq:', error);
+      logger.error('Error with Groq:', { error });
       throw error;
     }
   }
@@ -152,7 +153,7 @@ Return ONLY valid JSON array, no markdown.`;
 
       return { tasks, duplicates, qualityScore, extractionMetadata: metadata };
     } catch (error) {
-      console.error('Task parsing error:', error);
+      logger.error('Task parsing error:', { error });
 
       const fallbackTasks = this.fallbackExtraction(notes);
       const processingTime = Date.now() - startTime;
@@ -205,11 +206,11 @@ Return ONLY valid JSON array, no markdown.`;
 
     for (let i = 0; i < tasks.length; i++) {
       for (let j = i + 1; j < tasks.length; j++) {
-        const similarity = this.calculateSimilarity(tasks[i].task, tasks[j].task);
+        const similarity = this.calculateSimilarity(tasks[i]!.task, tasks[j]!.task);
         if (similarity > 0.8) {
           duplicates.push({
-            task1: tasks[i].task,
-            task2: tasks[j].task,
+            task1: tasks[i]!.task,
+            task2: tasks[j]!.task,
             similarity,
           });
         }
@@ -234,25 +235,25 @@ Return ONLY valid JSON array, no markdown.`;
     }
 
     for (let j = 0; j <= s1.length; j++) {
-      matrix[0][j] = j;
+      matrix[0]![j] = j;
     }
 
     for (let i = 1; i <= s2.length; i++) {
       for (let j = 1; j <= s1.length; j++) {
         if (s2.charAt(i - 1) === s1.charAt(j - 1)) {
-          matrix[i][j] = matrix[i - 1][j - 1];
+          matrix[i]![j] = matrix[i - 1]![j - 1]!;
         } else {
-          matrix[i][j] = Math.min(
-            matrix[i - 1][j - 1] + 1,
-            matrix[i][j - 1] + 1,
-            matrix[i - 1][j] + 1
+          matrix[i]![j] = Math.min(
+            matrix[i - 1]![j - 1]! + 1,
+            matrix[i]![j - 1]! + 1,
+            matrix[i - 1]![j]! + 1
           );
         }
       }
     }
 
     const maxLen = Math.max(s1.length, s2.length);
-    return 1 - matrix[s2.length][s1.length] / maxLen;
+    return 1 - matrix[s2.length]![s1.length]! / maxLen;
   }
 
   /** Composite quality score: confidence, deadline coverage, priority coverage, extraction rate. */
@@ -309,7 +310,7 @@ Return ONLY valid JSON array, no markdown.`;
       const tasks = Array.isArray(parsed) ? parsed : (parsed.tasks || []);
       return this.normalizeTaskArray(tasks);
     } catch (error) {
-      console.error('Email task parsing error:', error);
+      logger.error('Email task parsing error:', { error });
       throw error;
     }
   }
@@ -339,7 +340,7 @@ Return ONLY valid JSON array, no markdown.`;
       const tasks = Array.isArray(parsed) ? parsed : (parsed.tasks || []);
       return this.normalizeTaskArray(tasks);
     } catch (error) {
-      console.error('Web page task parsing error:', error);
+      logger.error('Web page task parsing error:', { error });
       throw error;
     }
   }

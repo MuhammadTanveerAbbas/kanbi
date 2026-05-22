@@ -1,4 +1,5 @@
 import { AIService } from '@/lib/ai-service';
+import { logger } from '@/lib/logging/logger';
 import { Task } from '@/lib/types';
 
 export interface ChatMessage {
@@ -36,7 +37,7 @@ export class ChatAssistant {
       
       return response.trim();
     } catch (error) {
-      console.error('Chat assistant error:', error);
+      logger.error('Chat assistant error:', { error });
       return this.getFallbackResponse(userMessage, context);
     }
   }
@@ -173,11 +174,11 @@ Guidelines:
   static extractTaskName(message: string, tasks: Task[]): string | null {
     const quotedMatch = message.match(/"([^"]+)"/);
     if (quotedMatch) {
-      return quotedMatch[1];
+      return quotedMatch[1] ?? null;
     }
     const breakdownMatch = message.match(/break\s+down\s+(.+?)(?:\s+into|\s+task|$)/i);
     if (breakdownMatch) {
-      const potentialName = breakdownMatch[1].trim();
+      const potentialName = breakdownMatch[1]!.trim();
       // Check if it matches any existing task
       const matchingTask = tasks.find(t => 
         t.title.toLowerCase().includes(potentialName.toLowerCase())

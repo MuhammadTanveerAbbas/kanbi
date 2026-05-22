@@ -54,7 +54,7 @@ export default function Onboarding({ hasAnyTasks }: OnboardingProps) {
 
   if (!showOnboarding) return null;
 
-  const step = steps[currentStep];
+  const step = steps[currentStep]!;
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">

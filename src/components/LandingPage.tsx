@@ -54,7 +54,7 @@ function Styles({theme}:{theme:Theme}){return <style suppressHydrationWarning>{`
 
 function useInView(ref:React.RefObject<HTMLElement|null>,thr=0.12){
   const [v,setV]=useState(false);
-  useEffect(()=>{const el=ref.current;if(!el)return;const o=new IntersectionObserver(([e])=>{if(e.isIntersecting){setV(true);o.disconnect();}},{threshold:thr});o.observe(el);return()=>o.disconnect();},[]);
+  useEffect(()=>{const el=ref.current;if(!el)return;const o=new IntersectionObserver(([e])=>{if(e?.isIntersecting){setV(true);o.disconnect();}},{threshold:thr});o.observe(el);return()=>o.disconnect();},[]);
   return v;
 }
 function useCountUp(target:number,active:boolean,dur=1600){
@@ -384,7 +384,7 @@ function MockPreview({tab}:{tab:typeof TABS[0]}){
 }
 
 function Showcase(){
-  const [active,setActive]=useState(0);const tab=TABS[active];
+  const [active,setActive]=useState(0);const tab=TABS[active]!;
   const handleTabClick=(i:number,key:string)=>{setActive(i);};
   return(
     <section id="showcase" style={{padding:"96px 0",borderTop:"1px solid var(--br)"}}>
@@ -414,7 +414,7 @@ function Showcase(){
               Try {tab.label} Free <IC.Arrow size={13}/>
             </a>
           </div>
-          <MockPreview tab={tab}/>
+          <MockPreview tab={tab!}/>
         </div>
       </div>
     </section>
