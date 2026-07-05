@@ -1,5 +1,7 @@
 {
   "name": "kanbi",
+  "installCommand": "pnpm install",
+  "buildCommand": "pnpm run build",
   "crons": [
     {
       "path": "/api/cron/cleanup",

@@ -1,5 +1,13 @@
 import type { NextConfig } from "next";
-const withBundleAnalyzer = require('@next/bundle-analyzer')({ enabled: process.env.ANALYZE === 'true' });
+
+function withOptionalBundleAnalyzer(config: NextConfig): NextConfig {
+  if (process.env.ANALYZE === 'true') {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const withBundleAnalyzer = require('@next/bundle-analyzer')({ enabled: true });
+    return withBundleAnalyzer(config);
+  }
+  return config;
+}
 
 // Applied on all routes in all environments
 const securityHeaders = [
@@ -68,4 +76,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default withBundleAnalyzer(nextConfig);
+export default withOptionalBundleAnalyzer(nextConfig);
