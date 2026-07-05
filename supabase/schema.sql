@@ -37,8 +37,6 @@ CREATE TABLE IF NOT EXISTS tasks (
   label TEXT DEFAULT '',
   due_date DATE,
   estimate TEXT,
-  gcal_set BOOLEAN DEFAULT FALSE,
-  gcal_event_id TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -105,19 +103,6 @@ CREATE TABLE IF NOT EXISTS task_stats (
 CREATE TABLE IF NOT EXISTS processed_webhook_events (
   id TEXT PRIMARY KEY,
   processed_at TIMESTAMPTZ DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS integrations (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  provider TEXT NOT NULL,
-  access_token TEXT NOT NULL,
-  refresh_token TEXT,
-  expires_at TIMESTAMPTZ,
-  metadata JSONB DEFAULT '{}',
-  connected_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(user_id, provider)
 );
 
 CREATE TABLE IF NOT EXISTS task_completions (
@@ -214,6 +199,24 @@ CREATE TABLE IF NOT EXISTS autopilot_settings (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS feedback (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  type TEXT NOT NULL CHECK (type IN ('bug', 'feature', 'improvement', 'general')),
+  message TEXT NOT NULL,
+  email TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS burnout_alerts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  score INTEGER NOT NULL DEFAULT 0,
+  message TEXT NOT NULL,
+  read BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- ================================================
 -- INDEXES
 -- ================================================
@@ -250,10 +253,6 @@ CREATE INDEX IF NOT EXISTS idx_board_tags_board_id ON board_tags(board_id);
 CREATE INDEX IF NOT EXISTS idx_task_stats_user_id ON task_stats(user_id);
 CREATE INDEX IF NOT EXISTS idx_task_stats_user_date ON task_stats(user_id, date);
 CREATE INDEX IF NOT EXISTS idx_task_stats_date ON task_stats(date DESC);
-
--- integrations
-CREATE INDEX IF NOT EXISTS idx_integrations_user_id ON integrations(user_id);
-CREATE INDEX IF NOT EXISTS idx_integrations_provider ON integrations(provider);
 
 -- task_completions
 CREATE INDEX IF NOT EXISTS idx_task_completions_user_id ON task_completions(user_id);
@@ -409,6 +408,9 @@ BEGIN
   VALUES (NEW.id)
   ON CONFLICT (user_id) DO NOTHING;
 
+  INSERT INTO public.boards (user_id, name, folder)
+  VALUES (NEW.id, 'My Board', 'General');
+
   RETURN NEW;
 EXCEPTION WHEN OTHERS THEN
   RAISE LOG 'Error in handle_new_user: %', SQLERRM;
@@ -437,7 +439,6 @@ ALTER TABLE usage_tracking          ENABLE ROW LEVEL SECURITY;
 ALTER TABLE saved_generations       ENABLE ROW LEVEL SECURITY;
 ALTER TABLE board_tags              ENABLE ROW LEVEL SECURITY;
 ALTER TABLE task_stats              ENABLE ROW LEVEL SECURITY;
-ALTER TABLE integrations            ENABLE ROW LEVEL SECURITY;
 ALTER TABLE task_completions        ENABLE ROW LEVEL SECURITY;
 ALTER TABLE ai_insights             ENABLE ROW LEVEL SECURITY;
 ALTER TABLE workload_snapshots      ENABLE ROW LEVEL SECURITY;
@@ -447,6 +448,8 @@ ALTER TABLE auto_schedule           ENABLE ROW LEVEL SECURITY;
 ALTER TABLE autopilot_adjustments   ENABLE ROW LEVEL SECURITY;
 ALTER TABLE autopilot_settings      ENABLE ROW LEVEL SECURITY;
 ALTER TABLE processed_webhook_events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE feedback ENABLE ROW LEVEL SECURITY;
+ALTER TABLE burnout_alerts ENABLE ROW LEVEL SECURITY;
 
 -- profiles
 DROP POLICY IF EXISTS "Users can view own profile"   ON profiles;
@@ -474,11 +477,10 @@ CREATE POLICY "Users can insert own tasks" ON tasks FOR INSERT WITH CHECK (auth.
 CREATE POLICY "Users can update own tasks" ON tasks FOR UPDATE USING (auth.uid() = user_id);
 CREATE POLICY "Users can delete own tasks" ON tasks FOR DELETE USING (auth.uid() = user_id);
 
--- subscriptions
+-- subscriptions (read-only for users; writes via service role / webhooks)
 DROP POLICY IF EXISTS "Users can view own subscription"   ON subscriptions;
 DROP POLICY IF EXISTS "Users can update own subscription" ON subscriptions;
-CREATE POLICY "Users can view own subscription"   ON subscriptions FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "Users can update own subscription" ON subscriptions FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can view own subscription" ON subscriptions FOR SELECT USING (auth.uid() = user_id);
 
 -- usage_tracking
 DROP POLICY IF EXISTS "Users can view own usage"   ON usage_tracking;
@@ -517,15 +519,7 @@ CREATE POLICY "Users can view own task stats"   ON task_stats FOR SELECT USING (
 CREATE POLICY "Users can insert own task stats" ON task_stats FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can update own task stats" ON task_stats FOR UPDATE USING (auth.uid() = user_id);
 
--- integrations
-DROP POLICY IF EXISTS "Users can view their own integrations"   ON integrations;
-DROP POLICY IF EXISTS "Users can insert their own integrations" ON integrations;
-DROP POLICY IF EXISTS "Users can update their own integrations" ON integrations;
-DROP POLICY IF EXISTS "Users can delete their own integrations" ON integrations;
-CREATE POLICY "Users can view their own integrations"   ON integrations FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "Users can insert their own integrations" ON integrations FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Users can update their own integrations" ON integrations FOR UPDATE USING (auth.uid() = user_id);
-CREATE POLICY "Users can delete their own integrations" ON integrations FOR DELETE USING (auth.uid() = user_id);
+-- integrations table removed (no third-party integrations in v1)
 
 -- task_completions
 DROP POLICY IF EXISTS "Users can view own completions"   ON task_completions;
@@ -591,8 +585,23 @@ CREATE POLICY "Users can view own settings"   ON autopilot_settings FOR SELECT U
 CREATE POLICY "Users can insert own settings" ON autopilot_settings FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can update own settings" ON autopilot_settings FOR UPDATE USING (auth.uid() = user_id);
 
--- processed_webhook_events (service-level access only)
+-- processed_webhook_events (no client access; service role only)
 DROP POLICY IF EXISTS "Allow all webhook events" ON processed_webhook_events;
+DROP POLICY IF EXISTS "Service role can manage webhook events" ON processed_webhook_events;
+
+-- feedback
+DROP POLICY IF EXISTS "Users can insert feedback" ON feedback;
+DROP POLICY IF EXISTS "Users can view own feedback" ON feedback;
+CREATE POLICY "Users can insert feedback" ON feedback FOR INSERT WITH CHECK (true);
+CREATE POLICY "Users can view own feedback" ON feedback FOR SELECT USING (auth.uid() = user_id);
+
+-- burnout_alerts
+DROP POLICY IF EXISTS "Users can view own alerts" ON burnout_alerts;
+DROP POLICY IF EXISTS "Users can insert own alerts" ON burnout_alerts;
+DROP POLICY IF EXISTS "Users can update own alerts" ON burnout_alerts;
+CREATE POLICY "Users can view own alerts" ON burnout_alerts FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert own alerts" ON burnout_alerts FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update own alerts" ON burnout_alerts FOR UPDATE USING (auth.uid() = user_id);
 
 -- ================================================
 -- STORAGE

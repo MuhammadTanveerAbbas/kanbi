@@ -117,10 +117,6 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
         }}>
           {children}
         </div>
-
-        <p style={{ position: "relative", zIndex: 1, marginTop: 24, fontSize: 12, color: "var(--tx3)", textAlign: "center" }}>
-          Protected by Supabase Auth · <span style={{ color: "var(--ac)" }}>kanbi.app</span>
-        </p>
       </div>
     </>
   );

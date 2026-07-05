@@ -127,13 +127,8 @@ NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_your_stripe_publishable_key
 STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret
 STRIPE_PRICE_ID=price_your_price_id
 
-# Google OAuth & Calendar Integration (coming soon  not active)
-# GOOGLE_CLIENT_ID=your_google_oauth_client_id
-# GOOGLE_CLIENT_SECRET=your_google_oauth_client_secret
-
 # App
 NEXT_PUBLIC_APP_URL=http://localhost:3000
-NEXT_PUBLIC_USE_AI=true
 ```
 
 Get your keys:
@@ -141,7 +136,6 @@ Get your keys:
 - Supabase: https://supabase.com
 - Groq: https://console.groq.com/keys
 - Stripe: https://dashboard.stripe.com/apikeys
-- Google OAuth: https://console.cloud.google.com/apis/credentials
 
 ---
 
@@ -157,30 +151,28 @@ kanbi/
 │   │   │   ├── ai/          # Chat, workload analysis, completion tracking
 │   │   │   ├── autopilot/   # Morning briefings, schedule, settings
 │   │   │   ├── boards/      # Board CRUD and export
-│   │   │   ├── extract/     # Text task extraction
+│   │   │   ├── extract/     # Text task extraction via Groq AI
 │   │   │   ├── parse-pdf/   # PDF task extraction
 │   │   │   ├── parse-url/   # URL task extraction
-│   │   │   ├── integrations/# Third-party integrations (coming soon)
 │   │   │   ├── stripe/      # Checkout and billing portal
 │   │   │   └── webhooks/    # Stripe webhook handler
-│   │   └── dashboard/       # Board, chat, autopilot, saved, settings pages
+│   │   └── dashboard/       # Main dashboard (overview, board, chat, etc.)
 │   ├── components/
-│   │   ├── ai/              # Task generator component
-│   │   ├── auth/            # Auth forms
-│   │   ├── board/           # Kanban board UI
-│   │   ├── dashboard/       # Dashboard widgets
-│   │   ├── landing/         # Landing page sections
-│   │   └── ui/              # shadcn/ui primitives
-│   ├── hooks/               # useTasksStore, useAuth
+│   │   ├── auth/            # Auth forms and authentication UI
+│   │   ├── dashboard/       # Dashboard widgets (charts, icons, UI atoms, types)
+│   │   └── ui/              # shadcn/ui primitives (button, card, etc.)
+│   ├── proxy.ts             # Auth, session, CSRF, and security middleware
 │   └── lib/
 │       ├── ai/              # WorkloadAnalyzer, ChatAssistant, AutopilotEngine
 │       ├── export/          # DOCX and PDF exporters
-│       ├── services/        # UsageService, BoardService, CachingService
-│       ├── supabase/        # Client, server, and middleware helpers
-│       └── validation/      # Zod schemas
+│       ├── services/        # UsageService, default board helper
+│       ├── supabase/        # Client, server, and admin helpers
+│       ├── validation/      # Zod schemas
+│       └── errors/          # AppError classes
 ├── supabase/
-│   └── schema.sql           # Full database schema
+│   └── schema.sql           # Full database schema with RLS policies
 ├── e2e/                     # Playwright end-to-end tests
+├── __tests__/               # Vitest unit and integration tests
 ├── .env.example             # Environment variable template
 └── next.config.ts           # Next.js config with security headers
 ```
@@ -214,7 +206,6 @@ kanbi/
 | AI Chat + Autopilot    | ✓           | ✓               |
 | PDF import             | ✓           | ✓               |
 | DOCX & PDF export      | ✓           | ✓               |
-| Google Calendar sync   | Coming soon | Coming soon     |
 
 ---
 
@@ -245,7 +236,6 @@ For production, update:
 - [x] Workload analysis and burnout detection
 - [x] AI productivity coach (chat)
 - [x] Autopilot morning briefings
-- [x] Google Calendar integration (coming soon)
 - [x] Stripe subscriptions
 - [x] Board export (DOCX + PDF)
 - [x] Analytics dashboard

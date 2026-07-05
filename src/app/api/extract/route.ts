@@ -1,72 +1,50 @@
 import Groq from 'groq-sdk'
 import { createClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/logging/logger'
-import { GROQ_MODEL, GROQ_API_KEY, USAGE_LIMITS } from '@/lib/constants'
+import { GROQ_MODEL, GROQ_API_KEY } from '@/lib/constants'
+import { usageService } from '@/lib/services/usage-service'
+import { rateLimit, rateLimitResponse } from '@/lib/rate-limiter'
+import { AuthError, RateLimitError, ExternalServiceError } from '@/lib/errors/AppError'
+import { sanitizeInput } from '@/lib/security'
+import { getOrCreateDefaultBoard } from '@/lib/services/default-board'
+import DOMPurify from 'isomorphic-dompurify'
+import { NextRequest, NextResponse } from 'next/server'
 
 function getGroq() {
   return new Groq({ apiKey: GROQ_API_KEY })
 }
 
-interface ExtractBody {
-  text: string
-}
-
 const VALID_PRIORITIES = new Set(['urgent', 'high', 'medium', 'low'])
 
-function sanitizeText(text: string): string {
-  return text
-    .replace(/<[^>]*>/g, '')
-    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
-    .trim()
-    .slice(0, 8000)
-}
-
-export async function POST(req: Request): Promise<Response> {
+export async function POST(request: NextRequest): Promise<Response> {
   const requestId = crypto.randomUUID()
+  const limitResult = await rateLimit(request, { maxRequests: 20, windowMs: 60000 })
+  if (!limitResult.success) return rateLimitResponse(limitResult.limit, limitResult.remaining, limitResult.reset)
 
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!user) {
+      const err = new AuthError()
+      return NextResponse.json(err.toJSON(), { status: 401 })
+    }
 
-    const body = (await req.json()) as ExtractBody
+    const body = await request.json()
     if (!body.text?.trim()) {
-      return Response.json({ error: 'Invalid request body' }, { status: 400 })
+      return NextResponse.json({ error: 'Text is required' }, { status: 400 })
     }
 
     logger.info('Extract request', { userId: user.id, requestId })
 
-    const today = new Date().toISOString().split('T')[0]
-
-    const { data: subscription } = await supabase
-      .from('subscriptions')
-      .select('plan')
-      .eq('user_id', user.id)
-      .eq('status', 'active')
-      .maybeSingle()
-
-    const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]
-    const { data: monthUsage } = await supabase
-      .from('usage_tracking')
-      .select('ai_used_count')
-      .eq('user_id', user.id)
-      .gte('date', monthStart)
-
-    const totalMonthlyAI = monthUsage?.reduce((sum, row) => sum + (row.ai_used_count || 0), 0) ?? 0
-    const monthlyLimit = subscription?.plan === 'premium'
-      ? USAGE_LIMITS.PREMIUM.MONTHLY_AI
-      : USAGE_LIMITS.FREE.MONTHLY_AI
-
-    if (totalMonthlyAI >= monthlyLimit) {
-      return Response.json(
-        { error: 'Monthly limit reached. Upgrade to Pro for unlimited extractions.' },
-        { status: 429 }
-      )
+    const canUse = await usageService.canUseAI(user.id)
+    if (!canUse) {
+      const err = new RateLimitError('Monthly AI usage limit reached. Upgrade to Pro for more.')
+      return NextResponse.json(err.toJSON(), { status: 429 })
     }
 
-    const cleanInput = sanitizeText(body.text)
+    const cleanInput = sanitizeInput(body.text, 8000)
     if (!cleanInput) {
-      return Response.json({ error: 'No usable text provided' }, { status: 400 })
+      return NextResponse.json({ error: 'No usable text provided' }, { status: 400 })
     }
 
     const completion = await getGroq().chat.completions.create({
@@ -105,34 +83,46 @@ Example output:
       tasks = []
     }
 
-    await supabase.rpc('increment_ai_usage', {
-      p_user_id: user.id,
-      p_date: today,
+    await usageService.incrementAIUsage(user.id).catch((error) => {
+      logger.error('Failed to track AI usage', { userId: user.id, requestId, error: error.message })
     })
 
-    const taskRows = (tasks as { title?: string; priority?: string; estimate?: string; deadline?: string }[])
+    const typedTasks = (tasks as { title?: string; priority?: string; estimate?: string; deadline?: string }[])
       .filter(t => t.title && t.title.trim().length > 2)
       .slice(0, 20)
       .map(t => ({
-        user_id: user.id,
-        title: t.title!.trim().slice(0, 120),
-        priority: VALID_PRIORITIES.has(t.priority ?? '') ? t.priority : 'medium',
-        label: 'General',
-        status: 'todo',
-        estimate: t.estimate ?? null,
-        due_date: t.deadline ?? null,
+        ...t,
+        title: DOMPurify.sanitize(t.title!.trim().slice(0, 120), { ALLOWED_TAGS: [], ALLOWED_ATTR: [] }),
       }))
 
+    const boardId = await getOrCreateDefaultBoard(supabase, user.id)
+
+    const taskRows = typedTasks.map(t => ({
+      board_id: boardId,
+      user_id: user.id,
+      title: t.title,
+      priority: VALID_PRIORITIES.has(t.priority ?? '') ? t.priority : 'medium',
+      label: 'General',
+      status: 'todo',
+      estimate: t.estimate ?? null,
+      due_date: t.deadline ?? null,
+    }))
+
     if (taskRows.length > 0) {
-      await supabase.from('tasks').insert(taskRows)
+      const { error: insertError } = await supabase.from('tasks').insert(taskRows)
+      if (insertError) {
+        logger.error('Failed to save extracted tasks', { userId: user.id, requestId, error: insertError.message })
+        return NextResponse.json({ error: 'Failed to save extracted tasks' }, { status: 500 })
+      }
     }
 
     logger.info('Extract success', { userId: user.id, requestId, tasksCount: tasks.length })
 
-    return Response.json({ tasks })
+    return NextResponse.json({ tasks: typedTasks })
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Internal server error'
     logger.error('Extract error:', { error: message })
-    return Response.json({ error: message }, { status: 500 })
+    const serviceError = new ExternalServiceError(message)
+    return NextResponse.json(serviceError.toJSON(), { status: 502 })
   }
 }

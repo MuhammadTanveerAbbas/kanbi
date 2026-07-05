@@ -4,7 +4,7 @@ import PricingPage from "@/components/PricingPage";
 export const metadata: Metadata = {
   title: "Pricing · Kanbi kanbi AI Task Management",
   description:
-    "Start free forever. Upgrade to Pro for $9/month and unlock AI Chat, burnout prevention, PDF import, and Google Calendar sync.",
+    "Start free forever. Upgrade to Pro for $9/month and unlock AI Chat, burnout prevention, PDF import, and board export.",
   openGraph: {
     title: "Pricing · Kanbi kanbi AI Task Management",
     description:

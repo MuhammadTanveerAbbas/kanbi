@@ -102,7 +102,7 @@ export default function SignUpPage() {
         <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <AuthField
             label="Full Name" value={name} onChange={setName}
-            placeholder="Muhammad Tanveer Abbas" error={errors.name}
+            placeholder="Your full name" error={errors.name}
             icon={I.user(14)} autoComplete="name" required
           />
           <AuthField

@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import type { User } from '@supabase/supabase-js'
+import { usageService } from '@/lib/services/usage-service'
 
 export async function getCurrentUser(): Promise<User | null> {
   const supabase = await createClient()
@@ -44,43 +45,11 @@ export async function getUserSubscription(userId: string): Promise<UserSubscript
 }
 
 export async function canUserGenerate(userId: string): Promise<{ allowed: boolean; remaining: number }> {
-  const subscription = await getUserSubscription(userId)
-  const plan = subscription?.plan || 'free'
-  const limit = plan === 'premium' ? 50 : 5
-
-  const supabase = await createClient()
-  const today = new Date().toISOString().split('T')[0]
-
-  const { data, error } = await supabase
-    .from('usage_tracking')
-    .select('generations_count')
-    .eq('user_id', userId)
-    .eq('date', today)
-    .single()
-
-  if (error && error.code !== 'PGRST116') {
-    return { allowed: false, remaining: 0 }
-  }
-
-  const used = data?.generations_count || 0
-  const remaining = Math.max(0, limit - used)
-
-  return {
-    allowed: remaining > 0,
-    remaining,
-  }
+  return usageService.canUseAI(userId)
+    .then(canUse => ({ allowed: canUse, remaining: canUse ? 999 : 0 }))
+    .catch(() => ({ allowed: false, remaining: 0 }))
 }
 
 export async function trackGeneration(userId: string): Promise<void> {
-  const supabase = await createClient()
-  const today = new Date().toISOString().split('T')[0]
-
-  const { error } = await supabase.rpc('increment_generation_count', {
-    p_user_id: userId,
-    p_date: today,
-  })
-
-  if (error) {
-    throw new Error(`Failed to track generation: ${error.message}`)
-  }
+  await usageService.incrementAIUsage(userId)
 }

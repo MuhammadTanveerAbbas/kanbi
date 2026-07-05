@@ -2,7 +2,7 @@
 const { execSync } = require('child_process');
 
 try {
-  execSync('npx next lint', { 
+  execSync('npx next lint', {
     stdio: 'inherit',
     cwd: __dirname
   });

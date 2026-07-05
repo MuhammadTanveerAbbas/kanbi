@@ -60,9 +60,9 @@ export async function DELETE() {
   // Delete user data
   await Promise.allSettled([
     supabase.from('tasks').delete().eq('user_id', user.id),
+    supabase.from('boards').delete().eq('user_id', user.id),
     supabase.from('saved_generations').delete().eq('user_id', user.id),
     supabase.from('chat_messages').delete().eq('user_id', user.id),
-    supabase.from('integrations').delete().eq('user_id', user.id),
     supabase.from('profiles').delete().eq('id', user.id),
   ]);
 

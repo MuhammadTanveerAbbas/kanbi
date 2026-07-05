@@ -5,7 +5,7 @@ import Stripe from "stripe";
 import { NextRequest, NextResponse } from "next/server";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2026-02-25.clover',
+  apiVersion: '2026-02-25.clover' as any,
 });
 
 export async function POST(request: NextRequest) {
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
       mode: "subscription",
       line_items: [
         {
-          price: process.env.STRIPE_PRICE_ID || process.env.STRIPE_PRO_PRICE_ID!,
+          price: process.env.STRIPE_PRICE_ID!,
           quantity: 1,
         },
       ],

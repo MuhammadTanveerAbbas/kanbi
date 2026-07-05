@@ -3,11 +3,22 @@
 
 import {
   useState, useEffect, useRef, useCallback,
-  createContext, useContext, type ReactNode,
+  type ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import ReactMarkdown from "react-markdown";
+import {
+  AppCtx, useApp,
+  type Page, type Priority, type TaskStatus, type Theme, type InputMode, type BoardView,
+  type Task, type SavedBoard, type ChatMsg, type Briefing, type BurnoutAlert, type AuthUser, type AppState,
+} from "@/components/dashboard/types";
+import {
+  Icons, StarIcon, BoardStarIcon, SavedStarIcon, ChatStarIcon, ChatBotIcon, PilotStarIcon, SettingsStarIcon,
+} from "@/components/dashboard/icons";
+import { PriBadge, Avt, PBar, Toggle, Skeleton } from "@/components/dashboard/ui";
+import { BarChart, DonutChart, CompletionChart, HealthRing } from "@/components/dashboard/charts";
+import { sanitizeChatText, truncateChatResponse } from "@/lib/chat-text";
 
 const DARK_VARS = `
   --bg:#07070e; --bg1:#0e0e18; --bg2:#13131f; --bg3:#18182a;
@@ -28,6 +39,68 @@ const LIGHT_VARS = `
   --sidebar-border:rgba(0,0,0,0.07);
 `;
 
+type ApiTaskRow = {
+  id: string;
+  title: string;
+  priority?: string;
+  label?: string;
+  status?: string;
+  estimate?: string;
+  due_date?: string;
+};
+
+function mapApiTask(t: ApiTaskRow): Task {
+  return {
+    id: t.id,
+    title: t.title,
+    priority: (['urgent', 'high', 'medium', 'low'].includes(t.priority ?? '') ? t.priority : 'medium') as Priority,
+    label: t.label ?? 'General',
+    status: (['todo', 'wip', 'done'].includes(t.status ?? '') ? t.status : 'todo') as TaskStatus,
+    estimate: t.estimate,
+    dueDate: t.due_date,
+  };
+}
+
+async function loadTasksFromApi(): Promise<Task[]> {
+  const res = await fetch('/api/boards');
+  if (!res.ok) return [];
+  const d = await res.json();
+  return (d.tasks ?? []).map(mapApiTask);
+}
+
+async function copyTextToClipboard(text: string): Promise<boolean> {
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch {
+    /* fall through to legacy copy */
+  }
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    const ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    return ok;
+  } catch {
+    return false;
+  }
+}
+
+function formatChatTime(value?: string): string {
+  if (!value) return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const d = new Date(value);
+  return Number.isNaN(d.getTime())
+    ? value
+    : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
 function GlobalStyles({ theme }: { theme: "dark" | "light" }) {
   return (
     <style suppressHydrationWarning>{`
@@ -45,12 +118,17 @@ function GlobalStyles({ theme }: { theme: "dark" | "light" }) {
         --font-display:'Geist',-apple-system,sans-serif;
         --font-body:'Geist',-apple-system,sans-serif;
         --font-mono:'Geist',-apple-system,monospace;
-        --sidebar-w:252px;
+        --sidebar-w:236px;
+        --content-max:1140px;
+        --chat-max:960px;
       }
 
       body {
         font-family: var(--font-body);
-        background: var(--bg);
+        background:
+          radial-gradient(circle at top left, rgba(99,102,241,0.10), transparent 32%),
+          radial-gradient(circle at top right, rgba(168,85,247,0.08), transparent 28%),
+          var(--bg);
         color: var(--tx);
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
@@ -97,8 +175,15 @@ function GlobalStyles({ theme }: { theme: "dark" | "light" }) {
       .stagger > *:nth-child(6) { animation-delay:.29s }
 
       /* ── Nav buttons ── */
-      .nav-btn { transition: background .15s, color .15s, transform .1s }
-      .nav-btn:hover { background:rgba(99,102,241,0.07) !important; color:var(--tx) !important }
+      .nav-btn {
+        transition: background .15s, color .15s, transform .1s, border-color .15s, box-shadow .15s;
+      }
+      .nav-btn:hover {
+        background:rgba(99,102,241,0.08) !important;
+        color:var(--tx) !important;
+        border-color:rgba(99,102,241,0.18) !important;
+        box-shadow:0 8px 24px rgba(0,0,0,0.08);
+      }
       .nav-btn:active { transform: scale(.97) }
 
       /* ── Cards ── */
@@ -117,7 +202,7 @@ function GlobalStyles({ theme }: { theme: "dark" | "light" }) {
         pointer-events:none;
         border-radius:inherit;
       }
-      .card:hover { border-color:var(--brh) !important; transform:translateY(-1px); box-shadow:0 6px 28px var(--sh) }
+      .card:hover { border-color:var(--brh) !important; transform:translateY(-1px); box-shadow:0 12px 36px var(--sh) }
       .card:hover::after { opacity:1 }
 
       /* ── Task cards ── */
@@ -125,17 +210,40 @@ function GlobalStyles({ theme }: { theme: "dark" | "light" }) {
       .task-card:hover { border-color:rgba(99,102,241,0.3) !important; background:var(--bg2) !important; transform:translateX(2px); box-shadow:0 2px 12px rgba(0,0,0,0.2) }
 
       /* ── Ghost buttons ── */
-      .ghost { transition: background .15s, color .15s, border-color .15s }
-      .ghost:hover { background:rgba(99,102,241,0.07) !important }
+      .ghost {
+        transition: background .15s, color .15s, border-color .15s, transform .1s, box-shadow .15s;
+      }
+      .ghost:hover {
+        background:rgba(99,102,241,0.07) !important;
+        border-color:rgba(99,102,241,0.20) !important;
+        box-shadow:0 8px 20px rgba(0,0,0,0.06);
+      }
 
       /* ── Primary buttons ── */
-      .btn-primary { transition: filter .15s, transform .1s, box-shadow .15s }
-      .btn-primary:hover { filter:brightness(1.12); box-shadow:0 4px 22px rgba(99,102,241,0.38) }
+      .btn-primary {
+        transition: filter .15s, transform .1s, box-shadow .15s, background .15s;
+      }
+      .btn-primary:hover {
+        filter:brightness(1.08);
+        box-shadow:0 14px 34px rgba(99,102,241,0.28);
+        transform:translateY(-1px);
+      }
       .btn-primary:active { transform:scale(.97) }
 
       /* ── Inputs ── */
       .input-focus { transition: border-color .15s, box-shadow .15s; outline: none }
       .input-focus:focus { border-color: var(--ac) !important; box-shadow: 0 0 0 3px rgba(99,102,241,0.14) }
+
+      .chat-input {
+        outline: none !important;
+        transition: border-color .15s;
+      }
+      .chat-input:focus,
+      .chat-input:focus-visible {
+        outline: none !important;
+        box-shadow: none !important;
+        border-color: var(--brh) !important;
+      }
 
       /* ── Skeleton ── */
       .skeleton {
@@ -217,9 +325,9 @@ function GlobalStyles({ theme }: { theme: "dark" | "light" }) {
       .quick-ai-bar {
         border-radius: var(--radius-md);
         border: 1px solid var(--br);
-        background: var(--bg1);
+        background: linear-gradient(180deg, rgba(255,255,255,0.03), transparent 30%), var(--bg1);
         padding: 15px 18px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+        box-shadow: 0 14px 40px rgba(0,0,0,0.10);
       }
       .quick-ai-header {
         display: flex;
@@ -319,668 +427,6 @@ function GlobalStyles({ theme }: { theme: "dark" | "light" }) {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   TYPES
-═══════════════════════════════════════════════════════════════════════════ */
-type Page        = "overview" | "board" | "chat" | "autopilot" | "saved" | "settings";
-type Priority    = "urgent" | "high" | "medium" | "low";
-type TaskStatus  = "todo" | "wip" | "done";
-type Theme       = "dark" | "light";
-type InputMode   = "paste" | "pdf" | "template";
-type BoardView   = "input" | "kanban";
-
-interface Task {
-  id: string; title: string; priority: Priority;
-  label: string; dueDate?: string; estimate?: string;
-  status: TaskStatus;
-}
-interface SavedBoard {
-  id: string; name: string; taskCount: number;
-  folder: string; lastEdited: string; tasks: Task[];
-}
-interface ChatMsg { id: string; role: "user" | "ai"; content: string; ts: string; }
-interface Briefing {
-  id: string; date: string; summary: string;
-  schedule: { time: string; task: string; duration: string }[];
-  healthNote: string;
-}
-interface BurnoutAlert { id: string; date: string; score: number; message: string; }
-
-/* 🔌 BACKEND: Your Supabase user shape kanbi adjust to match your auth.users/profiles table */
-interface AuthUser {
-  id: string;
-  email: string;
-  full_name?: string;
-  avatar_url?: string;
-  plan?: "free" | "pro";
-  boards_used_today?: number;
-  ai_uses_this_month?: number;
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   GLOBAL STATE CONTEXT
-═══════════════════════════════════════════════════════════════════════════ */
-interface AppState {
-  tasks: Task[];
-  setTasks: (t: Task[] | ((p: Task[]) => Task[])) => void;
-  savedBoards: SavedBoard[];
-  setSavedBoards: (b: SavedBoard[] | ((p: SavedBoard[]) => SavedBoard[])) => void;
-  chatMessages: ChatMsg[];
-  setChatMessages: (m: ChatMsg[] | ((p: ChatMsg[]) => ChatMsg[])) => void;
-  briefings: Briefing[];
-  setBriefings: (b: Briefing[] | ((p: Briefing[]) => Briefing[])) => void;
-  burnoutAlerts: BurnoutAlert[];
-  dailyGoal: number; weeklyGoal: number;
-  boardView: BoardView; setBoardView: (v: BoardView) => void;
-  navigate: (p: Page) => void;
-  user: AuthUser | null;
-  isLoading: boolean;
-}
-
-const AppCtx = createContext<AppState>({} as AppState);
-const useApp = () => useContext(AppCtx);
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   ICONS  (stroke-based SVG, all custom)
-═══════════════════════════════════════════════════════════════════════════ */
-type IC = { size?: number; style?: React.CSSProperties };
-const Ic = (d: string | string[], s = 16, sw = "1.75", fill = "none"): ((props: IC) => React.ReactNode) => {
-  return ({ size = s, style }: IC) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill={fill} stroke="currentColor"
-      strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round" style={style}>
-      {(Array.isArray(d) ? d : [d]).map((p, i) => <path key={i} d={p} />)}
-    </svg>
-  );
-};
-
-/* ── Purple Star Nav Icons ─────────────────────────────────────────────── */
-type IC2 = { size?: number; style?: React.CSSProperties };
-
-// Overview: 4-point star
-const StarIcon = ({ size = 16, style }: IC2) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" style={style}>
-    <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/>
-  </svg>
-);
-
-// Board: kanban columns with star accent
-const BoardStarIcon = ({ size = 16, style }: IC2) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" style={style}>
-    <rect x="3" y="3" width="5" height="18" rx="1.5"/>
-    <rect x="10" y="3" width="5" height="12" rx="1.5"/>
-    <rect x="17" y="3" width="4" height="8" rx="1.5"/>
-    <path d="M19 16l.6 1.8H22l-1.5 1.1.6 1.8L19 19.7l-1.5 1 .6-1.8L16.5 17.8h1.9z" fill="#a78bfa" stroke="none"/>
-  </svg>
-);
-
-// Saved: bookmark with star
-const SavedStarIcon = ({ size = 16, style }: IC2) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" style={style}>
-    <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
-    <path d="M12 7l.8 2.4H15l-1.9 1.4.7 2.2L12 11.8l-1.8 1.2.7-2.2L9 9.4h2.2z" fill="#a78bfa" stroke="none"/>
-  </svg>
-);
-
-// Chat: bubble with star
-const ChatStarIcon = ({ size = 16, style }: IC2) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" style={style}>
-    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-    <path d="M12 6l.7 2H15l-1.7 1.2.6 2L12 10l-1.9 1.2.6-2L9 8h2.3z" fill="#a78bfa" stroke="none"/>
-  </svg>
-);
-
-// Autopilot: sparkle/star burst
-const PilotStarIcon = ({ size = 16, style }: IC2) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" style={style}>
-    <path d="M12 2l1.5 4.5L18 8l-4.5 1.5L12 14l-1.5-4.5L6 8l4.5-1.5z"/>
-    <path d="M5 17l.6 1.8H7.5l-1.5 1.1.5 1.8L5 20.5l-1.5 1 .5-1.8L2.5 18.6H4.4z" fill="#a78bfa" stroke="none"/>
-    <path d="M19 14l.5 1.4H21l-1.2.9.4 1.4L19 16.8l-1.2.9.4-1.4-1.2-.9h1.5z" fill="#a78bfa" stroke="none"/>
-  </svg>
-);
-
-// Settings: gear with star center
-const SettingsStarIcon = ({ size = 16, style }: IC2) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" style={style}>
-    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-    <path d="M12 10.5l.5 1.5H14l-1.2.9.4 1.4L12 13.3l-1.2.9.4-1.4L10 12h1.5z" fill="#a78bfa" stroke="none"/>
-  </svg>
-);
-
-const Icons = {
-  LayoutGrid: Ic(["M3 3h7v7H3z","M14 3h7v7h-7z","M3 14h7v7H3z","M14 14h7v7h-7z"]),
-  Overview:   Ic(["M3 3h7v7H3z","M14 3h7v7h-7z","M3 14h7v7H3z","M14 14h7v7h-7z"]),
-  Board:      Ic(["M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18"]),
-  Chat:       Ic("M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"),
-  Autopilot:  Ic("M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .962 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.962 0z"),
-  Saved:      Ic("M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"),
-  Settings:   Ic(["M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z","M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"]),
-  Zap:        Ic("M13 2L3 14h9l-1 8 10-12h-9l1-8z", 14, "2.2"),
-  Send:       Ic("M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"),
-  Plus:       Ic("M12 5v14M5 12h14", 14, "2.2"),
-  Check:      Ic("M20 6L9 17l-5-5", 13, "2.5"),
-  ChevD:      Ic("M6 9l6 6 6-6", 14, "2"),
-  ChevR:      Ic("M9 18l6-6-6-6", 12, "2"),
-  X:          Ic("M18 6L6 18M6 6l12 12", 14, "2.2"),
-  Search:     Ic(["M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16z","M21 21l-4.35-4.35"]),
-  Folder:     Ic("M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"),
-  Calendar:   Ic(["M19 4H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z","M16 2v4M8 2v4M3 10h18"]),
-  Clock:      Ic(["M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z","M12 6v6l4 2"]),
-  Sun:        Ic("M12 7a5 5 0 1 0 0 10A5 5 0 0 0 12 7zm0-4v2M12 19v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"),
-  Moon:       Ic("M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"),
-  Trash:      Ic(["M3 6h18","M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6","M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"]),
-  Crown:      Ic("M2 20h20M5 20V9l7-5 7 5v11"),
-  Logout:     Ic(["M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4","M16 17l5-5-5-5","M21 12H9"]),
-  Shield:     Ic("M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"),
-  Card:       Ic(["M1 4h22v16H1z","M1 9h22"]),
-  Lock:       Ic("M12 1a5 5 0 0 0-5 5v4H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-2V6a5 5 0 0 0-5-5zm0 2a3 3 0 0 1 3 3v4H9V6a3 3 0 0 1 3-3zm1 10a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"),
-  Download:   Ic(["M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4","M7 10l5 5 5-5","M12 15V3"]),
-
-  Pdf:        Ic(["M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z","M14 2v6h6"]),
-  Paste:      Ic(["M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2","M15 2H9a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1z"]),
-  Template:   Ic(["M4 3h16a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z","M4 11h6v10H4z","M14 11h6v10h-6z"]),
-  Target:     Ic(["M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z","M12 18a6 6 0 1 0 0-12 6 6 0 0 0 0 12z","M12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"]),
-  Trending:   Ic("M23 6l-9.5 9.5-5-5L1 18"),
-  Upload:     Ic(["M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4","M17 8l-5-5-5 5","M12 3v12"]),
-  Bell:       Ic(["M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9","M13.73 21a2 2 0 0 1-3.46 0"]),
-  Google:     Ic(["M21.35 11.1h-9.2v3h5.3c-.5 2.4-2.6 4-5.3 4a6 6 0 1 1 0-12c1.6 0 3 .6 4.1 1.5l2.2-2.2A9.9 9.9 0 0 0 12 3a10 10 0 1 0 0 20c5.5 0 9.7-3.9 9.7-9.5 0-.6-.1-1.3-.35-2.4z"]),
-  Edit:       Ic(["M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7","M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"]),
-  Brain:      Ic("M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.46 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"),
-  AlertTri:  Ic(["M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z","M12 9v4M12 17h.01"]),
-  Copy:       Ic(["M20 9h-9a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2z","M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"]),
-  MoveFolder: Ic(["M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z","M12 11v6M9 14l3 3 3-3"]),
-  Sparkle:    Ic(["M5 3l.5 2L8 5.5 5.5 6 5 8l-.5-2L2 5.5 4.5 5z","M12 2l1 4 4 1-4 1-1 4-1-4-4-1 4-1z","M19 13l.5 2 2 .5-2 .5-.5 2-.5-2-2-.5 2-.5z"]),
-  ArrowR:     Ic("M5 12h14M12 5l7 7-7 7"),
-  Layers:     Ic(["M12 2L2 7l10 5 10-5-10-5z","M2 17l10 5 10-5","M2 12l10 5 10-5"]),
-  Activity:   Ic("M22 12h-4l-3 9L9 3l-3 9H2"),
-};
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   SHARED UI ATOMS
-═══════════════════════════════════════════════════════════════════════════ */
-const PRI: Record<Priority, { label: string; color: string; bg: string }> = {
-  urgent: { label:"Urgent", color:"var(--ur)",  bg:"rgba(249,115,22,0.11)" },
-  high:   { label:"High",   color:"var(--rd)",  bg:"rgba(239,68,68,0.11)"  },
-  medium: { label:"Med",    color:"var(--am)",  bg:"rgba(245,158,11,0.11)" },
-  low:    { label:"Low",    color:"var(--tx3)", bg:"rgba(255,255,255,0.04)"},
-};
-
-function PriBadge({ p }: { p: Priority }) {
-  const c = PRI[p];
-  return (
-    <span style={{
-      fontSize: 9, fontWeight: 700, letterSpacing: "0.06em",
-      padding: "2px 8px", borderRadius: 99,
-      background: c.bg, color: c.color,
-      textTransform: "uppercase", whiteSpace: "nowrap",
-      fontFamily: "var(--font-mono)",
-      border: `1px solid ${c.color}22`,
-    }}>
-      {c.label}
-    </span>
-  );
-}
-
-/* Avatar kanbi pulls from AuthUser or generates initials */
-function Avt({ name, size = 28, avatarUrl }: { name: string; size?: number; avatarUrl?: string }) {
-  const init = name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
-  if (avatarUrl) {
-    return (
-      <img src={avatarUrl} alt={name} width={size} height={size}
-        style={{ borderRadius: "50%", objectFit: "cover", flexShrink: 0,
-          boxShadow: "0 0 0 2px var(--bg1), 0 0 0 3px var(--br)" }} />
-    );
-  }
-  return (
-    <div style={{
-      width: size, height: size, borderRadius: "50%",
-      background: "linear-gradient(135deg, var(--ac), var(--pu))",
-      display: "flex", alignItems: "center", justifyContent: "center",
-      fontSize: size * 0.34, fontWeight: 700, color: "#fff", flexShrink: 0,
-      fontFamily: "var(--font-display)",
-      boxShadow: "0 0 0 2px var(--bg1), 0 0 0 3px var(--br), 0 2px 8px rgba(99,102,241,0.3)",
-      letterSpacing: "-0.02em",
-    }}>
-      {init}
-    </div>
-  );
-}
-
-function PBar({ value, color = "var(--ac)", h = 4, animated = true }: {
-  value: number; color?: string; h?: number; animated?: boolean
-}) {
-  return (
-    <div style={{ height: h, borderRadius: h, background: "var(--br)", overflow: "hidden", position: "relative" }}>
-      <div style={{
-        height: "100%",
-        width: `${Math.min(value, 100)}%`,
-        background: color,
-        borderRadius: h,
-        transition: animated ? "width .9s cubic-bezier(.4,0,.2,1)" : "none",
-        position: "relative",
-      }}>
-        <div style={{
-          position: "absolute", inset: 0,
-          background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent)",
-          borderRadius: "inherit",
-        }}/>
-      </div>
-    </div>
-  );
-}
-
-function Toggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
-  return (
-    <div onClick={onToggle} style={{
-      width: 40, height: 22, borderRadius: 11,
-      background: on ? "var(--ac)" : "var(--bg3)",
-      cursor: "pointer", position: "relative",
-      transition: "background .22s", flexShrink: 0,
-      boxShadow: on ? "0 0 12px rgba(99,102,241,0.3)" : "none",
-    }}>
-      <div style={{
-        position: "absolute", top: 3,
-        left: on ? 21 : 3, width: 16, height: 16,
-        borderRadius: "50%", background: "#fff",
-        transition: "left .22s cubic-bezier(.34,1.56,.64,1)",
-        boxShadow: "0 1px 4px rgba(0,0,0,.3)",
-      }}/>
-    </div>
-  );
-}
-
-/* Skeleton loader for async states */
-function Skeleton({ w = "100%", h = 16, style }: { w?: string|number; h?: number; style?: React.CSSProperties }) {
-  return <div className="skeleton" style={{ width: w, height: h, ...style }}/>;
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   CHARTS  Activity Line, Priority Donut, Completion Ring
-═══════════════════════════════════════════════════════════════════════════ */
-
-/* ── Activity Line Chart ── */
-function BarChart({ data }: { data: { label: string; value: number; color?: string }[] }) {
-  const [hovered, setHovered] = useState<number | null>(null);
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => { const t = setTimeout(() => setMounted(true), 60); return () => clearTimeout(t); }, []);
-
-  const isEmpty = data.length === 0 || data.every(d => d.value === 0);
-  const max = Math.max(...data.map(d => d.value), 1);
-  const W = 100, H = 80; // viewBox units (%)
-
-  if (isEmpty) {
-    return (
-      <div style={{ height:120, display:"flex", flexDirection:"column", alignItems:"center",
-        justifyContent:"center", gap:10 }}>
-        <svg width={36} height={36} viewBox="0 0 24 24" fill="none" stroke="var(--tx3)"
-          strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-        </svg>
-        <span style={{ fontSize:11.5, color:"var(--tx3)", fontWeight:500, textAlign:"center" }}>
-          Complete tasks to see activity
-        </span>
-      </div>
-    );
-  }
-
-  // Build SVG polyline points (percentage-based viewBox 0-100)
-  const pts = data.map((d, i) => {
-    const x = data.length === 1 ? 50 : (i / (data.length - 1)) * 96 + 2;
-    const y = H - (d.value / max) * (H - 8) - 4;
-    return { x, y, ...d };
-  });
-  const polyline = pts.map(p => `${p.x},${p.y}`).join(" ");
-  // Area fill path
-  const area = `M${pts[0]!.x},${H} ` + pts.map(p => `L${p.x},${p.y}`).join(" ") + ` L${pts[pts.length-1]!.x},${H} Z`;
-
-  const total = data.reduce((s, d) => s + d.value, 0);
-  const hoveredPt = hovered !== null ? pts[hovered] : null;
-
-  return (
-    <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-      <div style={{ position:"relative", width:"100%", paddingBottom:"52%" }}>
-        <svg viewBox={`0 0 100 ${H}`} preserveAspectRatio="none"
-          style={{ position:"absolute", inset:0, width:"100%", height:"100%", overflow:"visible" }}>
-          <defs>
-            <linearGradient id="lineArea" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="var(--ac)" stopOpacity="0.22"/>
-              <stop offset="100%" stopColor="var(--ac)" stopOpacity="0"/>
-            </linearGradient>
-            <linearGradient id="lineStroke" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stopColor="var(--pu)"/>
-              <stop offset="100%" stopColor="var(--ac)"/>
-            </linearGradient>
-            <filter id="lineglow">
-              <feGaussianBlur stdDeviation="1.2" result="blur"/>
-              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-            </filter>
-          </defs>
-
-          {/* Horizontal grid lines */}
-          {[0.25, 0.5, 0.75, 1].map(f => (
-            <line key={f}
-              x1="0" y1={H - f * (H - 8) - 4}
-              x2="100" y2={H - f * (H - 8) - 4}
-              stroke="var(--br)" strokeWidth="0.4" strokeDasharray="2,3"/>
-          ))}
-
-          {/* Area fill */}
-          <path d={area} fill="url(#lineArea)"
-            style={{ transition: mounted ? "opacity .6s" : "none", opacity: mounted ? 1 : 0 }}/>
-
-          {/* Hover vertical line */}
-          {hoveredPt && (
-            <line x1={hoveredPt.x} y1={4} x2={hoveredPt.x} y2={H}
-              stroke="var(--ac)" strokeWidth="0.5" strokeDasharray="2,2" opacity="0.6"/>
-          )}
-
-          {/* Line */}
-          <polyline points={polyline} fill="none" stroke="url(#lineStroke)"
-            strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
-            filter="url(#lineglow)"
-            style={{
-              strokeDasharray: mounted ? "none" : "200",
-              strokeDashoffset: mounted ? "0" : "200",
-              transition: "stroke-dashoffset 1.2s cubic-bezier(.4,0,.2,1)",
-            }}/>
-
-          {/* Dots */}
-          {pts.map((p, i) => (
-            <g key={i}>
-              <circle cx={p.x} cy={p.y} r="3.5" fill="transparent"
-                onMouseEnter={() => setHovered(i)}
-                onMouseLeave={() => setHovered(null)}
-                style={{ cursor:"crosshair" }}/>
-              <circle cx={p.x} cy={p.y}
-                r={hovered === i ? 3 : (p.value > 0 ? 1.8 : 1)}
-                fill={hovered === i ? "#fff" : "var(--ac)"}
-                stroke={hovered === i ? "var(--ac)" : "none"}
-                strokeWidth="1.5"
-                style={{ transition:"r .15s, fill .15s", pointerEvents:"none",
-                  filter: hovered === i ? "drop-shadow(0 0 4px var(--ac))" : "none" }}/>
-            </g>
-          ))}
-
-          {/* Tooltip */}
-          {hoveredPt && (() => {
-            const tx = hoveredPt.x > 80 ? hoveredPt.x - 22 : hoveredPt.x + 2;
-            const ty = hoveredPt.y > 20 ? hoveredPt.y - 14 : hoveredPt.y + 6;
-            return (
-              <g style={{ pointerEvents:"none" }}>
-                <rect x={tx - 1} y={ty - 7} width={24} height={14} rx="3"
-                  fill="var(--bg3)" stroke="var(--brh)" strokeWidth="0.5"/>
-                <text x={tx + 11} y={ty + 2.5} textAnchor="middle"
-                  fill="var(--tx)" fontSize="5.5" fontWeight="700" fontFamily="var(--font-mono)">
-                  {hoveredPt.value}
-                </text>
-                <text x={tx + 11} y={ty + 8.5} textAnchor="middle"
-                  fill="var(--tx3)" fontSize="4.5" fontFamily="var(--font-mono)">
-                  {hoveredPt.label}
-                </text>
-              </g>
-            );
-          })()}
-        </svg>
-      </div>
-
-      {/* Footer */}
-      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center",
-        paddingTop:8, borderTop:"1px solid var(--br)" }}>
-        <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-          <div style={{ width:20, height:2, borderRadius:1,
-            background:"linear-gradient(90deg, var(--pu), var(--ac))" }}/>
-          <span style={{ fontSize:10.5, color:"var(--tx3)" }}>Completed tasks</span>
-        </div>
-        <div style={{ display:"flex", gap:14 }}>
-          <span style={{ fontSize:10.5, color:"var(--tx3)" }}>
-            Peak <span style={{ color:"var(--tx)", fontWeight:700, fontFamily:"var(--font-mono)" }}>{max}</span>
-          </span>
-          <span style={{ fontSize:10.5, color:"var(--tx3)" }}>
-            Total <span style={{ color:"var(--ac)", fontWeight:700, fontFamily:"var(--font-mono)" }}>{total}</span>
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ── Priority Donut Chart ── */
-function DonutChart({ segs, size = 110 }: { segs: { value: number; color: string; label: string }[]; size?: number }) {
-  const [hovered, setHovered] = useState<number | null>(null);
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => { const t = setTimeout(() => setMounted(true), 80); return () => clearTimeout(t); }, []);
-
-  const rawTotal = segs.reduce((a, s) => a + s.value, 0);
-  const hasData = rawTotal > 0;
-  const total = rawTotal || 1;
-  const r = size * 0.34, cx = size / 2, cy = size / 2;
-  const circ = 2 * Math.PI * r;
-  const sw = size * 0.1;
-  const rHover = r + sw * 0.18;
-
-  let cum = 0;
-  const arcs = segs.map((s, i) => {
-    const pct = s.value / total;
-    const startAngle = cum * 2 * Math.PI - Math.PI / 2;
-    const endAngle = (cum + pct) * 2 * Math.PI - Math.PI / 2;
-    cum += pct;
-    // midpoint for tooltip
-    const midAngle = (startAngle + endAngle) / 2;
-    const tx = cx + (r + sw * 1.1) * Math.cos(midAngle);
-    const ty = cy + (r + sw * 1.1) * Math.sin(midAngle);
-    return { ...s, pct, startAngle, endAngle, midAngle, tx, ty, idx: i };
-  });
-
-  const hovSeg = hovered !== null ? arcs[hovered] : null;
-  const centerLabel = hovSeg
-    ? { val: hovSeg.value, lbl: hovSeg.label, col: hovSeg.color }
-    : hasData
-    ? (() => { const d = [...arcs].sort((a,b) => b.value - a.value)[0]!; return { val: d.value, lbl: d.label, col: d.color }; })()
-    : null;
-
-  return (
-    <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:16 }}>
-      <div style={{ position:"relative", flexShrink:0 }}>
-        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}
-          style={{ overflow:"visible" }}>
-          <defs>
-            {segs.map((s, i) => (
-              <filter key={i} id={`dseg${i}`}>
-                <feGaussianBlur stdDeviation="2" result="blur"/>
-                <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-              </filter>
-            ))}
-          </defs>
-
-          {/* Track */}
-          <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--br)" strokeWidth={sw}/>
-
-          {/* Segments */}
-          {hasData ? arcs.map((arc, i) => {
-            if (arc.value === 0) return null;
-            const isHov = hovered === i;
-            const curR = isHov ? rHover : r;
-            const curCirc = 2 * Math.PI * curR;
-            const gap = arcs.filter(a => a.value > 0).length > 1 ? (isHov ? 2 : 3) : 0;
-            const dash = arc.pct * (mounted ? curCirc : 0) - gap;
-            const off = -(arc.startAngle + Math.PI / 2) / (2 * Math.PI) * curCirc;
-            return (
-              <circle key={i} cx={cx} cy={cy} r={curR} fill="none"
-                stroke={arc.color} strokeWidth={isHov ? sw * 1.22 : sw}
-                strokeLinecap="round"
-                strokeDasharray={`${Math.max(dash, 0)} ${curCirc}`}
-                strokeDashoffset={off}
-                filter={isHov ? `url(#dseg${i})` : undefined}
-                style={{
-                  transition: "r .2s, stroke-width .2s, stroke-dasharray .9s cubic-bezier(.4,0,.2,1)",
-                  cursor:"pointer",
-                  transformOrigin:`${cx}px ${cy}px`,
-                }}
-                onMouseEnter={() => setHovered(i)}
-                onMouseLeave={() => setHovered(null)}/>
-            );
-          }) : null}
-        </svg>
-
-        {/* Center label */}
-        <div style={{ position:"absolute", inset:0, display:"flex", flexDirection:"column",
-          alignItems:"center", justifyContent:"center", pointerEvents:"none",
-          transition:"all .2s" }}>
-          {centerLabel ? (
-            <>
-              <span style={{ fontSize: size * 0.17, fontWeight:800, color: hovered !== null ? centerLabel.col : "var(--tx)",
-                letterSpacing:"-0.04em", fontFamily:"var(--font-display)", lineHeight:1,
-                transition:"color .2s" }}>
-                {centerLabel.val}%
-              </span>
-              <span style={{ fontSize: size * 0.082, fontWeight:600,
-                marginTop:2, letterSpacing:"0.01em", transition:"color .2s",
-                color: hovered !== null ? centerLabel.col : "var(--tx3)" } as React.CSSProperties}>
-                {centerLabel.lbl}
-              </span>
-            </>
-          ) : (
-            <span style={{ fontSize: size * 0.13, color:"var(--tx3)", fontWeight:700 }}></span>
-          )}
-        </div>
-      </div>
-
-      {/* Legend */}
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"6px 16px", width:"100%" }}>
-        {segs.map((s, i) => (
-          <div key={s.label}
-            onMouseEnter={() => setHovered(i)}
-            onMouseLeave={() => setHovered(null)}
-            style={{ display:"flex", alignItems:"center", gap:7, cursor:"default",
-              opacity: hovered !== null && hovered !== i ? 0.4 : 1,
-              transition:"opacity .2s" }}>
-            <div style={{ width:8, height:8, borderRadius:"50%", background:s.color, flexShrink:0,
-              boxShadow: hovered === i ? `0 0 8px ${s.color}` : s.value > 0 ? `0 0 4px ${s.color}66` : "none",
-              transition:"box-shadow .2s", opacity: s.value > 0 ? 1 : 0.3 }}/>
-            <span style={{ fontSize:10.5, color:"var(--tx3)", flex:1, overflow:"hidden",
-              textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{s.label}</span>
-            <span style={{ fontSize:10.5, fontWeight:700, fontFamily:"var(--font-mono)",
-              color: s.value > 0 ? "var(--tx)" : "var(--tx3)" }}>{s.value}%</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-/* ── Completion Ring Chart ── */
-function CompletionChart({ done, wip, todo, total }: { done: number; wip: number; todo: number; total: number }) {
-  const [hovered, setHovered] = useState<string | null>(null);
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => { const t = setTimeout(() => setMounted(true), 100); return () => clearTimeout(t); }, []);
-
-  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
-  const isComplete = done === total && total > 0;
-  const ringColor = isComplete ? "var(--gr)" : pct >= 60 ? "var(--ac)" : pct >= 30 ? "var(--am)" : "var(--rd)";
-
-  const size = 120;
-  const r = 44, cx = size / 2, cy = size / 2;
-  const circ = 2 * Math.PI * r;
-  const dashOffset = circ * (1 - (mounted ? pct / 100 : 0));
-
-  const stats = [
-    { key:"done",  label:"Done",        value:done, color:"var(--gr)" },
-    { key:"wip",   label:"In Progress", value:wip,  color:"var(--ac)" },
-    { key:"todo",  label:"To Do",       value:todo, color:"var(--tx3)" },
-    { key:"total", label:"Total",       value:total,color:"var(--tx)"  },
-  ];
-
-  return (
-    <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", gap:16 }}>
-      {/* Ring */}
-      <div style={{ position:"relative", width:size, height:size }}>
-        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}
-          style={{ transform:"rotate(-90deg)", overflow:"visible" }}>
-          <defs>
-            <filter id="ringGlow">
-              <feGaussianBlur stdDeviation="2.5" result="blur"/>
-              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-            </filter>
-          </defs>
-          {/* Track */}
-          <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--br)" strokeWidth="9"/>
-          {/* WIP arc (behind done) */}
-          {wip > 0 && total > 0 && (
-            <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--ac)" strokeWidth="9"
-              strokeLinecap="round" opacity="0.35"
-              strokeDasharray={`${circ * (wip / total) * (mounted ? 1 : 0)} ${circ}`}
-              strokeDashoffset={-circ * (done / total)}
-              style={{ transition:"stroke-dasharray 1.1s cubic-bezier(.4,0,.2,1) .1s" }}/>
-          )}
-          {/* Done arc */}
-          <circle cx={cx} cy={cy} r={r} fill="none" stroke={ringColor} strokeWidth="9"
-            strokeLinecap="round"
-            strokeDasharray={circ} strokeDashoffset={dashOffset}
-            filter="url(#ringGlow)"
-            style={{ transition:"stroke-dashoffset 1.1s cubic-bezier(.4,0,.2,1), stroke .3s" }}/>
-        </svg>
-        {/* Center */}
-        <div style={{ position:"absolute", inset:0, display:"flex", flexDirection:"column",
-          alignItems:"center", justifyContent:"center" }}>
-          <span style={{ fontSize:24, fontWeight:800, color:"var(--tx)", letterSpacing:"-0.05em",
-            fontFamily:"var(--font-display)", lineHeight:1, transition:"color .3s" }}>
-            {pct}%
-          </span>
-          <span style={{ fontSize:9.5, color:"var(--tx3)", fontWeight:600, marginTop:3,
-            letterSpacing:"0.04em", textTransform:"uppercase" }}>
-            {isComplete && total > 0 ? "Complete" : "Done"}
-          </span>
-        </div>
-      </div>
-
-      {/* Stat tiles */}
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"7px 8px", width:"100%" }}>
-        {stats.map(s => (
-          <div key={s.key}
-            onMouseEnter={() => setHovered(s.key)}
-            onMouseLeave={() => setHovered(null)}
-            style={{ textAlign:"center", padding:"8px 6px", borderRadius:9,
-              background: hovered === s.key ? "var(--bg3)" : "var(--bg2)",
-              border:`1px solid ${hovered === s.key ? "var(--brh)" : "var(--br)"}`,
-              cursor:"default", transition:"all .18s" }}>
-            <div style={{ fontSize:18, fontWeight:800, color:s.color,
-              fontFamily:"var(--font-display)", letterSpacing:"-0.04em",
-              lineHeight:1, transition:"transform .18s",
-              transform: hovered === s.key ? "scale(1.12)" : "scale(1)" }}>
-              {s.value}
-            </div>
-            <div style={{ fontSize:9.5, color:"var(--tx3)", marginTop:3,
-              fontWeight: hovered === s.key ? 600 : 400 }}>{s.label}</div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function HealthRing({ score }: { score: number }) {
-  const size = 100;
-  const r = 38, circ = 2 * Math.PI * r;
-  const off = circ * (1 - score / 100);
-  const col = score >= 75 ? "var(--gr)" : score >= 50 ? "var(--am)" : "var(--rd)";
-  return (
-    <div style={{ position:"relative", width:size, height:size, flexShrink:0 }}>
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform:"rotate(-90deg)" }}>
-        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="var(--br)" strokeWidth="5"/>
-        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={col} strokeWidth="5"
-          strokeLinecap="round" strokeDasharray={circ} strokeDashoffset={off}
-          style={{ transition:"stroke-dashoffset 1.2s cubic-bezier(.4,0,.2,1)" }}/>
-      </svg>
-      <div style={{ position:"absolute", inset:0, display:"flex", flexDirection:"column",
-        alignItems:"center", justifyContent:"center" }}>
-        <span style={{ fontSize:22, fontWeight:700, letterSpacing:"-0.04em",
-          color:"var(--tx)", fontFamily:"var(--font-display)", lineHeight:1 }}>{score}</span>
-        <span style={{ fontSize:9, color:"var(--tx3)", fontWeight:500,
-          letterSpacing:"0.05em", marginTop:3 }}>/ 100</span>
-      </div>
-    </div>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
    TASK CARD
 ═══════════════════════════════════════════════════════════════════════════ */
 function TaskCard({
@@ -1056,27 +502,26 @@ function PageOverview() {
   const displayName = user?.full_name?.split(" ")[0] ?? "there";
 
   const handleQuickInput = async () => {
-    if (!quickInput.trim() || !user?.id) return;
+    if (!quickInput.trim()) return;
     setAddLoading(true);
     try {
-      const res = await fetch('/api/boards', {
+      const res = await fetch('/api/extract', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: quickInput.trim(), priority: 'medium', label: 'General', status: 'todo' }),
+        body: JSON.stringify({ text: quickInput.trim() }),
       });
-      const data = await res.json();
-      const newTask: Task = res.ok
-        ? { id: data.id, title: data.title, priority: (data.priority ?? 'medium') as Priority, label: data.label ?? 'General', status: (data.status ?? 'todo') as TaskStatus }
-        : { id: `KB-${Date.now()}`, title: quickInput.trim(), priority: 'medium', label: 'General', status: 'todo' };
-      setTasks(prev => [...prev, newTask]);
+      if (!res.ok) return;
+      const loaded = await loadTasksFromApi();
+      if (loaded.length > 0) setTasks(loaded);
+      fetch('/api/sync-task-stats', { method: 'POST' }).catch(() => {});
+      setQuickInput('');
+      setBoardView('kanban');
+      navigate('board');
     } catch {
-      setTasks(prev => [...prev, { id: `KB-${Date.now()}`, title: quickInput.trim(), priority: 'medium', label: 'General', status: 'todo' }]);
+      /* allow retry */
+    } finally {
+      setAddLoading(false);
     }
-    fetch('/api/sync-task-stats', { method: 'POST' }).catch(() => {});
-    setQuickInput('');
-    setAddLoading(false);
-    setBoardView('kanban');
-    navigate('board');
   };
 
   const [weeklyDone, setWeeklyDone] = useState(0);
@@ -1106,8 +551,8 @@ function PageOverview() {
   ];
 
   return (
-    <div className="fade-up page-pad" style={{ padding:"28px 30px", overflowY:"auto", height:"100%",
-      display:"flex", flexDirection:"column", gap:22 }}>
+    <div className="fade-up page-pad" style={{ padding:"28px 36px", overflowY:"auto", height:"100%",
+      display:"flex", flexDirection:"column", gap:22, maxWidth:"calc(var(--content-max) + 80px)", margin:"0 auto", width:"100%" }}>
 
       {/* Header */}
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", flexWrap:"wrap", gap:12 }}>
@@ -1434,10 +879,11 @@ function PageOverview() {
    PAGE: BOARD
 ═══════════════════════════════════════════════════════════════════════════ */
 function PageBoard() {
-  const { tasks, setTasks, savedBoards, setSavedBoards, boardView, setBoardView, user } = useApp();
+  const { tasks, setTasks, savedBoards, setSavedBoards, boardView, setBoardView } = useApp();
   const [inputMode, setInputMode] = useState<InputMode>("paste");
   const [inputText, setInputText] = useState("");
   const [extracting, setExtracting] = useState(false);
+  const [extractError, setExtractError] = useState("");
   const pdfInputRef = useRef<HTMLInputElement>(null);
   const overloaded = tasks.filter(t => t.status !== "done" && (t.priority === "urgent" || t.priority === "high")).length >= 5;
 
@@ -1452,25 +898,41 @@ function PageBoard() {
   const handlePdfUpload = async (file: File) => {
     if (!file) return;
     setExtracting(true);
+    setExtractError("");
     try {
       const form = new FormData();
       form.append('file', file);
       const res = await fetch('/api/parse-pdf', { method: 'POST', body: form });
       const data = await res.json();
-      if (!res.ok) { setExtracting(false); return; }
-      const extracted: Task[] = (data.tasks ?? [])
-        .map((t: { title?: string; priority?: string; estimate?: string; deadline?: string }, i: number) => ({
-          id: `KB-${Date.now()}-${i}`,
-          title: (t.title ?? '').trim(),
-          priority: (['urgent','high','medium','low'].includes(t.priority ?? '') ? t.priority : 'medium') as Priority,
-          label: 'General', status: 'todo' as TaskStatus,
-          estimate: t.estimate, dueDate: t.deadline,
-        }))
-        .filter((t: Task) => t.title.length > 2);
-      setTasks(prev => [...prev, ...extracted]);
+      if (!res.ok) {
+        setExtractError(data.error ?? 'Failed to parse PDF. Please try again.');
+        return;
+      }
+      const parsed = (data.tasks ?? []) as { task?: string; title?: string; priority?: string; estimate?: string; deadline?: string }[];
+      const titles = parsed.map(t => (t.title ?? t.task ?? '').trim()).filter(t => t.length > 2);
+      if (titles.length === 0) {
+        setExtractError('No tasks found in this PDF.');
+        return;
+      }
+      const extractRes = await fetch('/api/extract', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: titles.map(t => `- ${t}`).join('\n') }),
+      });
+      if (!extractRes.ok) {
+        const err = await extractRes.json().catch(() => ({}));
+        setExtractError(err.error ?? 'Failed to save extracted tasks.');
+        return;
+      }
+      const loaded = await loadTasksFromApi();
+      if (loaded.length > 0) setTasks(loaded);
       syncTaskStats();
       setBoardView('kanban');
-    } catch { /* allow retry */ } finally { setExtracting(false); }
+    } catch {
+      setExtractError('Network error while processing PDF.');
+    } finally {
+      setExtracting(false);
+    }
   };
 
   const inputModes = [
@@ -1482,35 +944,25 @@ function PageBoard() {
   const handleExtract = async () => {
     if (!inputText.trim()) return;
     setExtracting(true);
+    setExtractError("");
     try {
       const res = await fetch('/api/extract', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: inputText, userId: user?.id ?? '' }),
+        body: JSON.stringify({ text: inputText }),
       });
       const data = await res.json();
       if (!res.ok) {
-        console.error('Extract error:', data.error);
-        setExtracting(false);
+        setExtractError(data.error ?? 'Failed to extract tasks. Please try again.');
         return;
       }
-      const extracted: Task[] = (data.tasks ?? [])
-        .map((t: { task?: string; title?: string; priority?: string; estimate?: string; deadline?: string }, i: number) => ({
-          id: `KB-${Date.now()}-${i}`,
-          title: (t.task ?? t.title ?? '').trim(),
-          priority: (['urgent', 'high', 'medium', 'low'].includes(t.priority ?? '') ? t.priority : 'medium') as Priority,
-          label: 'General',
-          status: 'todo' as TaskStatus,
-          estimate: t.estimate,
-          dueDate: t.deadline,
-        }))
-        .filter((t: Task) => t.title.length > 2);
-      setTasks(prev => [...prev, ...extracted]);
+      const loaded = await loadTasksFromApi();
+      if (loaded.length > 0) setTasks(loaded);
       syncTaskStats();
       setInputText('');
       setBoardView('kanban');
     } catch {
-      // Keep extracting false on error so user can retry
+      setExtractError('Network error. Check your connection and try again.');
     } finally {
       setExtracting(false);
     }
@@ -1580,7 +1032,7 @@ function PageBoard() {
       {boardView === "input" ? (
         /* ── Input view ── */
         <div className="page-pad" style={{ padding:"28px 30px", overflowY:"auto", flex:1 }}>
-          <div style={{ maxWidth:880, margin:"0 auto" }}>
+          <div style={{ maxWidth:"var(--content-max)", margin:"0 auto", width:"100%" }}>
             <div style={{ textAlign:"center", marginBottom:28 }}>
               <div style={{ display:"inline-flex", alignItems:"center", gap:7, padding:"5px 14px",
                 borderRadius:100, background:"var(--as)", border:"1px solid var(--ag)",
@@ -1708,6 +1160,11 @@ function PageBoard() {
                       : <><Icons.Autopilot size={14}/> Turn This Into Tasks</>
                     }
                   </button>
+                )}
+                {extractError && (
+                  <p style={{ fontSize:12, color:"var(--rd)", marginTop:10, lineHeight:1.5 }}>
+                    {extractError}
+                  </p>
                 )}
               </div>
 
@@ -1843,59 +1300,60 @@ function PageBoard() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   CHAT AVATAR
+═══════════════════════════════════════════════════════════════════════════ */
+function ChatAvatar({ size = 30, icon = 14 }: { size?: number; icon?: number }) {
+  return (
+    <div style={{ width:size, height:size, borderRadius:8, flexShrink:0,
+      background:"linear-gradient(135deg, #6366f1, #a78bfa)",
+      boxShadow:"0 2px 8px rgba(99,102,241,0.35)",
+      display:"flex", alignItems:"center", justifyContent:"center" }}>
+      <ChatBotIcon size={icon} color="#fff"/>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    CHAT MESSAGE  (extracted to fix useState-in-map hook violation)
 ═══════════════════════════════════════════════════════════════════════════ */
 function ChatMessage({ m }: { m: ChatMsg }) {
   const [copied, setCopied] = useState(false);
-  const handleCopy = () => {
-    navigator.clipboard.writeText(m.content);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const handleCopy = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const ok = await copyTextToClipboard(m.content);
+    if (ok) {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
   };
   return (
     <div className="fade-up"
       style={{ display:"flex", gap:10, alignItems:"flex-start",
         flexDirection: m.role === "user" ? "row-reverse" : "row",
         position:"relative" }}>
-      {m.role === "ai" && (
-        <div style={{ width:30, height:30, borderRadius:8, flexShrink:0,
-          background:"linear-gradient(135deg, #6366f1, #a78bfa)",
-          boxShadow:"0 2px 8px rgba(99,102,241,0.35)",
-          display:"flex", alignItems:"center", justifyContent:"center" }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 2l1.8 5.4L19 9l-5.2 1.8L12 16l-1.8-5.2L5 9l5.2-1.6z" fill="rgba(255,255,255,0.25)" stroke="#fff"/>
-            <path d="M5 17l.8 2.4L8 20.2l-2.2.8L5 23.4l-.8-2.4L2 20.2l2.2-.8z" fill="rgba(255,255,255,0.4)" stroke="#fff" strokeWidth="1.3"/>
-            <path d="M19 2l.6 1.8L21.4 4.4l-1.8.6L19 6.8l-.6-1.8L16.6 4.4l1.8-.6z" fill="rgba(255,255,255,0.4)" stroke="#fff" strokeWidth="1.3"/>
-          </svg>
-        </div>
-      )}
+      {m.role === "ai" && <ChatAvatar size={30} icon={14}/>}
       <div style={{
-        maxWidth:"78%", padding:"11px 15px",
+        maxWidth:"82%", padding: m.role === "ai" ? "11px 15px 36px" : "11px 15px",
         borderRadius: m.role === "user" ? "14px 4px 14px 14px" : "4px 14px 14px 14px",
         background: m.role === "user" ? "var(--ac)" : "var(--bg1)",
         border: m.role === "user" ? "none" : "1px solid var(--br)",
         color: m.role === "user" ? "#fff" : "var(--tx)",
-        position:"relative"
+        position:"relative",
+        boxShadow: m.role === "ai" ? "0 8px 24px rgba(0,0,0,0.08)" : undefined,
       }}>
         {m.role === "ai" && (
-          <button onClick={handleCopy}
-            style={{ position:"absolute", top:8, right:8,
-              background:"rgba(0,0,0,0.2)", border:"none", borderRadius:"4px",
-              padding:"4px 6px", cursor:"pointer", display:"flex", alignItems:"center",
-              justifyContent:"center", opacity:0.6, transition:"opacity 0.2s", color:"var(--tx)" }}
-            onMouseEnter={e => e.currentTarget.style.opacity = "1"}
-            onMouseLeave={e => e.currentTarget.style.opacity = "0.6"}
-            title={copied ? "Copied!" : "Copy"}>
-            {copied ? (
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <polyline points="20 6 9 17 4 12"/>
-              </svg>
-            ) : (
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-              </svg>
-            )}
+          <button type="button" onClick={handleCopy}
+            style={{ position:"absolute", bottom:8, right:8,
+              background: copied ? "rgba(16,185,129,0.15)" : "var(--bg2)",
+              border:`1px solid ${copied ? "rgba(16,185,129,0.35)" : "var(--br)"}`,
+              borderRadius:7, padding:"5px 8px", cursor:"pointer",
+              display:"flex", alignItems:"center", gap:5,
+              color: copied ? "var(--gr)" : "var(--tx2)", fontSize:11, fontWeight:600,
+              transition:"all .15s", zIndex:2 }}
+            title={copied ? "Copied!" : "Copy message"}>
+            {copied ? <Icons.Check size={12}/> : <Icons.Copy size={12}/>}
+            {copied ? "Copied" : "Copy"}
           </button>
         )}
         {m.role === "ai" ? (
@@ -1927,15 +1385,29 @@ function ChatMessage({ m }: { m: ChatMsg }) {
    PAGE: AI CHAT
 ═══════════════════════════════════════════════════════════════════════════ */
 function PageChat() {
-  const { tasks, setTasks, chatMessages, setChatMessages } = useApp();
+  const { tasks, chatMessages, setChatMessages, user } = useApp();
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [showMiniBoard, setShowMiniBoard] = useState(true);
+  const [clearing, setClearing] = useState(false);
+  const [showMiniBoard, setShowMiniBoard] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const ts = () => new Date().toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" });
 
+  const startNewChat = async () => {
+    if (loading || clearing) return;
+    setClearing(true);
+    try {
+      await fetch('/api/ai/chat', { method: 'DELETE' });
+    } catch {
+      /* clear locally even if API fails */
+    }
+    setChatMessages([]);
+    setInput("");
+    setClearing(false);
+  };
+
   const send = useCallback(async (text: string) => {
-    if (!text.trim()) return;
+    if (!text.trim() || loading) return;
     const uid = Date.now().toString();
     setChatMessages(prev => [...prev, { id:uid, role:"user", content:text, ts:ts() }]);
     setInput(""); setLoading(true);
@@ -1948,17 +1420,31 @@ function PageChat() {
           message: text,
           tasks: tasks.map(t => ({ id: t.id, title: t.title, priority: t.priority, status: t.status })),
           workloadHealth: Math.round(Math.max(0, 100 - (tasks.filter(t => t.priority === "urgent" || t.priority === "high").length / Math.max(tasks.length, 1)) * 42)),
+          completedToday: tasks.filter(t => t.status === "done").length,
+          estimatedHours: tasks.filter(t => t.status !== "done").length,
         }),
       });
       const data = await res.json();
-      const reply = data.response ?? data.reply ?? "Sorry, I couldn't get a response.";
+      if (!res.ok) {
+        const errMsg = data.error ?? data.message ?? 'Something went wrong. Please try again.';
+        setChatMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: "ai", content: `Sorry, ${errMsg}`, ts: ts() }]);
+        return;
+      }
+      const reply = truncateChatResponse(data.response ?? data.reply ?? "Sorry, I couldn't get a response.");
       setChatMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: "ai", content: reply, ts: ts() }]);
     } catch {
       setChatMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: "ai", content: "Sorry, I couldn't connect to the AI. Please try again.", ts: ts() }]);
     } finally {
       setLoading(false);
     }
-  }, [tasks, setTasks, setChatMessages, chatMessages]);
+  }, [tasks, setChatMessages, loading]);
+
+  const chatPrompts = [
+    "What should I work on first today?",
+    "Help me prioritize my urgent tasks",
+    "Break down my biggest task into steps",
+    "Am I at risk of burnout this week?",
+  ];
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior:"smooth" }); }, [chatMessages]);
 
@@ -1966,80 +1452,107 @@ function PageChat() {
     <div className="chat-page" style={{ height:"100%", display:"flex", overflow:"hidden" }}>
       {/* Main chat */}
       <div style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
-        {/* Chat header */}
-        <div style={{ padding:"14px 22px", borderBottom:"1px solid var(--br)",
-          display:"flex", alignItems:"center", gap:12, flexShrink:0 }}>
-          <div style={{ width:36, height:36, borderRadius:10,
-            background:"linear-gradient(135deg, #6366f1, #a78bfa)",
-            border:"none", display:"flex", alignItems:"center",
-            justifyContent:"center", boxShadow:"0 2px 12px rgba(99,102,241,0.4)" }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 2l1.8 5.4L19 9l-5.2 1.8L12 16l-1.8-5.2L5 9l5.2-1.6z" fill="rgba(255,255,255,0.25)" stroke="#fff"/>
-              <path d="M5 17l.8 2.4L8 20.2l-2.2.8L5 23.4l-.8-2.4L2 20.2l2.2-.8z" fill="rgba(255,255,255,0.4)" stroke="#fff" strokeWidth="1.4"/>
-              <path d="M19 2l.6 1.8L21.4 4.4l-1.8.6L19 6.8l-.6-1.8L16.6 4.4l1.8-.6z" fill="rgba(255,255,255,0.4)" stroke="#fff" strokeWidth="1.4"/>
-            </svg>
-          </div>
-          <div style={{ flex:1 }}>
-            <p style={{ fontSize:13.5, fontWeight:700, color:"var(--tx)", fontFamily:"var(--font-display)" }}>AI Assistant</p>
-            <p style={{ fontSize:10.5, color:"var(--tx3)" }}>Has context from your board ({tasks.length} tasks)</p>
-          </div>
-          <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-            <div style={{ display:"flex", alignItems:"center", gap:5, padding:"3px 10px",
-              borderRadius:100, background:"rgba(16,185,129,0.08)", border:"1px solid rgba(16,185,129,0.2)" }}>
-              <div className="pulse" style={{ width:5, height:5, borderRadius:"50%", background:"var(--gr)" }}/>
-              <span style={{ fontSize:10, color:"var(--gr)", fontWeight:600 }}>Live</span>
+        {/* Unified chat header (replaces global Topbar on this page) */}
+        <div style={{
+          height:56, borderBottom:"1px solid var(--br)",
+          background:"var(--bg1)", display:"flex", alignItems:"center",
+          justifyContent:"space-between", padding:"0 20px", flexShrink:0,
+          boxShadow:"0 1px 12px rgba(0,0,0,0.12)",
+        }}>
+          <div style={{ display:"flex", alignItems:"center", gap:10, minWidth:0 }}>
+            <div style={{
+              width:34, height:34, borderRadius:10, flexShrink:0,
+              background:"linear-gradient(135deg,#6366f1,#ec4899)",
+              display:"flex", alignItems:"center", justifyContent:"center",
+              boxShadow:"0 2px 10px rgba(99,102,241,0.35)",
+            }}>
+              <ChatBotIcon size={16} color="#fff"/>
             </div>
-            <button onClick={() => setShowMiniBoard(v => !v)} className="ghost"
+            <div style={{ minWidth:0 }}>
+              <h2 style={{
+                fontSize:15, fontWeight:700, color:"var(--tx)",
+                fontFamily:"var(--font-display)", lineHeight:1.2,
+                letterSpacing:"-0.03em", whiteSpace:"nowrap",
+                overflow:"hidden", textOverflow:"ellipsis",
+              }}>AI Chat</h2>
+              <p style={{
+                fontSize:11, color:"var(--tx3)", lineHeight:1, marginTop:2,
+                whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis",
+              }}>Has context from your board ({tasks.length} tasks)</p>
+            </div>
+          </div>
+          <div style={{ display:"flex", alignItems:"center", gap:10, flexShrink:0 }}>
+            <button type="button" onClick={startNewChat} disabled={loading || clearing}
+              className="ghost"
               style={{ fontSize:11, padding:"5px 10px", borderRadius:7, border:"1px solid var(--br)",
-                background:"transparent", color:"var(--tx3)", cursor:"pointer" }}>
+                background:"transparent", color:"var(--tx2)", cursor:"pointer",
+                display:"flex", alignItems:"center", gap:5 }}>
+              {clearing
+                ? <div className="spin" style={{ width:10, height:10, borderRadius:"50%", border:"2px solid var(--br)", borderTopColor:"var(--ac)" }}/>
+                : <Icons.Plus size={11}/>}
+              New Chat
+            </button>
+            <button type="button" onClick={() => setShowMiniBoard(v => !v)} className="ghost"
+              style={{
+                fontSize:11, padding:"5px 10px", borderRadius:7, cursor:"pointer",
+                display:"flex", alignItems:"center", gap:5,
+                border: showMiniBoard ? "1px solid var(--ac)" : "1px solid var(--br)",
+                background: showMiniBoard ? "var(--as)" : "transparent",
+                color: showMiniBoard ? "var(--ac)" : "var(--tx2)",
+                fontWeight: showMiniBoard ? 600 : 500,
+              }}>
+              <Icons.Board size={11}/>
               {showMiniBoard ? "Hide Board" : "Show Board"}
             </button>
+            <div style={{ display:"flex", alignItems:"center", gap:6, padding:"5px 11px",
+              borderRadius:99, background:"var(--as)", border:"1px solid var(--ag)" }}>
+              <div className="pulse" style={{ width:5, height:5, borderRadius:"50%", background:"var(--gr)" }}/>
+              <span style={{ fontSize:10.5, color:"var(--ac)", fontWeight:600, fontFamily:"var(--font-mono)" }}>Live</span>
+            </div>
+            <Avt name={user?.full_name ?? "User"} size={32} avatarUrl={user?.avatar_url}/>
           </div>
         </div>
 
         {/* Messages area */}
-        <div style={{ flex:1, overflowY:"auto", padding:"20px 22px" }}>
+        <div style={{ flex:1, overflowY:"auto", padding:"20px 28px" }}>
           {chatMessages.length === 0 ? (
             <div className="fade-in" style={{ display:"flex", flexDirection:"column", alignItems:"center",
-              justifyContent:"center", minHeight:"100%", padding:"24px" }}>
+              justifyContent:"center", minHeight:"100%", padding:"24px", maxWidth:"var(--chat-max)", margin:"0 auto", width:"100%" }}>
               <div style={{ width:64, height:64, borderRadius:18,
                 background:"linear-gradient(135deg, #6366f1, #a78bfa)",
                 display:"flex", alignItems:"center", justifyContent:"center",
                 boxShadow:"0 4px 24px rgba(99,102,241,0.45), 0 0 0 1px rgba(99,102,241,0.2)",
                 marginBottom:18, position:"relative" }}>
-                {/* outer ring */}
                 <div style={{ position:"absolute", inset:-4, borderRadius:22,
                   border:"1px solid rgba(99,102,241,0.25)", pointerEvents:"none" }}/>
-                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 2l1.8 5.4L19 9l-5.2 1.8L12 16l-1.8-5.2L5 9l5.2-1.6z" fill="rgba(255,255,255,0.2)" stroke="#fff"/>
-                  <path d="M5 17l.8 2.4L8 20.2l-2.2.8L5 23.4l-.8-2.4L2 20.2l2.2-.8z" fill="rgba(255,255,255,0.35)" stroke="#fff" strokeWidth="1.3"/>
-                  <path d="M19 2l.6 1.8L21.4 4.4l-1.8.6L19 6.8l-.6-1.8L16.6 4.4l1.8-.6z" fill="rgba(255,255,255,0.35)" stroke="#fff" strokeWidth="1.3"/>
-                </svg>
+                <ChatBotIcon size={32} color="#fff"/>
               </div>
               <p style={{ fontSize:15, fontWeight:700, color:"var(--tx)", marginBottom:8,
                 fontFamily:"var(--font-display)", textAlign:"center" }}>What can I help you with?</p>
-              <p style={{ fontSize:12.5, color:"var(--tx3)", lineHeight:1.65, textAlign:"center" }}>
+              <p style={{ fontSize:12.5, color:"var(--tx3)", lineHeight:1.65, textAlign:"center", marginBottom:18 }}>
                 I can prioritize tasks, create new items, plan your day, and more.
               </p>
+              <div className="chat-prompts" style={{ display:"grid", gridTemplateColumns:"repeat(2, minmax(0, 1fr))", gap:10, width:"100%" }}>
+                {chatPrompts.map(prompt => (
+                  <button key={prompt} type="button" onClick={() => send(prompt)} disabled={loading}
+                    className="ghost"
+                    style={{ padding:"12px 14px", borderRadius:11, border:"1px solid var(--br)",
+                      background:"var(--bg1)", color:"var(--tx2)", fontSize:12.5, fontWeight:500,
+                      textAlign:"left", lineHeight:1.45, cursor:"pointer" }}>
+                    {prompt}
+                  </button>
+                ))}
+              </div>
             </div>
           ) : (
-            <div style={{ display:"flex", flexDirection:"column", gap:14, maxWidth:660, margin:"0 auto" }}>
+            <div style={{ display:"flex", flexDirection:"column", gap:14, maxWidth:"var(--chat-max)", margin:"0 auto", width:"100%" }}>
               {chatMessages.map((m) => (
                 <ChatMessage key={m.id} m={m}/>
               ))}
 
               {loading && (
                 <div className="fade-in" style={{ display:"flex", gap:10, alignItems:"center" }}>
-                  <div style={{ width:30, height:30, borderRadius:8, flexShrink:0,
-                    background:"linear-gradient(135deg, #6366f1, #a78bfa)",
-                    boxShadow:"0 2px 8px rgba(99,102,241,0.35)",
-                    display:"flex", alignItems:"center", justifyContent:"center" }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M12 2l1.8 5.4L19 9l-5.2 1.8L12 16l-1.8-5.2L5 9l5.2-1.6z" fill="rgba(255,255,255,0.25)" stroke="#fff"/>
-                      <path d="M5 17l.8 2.4L8 20.2l-2.2.8L5 23.4l-.8-2.4L2 20.2l2.2-.8z" fill="rgba(255,255,255,0.4)" stroke="#fff" strokeWidth="1.3"/>
-                      <path d="M19 2l.6 1.8L21.4 4.4l-1.8.6L19 6.8l-.6-1.8L16.6 4.4l1.8-.6z" fill="rgba(255,255,255,0.4)" stroke="#fff" strokeWidth="1.3"/>
-                    </svg>
-                  </div>
+                  <ChatAvatar size={30} icon={14}/>
                   <div style={{ padding:"11px 15px", borderRadius:"4px 14px 14px 14px",
                     background:"var(--bg1)", border:"1px solid var(--br)", display:"flex", gap:5, alignItems:"center" }}>
                     {[0,1,2].map(i => (
@@ -2055,16 +1568,17 @@ function PageChat() {
         </div>
 
         {/* Input bar */}
-        <div style={{ padding:"14px 22px", borderTop:"1px solid var(--br)", flexShrink:0 }}>
-          <div style={{ display:"flex", gap:9, alignItems:"flex-end" }}>
+        <div style={{ padding:"14px 28px", borderTop:"1px solid var(--br)", flexShrink:0,
+          background:"linear-gradient(180deg, transparent, rgba(99,102,241,0.03))" }}>
+          <div style={{ display:"flex", gap:9, alignItems:"flex-end", maxWidth:"var(--chat-max)", margin:"0 auto", width:"100%" }}>
             <textarea
               value={input} onChange={e => setInput(e.target.value)} rows={1}
               onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(input); } }}
               placeholder="Ask me anything about your tasks..."
-              className="input-focus"
+              className="chat-input"
               style={{ flex:1, background:"var(--inp)", border:"1px solid var(--br)",
                 borderRadius:12, padding:"11px 14px", fontSize:13, color:"var(--tx)",
-                resize:"none", lineHeight:1.5, maxHeight:120 }}/>
+                resize:"none", lineHeight:1.5, maxHeight:120, outline:"none" }}/>
             <button onClick={() => send(input)} disabled={!input.trim() || loading} className="btn-primary"
               style={{ width:42, height:42, borderRadius:12, background:"var(--ac)", border:"none",
                 color:"#fff", display:"flex", alignItems:"center", justifyContent:"center",
@@ -2618,74 +2132,6 @@ function PageSaved() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   INTEGRATIONS TAB  coming soon
-═══════════════════════════════════════════════════════════════════════════ */
-function IntegrationsTab() {
-  const integrations = [
-    {
-      name: "Google Calendar",
-      desc: "Sync tasks with due dates and get reminders alongside your schedule.",
-      icon: "📅",
-    },
-    {
-      name: "Notion",
-      desc: "Push boards and tasks directly into your Notion workspace.",
-      icon: "📝",
-    },
-    {
-      name: "Slack",
-      desc: "Get daily briefings and burnout alerts delivered to your Slack channel.",
-      icon: "💬",
-    },
-    {
-      name: "Linear",
-      desc: "Import issues from Linear and manage them on your Kanbi board.",
-      icon: "🔗",
-    },
-  ];
-
-  return (
-    <div>
-      <h3 style={{ fontSize:15, fontWeight:800, color:"var(--tx)", marginBottom:4, fontFamily:"var(--font-display)" }}>Integrations</h3>
-      <p style={{ fontSize:12.5, color:"var(--tx2)", marginBottom:22 }}>Connect your tools to supercharge your workflow.</p>
-
-      <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-        {integrations.map(({ name, desc, icon }) => (
-          <div key={name} className="integration-card" style={{
-            borderRadius:12, border:"1px solid var(--br)", background:"var(--bg2)",
-            padding:"16px 18px", display:"flex", alignItems:"center", gap:14, flexWrap:"wrap",
-            opacity:0.7,
-          }}>
-            <div style={{
-              width:42, height:42, borderRadius:10, background:"rgba(94,111,232,0.1)",
-              display:"flex", alignItems:"center", justifyContent:"center",
-              flexShrink:0, fontSize:"20px",
-            }}>
-              {icon}
-            </div>
-            <div style={{ flex:1, minWidth:0 }}>
-              <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:3, flexWrap:"wrap" }}>
-                <p style={{ fontSize:13.5, fontWeight:700, color:"var(--tx)", fontFamily:"var(--font-display)" }}>{name}</p>
-                <span style={{
-                  fontSize:9, fontWeight:700, color:"var(--am)", background:"rgba(245,158,11,0.1)",
-                  border:"1px solid rgba(245,158,11,0.25)", padding:"1px 8px", borderRadius:99,
-                  letterSpacing:"0.06em", textTransform:"uppercase",
-                }}>Coming Soon</span>
-              </div>
-              <p style={{ fontSize:12, color:"var(--tx3)", lineHeight:1.5 }}>{desc}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <p style={{ fontSize:11.5, color:"var(--tx3)", marginTop:18, lineHeight:1.6 }}>
-        Integrations are actively in development. We'll notify you when they're ready.
-      </p>
-    </div>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
    PAGE: SETTINGS
 ═══════════════════════════════════════════════════════════════════════════ */
 function PageSettings({ theme, toggleTheme }: { theme: Theme; toggleTheme: () => void }) {
@@ -2728,7 +2174,6 @@ function PageSettings({ theme, toggleTheme }: { theme: Theme; toggleTheme: () =>
     { key:"security",       label:"Security",      icon:<Icons.Shield size={16}/>    },
     { key:"billing",        label:"Billing",       icon:<Icons.Card size={16}/>      },
     { key:"appearance",     label:"Appearance",    icon:<Icons.Sun size={16}/>       },
-    { key:"integrations",   label:"Integrations",  icon:<Icons.Google size={16}/>    },
     { key:"data",           label:"Data & Export", icon:<Icons.Download size={16}/>  },
     { key:"danger",         label:"Danger Zone",   icon:<Icons.Trash size={16}/>     },
   ];
@@ -2955,8 +2400,6 @@ function PageSettings({ theme, toggleTheme }: { theme: Theme; toggleTheme: () =>
             </div>
           )}
 
-          {tab === "integrations" && <IntegrationsTab/>}
-
           {tab === "data" && (
             <div>
               <h3 style={{ fontSize:15, fontWeight:800, color:"var(--tx)", marginBottom:4, fontFamily:"var(--font-display)" }}>Data & Export</h3>
@@ -3046,7 +2489,7 @@ function Sidebar({ page, setPage, theme, toggleTheme }: {
 
   return (
     <aside className="sidebar" style={{
-      width: 252, height:"100vh", position:"fixed", left:0, top:0, zIndex:50,
+      width: "var(--sidebar-w)", height:"100vh", position:"fixed", left:0, top:0, zIndex:50,
       background:"var(--sb)", borderRight:"1px solid var(--sidebar-border)",
       display:"flex", flexDirection:"column",
     }}>
@@ -3213,8 +2656,8 @@ const PAGE_META: Record<Page, { title: string; sub: string; icon: React.ReactNod
     title:"AI Chat", sub:"Your productivity coach",
     gradient:"linear-gradient(135deg,#6366f1,#ec4899)",
     icon:(
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
       </svg>
     ),
   },
@@ -3345,23 +2788,8 @@ export default function Dashboard() {
   const [tasks, setTasks] = useState<Task[]>([]);
 
   useEffect(() => {
-    fetch('/api/boards')
-      .then(r => r.json())
-      .then(d => {
-        const loaded: Task[] = (d.tasks ?? []).map((t: {
-          id: string; title: string; priority?: string; label?: string;
-          status?: string; estimate?: string; due_date?: string;
-        }) => ({
-          id: t.id,
-          title: t.title,
-          priority: (['urgent', 'high', 'medium', 'low'].includes(t.priority ?? '') ? t.priority : 'medium') as Priority,
-          label: t.label ?? 'General',
-          status: (['todo', 'wip', 'done'].includes(t.status ?? '') ? t.status : 'todo') as TaskStatus,
-          estimate: t.estimate,
-          dueDate: t.due_date,
-        }));
-        setTasks(loaded);
-      })
+    loadTasksFromApi()
+      .then(loaded => { if (loaded.length > 0) setTasks(loaded); })
       .catch(() => {});
   }, [user?.id]);
 
@@ -3380,6 +2808,20 @@ export default function Dashboard() {
   }, []);
 
   const [chatMessages, setChatMessages] = useState<ChatMsg[]>([]);
+  useEffect(() => {
+    fetch('/api/ai/chat')
+      .then(r => r.json())
+      .then(d => {
+        if (!Array.isArray(d.messages) || d.messages.length === 0) return;
+        setChatMessages(d.messages.map((m: { role?: string; message?: string; timestamp?: string }, i: number) => ({
+          id: `hist-${i}-${m.timestamp ?? i}`,
+          role: m.role === 'assistant' ? 'ai' as const : 'user' as const,
+          content: sanitizeChatText(m.message ?? ''),
+          ts: formatChatTime(m.timestamp),
+        })));
+      })
+      .catch(() => {});
+  }, [user?.id]);
   const [briefings, setBriefings]       = useState<Briefing[]>([]);
   const [burnoutAlerts]                 = useState<BurnoutAlert[]>([]);
   const [boardView, setBoardView]       = useState<BoardView>("input");
@@ -3399,8 +2841,8 @@ export default function Dashboard() {
       <GlobalStyles theme={theme}/>
       <div className="root-layout" style={{ display:"flex", height:"100vh", background:"var(--bg)", overflow:"hidden" }}>
         <Sidebar page={page} setPage={setPage} theme={theme} toggleTheme={toggleTheme}/>
-        <div className="main-wrap" style={{ marginLeft:252, flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
-          <Topbar page={page}/>
+        <div className="main-wrap" style={{ marginLeft:"var(--sidebar-w)", flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
+          {page !== "chat" && <Topbar page={page}/>}
           <div style={{ flex:1, overflow:"hidden" }}>
             {page === "overview"  && <PageOverview/>}
             {page === "board"     && <PageBoard/>}

@@ -5,7 +5,7 @@ import { getCurrentUser } from '@/lib/api/helpers';
 import { logger } from '@/lib/logging/logger';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2026-02-25.clover',
+  apiVersion: '2026-02-25.clover' as any,
 });
 
 export async function POST(request: NextRequest) {

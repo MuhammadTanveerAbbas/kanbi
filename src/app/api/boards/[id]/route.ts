@@ -1,5 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { z } from 'zod';
+import { sanitizeInput } from '@/lib/security';
+
+const updateTaskSchema = z.object({
+  title: z.string().min(1).max(200).transform(s => sanitizeInput(s, 200)).optional(),
+  priority: z.enum(['urgent', 'high', 'medium', 'low']).optional(),
+  status: z.enum(['todo', 'wip', 'done']).optional(),
+  label: z.string().max(50).transform(s => sanitizeInput(s, 50)).optional(),
+  estimate: z.string().max(20).nullable().optional(),
+  due_date: z.string().nullable().optional(),
+});
 
 export async function GET(
   request: NextRequest,
@@ -30,9 +41,17 @@ export async function PATCH(
 
     const { id } = await params;
     const body = await request.json();
+    const parsed = updateTaskSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.errors[0]?.message || 'Invalid input' },
+        { status: 400 }
+      );
+    }
+
     const { data, error } = await supabase
       .from('tasks')
-      .update({ ...body, updated_at: new Date().toISOString() })
+      .update({ ...parsed.data, updated_at: new Date().toISOString() })
       .eq('id', id)
       .eq('user_id', user.id)
       .select()

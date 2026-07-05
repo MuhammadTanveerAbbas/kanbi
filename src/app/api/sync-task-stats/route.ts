@@ -12,35 +12,17 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        let urgent = 0, high = 0, medium = 0, low = 0, total = 0, completed = 0;
+        const { data: tasks } = await supabase
+            .from('tasks')
+            .select('priority, status')
+            .eq('user_id', user.id);
 
-        try {
-            const body = await request.json();
-            if (body && typeof body.total === 'number') {
-                urgent = body.urgent || 0;
-                high = body.high || 0;
-                medium = body.medium || 0;
-                low = body.low || 0;
-                total = body.total || 0;
-                completed = body.completed || 0;
-            } else {
-                throw new Error('no body counts');
-            }
-        } catch {
-            const { data: tasks } = await supabase
-                .from('tasks')
-                .select('priority, status')
-                .eq('user_id', user.id);
-
-            if (tasks) {
-                total = tasks.length;
-                completed = tasks.filter(t => t.status === 'done').length;
-                urgent = tasks.filter(t => t.priority === 'urgent').length;
-                high = tasks.filter(t => t.priority === 'high').length;
-                medium = tasks.filter(t => t.priority === 'medium').length;
-                low = tasks.filter(t => t.priority === 'low').length;
-            }
-        }
+        const total = tasks?.length ?? 0;
+        const completed = tasks?.filter(t => t.status === 'done').length ?? 0;
+        const urgent = tasks?.filter(t => t.priority === 'urgent').length ?? 0;
+        const high = tasks?.filter(t => t.priority === 'high').length ?? 0;
+        const medium = tasks?.filter(t => t.priority === 'medium').length ?? 0;
+        const low = tasks?.filter(t => t.priority === 'low').length ?? 0;
 
         const today = new Date().toISOString().split('T')[0];
 

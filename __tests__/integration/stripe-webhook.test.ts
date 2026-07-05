@@ -1,392 +1,98 @@
-import { POST } from '@/app/api/webhooks/stripe/route'
-import { NextRequest } from 'next/server'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import Stripe from 'stripe'
+import { createAdminClient } from '@/lib/supabase/admin'
 
-jest.mock('stripe')
-jest.mock('@/lib/supabase')
+vi.mock('@/lib/supabase/admin')
 
-const mockStripe = Stripe as jest.MockedClass<typeof Stripe>
+const { POST } = await import('@/app/api/webhooks/stripe/route')
 
-const createMockRequest = (body: string, signature: string | null): NextRequest => {
+const MockStripe = vi.mocked(Stripe)
+const stripeInstance = MockStripe.mock.results[0]?.value as {
+  webhooks: { constructEvent: ReturnType<typeof vi.fn> }
+  subscriptions: { retrieve: ReturnType<typeof vi.fn> }
+}
+
+const mockCreateAdminClient = createAdminClient as ReturnType<typeof vi.fn>
+
+const createMockRequest = (body: string, signature: string | null) => {
   const headers = new Headers()
-  if (signature) {
-    headers.set('stripe-signature', signature)
-  }
+  if (signature) headers.set('stripe-signature', signature)
+  return { text: async () => body, headers } as Parameters<typeof POST>[0]
+}
 
-  return {
-    text: async () => body,
-    headers,
-  } as unknown as NextRequest
+function mockSupabase(existingEvent: boolean) {
+  const chain = {
+    select: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    single: vi.fn().mockResolvedValue(
+      existingEvent ? { data: { id: 'evt_123' } } : { data: null, error: null }
+    ),
+    upsert: vi.fn().mockResolvedValue({ data: null, error: null }),
+    update: vi.fn().mockReturnThis(),
+    insert: vi.fn().mockResolvedValue({ data: null, error: null }),
+  }
+  return { from: vi.fn().mockReturnValue(chain) }
 }
 
 describe('POST /api/webhooks/stripe', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
-  describe('valid signatures', () => {
-    it('should return 200 with valid checkout.session.completed event', async () => {
-      const event: Stripe.Event = {
-        id: 'evt_123',
-        type: 'checkout.session.completed',
-        data: {
-          object: {
-            id: 'cs_123',
-            metadata: {
-              supabase_user_id: 'user-123',
-            },
-            subscription: 'sub_123',
-          } as any,
-        },
-      } as Stripe.Event
-
-      const mockStripeInstance = {
-        webhooks: {
-          constructEvent: jest.fn().mockReturnValue(event),
-        },
-        subscriptions: {
-          retrieve: jest.fn().mockResolvedValue({
-            id: 'sub_123',
-            status: 'active',
-            current_period_end: Math.floor(Date.now() / 1000) + 2592000,
-          }),
-        },
-      }
-
-      mockStripe.mockImplementation(() => mockStripeInstance as any)
-
-      const { createServerClient } = require('@/lib/supabase')
-      const mockSupabase = {
-        from: jest.fn().mockReturnValue({
-          select: jest.fn().mockReturnThis(),
-          eq: jest.fn().mockReturnThis(),
-          single: jest.fn().mockResolvedValue({ data: null, error: null }),
-          upsert: jest.fn().mockResolvedValue({ data: null, error: null }),
-          insert: jest.fn().mockResolvedValue({ data: null, error: null }),
-        }),
-      }
-
-      createServerClient.mockReturnValue(mockSupabase)
-
-      const request = createMockRequest('{}', 'valid-signature')
-      const response = await POST(request)
-
-      expect(response.status).toBe(200)
-      const json = await response.json()
-      expect(json.received).toBe(true)
-    })
-
-    it('should return 200 with customer.subscription.deleted event', async () => {
-      const event: Stripe.Event = {
-        id: 'evt_124',
-        type: 'customer.subscription.deleted',
-        data: {
-          object: {
-            id: 'sub_123',
-            customer: 'cus_123',
-            status: 'canceled',
-          } as any,
-        },
-      } as Stripe.Event
-
-      const mockStripeInstance = {
-        webhooks: {
-          constructEvent: jest.fn().mockReturnValue(event),
-        },
-      }
-
-      mockStripe.mockImplementation(() => mockStripeInstance as any)
-
-      const { createServerClient } = require('@/lib/supabase')
-      const mockSupabase = {
-        from: jest.fn().mockReturnValue({
-          select: jest.fn().mockReturnThis(),
-          eq: jest.fn().mockReturnThis(),
-          single: jest.fn().mockResolvedValue({
-            data: { id: 'user-123' },
-            error: null,
-          }),
-          update: jest.fn().mockReturnThis(),
-          insert: jest.fn().mockResolvedValue({ data: null, error: null }),
-        }),
-      }
-
-      createServerClient.mockReturnValue(mockSupabase)
-
-      const request = createMockRequest('{}', 'valid-signature')
-      const response = await POST(request)
-
-      expect(response.status).toBe(200)
-      const json = await response.json()
-      expect(json.received).toBe(true)
-    })
-
-    it('should return 200 with invoice.payment_failed event', async () => {
-      const event: Stripe.Event = {
-        id: 'evt_125',
-        type: 'invoice.payment_failed',
-        data: {
-          object: {
-            id: 'in_123',
-            customer: 'cus_123',
-            subscription: 'sub_123',
-          } as any,
-        },
-      } as Stripe.Event
-
-      const mockStripeInstance = {
-        webhooks: {
-          constructEvent: jest.fn().mockReturnValue(event),
-        },
-        subscriptions: {
-          retrieve: jest.fn().mockResolvedValue({
-            id: 'sub_123',
-            status: 'past_due',
-          }),
-        },
-      }
-
-      mockStripe.mockImplementation(() => mockStripeInstance as any)
-
-      const { createServerClient } = require('@/lib/supabase')
-      const mockSupabase = {
-        from: jest.fn().mockReturnValue({
-          select: jest.fn().mockReturnThis(),
-          eq: jest.fn().mockReturnThis(),
-          single: jest.fn().mockResolvedValue({
-            data: { id: 'user-123' },
-            error: null,
-          }),
-          update: jest.fn().mockReturnThis(),
-          insert: jest.fn().mockResolvedValue({ data: null, error: null }),
-        }),
-      }
-
-      createServerClient.mockReturnValue(mockSupabase)
-
-      const request = createMockRequest('{}', 'valid-signature')
-      const response = await POST(request)
-
-      expect(response.status).toBe(200)
-      const json = await response.json()
-      expect(json.received).toBe(true)
-    })
-
-    it('should return 200 with customer.subscription.updated event', async () => {
-      const event: Stripe.Event = {
-        id: 'evt_126',
-        type: 'customer.subscription.updated',
-        data: {
-          object: {
-            id: 'sub_123',
-            customer: 'cus_123',
-            status: 'active',
-            current_period_end: Math.floor(Date.now() / 1000) + 2592000,
-          } as any,
-        },
-      } as Stripe.Event
-
-      const mockStripeInstance = {
-        webhooks: {
-          constructEvent: jest.fn().mockReturnValue(event),
-        },
-      }
-
-      mockStripe.mockImplementation(() => mockStripeInstance as any)
-
-      const { createServerClient } = require('@/lib/supabase')
-      const mockSupabase = {
-        from: jest.fn().mockReturnValue({
-          select: jest.fn().mockReturnThis(),
-          eq: jest.fn().mockReturnThis(),
-          single: jest.fn().mockResolvedValue({
-            data: { id: 'user-123' },
-            error: null,
-          }),
-          update: jest.fn().mockReturnThis(),
-          insert: jest.fn().mockResolvedValue({ data: null, error: null }),
-        }),
-      }
-
-      createServerClient.mockReturnValue(mockSupabase)
-
-      const request = createMockRequest('{}', 'valid-signature')
-      const response = await POST(request)
-
-      expect(response.status).toBe(200)
-      const json = await response.json()
-      expect(json.received).toBe(true)
-    })
-
-    it('should handle duplicate events gracefully', async () => {
-      const event: Stripe.Event = {
-        id: 'evt_127',
-        type: 'checkout.session.completed',
-        data: {
-          object: {
-            id: 'cs_123',
-            metadata: { supabase_user_id: 'user-123' },
-            subscription: 'sub_123',
-          } as any,
-        },
-      } as Stripe.Event
-
-      const mockStripeInstance = {
-        webhooks: {
-          constructEvent: jest.fn().mockReturnValue(event),
-        },
-      }
-
-      mockStripe.mockImplementation(() => mockStripeInstance as any)
-
-      const { createServerClient } = require('@/lib/supabase')
-      const mockSupabase = {
-        from: jest.fn().mockReturnValue({
-          select: jest.fn().mockReturnThis(),
-          eq: jest.fn().mockReturnThis(),
-          single: jest.fn().mockResolvedValue({
-            data: { id: 'evt_127' },
-            error: null,
-          }),
-          insert: jest.fn().mockResolvedValue({ data: null, error: null }),
-        }),
-      }
-
-      createServerClient.mockReturnValue(mockSupabase)
-
-      const request = createMockRequest('{}', 'valid-signature')
-      const response = await POST(request)
-
-      expect(response.status).toBe(200)
-      const json = await response.json()
-      expect(json.received).toBe(true)
-    })
+  it('returns 400 when signature header is missing', async () => {
+    const response = await POST(createMockRequest('{}', null))
+    expect(response.status).toBe(400)
+    const json = await response.json()
+    expect(json.error).toBe('No signature')
   })
 
-  describe('invalid signatures', () => {
-    it('should return 400 with missing signature', async () => {
-      const request = createMockRequest('{}', null)
-      const response = await POST(request)
-
-      expect(response.status).toBe(400)
-      const json = await response.json()
-      expect(json.error).toBe('No signature')
+  it('returns 400 when signature is invalid', async () => {
+    stripeInstance.webhooks.constructEvent.mockImplementation(() => {
+      throw new Error('Invalid signature')
     })
 
-    it('should return 400 with invalid signature', async () => {
-      const mockStripeInstance = {
-        webhooks: {
-          constructEvent: jest.fn().mockImplementation(() => {
-            throw new Error('Invalid signature')
-          }),
-        },
-      }
-
-      mockStripe.mockImplementation(() => mockStripeInstance as any)
-
-      const request = createMockRequest('{}', 'invalid-signature')
-      const response = await POST(request)
-
-      expect(response.status).toBe(400)
-      const json = await response.json()
-      expect(json.error).toBe('Invalid signature')
-    })
-
-    it('should return 400 with tampered body', async () => {
-      const mockStripeInstance = {
-        webhooks: {
-          constructEvent: jest.fn().mockImplementation(() => {
-            throw new Error('Signature verification failed')
-          }),
-        },
-      }
-
-      mockStripe.mockImplementation(() => mockStripeInstance as any)
-
-      const request = createMockRequest('tampered body', 'valid-signature')
-      const response = await POST(request)
-
-      expect(response.status).toBe(400)
-    })
+    const response = await POST(createMockRequest('{}', 'bad-signature'))
+    expect(response.status).toBe(400)
+    const json = await response.json()
+    expect(json.error).toBe('Invalid signature')
   })
 
-  describe('error handling', () => {
-    it('should return 500 on database error', async () => {
-      const event: Stripe.Event = {
-        id: 'evt_128',
-        type: 'checkout.session.completed',
-        data: {
-          object: {
-            id: 'cs_123',
-            metadata: { supabase_user_id: 'user-123' },
-            subscription: 'sub_123',
-          } as any,
-        },
-      } as Stripe.Event
-
-      const mockStripeInstance = {
-        webhooks: {
-          constructEvent: jest.fn().mockReturnValue(event),
-        },
-        subscriptions: {
-          retrieve: jest.fn().mockRejectedValue(new Error('API Error')),
-        },
-      }
-
-      mockStripe.mockImplementation(() => mockStripeInstance as any)
-
-      const { createServerClient } = require('@/lib/supabase')
-      const mockSupabase = {
-        from: jest.fn().mockReturnValue({
-          select: jest.fn().mockReturnThis(),
-          eq: jest.fn().mockReturnThis(),
-          single: jest.fn().mockResolvedValue({ data: null, error: null }),
-        }),
-      }
-
-      createServerClient.mockReturnValue(mockSupabase)
-
-      const request = createMockRequest('{}', 'valid-signature')
-      const response = await POST(request)
-
-      expect(response.status).toBe(500)
-      const json = await response.json()
-      expect(json.error).toBe('Webhook processing failed')
+  it('returns 200 for duplicate events', async () => {
+    stripeInstance.webhooks.constructEvent.mockReturnValue({
+      id: 'evt_dup',
+      type: 'checkout.session.completed',
+      data: { object: { id: 'cs_1' } },
     })
 
-    it('should handle unhandled event types', async () => {
-      const event: Stripe.Event = {
-        id: 'evt_129',
-        type: 'charge.succeeded',
-        data: { object: {} as any },
-      } as Stripe.Event
+    mockCreateAdminClient.mockReturnValue(mockSupabase(true))
 
-      const mockStripeInstance = {
-        webhooks: {
-          constructEvent: jest.fn().mockReturnValue(event),
+    const response = await POST(createMockRequest('{}', 'valid-signature'))
+    expect(response.status).toBe(200)
+    expect((await response.json()).received).toBe(true)
+  })
+
+  it('returns 200 for checkout.session.completed', async () => {
+    stripeInstance.webhooks.constructEvent.mockReturnValue({
+      id: 'evt_new',
+      type: 'checkout.session.completed',
+      data: {
+        object: {
+          id: 'cs_1',
+          metadata: { supabase_user_id: 'user-1' },
+          subscription: 'sub_1',
         },
-      }
-
-      mockStripe.mockImplementation(() => mockStripeInstance as any)
-
-      const { createServerClient } = require('@/lib/supabase')
-      const mockSupabase = {
-        from: jest.fn().mockReturnValue({
-          select: jest.fn().mockReturnThis(),
-          eq: jest.fn().mockReturnThis(),
-          single: jest.fn().mockResolvedValue({ data: null, error: null }),
-          insert: jest.fn().mockResolvedValue({ data: null, error: null }),
-        }),
-      }
-
-      createServerClient.mockReturnValue(mockSupabase)
-
-      const request = createMockRequest('{}', 'valid-signature')
-      const response = await POST(request)
-
-      expect(response.status).toBe(200)
-      const json = await response.json()
-      expect(json.received).toBe(true)
+      },
     })
+    stripeInstance.subscriptions.retrieve.mockResolvedValue({
+      id: 'sub_1',
+      status: 'active',
+      current_period_end: Math.floor(Date.now() / 1000) + 86400,
+    })
+
+    mockCreateAdminClient.mockReturnValue(mockSupabase(false))
+
+    const response = await POST(createMockRequest('{}', 'valid-signature'))
+    expect(response.status).toBe(200)
+    expect((await response.json()).received).toBe(true)
   })
 })

@@ -32,10 +32,9 @@ const productionSecurityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
-  reactStrictMode: false,
+  reactStrictMode: true,
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production',
-    styledComponents: true,
   },
   images: {
     formats: ['image/avif', 'image/webp'],
@@ -46,14 +45,6 @@ const nextConfig: NextConfig = {
   },
   experimental: {},
   webpack: (config, { isServer }) => {
-    if (isServer) {
-      config.ignoreWarnings = [
-        { module: /node_modules\/handlebars/ },
-        { module: /node_modules\/dotprompt/ },
-        { module: /node_modules\/@genkit-ai/ },
-        { module: /node_modules\/genkit/ },
-      ];
-    }
     config.output = {
       ...config.output,
       chunkLoadTimeout: 120000,

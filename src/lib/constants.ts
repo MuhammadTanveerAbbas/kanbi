@@ -54,7 +54,6 @@ export const USAGE_LIMITS = {
 
 // Feature flags
 export const FEATURES = {
-  GOOGLE_CALENDAR_SYNC: true,
   AI_CHAT: true,
   AUTOPILOT: true,
   BOARD_EXPORT: true,

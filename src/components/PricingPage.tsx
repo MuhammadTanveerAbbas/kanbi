@@ -231,7 +231,6 @@ const CMP_ROWS = [
   { f: "Health score", free: "kanbi", pro: "✓" },
   { f: "DOCX & PDF export", free: "kanbi", pro: "✓" },
   { f: "Autopilot briefings", free: "kanbi", pro: "✓" },
-  { f: "Calendar integrations", free: "kanbi", pro: "Coming soon" },
   { f: "Priority support", free: "kanbi", pro: "24h email" },
 ];
 

@@ -10,10 +10,27 @@ const cheerio = require('cheerio') as { load: (html: string) => (sel: string | u
 
 const MAX_TEXT_LENGTH = 4000;
 
+// SSRF protection: block private/internal IP ranges
+const BLOCKED_HOSTNAMES = [
+  'localhost', '127.0.0.1', '0.0.0.0', '::1',
+  '10.', '172.16.', '172.17.', '172.18.', '172.19.',
+  '172.20.', '172.21.', '172.22.', '172.23.', '172.24.',
+  '172.25.', '172.26.', '172.27.', '172.28.', '172.29.',
+  '172.30.', '172.31.', '192.168.',
+  '169.254.', '100.', // CGNAT range — block for safety
+];
+
+function isBlockedHost(hostname: string): boolean {
+  const lower = hostname.toLowerCase();
+  return BLOCKED_HOSTNAMES.some(blocked => lower === blocked || lower.startsWith(blocked));
+}
+
 function isValidUrl(s: string): boolean {
   try {
     const u = new URL(s);
-    return u.protocol === 'http:' || u.protocol === 'https:';
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') return false;
+    if (isBlockedHost(u.hostname)) return false;
+    return true;
   } catch {
     return false;
   }
@@ -71,7 +88,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const contentLength = res.headers.get('content-length');
+    if (contentLength && parseInt(contentLength, 10) > 2 * 1024 * 1024) {
+      return NextResponse.json(
+        { error: 'Response too large' },
+        { status: 413 }
+      );
+    }
+
     const html = await res.text();
+    if (html.length > 2 * 1024 * 1024) {
+      return NextResponse.json(
+        { error: 'Response too large' },
+        { status: 413 }
+      );
+    }
     const $ = cheerio.load(html);
 
     $('script, style, nav, footer, [role="navigation"], [role="banner"], iframe, noscript, .ad, .ads').remove();

@@ -3,9 +3,12 @@ import { createClient } from '@/lib/supabase/server';
 import { feedbackSchema } from '@/lib/validation/schemas';
 import { ValidationError, DatabaseError } from '@/lib/errors/AppError';
 import { logger } from '@/lib/logging/logger';
+import { rateLimit, rateLimitResponse } from '@/lib/rate-limiter';
 
 export async function POST(request: NextRequest) {
   const requestId = crypto.randomUUID();
+  const limitResult = await rateLimit(request, { maxRequests: 5, windowMs: 3600000 });
+  if (!limitResult.success) return rateLimitResponse(limitResult.limit, limitResult.remaining, limitResult.reset);
 
   try {
     const supabase = await createClient();

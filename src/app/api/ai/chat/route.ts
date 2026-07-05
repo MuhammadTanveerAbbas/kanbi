@@ -5,6 +5,9 @@ import { chatSchema } from '@/lib/validation/schemas';
 import { ValidationError, AuthError, ExternalServiceError } from '@/lib/errors/AppError';
 import { logger } from '@/lib/logging/logger';
 import { rateLimit, rateLimitResponse, addRateLimitHeaders } from '@/lib/rate-limiter';
+import { sanitizeChatText } from '@/lib/chat-text';
+import { sanitizeInput } from '@/lib/security';
+import DOMPurify from 'isomorphic-dompurify';
 
 export async function POST(request: NextRequest) {
   const requestId = crypto.randomUUID();
@@ -22,42 +25,51 @@ export async function POST(request: NextRequest) {
     logger.info('Chat request', { userId: user.id, requestId });
 
     const body = await request.json();
-    const { message, tasks, quickAction, workloadHealth, estimatedHours } = body;
+    const { message, tasks, quickAction, workloadHealth, estimatedHours, completedToday } = body;
 
     if (!message && !quickAction) {
       throw new ValidationError('Message or quick action required');
     }
 
-    if (message) {
-      chatSchema.parse({ message, tasks });
+    const sanitizedMessage = message ? sanitizeInput(message, 4000) : undefined;
+    const sanitizedQuickAction = quickAction ? sanitizeInput(quickAction, 100) : undefined;
+
+    if (sanitizedMessage) {
+      chatSchema.parse({ message: sanitizedMessage, tasks });
     }
 
     const context: ChatContext = {
       tasks: tasks || [],
       workloadHealth,
       estimatedHours,
+      completedToday,
     };
 
     const chatHistory = await getChatHistory(supabase, user.id);
 
     let aiResponse: string;
 
-    if (quickAction) {
-      aiResponse = await ChatAssistant.handleQuickAction(quickAction, context);
+    if (sanitizedQuickAction) {
+      aiResponse = await ChatAssistant.handleQuickAction(sanitizedQuickAction as 'prioritize' | 'breakdown' | 'defer' | 'plan' | 'motivate', context);
+    } else if (sanitizedMessage) {
+      aiResponse = await ChatAssistant.generateResponse(sanitizedMessage, context, chatHistory);
     } else {
-      aiResponse = await ChatAssistant.generateResponse(message, context, chatHistory);
+      throw new ValidationError('Message or quick action required');
     }
 
-    if (message) {
-      await saveMessage(supabase, user.id, 'user', message, tasks);
+    if (sanitizedMessage) {
+      await saveMessage(supabase, user.id, 'user', sanitizedMessage, tasks);
     }
 
-    await saveMessage(supabase, user.id, 'assistant', aiResponse, tasks);
+    const cleanResponse = sanitizeChatText(
+      DOMPurify.sanitize(aiResponse, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] })
+    );
+    await saveMessage(supabase, user.id, 'assistant', cleanResponse, tasks);
 
     logger.info('Chat success', { userId: user.id, requestId });
 
     const response = NextResponse.json({ 
-      response: aiResponse,
+      response: cleanResponse,
       timestamp: new Date().toISOString(),
     });
     return addRateLimitHeaders(response, limitResult.limit, limitResult.remaining, limitResult.reset);

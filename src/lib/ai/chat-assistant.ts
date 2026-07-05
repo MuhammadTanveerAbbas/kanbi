@@ -1,6 +1,9 @@
-import { AIService } from '@/lib/ai-service';
+import Groq from 'groq-sdk';
+import { truncateChatResponse } from '@/lib/chat-text';
+import { GROQ_API_KEY, GROQ_MODEL } from '@/lib/constants';
 import { logger } from '@/lib/logging/logger';
-import { Task } from '@/lib/types';
+
+const groq = GROQ_API_KEY ? new Groq({ apiKey: GROQ_API_KEY }) : null;
 
 export interface ChatMessage {
   role: 'user' | 'assistant';
@@ -8,8 +11,15 @@ export interface ChatMessage {
   timestamp: Date;
 }
 
+export interface ChatTask {
+  id?: string;
+  title: string;
+  priority?: string;
+  status?: string;
+}
+
 export interface ChatContext {
-  tasks: Task[];
+  tasks: ChatTask[];
   workloadHealth?: number;
   estimatedHours?: number;
   completedToday?: number;
@@ -17,110 +27,119 @@ export interface ChatContext {
 
 /** AI-powered chat assistant with full board context awareness. */
 export class ChatAssistant {
-  /**
-   * Generates a response using the current task context and recent chat history.
-   * Falls back to rule-based responses if the AI call fails.
-   */
   static async generateResponse(
     userMessage: string,
     context: ChatContext,
     chatHistory: ChatMessage[] = []
   ): Promise<string> {
-    const systemPrompt = this.buildSystemPrompt(context);
-    const conversationHistory = this.formatChatHistory(chatHistory);
-    
     try {
-      const response = await AIService.generate(
-        `${systemPrompt}\n\n${conversationHistory}\n\nUser: ${userMessage}\n\nAssistant:`,
-        { model: 'groq', tone: 'friendly', length: 'medium' }
-      );
-      
-      return response.trim();
+      if (!groq) throw new Error('Groq API key not configured');
+
+      const systemPrompt = this.buildSystemPrompt(context);
+      const historyMessages = chatHistory.slice(-6).map(msg => ({
+        role: msg.role === 'user' ? 'user' as const : 'assistant' as const,
+        content: msg.message,
+      }));
+
+      const completion = await groq.chat.completions.create({
+        model: GROQ_MODEL,
+        temperature: 0.35,
+        max_tokens: 120,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          ...historyMessages,
+          { role: 'user', content: userMessage },
+        ],
+      });
+
+      const raw = completion.choices[0]?.message?.content?.trim() ?? '';
+      if (!raw) throw new Error('Empty AI response');
+      return truncateChatResponse(raw);
     } catch (error) {
       logger.error('Chat assistant error:', { error });
-      return this.getFallbackResponse(userMessage, context);
+      return truncateChatResponse(this.getFallbackResponse(userMessage, context));
     }
   }
 
   private static buildSystemPrompt(context: ChatContext): string {
     const { tasks, workloadHealth, estimatedHours, completedToday } = context;
-    
-    const taskSummary = this.summarizeTasks(tasks);
-    
-    return `You are a helpful AI productivity assistant for KANBI, a task management app. You help users manage their workload, prioritize tasks, and stay productive.
+    const taskLines = this.formatTaskList(tasks);
 
-Current Context:
-- Total tasks: ${tasks.length}
-- Task breakdown: ${taskSummary}
-- Workload health: ${workloadHealth || 'calculating'}/100
-- Estimated time: ${estimatedHours || 'calculating'} hours
-- Completed today: ${completedToday || 0} tasks
+    return `You are Kanbi, a sharp productivity coach inside a task board app.
 
-Your role:
-- Help users prioritize and plan their work
-- Provide actionable suggestions
-- Break down complex tasks into subtasks
-- Offer encouragement and motivation
-- Be concise, friendly, and helpful
-- Reference specific tasks by name when relevant
+Board snapshot:
+- Pending tasks: ${tasks.filter(t => t.status !== 'done').length} of ${tasks.length}
+- Workload health: ${workloadHealth ?? 'n/a'}/100
+- Done today: ${completedToday ?? 0}
 
-Guidelines:
-- Keep responses under 100 words
-- Be specific and actionable
-- Use emojis sparingly (1-2 per message)
-- Don't make up tasks that don't exist
-- Focus on productivity and well-being`;
+Tasks on board:
+${taskLines}
+
+Rules:
+- Reply in 1-3 short sentences OR a tight bullet list (max 4 bullets)
+- Max 60 words total
+- Only mention real tasks from the board above
+- Give one clear next action when possible
+- No filler, no lectures, no em/en dashes
+- No emojis unless the user asks for motivation
+- Plain text only`;
   }
 
-  private static summarizeTasks(tasks: Task[]): string {
-    const urgent = tasks.filter(t => t.priority === 'Urgent').length;
-    const high = tasks.filter(t => t.priority === 'High').length;
-    const medium = tasks.filter(t => t.priority === 'Medium').length;
-    const low = tasks.filter(t => t.priority === 'Low').length;
-    
-    return `${urgent} urgent, ${high} high, ${medium} medium, ${low} low`;
-  }
+  private static formatTaskList(tasks: ChatTask[]): string {
+    const pending = tasks
+      .filter(t => t.status !== 'done')
+      .slice(0, 10);
 
-  private static formatChatHistory(history: ChatMessage[]): string {
-    const recentHistory = history.slice(-5);
-    
-    return recentHistory
-      .map(msg => `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.message}`)
+    if (pending.length === 0) return '- (none pending)';
+
+    return pending
+      .map(t => `- [${(t.priority ?? 'medium').toLowerCase()}] ${t.title}`)
       .join('\n');
   }
 
-  /** Rule-based fallback responses when the AI call fails. */
   private static getFallbackResponse(userMessage: string, context: ChatContext): string {
     const msg = userMessage.toLowerCase();
-    
+    const pending = context.tasks.filter(t => t.status !== 'done');
+    const urgent = pending.filter(t => (t.priority ?? '').toLowerCase() === 'urgent');
+    const high = pending.filter(t => (t.priority ?? '').toLowerCase() === 'high');
+    const top = urgent.length > 0 ? urgent : high;
+
     if (msg.includes('first') || msg.includes('start') || msg.includes('priorit')) {
-      const urgentTasks = context.tasks.filter(t => t.priority === 'Urgent');
-      if (urgentTasks.length > 0) {
-        return `I recommend starting with your ${urgentTasks.length} urgent task${urgentTasks.length > 1 ? 's' : ''}: ${urgentTasks.slice(0, 2).map(t => `"${t.title}"`).join(', ')}. They need immediate attention.`;
+      if (top.length > 0) {
+        return `Start with "${top[0]!.title}"${top[1] ? `, then "${top[1].title}"` : ''}. Tackle urgent work first.`;
       }
-      return "Start with your highest priority tasks first. Focus on one thing at a time for best results.";
+      return pending[0]
+        ? `Start with "${pending[0].title}". One task at a time.`
+        : 'Your board is clear. Add tasks or review what is done.';
     }
-    
-    if (msg.includes('overwhelm') || msg.includes('too much') || msg.includes('stressed')) {
-      if (context.tasks.length > 10) {
-        return `I see you have ${context.tasks.length} tasks. That's a lot! Consider deferring low-priority tasks to tomorrow. Focus on the top 3-5 most important ones today.`;
+
+    if (msg.includes('overwhelm') || msg.includes('too much') || msg.includes('stressed') || msg.includes('burnout')) {
+      if (pending.length > 8) {
+        return `You have ${pending.length} open tasks. Pick the top 3 for today and defer the rest.`;
       }
-      return "Take a deep breath. Let's break this down into manageable chunks. What's the one thing you can accomplish right now?";
+      return 'Focus on one small win first. Momentum beats a long list.';
     }
-    
+
     if (msg.includes('break') && (msg.includes('down') || msg.includes('task'))) {
-      return "To break down a task: 1) Identify the end goal, 2) List all steps needed, 3) Estimate time for each step, 4) Create separate tasks for each step. What task would you like to break down?";
+      const target = top[0] ?? pending[0];
+      return target
+        ? `Break "${target.title}" into 3 steps: prep, do, review. Want me to list them?`
+        : 'Tell me which task to break down.';
     }
-    
+
     if (msg.includes('plan') || msg.includes('schedule')) {
-      return `You have ${context.tasks.length} tasks today. I suggest: Start with urgent items, tackle high-priority tasks in your peak hours, and save low-priority tasks for when energy is lower.`;
+      return pending.length > 0
+        ? `Plan: urgent/high first (${top.length || high.length} items), then medium. ${pending.length} tasks left.`
+        : 'Nothing pending. Good time to plan tomorrow or clear inbox.';
     }
-    
-    if (msg.includes('motivat') || msg.includes('help') || msg.includes('stuck')) {
-      return `You've got this! 💪 Start with the smallest task to build momentum. Completing even one task will make you feel accomplished and ready for the next.`;
+
+    if (msg.includes('motivat') || msg.includes('stuck')) {
+      return 'Pick the smallest task and finish it in 10 minutes. Progress unlocks the next step.';
     }
-    
-    return `I'm here to help with your ${context.tasks.length} tasks! Ask me to prioritize, break down tasks, plan your day, or just chat about your workload.`;
+
+    return pending.length > 0
+      ? `You have ${pending.length} open tasks. Ask me to prioritize, plan, or break one down.`
+      : 'Board looks clear. I can help plan your next batch of work.';
   }
 
   static async handleQuickAction(
@@ -128,64 +147,74 @@ Guidelines:
     context: ChatContext
   ): Promise<string> {
     const { tasks } = context;
-    
+    const pending = tasks.filter(t => t.status !== 'done');
+    const urgent = pending.filter(t => (t.priority ?? '').toLowerCase() === 'urgent');
+    const high = pending.filter(t => (t.priority ?? '').toLowerCase() === 'high');
+
     switch (action) {
       case 'prioritize':
-        const urgent = tasks.filter(t => t.priority === 'Urgent');
-        const high = tasks.filter(t => t.priority === 'High');
         if (urgent.length > 0) {
-          return `🎯 Priority Order:\n\n1. Start with ${urgent.length} urgent task${urgent.length > 1 ? 's' : ''}\n2. Then tackle ${high.length} high-priority task${high.length > 1 ? 's' : ''}\n3. Fill remaining time with medium tasks\n\nFocus on: "${urgent[0]?.title || high[0]?.title}" first!`;
+          return truncateChatResponse(
+            `Do "${urgent[0]!.title}" first. Then ${high[0]?.title ?? 'medium tasks'}. ${urgent.length} urgent, ${high.length} high.`
+          );
         }
-        return `🎯 Start with your ${high.length} high-priority tasks, then work through medium and low priority items.`;
-      
+        return high.length > 0
+          ? `Start with "${high[0]!.title}". ${high.length} high-priority items waiting.`
+          : 'No urgent/high tasks. Work medium items or clear quick wins.';
+
       case 'breakdown':
-        return `📋 To break down a task:\n\n1. Choose a complex task\n2. List all steps needed\n3. Estimate time per step\n4. Create separate tasks\n\nWhich task would you like me to help break down?`;
-      
-      case 'defer':
-        const lowPriority = tasks.filter(t => t.priority === 'Low' || t.priority === 'Medium');
-        if (lowPriority.length > 0) {
-          return `📅 I suggest deferring these ${lowPriority.length} tasks to tomorrow:\n\n${lowPriority.slice(0, 3).map(t => `• ${t.title}`).join('\n')}\n\nThis will reduce your workload and help you focus on what matters most today.`;
+        return pending[0]
+          ? `For "${pending[0].title}": define outcome, list 3 steps, timebox each.`
+          : 'Add a task first, then I can break it down.';
+
+      case 'defer': {
+        const low = pending.filter(t => {
+          const p = (t.priority ?? '').toLowerCase();
+          return p === 'low' || p === 'medium';
+        });
+        if (low.length > 0) {
+          return truncateChatResponse(
+            `Defer to tomorrow: ${low.slice(0, 3).map(t => t.title).join(', ')}.`
+          );
         }
-        return `You're already focused on high-priority work! Consider deferring any tasks that aren't urgent.`;
-      
+        return 'Already on high-priority work. Defer anything non-urgent manually.';
+      }
+
       case 'plan':
-        const totalHours = context.estimatedHours || tasks.length * 1;
-        return `📅 Daily Plan:\n\n⏰ Morning (9-12): Urgent & high-priority tasks\n☀️ Afternoon (1-4): Medium-priority tasks  \n🌙 Evening (4-6): Low-priority & admin tasks\n\nYou have ~${totalHours}h of work. Pace yourself and take breaks!`;
-      
+        return truncateChatResponse(
+          `Morning: urgent/high (${urgent.length + high.length}). Afternoon: medium. ~${context.estimatedHours ?? pending.length}h total.`
+        );
+
       case 'motivate':
-        const completed = context.completedToday || 0;
-        if (completed > 0) {
-          return `🌟 You've already completed ${completed} task${completed > 1 ? 's' : ''} today! That's awesome progress. Keep the momentum going - you're doing great!`;
-        }
-        return `💪 You've got this! Every big accomplishment starts with the decision to try. Pick one task and start now. Small progress is still progress!`;
-      
+        return (context.completedToday ?? 0) > 0
+          ? `${context.completedToday} done today. Keep going with the next highest priority.`
+          : 'One finished task changes the day. Start with the smallest item.';
+
       default:
-        return "I'm here to help! Ask me anything about your tasks.";
+        return 'Ask me to prioritize, plan, or break down a task.';
     }
   }
 
   static isBreakdownRequest(message: string): boolean {
     const msg = message.toLowerCase();
-    return (msg.includes('break') && msg.includes('down')) || 
-           msg.includes('split') || 
+    return (msg.includes('break') && msg.includes('down')) ||
+           msg.includes('split') ||
            msg.includes('subtask');
   }
 
-  static extractTaskName(message: string, tasks: Task[]): string | null {
+  static extractTaskName(message: string, tasks: ChatTask[]): string | null {
     const quotedMatch = message.match(/"([^"]+)"/);
-    if (quotedMatch) {
-      return quotedMatch[1] ?? null;
-    }
+    if (quotedMatch) return quotedMatch[1] ?? null;
+
     const breakdownMatch = message.match(/break\s+down\s+(.+?)(?:\s+into|\s+task|$)/i);
     if (breakdownMatch) {
       const potentialName = breakdownMatch[1]!.trim();
-      // Check if it matches any existing task
-      const matchingTask = tasks.find(t => 
+      const matchingTask = tasks.find(t =>
         t.title.toLowerCase().includes(potentialName.toLowerCase())
       );
       return matchingTask?.title || potentialName;
     }
-    
+
     return null;
   }
 }

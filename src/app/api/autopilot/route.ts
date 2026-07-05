@@ -2,6 +2,10 @@ import Groq from 'groq-sdk'
 import { createClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/logging/logger'
 import { GROQ_MODEL, GROQ_API_KEY } from '@/lib/constants'
+import { rateLimit, rateLimitResponse } from '@/lib/rate-limiter'
+import { AuthError } from '@/lib/errors/AppError'
+import { sanitizeInput } from '@/lib/security'
+import { NextRequest, NextResponse } from 'next/server'
 
 function getGroq() {
   return new Groq({ apiKey: GROQ_API_KEY })
@@ -15,17 +19,22 @@ interface AutopilotBody {
   tasks: AutoTask[]
 }
 
-export async function POST(req: Request): Promise<Response> {
+export async function POST(request: NextRequest): Promise<Response> {
   const requestId = crypto.randomUUID()
+  const limitResult = await rateLimit(request, { maxRequests: 10, windowMs: 60000 })
+  if (!limitResult.success) return rateLimitResponse(limitResult.limit, limitResult.remaining, limitResult.reset)
 
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!user) {
+      const err = new AuthError()
+      return NextResponse.json(err.toJSON(), { status: 401 })
+    }
 
-    const body = (await req.json()) as AutopilotBody
+    const body = (await request.json()) as AutopilotBody
     if (!Array.isArray(body.tasks)) {
-      return Response.json({ error: 'Invalid request body' }, { status: 400 })
+      return NextResponse.json({ error: 'Tasks array required' }, { status: 400 })
     }
 
     logger.info('Autopilot request', { userId: user.id, requestId })
@@ -55,10 +64,10 @@ export async function POST(req: Request): Promise<Response> {
       })
     }
 
-    return Response.json(briefing)
+    return NextResponse.json(briefing)
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Internal server error'
     logger.error('Autopilot error:', { error: message })
-    return Response.json({ error: message }, { status: 500 })
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }

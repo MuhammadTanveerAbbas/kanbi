@@ -97,8 +97,8 @@ describe('Rate Limiter', () => {
     })
 
     it('should differentiate by endpoint path', async () => {
-      const req1 = createMockRequest('127.0.0.1', '/api/parse-tasks')
-      const req2 = createMockRequest('127.0.0.1', '/api/analyze-workload')
+      const req1 = createMockRequest('127.0.0.1', '/api/extract')
+      const req2 = createMockRequest('127.0.0.1', '/api/ai/analyze-workload')
       const options = { maxRequests: 1, windowMs: 60000 }
 
       const result1 = await rateLimit(req1, options)

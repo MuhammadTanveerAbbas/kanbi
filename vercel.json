@@ -1,1 +1,9 @@
-{"name": "kanbi", "installCommand": "pnpm install --no-frozen-lockfile"}
+{
+  "name": "kanbi",
+  "crons": [
+    {
+      "path": "/api/cron/cleanup",
+      "schedule": "0 3 * * *"
+    }
+  ]
+}

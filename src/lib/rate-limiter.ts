@@ -1,19 +1,26 @@
-/**
- * Per-user (authenticated) and per-IP (anonymous) in-memory rate limiter.
- * Keys are scoped to the request path to allow different limits per endpoint.
- */
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { Ratelimit } from '@upstash/ratelimit';
+import { Redis } from '@upstash/redis';
 
-interface RateLimitRecord {
-  count: number;
-  resetTime: number;
+const UPSTASH_URL = process.env.UPSTASH_REDIS_REST_URL;
+const UPSTASH_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
+
+function createRatelimit(maxRequests: number, windowMs: number) {
+  if (UPSTASH_URL && UPSTASH_TOKEN) {
+    const redis = new Redis({ url: UPSTASH_URL, token: UPSTASH_TOKEN });
+    return new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(maxRequests, windowMs < 60000 ? `${windowMs / 1000}s` : `${windowMs / 60000}m`),
+      prefix: 'kanbi:rl',
+    });
+  }
+  return null;
 }
 
-const rateLimitMap = new Map<string, RateLimitRecord>();
+const localMap = new Map<string, { count: number; resetTime: number }>();
 
 export function clearRateLimitMap() {
-  rateLimitMap.clear();
+  localMap.clear();
 }
 
 export async function rateLimit(
@@ -24,60 +31,39 @@ export async function rateLimit(
     || req.headers.get('x-real-ip')
     || 'anonymous';
 
-  // Prefer user-scoped keys over IP to avoid false positives behind shared NAT
-  let userId: string | null = null;
-  try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    userId = user?.id || null;
-  } catch {
-    // Auth failure is non-fatal for rate limiting
-  }
-  
-  const now = Date.now();
-  const key = userId ? `user:${userId}:${req.nextUrl.pathname}` : `ip:${ip}:${req.nextUrl.pathname}`;
-  const record = rateLimitMap.get(key);
+  const identifier = `${ip}:${req.nextUrl.pathname}`;
+  const rl = createRatelimit(options.maxRequests, options.windowMs);
 
+  if (rl) {
+    const res = await rl.limit(identifier);
+    return { success: res.success, remaining: res.remaining, limit: res.limit, reset: typeof res.reset === 'number' ? res.reset : Date.now() + options.windowMs };
+  }
+
+  const now = Date.now();
+  const record = localMap.get(identifier);
   if (!record || now > record.resetTime) {
     const resetTime = now + options.windowMs;
-    rateLimitMap.set(key, { count: 1, resetTime });
-    return { 
-      success: true, 
-      remaining: options.maxRequests - 1,
-      limit: options.maxRequests,
-      reset: resetTime
-    };
+    localMap.set(identifier, { count: 1, resetTime });
+    return { success: true, remaining: options.maxRequests - 1, limit: options.maxRequests, reset: resetTime };
   }
-
   if (record.count >= options.maxRequests) {
-    return { 
-      success: false, 
-      remaining: 0,
-      limit: options.maxRequests,
-      reset: record.resetTime
-    };
+    return { success: false, remaining: 0, limit: options.maxRequests, reset: record.resetTime };
   }
-
   record.count++;
-  return { 
-    success: true, 
-    remaining: options.maxRequests - record.count,
-    limit: options.maxRequests,
-    reset: record.resetTime
-  };
+  return { success: true, remaining: options.maxRequests - record.count, limit: options.maxRequests, reset: record.resetTime };
 }
 
 export function rateLimitResponse(limit: number = 20, remaining: number = 0, reset: number = Date.now() + 60000) {
   return NextResponse.json(
     { error: 'Too many requests. Please wait a minute and try again.' },
-    { 
+    {
       status: 429,
-      headers: { 
+      headers: {
         'Retry-After': '60',
         'X-RateLimit-Limit': limit.toString(),
         'X-RateLimit-Remaining': remaining.toString(),
         'X-RateLimit-Reset': Math.floor(reset / 1000).toString(),
-      }
+      },
     }
   );
 }
