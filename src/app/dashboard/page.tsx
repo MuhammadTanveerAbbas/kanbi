@@ -174,6 +174,8 @@ function GlobalStyles({ theme }: { theme: "dark" | "light" }) {
       .stagger > *:nth-child(5) { animation-delay:.24s }
       .stagger > *:nth-child(6) { animation-delay:.29s }
 
+      .mob-menu-btn { display:none; background:transparent; border:none; cursor:pointer; padding:0 }
+
       /* ── Nav buttons ── */
       .nav-btn {
         transition: background .15s, color .15s, transform .1s, border-color .15s, box-shadow .15s;
@@ -257,18 +259,52 @@ function GlobalStyles({ theme }: { theme: "dark" | "light" }) {
       @media(max-width:1024px) {
         .xl-hide { display:none !important }
         .main-grid-3 { grid-template-columns:1fr 1fr !important }
+        .sidebar {
+          display:flex !important;
+          transform:translateX(-100%);
+          transition:transform .24s cubic-bezier(.22,1,.36,1);
+          z-index:120;
+          box-shadow:none;
+        }
+        .sidebar-open .sidebar { transform:translateX(0); box-shadow:12px 0 48px rgba(0,0,0,.35) }
+        .sidebar-backdrop {
+          position:fixed; inset:0; z-index:110;
+          background:rgba(0,0,0,.52);
+          backdrop-filter:blur(4px);
+          -webkit-backdrop-filter:blur(4px);
+          animation:fadeIn .2s ease;
+        }
+        .mob-menu-btn {
+          display:flex !important;
+          width:34px; height:34px; border-radius:9px;
+          border:1px solid var(--br); background:var(--bg2);
+          color:var(--tx2); align-items:center; justify-content:center;
+          flex-shrink:0; transition:background .15s,color .15s;
+        }
+        .mob-menu-btn:hover { background:var(--bg3); color:var(--tx) }
+        .main-wrap { margin-left:0 !important; overflow:auto !important }
+        .bottom-nav { display:flex !important; height:64px; align-items:stretch }
+        .root-layout { height:auto !important; min-height:100vh; overflow:visible !important }
+        body { overflow:auto; height:auto }
+        .page-pad { padding-bottom:80px !important }
+        .chat-page { height:calc(100vh - 56px - 64px) !important; min-height:0 !important }
       }
       @media(max-width:768px) {
-        .sidebar { display:none !important }
-        .main-wrap { margin-left:0 !important; overflow:auto !important }
+        .topbar-live { display:none !important }
+        .topbar-wrap { padding:0 14px !important }
         .root-layout { height:auto !important; min-height:100vh; overflow:visible !important }
-        .bottom-nav { display:flex !important }
+        .bottom-nav-item { min-height:0; padding:6px 2px 8px; min-width:0 }
+        .bottom-nav-item span { font-size:8px; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
         body { overflow:auto; height:auto }
         .main-grid-2 { grid-template-columns:1fr !important }
         .main-grid-3 { grid-template-columns:1fr !important }
         .main-grid-4 { grid-template-columns:1fr 1fr !important }
         .page-pad { padding:16px 14px 80px !important }
-        .kanban-grid { overflow-x:auto; grid-template-columns:repeat(3,minmax(260px,1fr)) !important }
+        .kanban-grid { grid-template-columns:1fr !important; min-width:0 !important; overflow-x:visible !important; gap:20px !important }
+        .board-kanban-header { flex-direction:column !important; align-items:stretch !important; padding:12px 14px !important; gap:10px !important }
+        .board-kanban-title { flex-wrap:wrap !important }
+        .board-kanban-actions { width:100% !important; justify-content:space-between !important }
+        .board-kanban-pad { padding:14px 14px !important }
         .chat-sidebar { display:none !important }
         .chat-page { height:calc(100vh - 56px - 64px) !important; min-height:0 !important }
         .settings-grid { gap:10px !important }
@@ -289,7 +325,6 @@ function GlobalStyles({ theme }: { theme: "dark" | "light" }) {
         .quick-ai-sub { display:none }
         .quick-ai-badge { display:none }
         .topbar-sub { display:none }
-        .bottom-nav-item { min-height:52px }
         .stat-value { font-size:20px !important }
         .modal-inner { padding:16px !important; margin:12px !important; max-height:calc(100vh - 24px) !important }
         .board-input-grid { grid-template-columns:1fr !important }
@@ -304,7 +339,7 @@ function GlobalStyles({ theme }: { theme: "dark" | "light" }) {
         .topbar-title { font-size:13px !important }
         .topbar-icon { width:28px !important; height:28px !important; border-radius:8px !important }
         .chat-prompts { grid-template-columns:1fr !important }
-        .kanban-grid { grid-template-columns:repeat(3,minmax(240px,1fr)) !important }
+        .kanban-grid { grid-template-columns:1fr !important; gap:18px !important }
         .settings-tabs { grid-template-columns:repeat(2,1fr) !important; gap:5px !important }
         .settings-tabs button { font-size:10px !important; padding:8px 4px !important }
         .settings-tabs button span:nth-child(2) { font-size:10px !important }
@@ -1217,9 +1252,9 @@ function PageBoard() {
       ) : (
         /* ── Kanban view ── */
         <div style={{ flex:1, overflow:"hidden", display:"flex", flexDirection:"column" }}>
-          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
+          <div className="board-kanban-header" style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
             padding:"14px 26px", borderBottom:"1px solid var(--br)", flexWrap:"wrap", gap:9 }}>
-            <div style={{ display:"flex", alignItems:"center", gap:11 }}>
+            <div className="board-kanban-title" style={{ display:"flex", alignItems:"center", gap:11 }}>
               <button onClick={() => setBoardView("input")} className="ghost"
                 style={{ padding:"5px 11px", borderRadius:8, border:"1px solid var(--br)",
                   background:"transparent", color:"var(--tx2)", fontSize:12, cursor:"pointer",
@@ -1230,7 +1265,7 @@ function PageBoard() {
               <span style={{ fontSize:10, padding:"2px 8px", borderRadius:5, background:"var(--br)",
                 color:"var(--tx3)", fontFamily:"var(--font-mono)" }}>{tasks.length} tasks</span>
             </div>
-            <div style={{ display:"flex", alignItems:"center", gap:9, flexWrap:"wrap" }}>
+            <div className="board-kanban-actions" style={{ display:"flex", alignItems:"center", gap:9, flexWrap:"wrap" }}>
               <div style={{ display:"flex", alignItems:"center", gap:5, padding:"4px 11px",
                 borderRadius:8, background:"var(--as)", border:"1px solid var(--ag)" }}>
                 <div className="pulse" style={{ width:5, height:5, borderRadius:"50%", background:"var(--ac)" }}/>
@@ -1246,8 +1281,8 @@ function PageBoard() {
             </div>
           </div>
 
-          <div style={{ flex:1, overflow:"auto", padding:"20px 26px" }}>
-            <div className="kanban-grid" style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:16, minWidth:600 }}>
+          <div className="board-kanban-pad" style={{ flex:1, overflow:"auto", padding:"20px 26px" }}>
+            <div className="kanban-grid" style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:16 }}>
               {cols.map(([key, label, color]) => (
                 <div key={key}>
                   <div style={{ display:"flex", alignItems:"center", gap:7, marginBottom:12, padding:"0 2px" }}>
@@ -2420,8 +2455,8 @@ function PageSettings({ theme, toggleTheme }: { theme: Theme; toggleTheme: () =>
 /* ═══════════════════════════════════════════════════════════════════════════
    SIDEBAR
 ═══════════════════════════════════════════════════════════════════════════ */
-function Sidebar({ page, setPage, theme, toggleTheme }: {
-  page: Page; setPage: (p: Page) => void; theme: Theme; toggleTheme: () => void;
+function Sidebar({ page, setPage, theme, toggleTheme, onNavigate }: {
+  page: Page; setPage: (p: Page) => void; theme: Theme; toggleTheme: () => void; onNavigate?: () => void;
 }) {
   const { user } = useApp();
 
@@ -2443,7 +2478,7 @@ function Sidebar({ page, setPage, theme, toggleTheme }: {
   const NavBtn = ({ k, label, icon, badge }: { k: Page; label: string; icon: ReactNode; badge?: string }) => {
     const active = page === k;
     return (
-      <button onClick={() => setPage(k)} className="nav-btn"
+      <button onClick={() => { setPage(k); onNavigate?.(); }} className="nav-btn"
         style={{
           width:"100%", padding:"7px 10px 7px 8px", borderRadius:10, border:"none",
           background: active ? "rgba(99,102,241,0.1)" : "transparent",
@@ -2597,7 +2632,7 @@ function Sidebar({ page, setPage, theme, toggleTheme }: {
 /* ═══════════════════════════════════════════════════════════════════════════
    BOTTOM NAV (mobile)
 ═══════════════════════════════════════════════════════════════════════════ */
-function BottomNav({ page, setPage }: { page: Page; setPage: (p: Page) => void }) {
+function BottomNav({ page, setPage, onNavigate }: { page: Page; setPage: (p: Page) => void; onNavigate?: () => void }) {
   const items: [Page, string, ReactNode][] = [
     ["overview",  "Home",     <StarIcon size={19}/>        ],
     ["board",     "Board",    <BoardStarIcon size={19}/>   ],
@@ -2615,7 +2650,7 @@ function BottomNav({ page, setPage }: { page: Page; setPage: (p: Page) => void }
       backdropFilter:"blur(12px)",
     }}>
       {items.map(([k, l, icon]) => (
-        <button key={k} onClick={() => setPage(k)}
+        <button key={k} onClick={() => { setPage(k); onNavigate?.(); }}
           className="bottom-nav-item"
           style={{ flex:1, padding:"8px 4px", background:"transparent", border:"none",
             color: page === k ? "var(--ac)" : "var(--tx3)",
@@ -2691,18 +2726,23 @@ const PAGE_META: Record<Page, { title: string; sub: string; icon: React.ReactNod
   },
 };
 
-function Topbar({ page }: { page: Page }) {
+function Topbar({ page, onMenuOpen }: { page: Page; onMenuOpen?: () => void }) {
   const { user } = useApp();
   const meta = PAGE_META[page];
   return (
-    <div style={{
+    <div className="topbar-wrap" style={{
       height:56, borderBottom:"1px solid var(--br)",
       background:"var(--bg1)", display:"flex", alignItems:"center",
       justifyContent:"space-between", padding:"0 20px", flexShrink:0,
       boxShadow:"0 1px 12px rgba(0,0,0,0.12)",
     }}>
-      {/* Left: icon + title */}
+      {/* Left: menu + icon + title */}
       <div style={{ display:"flex", alignItems:"center", gap:10, minWidth:0 }}>
+        <button type="button" className="mob-menu-btn" onClick={onMenuOpen} aria-label="Open navigation menu">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <path d="M4 6h16M4 12h16M4 18h16"/>
+          </svg>
+        </button>
         <div className="topbar-icon" style={{
           width:34, height:34, borderRadius:10, flexShrink:0,
           background:meta.gradient,
@@ -2731,7 +2771,7 @@ function Topbar({ page }: { page: Page }) {
 
       {/* Right: live badge + avatar */}
       <div style={{ display:"flex", alignItems:"center", gap:10, flexShrink:0 }}>
-        <div style={{ display:"flex", alignItems:"center", gap:6, padding:"5px 11px",
+        <div className="topbar-live" style={{ display:"flex", alignItems:"center", gap:6, padding:"5px 11px",
           borderRadius:99, background:"var(--as)", border:"1px solid var(--ag)" }}>
           <div className="pulse" style={{ width:5, height:5, borderRadius:"50%", background:"var(--gr)" }}/>
           <span style={{ fontSize:10.5, color:"var(--ac)", fontWeight:600, fontFamily:"var(--font-mono)" }}>Live</span>
@@ -2748,6 +2788,14 @@ function Topbar({ page }: { page: Page }) {
 export default function Dashboard() {
   const [page, setPage]   = useState<Page>("overview");
   const [theme, setTheme] = useState<Theme>("dark");
+  const [mobSidebar, setMobSidebar] = useState(false);
+
+  useEffect(() => {
+    if (!mobSidebar) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setMobSidebar(false); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [mobSidebar]);
 
   /* ── Theme persist ── */
   useEffect(() => {
@@ -2839,10 +2887,11 @@ export default function Dashboard() {
   return (
     <AppCtx.Provider value={appState}>
       <GlobalStyles theme={theme}/>
-      <div className="root-layout" style={{ display:"flex", height:"100vh", background:"var(--bg)", overflow:"hidden" }}>
-        <Sidebar page={page} setPage={setPage} theme={theme} toggleTheme={toggleTheme}/>
+      <div className={`root-layout${mobSidebar ? " sidebar-open" : ""}`} style={{ display:"flex", height:"100vh", background:"var(--bg)", overflow:"hidden" }}>
+        {mobSidebar && <div className="sidebar-backdrop" onClick={() => setMobSidebar(false)} aria-hidden="true"/>}
+        <Sidebar page={page} setPage={setPage} theme={theme} toggleTheme={toggleTheme} onNavigate={() => setMobSidebar(false)}/>
         <div className="main-wrap" style={{ marginLeft:"var(--sidebar-w)", flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
-          {page !== "chat" && <Topbar page={page}/>}
+          {page !== "chat" && <Topbar page={page} onMenuOpen={() => setMobSidebar(true)}/>}
           <div style={{ flex:1, overflow:"hidden" }}>
             {page === "overview"  && <PageOverview/>}
             {page === "board"     && <PageBoard/>}
@@ -2852,7 +2901,7 @@ export default function Dashboard() {
             {page === "settings"  && <PageSettings theme={theme} toggleTheme={toggleTheme}/>}
           </div>
         </div>
-        <BottomNav page={page} setPage={setPage}/>
+        <BottomNav page={page} setPage={setPage} onNavigate={() => setMobSidebar(false)}/>
       </div>
     </AppCtx.Provider>
   );

@@ -30,42 +30,144 @@ function Styles({theme}:{theme:Theme}){return <style suppressHydrationWarning>{`
   .sh:hover{border-color:var(--ac)!important}
   .fi{transition:border-color .18s}
   .tb{transition:all .15s;min-width:0}
+  .cmp-mobile{display:none;flex-direction:column;gap:12px}
+  .cmp-card{border-radius:14px;border:1px solid var(--br);background:var(--bg1);overflow:hidden}
+  .cmp-card-head{padding:14px 16px;border-bottom:1px solid var(--br);display:flex;align-items:center;gap:10px;font-size:13.5px;font-weight:600;color:var(--tx)}
+  .cmp-card-row{display:grid;grid-template-columns:72px 1fr;gap:10px;padding:11px 16px;border-bottom:1px solid var(--br);align-items:center}
+  .cmp-card-row:last-child{border-bottom:none}
+  .cmp-card-row.kanbi{background:var(--as)}
+  .cmp-card-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--tx3)}
+  .cmp-card-row.kanbi .cmp-card-label{color:var(--ac)}
+  .cmp-card-val{font-size:12.5px;color:var(--tx2);line-height:1.45}
+  .cmp-card-row.kanbi .cmp-card-val{color:var(--tx);font-weight:500}
+  .lp-wrap{max-width:1140px;margin:0 auto;padding:0 clamp(16px,4vw,24px);width:100%}
+  .lp-section{padding:clamp(56px,8vw,96px) 0}
+  .lp-nav{position:fixed;top:0;left:0;right:0;z-index:200;height:56px;display:flex;align-items:center;transition:background .3s,border-color .3s}
+  .nav-inner{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .nav-actions{display:flex;gap:8px;align-items:center;flex-shrink:0}
+  .nav-cta-desktop{display:inline-flex}
+  .ms{display:none;background:none;border:none;color:var(--tx2);padding:4px;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;transition:background .15s,color .15s}
+  .ms:hover{background:var(--bg2);color:var(--tx)}
+  .hero-cta-secondary{background:var(--bg1)!important;border:1px solid var(--br)!important}
+  .hero-cta-secondary:hover{background:var(--bg2)!important;border-color:var(--brh)!important;color:var(--tx)!important}
+  @keyframes mobMenuIn{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes mobLinkIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:translateX(0)}}
   .hero-section{padding:148px 0 80px}
   .hero-mock-grid{display:grid;grid-template-columns:220px 1fr;min-height:520px}
   .hero-kanban{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
   .hero-charts{display:grid;grid-template-columns:1.05fr .95fr;gap:12px}
   .hero-mock-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
   .cta-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:26px;align-items:center}
+  .g3{display:grid;grid-template-columns:repeat(3,1fr)}
+  .fc-item{border-right:1px solid var(--br);border-bottom:1px solid var(--br)}
+  .g3 .fc-item:nth-child(3n){border-right:none}
+  .g3 .fc-item:nth-child(n+7){border-bottom:none}
   @media(max-width:1024px){
     .hero-section{padding:128px 0 64px!important}
     .hero-mock-grid{grid-template-columns:1fr!important;min-height:auto!important}
     .hero-charts{grid-template-columns:1fr!important}
     .cta-grid{grid-template-columns:1fr!important}
     .g2{grid-template-columns:1fr!important}
+    .g3{grid-template-columns:repeat(2,1fr)!important}
+    .g3 .fc-item{border-right:1px solid var(--br)!important;border-bottom:1px solid var(--br)!important}
+    .g3 .fc-item:nth-child(3n){border-right:1px solid var(--br)!important}
+    .g3 .fc-item:nth-child(2n){border-right:none!important}
+    .g3 .fc-item:nth-child(n+7){border-bottom:1px solid var(--br)!important}
+    .g3 .fc-item:nth-child(n+8){border-bottom:none!important}
+    .fg{grid-template-columns:1fr 1fr!important;gap:32px!important}
+    .hero-kanban{grid-template-columns:1fr!important}
+    .nl{gap:18px!important}
+    .nl a{font-size:12.5px!important}
+  }
+  @media(max-width:900px){
+    .nl{display:none!important}
+    .ms{display:flex!important}
+    .nav-cta-desktop{display:none!important}
+    .nav-theme-btn{display:none!important}
+    .lp-nav-open{background:var(--nb)!important;border-bottom:1px solid var(--br)!important;backdrop-filter:blur(24px)!important;-webkit-backdrop-filter:blur(24px)!important}
+    .mob-menu{position:fixed;inset:0;z-index:210;display:flex;flex-direction:column;background:var(--bg);animation:mobMenuIn .26s cubic-bezier(.22,1,.36,1);overflow:hidden}
+    .mob-menu-grid{position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(var(--br) 1px,transparent 1px),linear-gradient(90deg,var(--br) 1px,transparent 1px);background-size:64px 64px;opacity:.45}
+    .mob-menu-glow{position:absolute;top:-20%;left:50%;transform:translateX(-50%);width:120%;height:45%;background:radial-gradient(ellipse,var(--ag) 0%,transparent 68%);pointer-events:none;opacity:.7}
+    .mob-menu-head{position:relative;z-index:2;display:flex;align-items:center;justify-content:space-between;padding:14px clamp(16px,4vw,24px);border-bottom:1px solid var(--br);background:var(--nb);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);flex-shrink:0}
+    .mob-menu-body{position:relative;z-index:2;flex:1;min-height:0;overflow-y:auto;padding:20px clamp(16px,4vw,24px) 16px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:14px;-webkit-overflow-scrolling:touch}
+    .mob-menu-intro{width:100%;max-width:400px}
+    .mob-menu-kicker{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ac);margin-bottom:6px}
+    .mob-menu-desc{font-size:13px;color:var(--tx2);line-height:1.5}
+    .mob-nav-panel{width:100%;max-width:400px;border:1px solid var(--br);border-radius:16px;background:linear-gradient(180deg,var(--bg1),rgba(255,255,255,.01));overflow:hidden;box-shadow:0 16px 48px rgba(0,0,0,.18),inset 0 1px 0 rgba(255,255,255,.04)}
+    .mob-link{display:flex;align-items:center;gap:12px;padding:13px 14px;border-bottom:1px solid var(--br);font-size:15px;font-weight:600;color:var(--tx);letter-spacing:-0.02em;transition:background .15s;animation:mobLinkIn .32s cubic-bezier(.22,1,.36,1) both}
+    .mob-link:last-child{border-bottom:none}
+    .mob-link:nth-child(1){animation-delay:.04s}
+    .mob-link:nth-child(2){animation-delay:.07s}
+    .mob-link:nth-child(3){animation-delay:.10s}
+    .mob-link:nth-child(4){animation-delay:.13s}
+    .mob-link:nth-child(5){animation-delay:.16s}
+    .mob-link:hover,.mob-link:active{background:var(--bg2)}
+    .mob-link-num{width:30px;height:30px;border-radius:9px;background:var(--as);border:1px solid var(--ag);color:var(--ac);font-size:11px;font-weight:800;font-variant-numeric:tabular-nums;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .mob-link-text{flex:1;min-width:0}
+    .mob-link-arrow{width:30px;height:30px;border-radius:9px;background:var(--bg3);border:1px solid var(--br);color:var(--tx3);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s,border-color .15s,color .15s,transform .15s}
+    .mob-link:hover .mob-link-arrow,.mob-link:active .mob-link-arrow{background:var(--as);border-color:var(--ag);color:var(--ac);transform:translateX(2px)}
+    .mob-signin{width:100%;max-width:400px;text-align:center;font-size:12.5px;color:var(--tx3);padding:4px 0 2px;transition:color .15s}
+    .mob-signin:hover{color:var(--ac)}
+    .mob-menu-foot{position:relative;z-index:2;flex-shrink:0;padding:16px clamp(16px,4vw,24px) max(24px,env(safe-area-inset-bottom));border-top:1px solid var(--br);background:var(--nb);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);display:flex;justify-content:center}
+    .mob-foot-panel{width:100%;max-width:400px;display:flex;flex-direction:column;gap:10px}
+    .mob-theme-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-radius:14px;border:1px solid var(--br);background:linear-gradient(180deg,var(--bg1),var(--bg2))}
+    .mob-theme-info{display:flex;align-items:center;gap:10px;min-width:0}
+    .mob-theme-icon{width:34px;height:34px;border-radius:10px;background:var(--as);border:1px solid var(--ag);color:var(--ac);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .mob-theme-copy{display:flex;flex-direction:column;gap:1px;min-width:0}
+    .mob-theme-label{font-size:13px;font-weight:600;color:var(--tx);letter-spacing:-0.01em}
+    .mob-theme-value{font-size:11px;color:var(--tx3)}
+    .mob-theme-toggle{height:34px;padding:0 12px;border-radius:9px;border:1px solid var(--br);background:var(--bg3);color:var(--tx2);font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;flex-shrink:0;transition:all .15s;white-space:nowrap}
+    .mob-theme-toggle:hover{border-color:var(--brh);color:var(--tx);background:var(--bg2)}
+    .mob-cta{height:50px;border-radius:14px;background:linear-gradient(135deg,var(--ac),#7c83ff);color:#fff;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 12px 36px var(--ag);border:1px solid rgba(255,255,255,.12);transition:opacity .15s,transform .12s,box-shadow .15s;position:relative;z-index:1}
+    .mob-cta:hover{box-shadow:0 16px 40px var(--ag);opacity:.96}
+    .mob-cta:active{transform:scale(.98);opacity:.92}
+    .mob-menu-close{width:38px;height:38px;border-radius:10px;border:1px solid var(--br);background:var(--bg1);color:var(--tx2);display:flex;align-items:center;justify-content:center;transition:all .15s}
+    .mob-menu-close:hover{border-color:var(--brh);color:var(--tx);background:var(--bg2)}
+    .msb{border-right:none!important;border-bottom:1px solid var(--br)!important;padding:12px 14px!important}
+    .msb-brand{padding:0 4px 10px!important;margin-bottom:8px!important;border-bottom:1px solid var(--br)!important}
+    .msb-nav{display:flex!important;flex-direction:row!important;gap:6px!important;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:2px}
+    .msb-nav-item{flex-shrink:0!important;margin:0!important;padding:8px 11px!important;font-size:11px!important;white-space:nowrap}
   }
   @media(max-width:768px){
-    .nl{display:none!important} .ms{display:flex!important}
     .hh{font-size:clamp(34px,8vw,52px)!important}
     .hero-section{padding:112px 0 48px!important}
-    .msb{display:none!important}
+    .msb-nav-item .msb-nav-label{display:none}
+    .msb-nav-item{padding:8px 10px!important}
     .hero-kanban{grid-template-columns:1fr!important}
     .hero-mock-head{align-items:flex-start!important}
     .cr{flex-direction:column!important;align-items:stretch!important}
     .cr a,.cr button{justify-content:center!important}
     .g3{grid-template-columns:1fr!important}
+    .g3 .fc-item{border-right:none!important}
+    .g3 .fc-item{border-bottom:1px solid var(--br)!important}
+    .g3 .fc-item:last-child{border-bottom:none!important}
     .fg{grid-template-columns:1fr 1fr!important}
-    .tsc{overflow-x:auto;-webkit-overflow-scrolling:touch}
+    .tsc{display:grid!important;grid-template-columns:1fr 1fr;gap:6px;overflow:visible;padding:6px!important}
+    .tb{flex:none!important;font-size:11.5px!important;padding:10px 8px!important;white-space:normal!important;line-height:1.25;text-align:center}
+    .showcase-mock{height:auto!important;min-height:320px;max-height:none!important}
+    .mock-board-cols,.mock-overview-stats{grid-template-columns:1fr!important}
+    .mock-overview-charts,.mock-chat-layout,.mock-footer-actions{grid-template-columns:1fr!important}
     .hero-badge{padding:5px 10px!important}
     .badge-text{font-size:10px!important;white-space:normal!important;text-align:center!important;line-height:1.3!important}
-    .cmp-table{overflow-x:auto!important}
+    .cmp-desktop{display:none!important}
+    .cmp-mobile{display:flex!important}
     .hero-mock-wrap{margin-top:40px!important;border-radius:18px!important}
+    .hero-mock-head{padding:12px 14px!important}
+    .hero-kanban{padding:12px 14px!important}
+    .hero-sub{font-size:15px!important;padding:0 4px!important}
+    .cta-banner-inner{padding:24px 18px!important;border-radius:18px!important}
+    .cta-stats{gap:14px!important}
+    .cmp-testimonial{padding:20px 18px!important;margin-top:28px!important}
+    .faq-btn{font-size:13px!important;padding:14px 15px!important}
   }
   @media(max-width:480px){
     .fg,.sg{grid-template-columns:1fr!important}
     .hero-section{padding:100px 0 40px!important}
-    .cmp-table>div{grid-template-columns:1fr!important}
-    .cmp-table>div>div{border-left:none!important;border-bottom:1px solid var(--br)!important}
-    .cmp-table>div>div:last-child{border-bottom:none!important}
+    .tsc{grid-template-columns:1fr 1fr;gap:5px}
+    .tb{font-size:11px!important;padding:9px 6px!important}
+    .cmp-card-row{grid-template-columns:64px 1fr;padding:10px 14px}
+    .board-kanban-pad{padding:14px 12px!important}
+    .footer-bottom{flex-direction:column!important;align-items:flex-start!important}
   }
 `}</style>;}
 
@@ -160,42 +262,95 @@ function Navbar(){
   const handleGetStarted=()=>{
     window.location.href='/sign-up';
   };
+  const closeMob=useCallback(()=>setMob(false),[]);
   useEffect(()=>{const fn=()=>setScrolled(window.scrollY>24);window.addEventListener("scroll",fn,{passive:true});return()=>window.removeEventListener("scroll",fn);},[]);
   useEffect(()=>{
     const supabase=createClient();
     supabase.auth.getUser().then(({data})=>setUser(data.user));
   },[]);
+  useEffect(()=>{
+    if(!mob)return;
+    document.body.style.overflow="hidden";
+    const onKey=(e:KeyboardEvent)=>{if(e.key==="Escape")closeMob();};
+    window.addEventListener("keydown",onKey);
+    return()=>{document.body.style.overflow="";window.removeEventListener("keydown",onKey);};
+  },[mob,closeMob]);
   const links=[["Features","#features"],["How It Works","#how-it-works"],["Product","#showcase"],["Pricing","/pricing"],["FAQ","#faq"]];
   return(<>
-    <nav style={{position:"fixed",top:0,left:0,right:0,zIndex:200,height:56,display:"flex",alignItems:"center",borderBottom:`1px solid ${scrolled?"var(--br)":"transparent"}`,background:scrolled?"var(--nb)":"transparent",backdropFilter:scrolled?"blur(24px)":"none",WebkitBackdropFilter:scrolled?"blur(24px)":"none",transition:"background .3s,border-color .3s"}}>
-      <div style={{position:"absolute",bottom:-1,left:0,height:1,background:"linear-gradient(90deg,var(--ac),var(--pu))",width:`${prog*100}%`,transition:"width .1s linear"}}/>
-      <div style={{maxWidth:1140,margin:"0 auto",padding:"0 24px",width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-        <a href="/" style={{display:"flex",alignItems:"center",gap:8}}>
+    <nav className={`lp-nav${mob?" lp-nav-open":""}`} style={{borderBottom:`1px solid ${scrolled||mob?"var(--br)":"transparent"}`,background:scrolled||mob?"var(--nb)":"transparent",backdropFilter:scrolled||mob?"blur(24px)":"none",WebkitBackdropFilter:scrolled||mob?"blur(24px)":"none"}}>
+      <div style={{position:"absolute",bottom:-1,left:0,height:1,background:"linear-gradient(90deg,var(--ac),var(--pu))",width:`${prog*100}%`,transition:"width .1s linear",opacity:mob?0:1}}/>
+      <div className="lp-wrap nav-inner">
+        <a href="/" style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}} onClick={closeMob}>
           <div style={{width:28,height:28,borderRadius:8,background:"var(--ac)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",boxShadow:"0 0 18px var(--ag)"}}><IC.Zap size={13}/></div>
           <span style={{fontSize:15,fontWeight:700,color:"var(--tx)",letterSpacing:"-0.025em"}}>Kanbi</span>
         </a>
-        <div className="nl" style={{display:"flex",gap:26,alignItems:"center"}}>
-          {links.map(([l,h])=><a key={l} href={h} className="na" style={{fontSize:13,color:"var(--tx2)",transition:"color .15s"}}>{l}</a>)}
+        <div className="nl" style={{display:"flex",gap:26,alignItems:"center",flex:1,justifyContent:"center"}}>
+          {links.map(([l,h])=><a key={l} href={h} className="na" style={{fontSize:13,color:"var(--tx2)",transition:"color .15s",whiteSpace:"nowrap"}}>{l}</a>)}
         </div>
-        <div style={{display:"flex",gap:8,alignItems:"center"}}>
-          <button onClick={toggle} style={{width:34,height:34,borderRadius:8,border:"1px solid var(--br)",background:"var(--bg1)",color:"var(--tx2)",display:"flex",alignItems:"center",justifyContent:"center",transition:"all .15s"}} onMouseOver={e=>{e.currentTarget.style.borderColor="var(--brh)";e.currentTarget.style.color="var(--tx)"}} onMouseOut={e=>{e.currentTarget.style.borderColor="var(--br)";e.currentTarget.style.color="var(--tx2)"}}>
+        <div className="nav-actions">
+          <button className="nav-theme-btn" onClick={toggle} aria-label="Toggle theme" style={{width:34,height:34,borderRadius:8,border:"1px solid var(--br)",background:"var(--bg1)",color:"var(--tx2)",display:"flex",alignItems:"center",justifyContent:"center",transition:"all .15s",flexShrink:0}} onMouseOver={e=>{e.currentTarget.style.borderColor="var(--brh)";e.currentTarget.style.color="var(--tx)"}} onMouseOut={e=>{e.currentTarget.style.borderColor="var(--br)";e.currentTarget.style.color="var(--tx2)"}}>
             {theme==="dark"?<IC.Sun size={14}/>:<IC.Moon size={14}/>}
           </button>
           {user
-            ? <a href="/dashboard" style={{height:34,padding:"0 15px",borderRadius:8,background:"var(--inv)",color:"var(--inv2)",fontSize:13,fontWeight:600,display:"inline-flex",alignItems:"center",transition:"opacity .15s",textDecoration:"none"}} onMouseOver={e=>(e.currentTarget.style.opacity=".88")} onMouseOut={e=>(e.currentTarget.style.opacity="1")}>Dashboard</a>
-            : <button onClick={handleGetStarted} style={{height:34,padding:"0 15px",borderRadius:8,background:"var(--inv)",color:"var(--inv2)",fontSize:13,fontWeight:600,display:"inline-flex",alignItems:"center",transition:"opacity .15s",border:"none"}} onMouseOver={e=>(e.currentTarget.style.opacity=".88")} onMouseOut={e=>(e.currentTarget.style.opacity="1")}>Get Started Free</button>
+            ? <a href="/dashboard" className="nav-cta-desktop" style={{height:34,padding:"0 15px",borderRadius:8,background:"var(--inv)",color:"var(--inv2)",fontSize:13,fontWeight:600,alignItems:"center",transition:"opacity .15s",textDecoration:"none",whiteSpace:"nowrap"}} onMouseOver={e=>(e.currentTarget.style.opacity=".88")} onMouseOut={e=>(e.currentTarget.style.opacity="1")}>Dashboard</a>
+            : <button onClick={handleGetStarted} className="nav-cta-desktop" style={{height:34,padding:"0 15px",borderRadius:8,background:"var(--inv)",color:"var(--inv2)",fontSize:13,fontWeight:600,alignItems:"center",transition:"opacity .15s",border:"none",whiteSpace:"nowrap"}} onMouseOver={e=>(e.currentTarget.style.opacity=".88")} onMouseOut={e=>(e.currentTarget.style.opacity="1")}>Get Started Free</button>
           }
-          <button className="ms" onClick={()=>setMob(!mob)} style={{display:"none",background:"none",border:"none",color:"var(--tx2)",padding:4}}>{mob?<IC.X/>:<IC.Menu/>}</button>
+          <button className="ms" onClick={()=>setMob(!mob)} aria-label={mob?"Close menu":"Open menu"} aria-expanded={mob}>{mob?<IC.X size={18}/>:<IC.Menu size={18}/>}</button>
         </div>
       </div>
     </nav>
-    {mob&&<div style={{position:"fixed",top:56,left:0,right:0,zIndex:199,background:"var(--bg1)",borderBottom:"1px solid var(--br)",padding:"20px 24px",display:"flex",flexDirection:"column",gap:16}}>
-      {links.map(([l,h])=><a key={l} href={h} onClick={()=>setMob(false)} style={{fontSize:14,color:"var(--tx2)"}}>{l}</a>)}
-      {user
-        ? <a href="/dashboard" onClick={()=>setMob(false)} style={{height:42,borderRadius:9,background:"var(--ac)",color:"#fff",fontSize:13,fontWeight:600,display:"flex",alignItems:"center",justifyContent:"center"}}>Dashboard</a>
-        : <a href="/sign-up" onClick={()=>setMob(false)} style={{height:42,borderRadius:9,background:"var(--ac)",color:"#fff",fontSize:13,fontWeight:600,display:"flex",alignItems:"center",justifyContent:"center"}}>Get Started Free</a>
-      }
-    </div>}
+    {mob&&(
+      <div className="mob-menu" role="dialog" aria-modal="true" aria-label="Navigation menu">
+        <div className="mob-menu-grid"/>
+        <div className="mob-menu-glow"/>
+        <div className="mob-menu-head">
+          <a href="/" onClick={closeMob} style={{display:"flex",alignItems:"center",gap:8}}>
+            <div style={{width:30,height:30,borderRadius:9,background:"linear-gradient(135deg,var(--ac),var(--pu))",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",boxShadow:"0 0 16px var(--ag)"}}><IC.Zap size={14}/></div>
+            <span style={{fontSize:16,fontWeight:700,color:"var(--tx)",letterSpacing:"-0.03em"}}>Kanbi</span>
+          </a>
+          <button type="button" className="mob-menu-close" onClick={closeMob} aria-label="Close menu"><IC.X size={16}/></button>
+        </div>
+        <nav className="mob-menu-body">
+          <div className="mob-menu-intro">
+            <p className="mob-menu-kicker">Navigation</p>
+            <p className="mob-menu-desc">AI task planning built for freelancers and solo operators.</p>
+          </div>
+          <div className="mob-nav-panel">
+            {links.map(([l,h],i)=>(
+              <a key={l} href={h} className="mob-link" onClick={closeMob}>
+                <span className="mob-link-num">{String(i+1).padStart(2,"0")}</span>
+                <span className="mob-link-text">{l}</span>
+                <span className="mob-link-arrow"><IC.Arrow size={13}/></span>
+              </a>
+            ))}
+          </div>
+          {user
+            ? <a href="/dashboard" className="mob-signin" onClick={closeMob}>Go to your dashboard →</a>
+            : <a href="/sign-in" className="mob-signin" onClick={closeMob}>Already have an account? Sign in</a>
+          }
+        </nav>
+        <div className="mob-menu-foot">
+          <div className="mob-foot-panel">
+            <div className="mob-theme-row">
+              <div className="mob-theme-info">
+                <span className="mob-theme-icon">{theme==="dark"?<IC.Moon size={15}/>:<IC.Sun size={15}/>}</span>
+                <div className="mob-theme-copy">
+                  <span className="mob-theme-label">Appearance</span>
+                  <span className="mob-theme-value">{theme==="dark"?"Dark mode on":"Light mode on"}</span>
+                </div>
+              </div>
+              <button type="button" className="mob-theme-toggle" onClick={toggle} aria-label="Toggle theme">
+                {theme==="dark"?<><IC.Sun size={13}/> Light</>:<><IC.Moon size={13}/> Dark</>}
+              </button>
+            </div>
+            {user
+              ? <a href="/dashboard" onClick={closeMob} className="mob-cta">Go to Dashboard <IC.Arrow size={15}/></a>
+              : <a href="/sign-up" onClick={closeMob} className="mob-cta">Get Started Free <IC.Arrow size={15}/></a>
+            }
+          </div>
+        </div>
+      </div>
+    )}
   </>);
 }
 
@@ -225,7 +380,7 @@ function Hero(){
     <section className="hero-section" style={{position:"relative",overflow:"hidden"}}>
       <div style={{position:"absolute",inset:0,pointerEvents:"none",backgroundImage:"linear-gradient(var(--br) 1px,transparent 1px),linear-gradient(90deg,var(--br) 1px,transparent 1px)",backgroundSize:"72px 72px"}}/>
       <div style={{position:"absolute",top:-60,left:"50%",transform:"translateX(-50%)",width:800,height:520,background:"radial-gradient(ellipse,var(--ag) 0%,transparent 68%)",pointerEvents:"none"}}/>
-      <div style={{maxWidth:1140,margin:"0 auto",padding:"0 24px",textAlign:"center",position:"relative"}}>
+      <div className="lp-wrap" style={{textAlign:"center",position:"relative"}}>
         <div className="hero-badge" style={{display:"inline-flex",alignItems:"center",gap:8,padding:"5px 14px 5px 10px",borderRadius:100,border:"1px solid var(--ag)",background:"var(--as)",marginBottom:28}}>
           <div style={{width:20,height:20,borderRadius:6,background:"var(--as)",display:"flex",alignItems:"center",justifyContent:"center",color:"var(--ac)",flexShrink:0}}><IC.Spark size={13}/></div>
           <span className="badge-text" style={{fontSize:"clamp(10px,2vw,12px)",color:"var(--ac)",fontWeight:500,whiteSpace:"nowrap"}}>Groq AI, Kanban, workload health, Autopilot</span>
@@ -235,16 +390,16 @@ function Hero(){
           <span style={{position:"relative",display:"inline-block"}}><Wavy playOnMount/><ST text="planning" delay={0.34} playOnMount style={{color:"var(--ac)",fontWeight:800} as React.CSSProperties}/></span>
           <br/>{"into "}<span style={{color:"var(--ac)",fontWeight:800}}><ST text="10 seconds" delay={0.56} playOnMount/></span>
         </h1>
-        <p style={{fontSize:17,color:"var(--tx2)",maxWidth:560,margin:"0 auto 40px",lineHeight:1.7}}>Paste notes, emails, or PDFs. Kanbi extracts tasks, sets priorities, and builds your Kanban board in seconds. Built for freelancers and solo operators.</p>
+        <p className="hero-sub" style={{fontSize:17,color:"var(--tx2)",maxWidth:560,margin:"0 auto 40px",lineHeight:1.7}}>Paste notes, emails, or PDFs. Kanbi extracts tasks, sets priorities, and builds your Kanban board in seconds. Built for freelancers and solo operators.</p>
         <div className="cr" style={{display:"flex",gap:12,justifyContent:"center",flexWrap:"wrap"}}>
           <button onClick={handleGetStarted} style={{height:48,padding:"0 26px",borderRadius:10,background:"var(--ac)",color:"#fff",fontSize:14,fontWeight:600,display:"inline-flex",alignItems:"center",gap:9,boxShadow:"0 0 0 1px var(--ag),0 10px 38px var(--ag)",transition:"background .15s",border:"none"}} onMouseOver={e=>(e.currentTarget.style.background="var(--ach)")} onMouseOut={e=>(e.currentTarget.style.background="var(--ac)")}>Start for Free <IC.Arrow size={15}/></button>
-          <a href="#showcase" style={{height:48,padding:"0 22px",borderRadius:10,border:"1px solid var(--br)",fontSize:14,color:"var(--tx2)",display:"inline-flex",alignItems:"center",gap:6,transition:"all .15s"}} onMouseOver={e=>{e.currentTarget.style.borderColor="var(--brh)";e.currentTarget.style.color="var(--tx)"}} onMouseOut={e=>{e.currentTarget.style.borderColor="var(--br)";e.currentTarget.style.color="var(--tx2)"}}>See product <IC.ChevD size={14}/></a>
+          <a href="#showcase" className="hero-cta-secondary" style={{height:48,padding:"0 22px",borderRadius:10,fontSize:14,color:"var(--tx2)",display:"inline-flex",alignItems:"center",gap:6,transition:"all .15s"}}>See product <IC.ChevD size={14}/></a>
         </div>
         <p style={{marginTop:14,fontSize:12,color:"var(--tx3)"}}>Free plan, 10 AI extractions per day, no card required</p>
         <div ref={ref} className="hero-mock-wrap" style={{marginTop:60,borderRadius:24,border:"1px solid var(--br)",background:"linear-gradient(180deg,rgba(255,255,255,0.03),transparent 28%),var(--bg1)",overflow:"hidden",boxShadow:"0 0 0 1px rgba(255,255,255,0.03),0 42px 120px rgba(0,0,0,0.62)"}}>
           <div className="hero-mock-grid">
             <div className="msb" style={{borderRight:"1px solid var(--br)",background:"linear-gradient(180deg,var(--bg),var(--bg1))",padding:"18px 14px",flexShrink:0}}>
-              <div style={{padding:"0 4px 14px",borderBottom:"1px solid var(--br)",marginBottom:10}}>
+              <div className="msb-brand" style={{padding:"0 4px 14px",borderBottom:"1px solid var(--br)",marginBottom:10}}>
                 <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
                   <div style={{display:"flex",alignItems:"center",gap:8}}>
                     <div style={{width:28,height:28,borderRadius:8,background:"linear-gradient(135deg,var(--ac),var(--pu))",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",boxShadow:"0 0 18px var(--ag)"}}><IC.Zap size={13}/></div>
@@ -255,6 +410,7 @@ function Hero(){
                   </div>
                 </div>
               </div>
+              <div className="msb-nav">
               {[
                 {label:"Overview",icon:ICONS.dashboard,active:true},
                 {label:"Board",icon:ICONS.board},
@@ -264,12 +420,13 @@ function Hero(){
               ].map(item=>{
                 const Icon = item.icon;
                 return (
-                  <div key={item.label} style={{padding:"10px 10px",margin:"4px 0",borderRadius:10,background:item.active?"var(--as)":"transparent",fontSize:12,color:item.active?"var(--ac)":"var(--tx2)",fontWeight:item.active?600:500,border:"1px solid",borderColor:item.active?"var(--ag)":"transparent",display:"flex",alignItems:"center",gap:10}}>
+                  <div key={item.label} className="msb-nav-item" style={{padding:"10px 10px",margin:"4px 0",borderRadius:10,background:item.active?"var(--as)":"transparent",fontSize:12,color:item.active?"var(--ac)":"var(--tx2)",fontWeight:item.active?600:500,border:"1px solid",borderColor:item.active?"var(--ag)":"transparent",display:"flex",alignItems:"center",gap:10}}>
                     <span style={{width:24,height:24,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",background:item.active?"rgba(94,111,232,0.18)":"var(--bg2)",color:item.active?"var(--ac)":"var(--tx3)"}}><Icon size={13}/></span>
-                    {item.label}
+                    <span className="msb-nav-label">{item.label}</span>
                   </div>
                 );
               })}
+              </div>
             </div>
             <div style={{minWidth:0,display:"flex",flexDirection:"column",background:"radial-gradient(circle at top right,rgba(167,139,250,0.08),transparent 34%),var(--bg1)"}}>
               <div className="hero-mock-head" style={{borderBottom:"1px solid var(--br)",padding:"14px 18px",flexShrink:0}}>
@@ -383,7 +540,7 @@ function Hero(){
 
 function Strip(){return(
   <div style={{borderTop:"1px solid var(--br)",borderBottom:"1px solid var(--br)",padding:"14px 0"}}>
-    <div style={{maxWidth:1140,margin:"0 auto",padding:"0 24px",display:"flex",alignItems:"center",gap:8,justifyContent:"center",flexWrap:"wrap"}}>
+    <div className="lp-wrap" style={{display:"flex",alignItems:"center",gap:8,justifyContent:"center",flexWrap:"wrap"}}>
       <span style={{fontSize:11,color:"var(--tx3)",marginRight:6}}>Works with</span>
       {["PDF Upload","URL Import","DOCX Export","Groq AI","Supabase"].map(t=>(
         <span key={t} style={{padding:"4px 11px",borderRadius:6,border:"1px solid var(--br)",background:"var(--bg1)",fontSize:11,color:"var(--tx3)",fontWeight:500}}>{t}</span>
@@ -404,7 +561,7 @@ function MockPreview({tab}:{tab:typeof TABS[0]}){
   const cols:Record<string,string>={overview:"var(--ac)",board:"var(--am)",chat:"var(--pu)",autopilot:"var(--gr)"};
   const col=cols[tab.key];
   return(
-    <div style={{borderRadius:20,border:"1px solid var(--br)",background:"linear-gradient(180deg,rgba(255,255,255,0.03),transparent 28%),var(--bg1)",overflow:"hidden",height:440,display:"flex",flexDirection:"column",boxShadow:"0 18px 60px rgba(0,0,0,0.18)"}}>
+    <div className="showcase-mock" style={{borderRadius:20,border:"1px solid var(--br)",background:"linear-gradient(180deg,rgba(255,255,255,0.03),transparent 28%),var(--bg1)",overflow:"hidden",height:440,display:"flex",flexDirection:"column",boxShadow:"0 18px 60px rgba(0,0,0,0.18)"}}>
       <div style={{display:"flex",alignItems:"center",gap:6,padding:"12px 16px",borderBottom:"1px solid var(--br)",background:"var(--bg)"}}>
         {["#ff5f57","#febc2e","#28c840"].map(c=><div key={c} style={{width:10,height:10,borderRadius:"50%",background:c}}/>)}
         <span style={{fontSize:11,color:"var(--tx3)",marginLeft:6}}>app.kanbi / {tab.key}</span>
@@ -424,7 +581,7 @@ function MockPreview({tab}:{tab:typeof TABS[0]}){
               { v: "18", l: "Open tasks", I: ICONS.focus },
             ];
             return (
-          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
+          <div className="mock-overview-stats" style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
             {overviewCards.map(({ v, l, I }) => {
               const Icon = I;
               return (
@@ -441,7 +598,7 @@ function MockPreview({tab}:{tab:typeof TABS[0]}){
           </div>
             );
           })()}
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,flex:1}}>
+          <div className="mock-overview-charts" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,flex:1}}>
             <div style={{borderRadius:16,border:"1px solid var(--br)",background:"linear-gradient(180deg,var(--bg2),var(--bg1))",padding:12,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
               <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
                 <ICONS.health size={15}/>
@@ -469,7 +626,7 @@ function MockPreview({tab}:{tab:typeof TABS[0]}){
           </div>
         </>)}
         {tab.key==="board"&&(<>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,flex:1}}>
+          <div className="mock-board-cols" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,flex:1}}>
             {[{c:"To Do",ts:[["Send quote to Meridian","Client", "var(--ac)"],["Refresh portfolio page","Marketing","var(--pu)"]]},{c:"In Progress",ts:[["Webhook retry logic","Dev","var(--am)"],["Blog outline","Content","var(--pu)"]]},{c:"Done",ts:[["Ship v1.2 patch","Ops","var(--gr)"]]}].map(col=>(
               <div key={col.c} style={{borderRadius:14,border:"1px solid var(--br)",background:"linear-gradient(180deg,var(--bg2),var(--bg1))",padding:10}}>
                 <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
@@ -488,7 +645,7 @@ function MockPreview({tab}:{tab:typeof TABS[0]}){
               </div>
             ))}
           </div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+          <div className="mock-footer-actions" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
             <div style={{padding:"9px 10px",borderRadius:12,background:"rgba(16,185,129,0.08)",border:"1px solid rgba(16,185,129,0.2)",display:"flex",alignItems:"center",gap:6}}>
               <CheckCircle2 size={14} style={{color:"var(--gr)"}}/>
               <span style={{fontSize:9.5,color:"var(--gr)",fontWeight:600}}>Board saved</span>
@@ -500,7 +657,7 @@ function MockPreview({tab}:{tab:typeof TABS[0]}){
           </div>
         </>)}
         {tab.key==="chat"&&(
-          <div style={{flex:1,display:"grid",gridTemplateColumns:"1.2fr .8fr",gap:10}}>
+          <div className="mock-chat-layout" style={{flex:1,display:"grid",gridTemplateColumns:"1.2fr .8fr",gap:10}}>
             <div style={{display:"flex",flexDirection:"column",gap:8}}>
             {[{r:"ai",m:"You have 4 open tasks. Meridian quote is highest priority. Want me to block 45 minutes this morning?"},{r:"user",m:"Yes, and add: follow up on invoice"},{r:"ai",m:"Added \"Follow up on invoice\" to To Do (medium). Scheduled quote review for 9:00 AM."}].map((msg,i)=>(
               <div key={i} style={{display:"flex",justifyContent:msg.r==="user"?"flex-end":"flex-start"}}>
@@ -556,8 +713,8 @@ function Showcase(){
   const [active,setActive]=useState(0);const tab=TABS[active]!;
   const handleTabClick=(i:number,key:string)=>{setActive(i);};
   return(
-    <section id="showcase" style={{padding:"96px 0",borderTop:"1px solid var(--br)"}}>
-      <div style={{maxWidth:1140,margin:"0 auto",padding:"0 24px"}}>
+    <section id="showcase" className="lp-section" style={{borderTop:"1px solid var(--br)"}}>
+      <div className="lp-wrap">
         <div style={{textAlign:"center",marginBottom:48}}>
           <p style={{fontSize:11,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",color:"var(--ac)",marginBottom:14}}>Product</p>
           <h2 style={{fontSize:"clamp(26px,4vw,44px)",fontWeight:700,letterSpacing:"-0.035em",color:"var(--tx)",marginBottom:14}}><ST text="Four views, one workflow"/></h2>
@@ -604,16 +761,16 @@ const FEATS=[
 ];
 
 function Features(){return(
-  <section id="features" style={{padding:"96px 0",borderTop:"1px solid var(--br)"}}>
-    <div style={{maxWidth:1140,margin:"0 auto",padding:"0 24px"}}>
+  <section id="features" className="lp-section" style={{borderTop:"1px solid var(--br)"}}>
+    <div className="lp-wrap">
       <div style={{textAlign:"center",marginBottom:52}}>
         <p style={{fontSize:11,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",color:"var(--ac)",marginBottom:14}}>Features</p>
         <h2 style={{fontSize:"clamp(26px,4vw,44px)",fontWeight:700,letterSpacing:"-0.035em",color:"var(--tx)",marginBottom:14}}><ST text="Built for solo operators"/></h2>
         <p style={{fontSize:15,color:"var(--tx2)",maxWidth:440,margin:"0 auto"}}>Everything you need to plan a week, nothing you do not need.</p>
       </div>
-      <div className="g3" style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",border:"1px solid var(--br)",borderRadius:16,overflow:"hidden"}}>
-        {FEATS.map((f,i)=>(
-          <div key={f.t} className="fc" style={{padding:"24px 22px",borderRight:(i+1)%3!==0?"1px solid var(--br)":"none",borderBottom:i<6?"1px solid var(--br)":"none",background:"var(--bg)",cursor:"default"}}>
+      <div className="g3" style={{border:"1px solid var(--br)",borderRadius:16,overflow:"hidden"}}>
+        {FEATS.map((f)=>(
+          <div key={f.t} className="fc fc-item" style={{padding:"24px 22px",background:"var(--bg)",cursor:"default"}}>
             <div style={{width:36,height:36,borderRadius:9,background:"var(--as)",border:"1px solid var(--ag)",display:"flex",alignItems:"center",justifyContent:"center",color:"var(--ac)",marginBottom:14}}><f.I size={15}/></div>
             <div style={{fontSize:13.5,fontWeight:600,color:"var(--tx)",marginBottom:7}}>{f.t}</div>
             <div style={{fontSize:12.5,color:"var(--tx2)",lineHeight:1.65}}>{f.d}</div>
@@ -631,13 +788,13 @@ function HowItWorks(){
     {n:"03",t:"Plan and ship",d:"Tasks land on your board. Autopilot suggests a day. Export when a client needs a doc.",tag:"Board, Autopilot, Export",I:IC.Zap},
   ];
   return(
-    <section id="how-it-works" style={{padding:"96px 0",borderTop:"1px solid var(--br)"}}>
-      <div style={{maxWidth:1140,margin:"0 auto",padding:"0 24px"}}>
+    <section id="how-it-works" className="lp-section" style={{borderTop:"1px solid var(--br)"}}>
+      <div className="lp-wrap">
         <div style={{textAlign:"center",marginBottom:52}}>
           <p style={{fontSize:11,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",color:"var(--ac)",marginBottom:14}}>How It Works</p>
           <h2 style={{fontSize:"clamp(26px,4vw,44px)",fontWeight:700,letterSpacing:"-0.035em",color:"var(--tx)"}}><ST text="From chaos to clarity in 3 steps"/></h2>
         </div>
-        <div className="g3" style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:16}}>
+        <div className="g3 sg" style={{gap:16}}>
           {steps.map(s=>(
             <div key={s.n} className="sh" style={{borderRadius:12,border:"1px solid var(--br)",background:"var(--bg1)",padding:24,transition:"border-color .18s"}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:18}}>
@@ -655,16 +812,25 @@ function HowItWorks(){
   );
 }
 
+const CMP_ROWS=[
+  {n:1,feature:"Task extraction speed",notion:"Manual entry",asana:"Manual entry",kanbi:"Groq AI in under 2 seconds"},
+  {n:2,feature:"Burnout detection",notion:"None",asana:"None",kanbi:"Real-time health score"},
+  {n:3,feature:"AI coaching",notion:"AI writing assist only",asana:"None",kanbi:"Chat assistant with board context"},
+  {n:4,feature:"Board export",notion:"PDF export",asana:"PDF / CSV (paid)",kanbi:"DOCX or PDF in one click"},
+];
+
 function ComparisonTable(){
   return(
-    <section style={{padding:"96px 0",borderTop:"1px solid var(--br)"}}>
-      <div style={{maxWidth:1140,margin:"0 auto",padding:"0 24px"}}>
+    <section className="lp-section cmp-section" style={{borderTop:"1px solid var(--br)"}}>
+      <div className="lp-wrap">
         <div style={{textAlign:"center",marginBottom:48}}>
           <p style={{fontSize:11,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",color:"var(--ac)",marginBottom:14}}>Why Kanbi</p>
           <h2 style={{fontSize:"clamp(26px,4vw,44px)",fontWeight:700,letterSpacing:"-0.035em",color:"var(--tx)",marginBottom:14}}><ST text="Traditional tools vs Kanbi"/></h2>
           <p style={{fontSize:15,color:"var(--tx2)",maxWidth:480,margin:"0 auto"}}>Manual boards vs. AI-first planning for one person.</p>
         </div>
-        <div className="cmp-table" style={{borderRadius:18,border:"1px solid var(--br)",background:"var(--bg1)",overflow:"hidden",boxShadow:"0 16px 60px rgba(0,0,0,0.12)"}}>
+
+        {/* Desktop table */}
+        <div className="cmp-desktop cmp-table" style={{borderRadius:18,border:"1px solid var(--br)",background:"var(--bg1)",overflow:"hidden",boxShadow:"0 16px 60px rgba(0,0,0,0.12)"}}>
           <div style={{display:"grid",gridTemplateColumns:"2fr 1.5fr 1.5fr 1.5fr",borderBottom:"1px solid var(--br)",background:"var(--bg2)"}}>
             <div style={{padding:"14px 20px",fontSize:12,fontWeight:700,color:"var(--tx3)",textTransform:"uppercase",letterSpacing:"0.06em"}}>Feature</div>
             <div style={{padding:"14px 20px",fontSize:12,fontWeight:700,color:"var(--tx3)",textTransform:"uppercase",letterSpacing:"0.06em",borderLeft:"1px solid var(--br)"}}>Notion</div>
@@ -672,37 +838,45 @@ function ComparisonTable(){
             <div style={{padding:"14px 20px",fontSize:12,fontWeight:700,color:"var(--ac)",textTransform:"uppercase",letterSpacing:"0.06em",borderLeft:"1px solid var(--br)",display:"flex",alignItems:"center",gap:6}}><IC.Zap size={13}/>Kanbi</div>
           </div>
           <div style={{display:"grid",gridTemplateColumns:"2fr 1.5fr 1.5fr 1.5fr"}}>
-            <div style={{padding:"16px 20px",fontSize:13.5,color:"var(--tx)",fontWeight:500,display:"flex",alignItems:"center",gap:10,borderBottom:"1px solid var(--br)"}}>
-              <span style={{width:28,height:28,borderRadius:9,background:"var(--as)",border:"1px solid var(--ag)",display:"flex",alignItems:"center",justifyContent:"center",color:"var(--ac)",flexShrink:0}}>1</span>
-              Task extraction speed
-            </div>
-            <div style={{padding:"16px 20px",fontSize:13,color:"var(--tx3)",borderLeft:"1px solid var(--br)",borderBottom:"1px solid var(--br)"}}>Manual entry</div>
-            <div style={{padding:"16px 20px",fontSize:13,color:"var(--tx3)",borderLeft:"1px solid var(--br)",borderBottom:"1px solid var(--br)"}}>Manual entry</div>
-            <div style={{padding:"16px 20px",fontSize:13,color:"var(--tx)",fontWeight:500,borderLeft:"1px solid var(--br)",background:"var(--as)",borderBottom:"1px solid var(--br)"}}>Groq AI in under 2 seconds</div>
-            <div style={{padding:"16px 20px",fontSize:13.5,color:"var(--tx)",fontWeight:500,display:"flex",alignItems:"center",gap:10,borderBottom:"1px solid var(--br)"}}>
-              <span style={{width:28,height:28,borderRadius:9,background:"var(--as)",border:"1px solid var(--ag)",display:"flex",alignItems:"center",justifyContent:"center",color:"var(--ac)",flexShrink:0}}>2</span>
-              Burnout detection
-            </div>
-            <div style={{padding:"16px 20px",fontSize:13,color:"var(--tx3)",borderLeft:"1px solid var(--br)",borderBottom:"1px solid var(--br)"}}>None</div>
-            <div style={{padding:"16px 20px",fontSize:13,color:"var(--tx3)",borderLeft:"1px solid var(--br)",borderBottom:"1px solid var(--br)"}}>None</div>
-            <div style={{padding:"16px 20px",fontSize:13,color:"var(--tx)",fontWeight:500,borderLeft:"1px solid var(--br)",background:"var(--as)",borderBottom:"1px solid var(--br)"}}>Real-time health score</div>
-            <div style={{padding:"16px 20px",fontSize:13.5,color:"var(--tx)",fontWeight:500,display:"flex",alignItems:"center",gap:10,borderBottom:"1px solid var(--br)"}}>
-              <span style={{width:28,height:28,borderRadius:9,background:"var(--as)",border:"1px solid var(--ag)",display:"flex",alignItems:"center",justifyContent:"center",color:"var(--ac)",flexShrink:0}}>3</span>
-              AI coaching
-            </div>
-            <div style={{padding:"16px 20px",fontSize:13,color:"var(--tx3)",borderLeft:"1px solid var(--br)",borderBottom:"1px solid var(--br)"}}>AI writing assist only</div>
-            <div style={{padding:"16px 20px",fontSize:13,color:"var(--tx3)",borderLeft:"1px solid var(--br)",borderBottom:"1px solid var(--br)"}}>None</div>
-            <div style={{padding:"16px 20px",fontSize:13,color:"var(--tx)",fontWeight:500,borderLeft:"1px solid var(--br)",background:"var(--as)",borderBottom:"1px solid var(--br)"}}>Chat assistant with board context</div>
-            <div style={{padding:"16px 20px",fontSize:13.5,color:"var(--tx)",fontWeight:500,display:"flex",alignItems:"center",gap:10,borderBottom:"1px solid var(--br)"}}>
-              <span style={{width:28,height:28,borderRadius:9,background:"var(--as)",border:"1px solid var(--ag)",display:"flex",alignItems:"center",justifyContent:"center",color:"var(--ac)",flexShrink:0}}>4</span>
-              Board export
-            </div>
-            <div style={{padding:"16px 20px",fontSize:13,color:"var(--tx3)",borderLeft:"1px solid var(--br)",borderBottom:"1px solid var(--br)"}}>PDF export</div>
-            <div style={{padding:"16px 20px",fontSize:13,color:"var(--tx3)",borderLeft:"1px solid var(--br)",borderBottom:"1px solid var(--br)"}}>PDF / CSV (paid)</div>
-            <div style={{padding:"16px 20px",fontSize:13,color:"var(--tx)",fontWeight:500,borderLeft:"1px solid var(--br)",background:"var(--as)",borderBottom:"1px solid var(--br)"}}>DOCX or PDF in one click</div>
+            {CMP_ROWS.map(row=>(
+              <div key={row.n} style={{display:"contents"}}>
+                <div style={{padding:"16px 20px",fontSize:13.5,color:"var(--tx)",fontWeight:500,display:"flex",alignItems:"center",gap:10,borderBottom:"1px solid var(--br)"}}>
+                  <span style={{width:28,height:28,borderRadius:9,background:"var(--as)",border:"1px solid var(--ag)",display:"flex",alignItems:"center",justifyContent:"center",color:"var(--ac)",flexShrink:0}}>{row.n}</span>
+                  {row.feature}
+                </div>
+                <div style={{padding:"16px 20px",fontSize:13,color:"var(--tx3)",borderLeft:"1px solid var(--br)",borderBottom:"1px solid var(--br)"}}>{row.notion}</div>
+                <div style={{padding:"16px 20px",fontSize:13,color:"var(--tx3)",borderLeft:"1px solid var(--br)",borderBottom:"1px solid var(--br)"}}>{row.asana}</div>
+                <div style={{padding:"16px 20px",fontSize:13,color:"var(--tx)",fontWeight:500,borderLeft:"1px solid var(--br)",background:"var(--as)",borderBottom:"1px solid var(--br)"}}>{row.kanbi}</div>
+              </div>
+            ))}
           </div>
         </div>
-        <div style={{marginTop:36,borderRadius:20,border:"1px solid var(--br)",background:"linear-gradient(180deg,var(--bg1),var(--bg2))",padding:"28px 30px",display:"flex",alignItems:"flex-start",gap:20,flexWrap:"wrap"}}>
+
+        {/* Mobile cards — one card per feature */}
+        <div className="cmp-mobile">
+          {CMP_ROWS.map(row=>(
+            <div key={row.n} className="cmp-card">
+              <div className="cmp-card-head">
+                <span style={{width:28,height:28,borderRadius:9,background:"var(--as)",border:"1px solid var(--ag)",display:"flex",alignItems:"center",justifyContent:"center",color:"var(--ac)",flexShrink:0,fontSize:12,fontWeight:700}}>{row.n}</span>
+                {row.feature}
+              </div>
+              <div className="cmp-card-row">
+                <span className="cmp-card-label">Notion</span>
+                <span className="cmp-card-val">{row.notion}</span>
+              </div>
+              <div className="cmp-card-row">
+                <span className="cmp-card-label">Asana</span>
+                <span className="cmp-card-val">{row.asana}</span>
+              </div>
+              <div className="cmp-card-row kanbi">
+                <span className="cmp-card-label" style={{display:"flex",alignItems:"center",gap:4}}><IC.Zap size={10}/>Kanbi</span>
+                <span className="cmp-card-val">{row.kanbi}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="cmp-testimonial" style={{marginTop:36,borderRadius:20,border:"1px solid var(--br)",background:"linear-gradient(180deg,var(--bg1),var(--bg2))",padding:"28px 30px",display:"flex",alignItems:"flex-start",gap:20,flexWrap:"wrap"}}>
           <div style={{display:"flex",alignItems:"flex-start",gap:14,flexWrap:"wrap"}}>
             <div style={{width:52,height:52,borderRadius:16,background:"linear-gradient(135deg,var(--ac),var(--pu))",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,boxShadow:"0 0 18px var(--ag)"}}>
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -733,8 +907,8 @@ function Pricing(){
   const freeF=[{t:"10 AI task extractions per day",ok:true},{t:"300 board uses per month",ok:true},{t:"Full Kanban board",ok:true},{t:"Priority levels & due dates",ok:true},{t:"PDF import",ok:false},{t:"AI Chat Coach",ok:false},{t:"Burnout alerts",ok:false}];
   const proF=["50 AI task extractions per day","Unlimited board uses","PDF import & URL extraction","AI Chat Coach (board-aware)","Burnout prevention & health scoring","DOCX & PDF export","Autopilot scheduling & briefings","Priority email support (24h)"];
   return(
-    <section id="pricing" style={{padding:"96px 0",borderTop:"1px solid var(--br)"}}>
-      <div style={{maxWidth:1140,margin:"0 auto",padding:"0 24px"}}>
+    <section id="pricing" className="lp-section" style={{borderTop:"1px solid var(--br)"}}>
+      <div className="lp-wrap">
         <div style={{textAlign:"center",marginBottom:52}}>
           <p style={{fontSize:11,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",color:"var(--ac)",marginBottom:14}}>Pricing</p>
           <h2 style={{fontSize:"clamp(26px,4vw,44px)",fontWeight:700,letterSpacing:"-0.035em",color:"var(--tx)",marginBottom:14}}><ST text="Simple, honest pricing"/></h2>
@@ -790,8 +964,8 @@ function FAQ(){
     {q:"How is Kanbi different from Asana or Notion?",a:"Team tools assume you will create every task by hand. Kanbi starts from messy input like notes, emails, and PDFs, and builds the board for you. Health scoring and autopilot are built in for solo planning."},
   ];
   return(
-    <section id="faq" style={{padding:"96px 0",borderTop:"1px solid var(--br)"}}>
-      <div style={{maxWidth:720,margin:"0 auto",padding:"0 24px"}}>
+    <section id="faq" className="lp-section" style={{borderTop:"1px solid var(--br)"}}>
+      <div className="lp-wrap" style={{maxWidth:720}}>
         <div style={{textAlign:"center",marginBottom:48}}>
           <p style={{fontSize:11,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",color:"var(--ac)",marginBottom:14}}>FAQ</p>
           <h2 style={{fontSize:"clamp(26px,4vw,44px)",fontWeight:700,letterSpacing:"-0.035em",color:"var(--tx)"}}><ST text="Common questions"/></h2>
@@ -799,7 +973,7 @@ function FAQ(){
         <div style={{display:"flex",flexDirection:"column",gap:4}}>
           {faqs.map((f,i)=>(
             <div key={f.q} className="fi" style={{border:`1px solid ${open===i?"var(--ag)":"var(--br)"}`,borderRadius:10,overflow:"hidden"}}>
-              <button onClick={()=>setOpen(open===i?null:i)} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"15px 17px",background:"transparent",border:"none",color:"var(--tx)",fontSize:13.5,fontWeight:500,textAlign:"left",gap:12,cursor:"pointer"}}>
+              <button className="faq-btn" onClick={()=>setOpen(open===i?null:i)} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"15px 17px",background:"transparent",border:"none",color:"var(--tx)",fontSize:13.5,fontWeight:500,textAlign:"left",gap:12,cursor:"pointer"}}>
                 <span>{f.q}</span>
                 <span style={{color:"var(--tx3)",flexShrink:0,transform:open===i?"rotate(180deg)":"none",transition:"transform .2s"}}><IC.ChevD size={14}/></span>
               </button>
@@ -817,9 +991,9 @@ function CTABanner(){
     window.location.href='/sign-up';
   };
   return(
-  <section style={{padding:"96px 0",borderTop:"1px solid var(--br)"}}>
-    <div style={{maxWidth:1140,margin:"0 auto",padding:"0 24px"}}>
-      <div style={{borderRadius:24,border:"1px solid var(--ag)",background:"radial-gradient(circle at top,rgba(94,111,232,0.18),transparent 42%),linear-gradient(180deg,var(--bg1),var(--bg2))",padding:"38px",position:"relative",overflow:"hidden",boxShadow:"0 30px 120px rgba(0,0,0,0.22)"}}>
+  <section className="lp-section" style={{borderTop:"1px solid var(--br)"}}>
+    <div className="lp-wrap">
+      <div className="cta-banner-inner" style={{borderRadius:24,border:"1px solid var(--ag)",background:"radial-gradient(circle at top,rgba(94,111,232,0.18),transparent 42%),linear-gradient(180deg,var(--bg1),var(--bg2))",padding:"38px",position:"relative",overflow:"hidden",boxShadow:"0 30px 120px rgba(0,0,0,0.22)"}}>
         <div style={{position:"absolute",inset:0,pointerEvents:"none",backgroundImage:"linear-gradient(var(--br) 1px,transparent 1px),linear-gradient(90deg,var(--br) 1px,transparent 1px)",backgroundSize:"64px 64px",maskImage:"radial-gradient(circle at center, black 30%, transparent 85%)",opacity:.35}}/>
         <div style={{position:"relative",display:"grid",gridTemplateColumns:"1.05fr .95fr",gap:26,alignItems:"center"}} className="cta-grid">
           <div style={{textAlign:"left"}}>
@@ -833,7 +1007,7 @@ function CTABanner(){
               <button onClick={handleGetStarted} style={{height:50,padding:"0 26px",borderRadius:14,background:"linear-gradient(135deg,var(--ac),#7c83ff)",color:"#fff",fontSize:14,fontWeight:800,display:"inline-flex",alignItems:"center",gap:10,transition:"transform .15s,opacity .15s",border:"none",boxShadow:"0 14px 36px var(--ag)"}} onMouseOver={e=>{e.currentTarget.style.transform="translateY(-1px)"}} onMouseOut={e=>{e.currentTarget.style.transform="translateY(0)"}}>Create free account <ArrowRight size={16}/></button>
               <a href="#pricing" style={{height:50,padding:"0 20px",borderRadius:14,border:"1px solid var(--brh)",fontSize:14,color:"var(--tx2)",display:"inline-flex",alignItems:"center",gap:8,transition:"all .15s",background:"rgba(255,255,255,0.02)"}} onMouseOver={e=>{e.currentTarget.style.borderColor="var(--ag)";e.currentTarget.style.color="var(--tx)";e.currentTarget.style.transform="translateY(-1px)"}} onMouseOut={e=>{e.currentTarget.style.borderColor="var(--brh)";e.currentTarget.style.color="var(--tx2)";e.currentTarget.style.transform="translateY(0)"}}>View pricing <MoveRight size={16}/></a>
             </div>
-            <div style={{display:"flex",gap:18,flexWrap:"wrap",marginTop:24}}>
+            <div className="cta-stats" style={{display:"flex",gap:18,flexWrap:"wrap",marginTop:24}}>
               {[
                 ["10/day","free AI extractions"],
                 ["$0","to start"],
@@ -883,7 +1057,7 @@ function CTABanner(){
 function Footer(){
   return(
     <footer style={{borderTop:"1px solid var(--br)",padding:"48px 0 32px",background:"var(--bg1)"}}>
-      <div style={{maxWidth:1140,margin:"0 auto",padding:"0 24px"}}>
+      <div className="lp-wrap">
         <div className="fg" style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr 1fr",gap:44,marginBottom:40}}>
           <div>
             <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}>
@@ -911,7 +1085,7 @@ function Footer(){
             </div>
           ))}
         </div>
-        <div style={{borderTop:"1px solid var(--br)",paddingTop:20,display:"flex",justifyContent:"space-between",flexWrap:"wrap",gap:10}}>
+        <div className="footer-bottom" style={{borderTop:"1px solid var(--br)",paddingTop:20,display:"flex",justifyContent:"space-between",flexWrap:"wrap",gap:10}}>
           <span style={{fontSize:12,color:"var(--tx3)"}}>© 2026 Kanbi. All rights reserved.</span>
           <a href="/pricing" style={{fontSize:12,color:"var(--tx3)",transition:"color .15s"}} onMouseOver={e=>(e.currentTarget.style.color="var(--ac)")} onMouseOut={e=>(e.currentTarget.style.color="var(--tx3)")}>Pricing</a>
         </div>
