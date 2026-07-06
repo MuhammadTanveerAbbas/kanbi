@@ -3,6 +3,7 @@
   "version": "3.1.0",
   "description": "AI-powered Kanban task management SaaS kanbi transforms notes into organized boards in seconds with workload analysis, burnout prevention, and integrations.",
   "private": true,
+  "packageManager": "pnpm@10.6.5",
   "pnpm": {
     "onlyBuiltDependencies": [
       "core-js",
@@ -20,7 +21,8 @@
     "test:watch": "vitest --watch",
     "test:coverage": "vitest --coverage",
     "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui"
+    "test:e2e:ui": "playwright test --ui",
+    "verify:lockfile": "pnpm install --frozen-lockfile"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.12",
