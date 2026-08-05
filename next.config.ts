@@ -51,6 +51,7 @@ const nextConfig: NextConfig = {
   turbopack: {
     resolveAlias: {},
   },
+  allowedDevOrigins: ['192.168.100.5'],
   experimental: {},
   webpack: (config, { isServer }) => {
     config.output = {

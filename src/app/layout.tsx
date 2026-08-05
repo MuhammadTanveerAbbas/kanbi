@@ -1,15 +1,15 @@
-import { ErrorBoundaryWrapper } from "@/components/error-boundary-wrapper";
 import LayoutWrapper from "@/components/layout-wrapper";
 import { Providers } from "@/components/providers";
 import { cn } from "@/lib/utils";
 import type { Metadata } from "next";
-import { Geist } from "next/font/google";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 
-const geist = Geist({
+const plusJakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
-  variable: "--font-geist",
+  variable: "--font-plus-jakarta",
   display: "swap",
+  weight: ["300", "400", "500", "600", "700", "800"],
 });
 
 export const metadata: Metadata = {
@@ -76,14 +76,12 @@ export default function RootLayout({
   return (
     <html lang="en" className="scroll-smooth" data-scroll-behavior="smooth" suppressHydrationWarning>
       <body
-        className={cn("antialiased font-sans", geist.variable)}
+        className={cn("antialiased font-sans", plusJakarta.variable)}
         suppressHydrationWarning
       >
-        <ErrorBoundaryWrapper>
-          <Providers>
-            <LayoutWrapper>{children}</LayoutWrapper>
-          </Providers>
-        </ErrorBoundaryWrapper>
+        <Providers>
+          <LayoutWrapper>{children}</LayoutWrapper>
+        </Providers>
       </body>
     </html>
   );

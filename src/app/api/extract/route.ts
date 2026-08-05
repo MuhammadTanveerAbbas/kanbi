@@ -2,6 +2,7 @@ import Groq from 'groq-sdk'
 import { createClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/logging/logger'
 import { GROQ_MODEL, GROQ_API_KEY } from '@/lib/constants'
+import { extractJsonArray } from '@/lib/ai-service'
 import { usageService } from '@/lib/services/usage-service'
 import { rateLimit, rateLimitResponse } from '@/lib/rate-limiter'
 import { AuthError, RateLimitError, ExternalServiceError } from '@/lib/errors/AppError'
@@ -74,13 +75,18 @@ Example output:
       ],
     })
 
-    const raw = completion.choices[0]?.message?.content ?? '[]'
-    let tasks: unknown[]
-    try {
-      tasks = JSON.parse(raw.replace(/```json|```/g, '').trim()) as unknown[]
-      if (!Array.isArray(tasks)) tasks = []
-    } catch {
-      tasks = []
+    const raw = completion.choices[0]?.message?.content ?? ''
+    let tasks: unknown[] = extractJsonArray(raw)
+    if (tasks.length === 0) {
+      const obj = raw.match(/\{[\s\S]*\}/)
+      if (obj) {
+        try {
+          const parsed = JSON.parse(obj[0])
+          if (Array.isArray(parsed.tasks)) tasks = parsed.tasks
+        } catch {
+          tasks = []
+        }
+      }
     }
 
     await usageService.incrementAIUsage(user.id).catch((error) => {

@@ -14,6 +14,50 @@ export interface GenerationOptions {
   model?: AIModel;
 }
 
+/**
+ * Robustly extract a JSON array from raw LLM output.
+ * Strips markdown fences and reasoning tags (`<think>`, `thinking` blocks)
+ * that some models emit around the payload, then finds the outermost array.
+ */
+export function extractJsonArray(raw: string): unknown[] {
+  if (!raw) return [];
+  let text = raw.trim();
+  // Strip fenced blocks
+  text = text.replace(/```(?:json)?/gi, '').trim();
+  // Strip Groq reasoning/thinking blocks
+  text = text.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+  text = text.replace(/^\s*thinking\s*:[\s\S]*?\n/im, '').trim();
+
+  const start = text.indexOf('[');
+  if (start === -1) return [];
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  for (let i = start; i < text.length; i++) {
+    const ch = text[i];
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (ch === '\\') escaped = true;
+      else if (ch === '"') inString = false;
+      continue;
+    }
+    if (ch === '"') inString = true;
+    else if (ch === '[') depth++;
+    else if (ch === ']') {
+      depth--;
+      if (depth === 0) {
+        try {
+          const parsed = JSON.parse(text.slice(start, i + 1));
+          return Array.isArray(parsed) ? parsed : [];
+        } catch {
+          return [];
+        }
+      }
+    }
+  }
+  return [];
+}
+
 /** Unified AI service backed by Groq (llama-3.3-70b-versatile). */
 export class AIService {
   /**
@@ -133,10 +177,19 @@ Return ONLY valid JSON array, no markdown.`;
       });
 
       const content = completion.choices[0]?.message?.content || '[]';
-      const jsonMatch = content.match(/\[[\s\S]*\]/);
-      const raw = jsonMatch ? jsonMatch[0] : content;
-      const parsed = JSON.parse(raw);
-      const rawTasks = Array.isArray(parsed) ? parsed : (parsed.tasks || []);
+      const rawTasks = extractJsonArray(content);
+      if (rawTasks.length === 0) {
+        // Some models wrap the array in an object: {"tasks": [...]}
+        const obj = content.match(/\{[\s\S]*\}/);
+        if (obj) {
+          try {
+            const parsed = JSON.parse(obj[0]);
+            if (Array.isArray(parsed.tasks)) {
+              rawTasks.push(...parsed.tasks);
+            }
+          } catch { /* ignore */ }
+        }
+      }
       const tokens = (completion as any).usage?.total_tokens ?? 0;
 
       const tasks = this.normalizeExtractedTasks(rawTasks);
@@ -305,9 +358,7 @@ Return ONLY valid JSON array, no markdown.`;
       });
 
       const content = completion.choices[0]?.message?.content || '[]';
-      const jsonMatch = content.match(/\[[\s\S]*\]/);
-      const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : content);
-      const tasks = Array.isArray(parsed) ? parsed : (parsed.tasks || []);
+      const tasks = extractJsonArray(content);
       return this.normalizeTaskArray(tasks);
     } catch (error) {
       logger.error('Email task parsing error:', { error });
@@ -335,9 +386,7 @@ Return ONLY valid JSON array, no markdown.`;
       });
 
       const content = completion.choices[0]?.message?.content || '[]';
-      const jsonMatch = content.match(/\[[\s\S]*\]/);
-      const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : content);
-      const tasks = Array.isArray(parsed) ? parsed : (parsed.tasks || []);
+      const tasks = extractJsonArray(content);
       return this.normalizeTaskArray(tasks);
     } catch (error) {
       logger.error('Web page task parsing error:', { error });

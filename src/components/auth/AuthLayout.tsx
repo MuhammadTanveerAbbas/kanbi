@@ -6,7 +6,7 @@ const DARK_VARS = `--bg:#07070b;--bg1:#0d0d13;--bg2:#111119;--bg3:#16161f;--br:r
 const LIGHT_VARS = `--bg:#f2f3fb;--bg1:#ffffff;--bg2:#eaebf8;--bg3:#e0e2f5;--br:rgba(0,0,0,0.07);--brh:rgba(0,0,0,0.14);--tx:#0a0a18;--tx2:#4a4a72;--tx3:#9898b8;--inp:#eaebf8;--card:#ffffff;`;
 
 const AUTH_CSS = (theme: "dark" | "light") => `
-  @import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; }
   :root {
@@ -15,7 +15,7 @@ const AUTH_CSS = (theme: "dark" | "light") => `
     --gr:#22c55e; --rd:#ef4444; --am:#f59e0b; --pu:#a78bfa;
   }
   body {
-    font-family: 'Geist', -apple-system, sans-serif;
+    font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
     background: var(--bg); color: var(--tx);
     -webkit-font-smoothing: antialiased;
     min-height: 100vh;

@@ -37,7 +37,7 @@ export default function NotFound() {
       alignItems: "center",
       justifyContent: "center",
       padding: "20px",
-      fontFamily: "Geist, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+      fontFamily: "Plus Jakarta Sans, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
       position: "relative",
       overflow: "hidden",
     }}>
@@ -166,7 +166,7 @@ export default function NotFound() {
           color: "#e0e0ea",
           marginBottom: "12px",
           letterSpacing: "-0.035em",
-          fontFamily: "Geist, -apple-system, sans-serif",
+          fontFamily: "Plus Jakarta Sans, -apple-system, sans-serif",
         }}>
           Page Not Found
         </h1>
