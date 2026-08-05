@@ -259,35 +259,15 @@ function GlobalStyles({ theme }: { theme: "dark" | "light" }) {
       @media(max-width:1024px) {
         .xl-hide { display:none !important }
         .main-grid-3 { grid-template-columns:1fr 1fr !important }
-        .sidebar {
-          display:flex !important;
-          transform:translateX(-100%);
-          transition:transform .24s cubic-bezier(.22,1,.36,1);
-          z-index:120;
-          box-shadow:none;
-        }
-        .sidebar-open .sidebar { transform:translateX(0); box-shadow:12px 0 48px rgba(0,0,0,.35) }
-        .sidebar-backdrop {
-          position:fixed; inset:0; z-index:110;
-          background:rgba(0,0,0,.52);
-          backdrop-filter:blur(4px);
-          -webkit-backdrop-filter:blur(4px);
-          animation:fadeIn .2s ease;
-        }
-        .mob-menu-btn {
-          display:flex !important;
-          width:34px; height:34px; border-radius:9px;
-          border:1px solid var(--br); background:var(--bg2);
-          color:var(--tx2); align-items:center; justify-content:center;
-          flex-shrink:0; transition:background .15s,color .15s;
-        }
-        .mob-menu-btn:hover { background:var(--bg3); color:var(--tx) }
+        .sidebar { display:none !important }
+        .mob-menu-btn { display:none !important }
         .main-wrap { margin-left:0 !important; overflow:auto !important }
         .bottom-nav { display:flex !important; height:64px; align-items:stretch }
         .root-layout { height:auto !important; min-height:100vh; overflow:visible !important }
         body { overflow:auto; height:auto }
         .page-pad { padding-bottom:80px !important }
-        .chat-page { height:calc(100vh - 56px - 64px) !important; min-height:0 !important }
+        .chat-page { height:calc(100vh - 64px) !important; min-height:0 !important }
+        .chat-btn-label { display:none !important }
       }
       @media(max-width:768px) {
         .topbar-live { display:none !important }
@@ -306,7 +286,13 @@ function GlobalStyles({ theme }: { theme: "dark" | "light" }) {
         .board-kanban-actions { width:100% !important; justify-content:space-between !important }
         .board-kanban-pad { padding:14px 14px !important }
         .chat-sidebar { display:none !important }
-        .chat-page { height:calc(100vh - 56px - 64px) !important; min-height:0 !important }
+        .chat-page { height:calc(100vh - 64px) !important; min-height:0 !important }
+        .chat-header { height:46px !important; padding:0 12px !important }
+        .chat-header-title { font-size:13px !important }
+        .chat-header-sub { display:none !important }
+        .chat-messages { padding:12px 14px !important }
+        .chat-input-bar { padding:10px 14px !important }
+        .chat-input-hint { display:none !important }
         .settings-grid { gap:10px !important }
         .settings-tabs { grid-template-columns:repeat(3,1fr) !important; gap:6px !important }
         .settings-tabs button { font-size:10.5px !important; padding:10px 6px !important }
@@ -1488,7 +1474,7 @@ function PageChat() {
       {/* Main chat */}
       <div style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
         {/* Unified chat header (replaces global Topbar on this page) */}
-        <div style={{
+        <div className="chat-header" style={{
           height:56, borderBottom:"1px solid var(--br)",
           background:"var(--bg1)", display:"flex", alignItems:"center",
           justifyContent:"space-between", padding:"0 20px", flexShrink:0,
@@ -1504,13 +1490,13 @@ function PageChat() {
               <ChatBotIcon size={16} color="#fff"/>
             </div>
             <div style={{ minWidth:0 }}>
-              <h2 style={{
+              <h2 className="chat-header-title" style={{
                 fontSize:15, fontWeight:700, color:"var(--tx)",
                 fontFamily:"var(--font-display)", lineHeight:1.2,
                 letterSpacing:"-0.03em", whiteSpace:"nowrap",
                 overflow:"hidden", textOverflow:"ellipsis",
               }}>AI Chat</h2>
-              <p style={{
+              <p className="chat-header-sub" style={{
                 fontSize:11, color:"var(--tx3)", lineHeight:1, marginTop:2,
                 whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis",
               }}>Has context from your board ({tasks.length} tasks)</p>
@@ -1525,7 +1511,7 @@ function PageChat() {
               {clearing
                 ? <div className="spin" style={{ width:10, height:10, borderRadius:"50%", border:"2px solid var(--br)", borderTopColor:"var(--ac)" }}/>
                 : <Icons.Plus size={11}/>}
-              New Chat
+              <span className="chat-btn-label">New Chat</span>
             </button>
             <button type="button" onClick={() => setShowMiniBoard(v => !v)} className="ghost"
               style={{
@@ -1537,19 +1523,14 @@ function PageChat() {
                 fontWeight: showMiniBoard ? 600 : 500,
               }}>
               <Icons.Board size={11}/>
-              {showMiniBoard ? "Hide Board" : "Show Board"}
+              <span className="chat-btn-label">{showMiniBoard ? "Hide Board" : "Show Board"}</span>
             </button>
-            <div style={{ display:"flex", alignItems:"center", gap:6, padding:"5px 11px",
-              borderRadius:99, background:"var(--as)", border:"1px solid var(--ag)" }}>
-              <div className="pulse" style={{ width:5, height:5, borderRadius:"50%", background:"var(--gr)" }}/>
-              <span style={{ fontSize:10.5, color:"var(--ac)", fontWeight:600, fontFamily:"var(--font-mono)" }}>Live</span>
-            </div>
             <Avt name={user?.full_name ?? "User"} size={32} avatarUrl={user?.avatar_url}/>
           </div>
         </div>
 
         {/* Messages area */}
-        <div style={{ flex:1, overflowY:"auto", padding:"20px 28px" }}>
+        <div className="chat-messages" style={{ flex:1, overflowY:"auto", padding:"20px 28px" }}>
           {chatMessages.length === 0 ? (
             <div className="fade-in" style={{ display:"flex", flexDirection:"column", alignItems:"center",
               justifyContent:"center", minHeight:"100%", padding:"24px", maxWidth:"var(--chat-max)", margin:"0 auto", width:"100%" }}>
@@ -1603,7 +1584,7 @@ function PageChat() {
         </div>
 
         {/* Input bar */}
-        <div style={{ padding:"14px 28px", borderTop:"1px solid var(--br)", flexShrink:0,
+        <div className="chat-input-bar" style={{ padding:"14px 28px", borderTop:"1px solid var(--br)", flexShrink:0,
           background:"linear-gradient(180deg, transparent, rgba(99,102,241,0.03))" }}>
           <div style={{ display:"flex", gap:9, alignItems:"flex-end", maxWidth:"var(--chat-max)", margin:"0 auto", width:"100%" }}>
             <textarea
@@ -1622,7 +1603,7 @@ function PageChat() {
                 border:"2px solid rgba(255,255,255,.3)", borderTopColor:"#fff" }}/> : <Icons.Send size={14}/>}
             </button>
           </div>
-          <p style={{ fontSize:10, color:"var(--tx3)", marginTop:6, textAlign:"center" }}>
+          <p className="chat-input-hint" style={{ fontSize:10, color:"var(--tx3)", marginTop:6, textAlign:"center" }}>
             Shift+Enter for new line · Enter to send
           </p>
         </div>
@@ -2769,13 +2750,8 @@ function Topbar({ page, onMenuOpen }: { page: Page; onMenuOpen?: () => void }) {
         </div>
       </div>
 
-      {/* Right: live badge + avatar */}
+      {/* Right: avatar */}
       <div style={{ display:"flex", alignItems:"center", gap:10, flexShrink:0 }}>
-        <div className="topbar-live" style={{ display:"flex", alignItems:"center", gap:6, padding:"5px 11px",
-          borderRadius:99, background:"var(--as)", border:"1px solid var(--ag)" }}>
-          <div className="pulse" style={{ width:5, height:5, borderRadius:"50%", background:"var(--gr)" }}/>
-          <span style={{ fontSize:10.5, color:"var(--ac)", fontWeight:600, fontFamily:"var(--font-mono)" }}>Live</span>
-        </div>
         <Avt name={user?.full_name ?? "User"} size={32} avatarUrl={user?.avatar_url}/>
       </div>
     </div>
@@ -2887,7 +2863,7 @@ export default function Dashboard() {
   return (
     <AppCtx.Provider value={appState}>
       <GlobalStyles theme={theme}/>
-      <div className={`root-layout${mobSidebar ? " sidebar-open" : ""}`} style={{ display:"flex", height:"100vh", background:"var(--bg)", overflow:"hidden" }}>
+      <div className={`root-layout${mobSidebar ? " sidebar-open" : ""}${page === "chat" ? " chat-open" : ""}`} style={{ display:"flex", height:"100vh", background:"var(--bg)", overflow:"hidden" }}>
         {mobSidebar && <div className="sidebar-backdrop" onClick={() => setMobSidebar(false)} aria-hidden="true"/>}
         <Sidebar page={page} setPage={setPage} theme={theme} toggleTheme={toggleTheme} onNavigate={() => setMobSidebar(false)}/>
         <div className="main-wrap" style={{ marginLeft:"var(--sidebar-w)", flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
