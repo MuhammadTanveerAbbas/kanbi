@@ -1,9 +1,7 @@
-import Groq from 'groq-sdk';
 import { truncateChatResponse } from '@/lib/chat-text';
-import { GROQ_API_KEY, GROQ_MODEL } from '@/lib/constants';
+import { GROQ_API_KEY } from '@/lib/constants';
+import { createChatCompletion } from '@/lib/ai/groq-client';
 import { logger } from '@/lib/logging/logger';
-
-const groq = GROQ_API_KEY ? new Groq({ apiKey: GROQ_API_KEY }) : null;
 
 export interface ChatMessage {
   role: 'user' | 'assistant';
@@ -33,7 +31,7 @@ export class ChatAssistant {
     chatHistory: ChatMessage[] = []
   ): Promise<string> {
     try {
-      if (!groq) throw new Error('Groq API key not configured');
+      if (!GROQ_API_KEY) throw new Error('Groq API key not configured');
 
       const systemPrompt = this.buildSystemPrompt(context);
       const historyMessages = chatHistory.slice(-6).map(msg => ({
@@ -41,8 +39,7 @@ export class ChatAssistant {
         content: msg.message,
       }));
 
-      const completion = await groq.chat.completions.create({
-        model: GROQ_MODEL,
+      const completion = await createChatCompletion({
         temperature: 0.35,
         max_tokens: 120,
         messages: [

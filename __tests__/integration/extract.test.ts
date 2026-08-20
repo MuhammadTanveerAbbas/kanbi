@@ -18,6 +18,11 @@ vi.mock('groq-sdk', () => ({
         }),
       },
     },
+    models: {
+      list: vi.fn().mockResolvedValue({
+        data: [{ id: 'llama-3.3-70b-versatile', active: true }],
+      }),
+    },
   })),
 }))
 

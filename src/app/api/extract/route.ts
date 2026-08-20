@@ -1,8 +1,7 @@
-import Groq from 'groq-sdk'
 import { createClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/logging/logger'
-import { GROQ_MODEL, GROQ_API_KEY } from '@/lib/constants'
 import { extractJsonArray } from '@/lib/ai-service'
+import { createChatCompletion } from '@/lib/ai/groq-client'
 import { usageService } from '@/lib/services/usage-service'
 import { rateLimit, rateLimitResponse } from '@/lib/rate-limiter'
 import { AuthError, RateLimitError, ExternalServiceError } from '@/lib/errors/AppError'
@@ -10,10 +9,6 @@ import { sanitizeInput } from '@/lib/security'
 import { getOrCreateDefaultBoard } from '@/lib/services/default-board'
 import DOMPurify from 'isomorphic-dompurify'
 import { NextRequest, NextResponse } from 'next/server'
-
-function getGroq() {
-  return new Groq({ apiKey: GROQ_API_KEY })
-}
 
 const VALID_PRIORITIES = new Set(['urgent', 'high', 'medium', 'low'])
 
@@ -48,8 +43,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       return NextResponse.json({ error: 'No usable text provided' }, { status: 400 })
     }
 
-    const completion = await getGroq().chat.completions.create({
-      model: GROQ_MODEL,
+    const completion = await createChatCompletion({
       max_tokens: 1200,
       temperature: 0.2,
       messages: [

@@ -2,9 +2,17 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── Single global font: Plus Jakarta Sans ── */
+/* ── Font stack ── */
 html {
-  font-family: var(--font-plus-jakarta), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: var(--font-geist), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-sora), sans-serif;
+}
+
+code, pre, kbd, samp {
+  font-family: var(--font-geist-mono), monospace;
 }
 
 /* ── Global responsive base ── */

@@ -121,6 +121,9 @@ SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 # Groq AI  Required
 GROQ_API_KEY=your_groq_api_key
 
+# Preferred Groq model (optional, defaults to llama-3.3-70b-versatile)
+GROQ_MODEL=llama-3.3-70b-versatile
+
 # Stripe  Required for payments
 STRIPE_SECRET_KEY=sk_test_your_stripe_secret_key
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_your_stripe_publishable_key
@@ -192,6 +195,17 @@ kanbi/
 | `pnpm test:coverage` | Generate coverage report     |
 | `pnpm test:e2e`      | Run Playwright E2E tests     |
 | `pnpm test:e2e:ui`   | Run Playwright tests with UI |
+
+---
+
+## 🛡️ Self-Healing Reliability
+
+Kanbi runs a small server-side reliability layer (`src/lib/ai/groq-client.ts`) over Groq:
+
+- **Model discovery & fallback** – Available Groq models are fetched and cached for 1 hour. The preferred model (default `llama-3.3-70b-versatile`, override with `GROQ_MODEL`) is used when available; if it is rejected or removed, the model list is refreshed and a compatible model is picked automatically.
+- **Bounded retries** – HTTP 429s respect `Retry-After` when provided, otherwise use exponential backoff with jitter (max 3 retries). Timeouts, 5xx, and network errors are retried up to 2 times. Retries never run indefinitely.
+- **Graceful degradation** – A Groq failure never crashes the app: extraction falls back to bullet-point parsing, chat falls back to a rule-based response, and API routes return controlled errors that the UI already handles.
+- **Supabase health check** – `GET /api/health` reports Supabase connectivity via a lightweight read-only query (no writes, no extra tables, no monitoring infra).
 
 ---
 

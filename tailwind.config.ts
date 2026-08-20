@@ -31,8 +31,8 @@ const config = {
     extend: {
       fontFamily: {
         sans: ["var(--font-geist)", "-apple-system", "sans-serif"],
-        headline: ["var(--font-geist)", "sans-serif"],
-        mono: ["var(--font-geist)", "monospace"],
+        headline: ["var(--font-sora)", "sans-serif"],
+        mono: ["var(--font-geist-mono)", "monospace"],
       },
       colors: {
         border: "hsl(var(--border))",

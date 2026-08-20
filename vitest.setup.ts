@@ -51,6 +51,9 @@ vi.mock('groq-sdk', () => ({
         create: vi.fn(),
       },
     },
+    models: {
+      list: vi.fn(),
+    },
   })),
 }))
 

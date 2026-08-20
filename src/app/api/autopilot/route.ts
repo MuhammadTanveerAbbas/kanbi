@@ -1,15 +1,10 @@
-import Groq from 'groq-sdk'
 import { createClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/logging/logger'
-import { GROQ_MODEL, GROQ_API_KEY } from '@/lib/constants'
+import { createChatCompletion } from '@/lib/ai/groq-client'
 import { rateLimit, rateLimitResponse } from '@/lib/rate-limiter'
 import { AuthError } from '@/lib/errors/AppError'
 import { sanitizeInput } from '@/lib/security'
 import { NextRequest, NextResponse } from 'next/server'
-
-function getGroq() {
-  return new Groq({ apiKey: GROQ_API_KEY })
-}
 
 interface AutoTask {
   status: 'todo' | 'wip' | 'done'
@@ -40,8 +35,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     logger.info('Autopilot request', { userId: user.id, requestId })
 
     const pending = body.tasks.filter((task) => task.status !== 'done')
-    const completion = await getGroq().chat.completions.create({
-      model: GROQ_MODEL,
+    const completion = await createChatCompletion({
       max_tokens: 800,
       messages: [
         {

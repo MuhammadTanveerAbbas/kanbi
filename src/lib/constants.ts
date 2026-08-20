@@ -29,7 +29,7 @@ export const FETCH_TIMEOUT = 15000; // ms
 export const DEFAULT_PAGE_SIZE = 20;
 
 // AI Models
-export const GROQ_MODEL = 'llama-3.3-70b-versatile';
+export const GROQ_MODEL = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
 export const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
 
 // Usage limits

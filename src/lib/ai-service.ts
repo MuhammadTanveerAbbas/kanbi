@@ -1,9 +1,7 @@
-import Groq from 'groq-sdk';
 import { logger } from '@/lib/logging/logger';
 import { ExtractedTask, TaskExtractionResult, TaskDuplicate, ExtractionMetadata } from './types';
 import { GROQ_API_KEY, GROQ_MODEL } from './constants';
-
-const groq = GROQ_API_KEY ? new Groq({ apiKey: GROQ_API_KEY }) : null;
+import { createChatCompletion } from './ai/groq-client';
 
 export type AIModel = 'groq';
 
@@ -72,7 +70,7 @@ export class AIService {
     const { tone = 'professional', length = 'medium', format = 'text' } = options;
 
     try {
-      if (!groq) {
+      if (!GROQ_API_KEY) {
         throw new Error('Groq API key not configured');
       }
       return await this.generateWithGroq(input, tone, length, format);
@@ -88,7 +86,7 @@ export class AIService {
     length: string,
     format: string
   ): Promise<string> {
-    if (!groq) {
+    if (!GROQ_API_KEY) {
       throw new Error('Groq API key not configured');
     }
 
@@ -103,7 +101,7 @@ export class AIService {
 
     const prompt = `You are a helpful AI assistant. Generate content based on the following input.\n\nInput: ${input}\n\nRequirements:\n- Tone: ${tone}\n- Length: ${lengthWords} words\n- Format: ${formatInstruction}\n\nGenerate the content now:`;
 
-    const completion = await groq.chat.completions.create({
+    const completion = await createChatCompletion({
       messages: [
         {
           role: 'system',
@@ -114,7 +112,6 @@ export class AIService {
           content: prompt,
         },
       ],
-      model: GROQ_MODEL,
       temperature: 0.7,
       max_tokens: length === 'short' ? 200 : length === 'medium' ? 500 : 1000,
     });
@@ -148,7 +145,7 @@ export class AIService {
       throw new Error('Notes are required');
     }
 
-    if (!groq) {
+    if (!GROQ_API_KEY) {
       throw new Error('Groq API key not configured');
     }
 
@@ -166,12 +163,11 @@ export class AIService {
 Return ONLY valid JSON array, no markdown.`;
 
     try {
-      const completion = await groq.chat.completions.create({
+      const completion = await createChatCompletion({
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: notes.trim() },
         ],
-        model: GROQ_MODEL,
         temperature: 0.3,
         max_tokens: 2048,
       });
@@ -198,7 +194,7 @@ Return ONLY valid JSON array, no markdown.`;
       const processingTime = Date.now() - startTime;
 
       const metadata: ExtractionMetadata = {
-        model: GROQ_MODEL,
+        model: completion.model || GROQ_MODEL,
         tokens,
         processingTime,
         fallbackUsed: false,
@@ -344,15 +340,14 @@ Return ONLY valid JSON array, no markdown.`;
     const systemPrompt = `You are an expert assistant for task management. Extract every action item from the following email. For each task identify: the task description (make it specific and actionable), who owns it (name if mentioned, otherwise 'Me'), the deadline (extract from context like 'by Friday', 'end of month', 'ASAP'   convert to actual dates based on today's date), and priority (urgent if deadline <3 days, high if deadline <1 week, medium if <2 weeks, low otherwise). Return ONLY a valid JSON array, no markdown, no explanation.${emailPromptAddition}`;
 
     if (!emailContent?.trim()) throw new Error('Email content is required');
-    if (!groq) throw new Error('Groq API key not configured');
+    if (!GROQ_API_KEY) throw new Error('Groq API key not configured');
 
     try {
-      const completion = await groq.chat.completions.create({
+      const completion = await createChatCompletion({
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: emailContent.trim() },
         ],
-        model: GROQ_MODEL,
         temperature: 0.3,
         max_tokens: 2048,
       });
@@ -372,15 +367,14 @@ Return ONLY valid JSON array, no markdown.`;
     const systemPrompt = `You are an expert assistant for task management. Extract every action item from the following content. For each task identify: the task description (make it specific and actionable), who owns it (name if mentioned, otherwise 'Me'), the deadline (extract from context like 'by Friday', 'end of month', 'ASAP'   convert to actual dates based on today's date), and priority (urgent if deadline <3 days, high if deadline <1 week, medium if <2 weeks, low otherwise). Return ONLY a valid JSON array, no markdown, no explanation.${urlPromptAddition}`;
 
     if (!webContent?.trim()) throw new Error('Web content is required');
-    if (!groq) throw new Error('Groq API key not configured');
+    if (!GROQ_API_KEY) throw new Error('Groq API key not configured');
 
     try {
-      const completion = await groq.chat.completions.create({
+      const completion = await createChatCompletion({
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: webContent.trim() },
         ],
-        model: GROQ_MODEL,
         temperature: 0.3,
         max_tokens: 2048,
       });
@@ -397,7 +391,7 @@ Return ONLY valid JSON array, no markdown.`;
   /** Returns availability status for each configured AI provider. */
   static isAvailable(): { groq: boolean } {
     return {
-      groq: !!groq,
+      groq: !!GROQ_API_KEY,
     };
   }
 }
