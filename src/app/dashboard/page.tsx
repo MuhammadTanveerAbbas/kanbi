@@ -347,14 +347,14 @@ function GlobalStyles({ theme }: { theme: "dark" | "light" }) {
         border-radius: var(--radius-md);
         border: 1px solid var(--br);
         background: linear-gradient(180deg, rgba(255,255,255,0.03), transparent 30%), var(--bg1);
-        padding: 15px 18px;
+        padding: 10px 14px;
         box-shadow: 0 14px 40px rgba(0,0,0,0.10);
       }
       .quick-ai-header {
         display: flex;
         align-items: center;
         gap: 9px;
-        margin-bottom: 11px;
+        margin-bottom: 8px;
       }
       .quick-ai-icon {
         width: 28px;
@@ -568,21 +568,21 @@ function PageOverview() {
     { label:"Boards Today",  value:`${boardsToday}/${boardsLimit}`, sub:`${boardsLimit - boardsToday} remaining`, icon:<Icons.Board size={13}/>, prog: boardsToday / boardsLimit * 100 },
     { label:"AI This Month", value:`${aiUsesMonth}/${aiLimit}`, sub:`${aiLimit - aiUsesMonth} remaining`, icon:<Icons.Autopilot size={13}/>, color:"var(--pu)" },
     { label:"Tasks Total",   value:String(total), sub:`${done} done · ${wip} in progress`, icon:<Icons.Target size={13}/>, color: done === total && total > 0 ? "var(--gr)" : undefined },
-    { label:"Plan",          value: user?.plan === "pro" ? "Pro" : "Free", sub: user?.plan === "pro" ? "All features unlocked" : "$9/mo → Pro", icon:<Icons.Crown size={13}/>, color:"var(--am)" },
+    { label:"Plan",          value: user?.plan === "pro" ? "Pro" : "Free", sub: user?.plan === "pro" ? "All features unlocked" : "$9/mo ➜ Pro", icon:<Icons.Crown size={13}/>, color:"var(--am)" },
   ];
 
   return (
-    <div className="fade-up page-pad" style={{ padding:"28px 36px", overflowY:"auto", height:"100%",
-      display:"flex", flexDirection:"column", gap:22, maxWidth:"calc(var(--content-max) + 80px)", margin:"0 auto", width:"100%" }}>
+    <div className="fade-up page-pad" style={{ padding:"14px 20px", overflowY:"auto", height:"100%",
+      display:"flex", flexDirection:"column", gap:12 }}>
 
       {/* Header */}
-      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", flexWrap:"wrap", gap:12 }}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", flexWrap:"wrap", gap:8 }}>
         <div>
           {isLoading
-            ? <><Skeleton w={220} h={24} style={{ marginBottom:8 }}/><Skeleton w={160} h={14}/></>
+            ? <><Skeleton w={220} h={24} style={{ marginBottom:6 }}/><Skeleton w={160} h={14}/></>
             : <>
-                <h1 style={{ fontSize:22, fontWeight:800, letterSpacing:"-0.035em", color:"var(--tx)",
-                  marginBottom:4, fontFamily:"var(--font-display)" }}>
+                <h1 style={{ fontSize:20, fontWeight:800, letterSpacing:"-0.035em", color:"var(--tx)",
+                  marginBottom:2, fontFamily:"var(--font-display)" }}>
                   {greeting}, {displayName} 👋
                 </h1>
                 <p style={{ fontSize:13, color:"var(--tx2)" }}>Here's your workload snapshot</p>
@@ -601,7 +601,7 @@ function PageOverview() {
           <div className="quick-ai-icon"><Icons.Zap size={13}/></div>
           <span className="quick-ai-title">Quick AI Extract</span>
           <span className="quick-ai-sub">kanbi paste any text, AI extracts tasks instantly</span>
-          <span className="quick-ai-badge">→ Board</span>
+          <span className="quick-ai-badge">➜ Board</span>
         </div>
         <div className="quick-ai-row">
           <input
@@ -627,17 +627,17 @@ function PageOverview() {
       </div>
 
       {/* Quick Actions */}
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:12 }}>
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:10 }}>
         {[
-          { label:"New Task", icon:<Icons.Plus size={16}/>, action:"board", color:"var(--ac)" },
-          { label:"View Board", icon:<Icons.Layers size={16}/>, action:"board", color:"var(--pu)" },
-          { label:"AI Chat", icon:<Icons.Zap size={16}/>, action:"chat", color:"var(--am)" },
-          { label:"Settings", icon:<Icons.Settings size={16}/>, action:"settings", color:"var(--gr)" },
+          { label:"New Task", icon:<Icons.Plus size={15}/>, action:"board", color:"var(--ac)" },
+          { label:"View Board", icon:<Icons.Layers size={15}/>, action:"board", color:"var(--pu)" },
+          { label:"AI Chat", icon:<Icons.Zap size={15}/>, action:"chat", color:"var(--am)" },
+          { label:"Settings", icon:<Icons.Settings size={15}/>, action:"settings", color:"var(--gr)" },
         ].map(a => (
           <button key={a.label}
             onClick={() => navigate(a.action as any)}
-            style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:10,
-              padding:"18px 16px", borderRadius:13, background:"var(--bg1)", border:"1px solid var(--br)",
+            style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:7,
+              padding:"12px 10px", borderRadius:11, background:"var(--bg1)", border:"1px solid var(--br)",
               color:"var(--tx2)", fontSize:12, fontWeight:600, cursor:"pointer",
               transition:"all .2s ease" }}
             onMouseOver={e => {
@@ -658,12 +658,11 @@ function PageOverview() {
         ))}
       </div>
 
-
-      <div className="main-grid-4 stagger" style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:12 }}>
+      <div className="main-grid-4 stagger" style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:10 }}>
         {statCards.map((s, i) => (
           <div key={s.label} className="card fade-up"
-            style={{ borderRadius:13, border:"1px solid var(--br)", background:"var(--bg1)", padding:"16px 18px" }}>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:11 }}>
+            style={{ borderRadius:12, border:"1px solid var(--br)", background:"var(--bg1)", padding:"12px 14px" }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:7 }}>
               <span style={{ fontSize:11, color:"var(--tx2)", fontWeight:600, letterSpacing:"0.01em" }}>{s.label}</span>
               <span style={{ color:"var(--tx3)" }}>{s.icon}</span>
             </div>
@@ -687,56 +686,61 @@ function PageOverview() {
       </div>
 
       {/* Health + Goals + Quick Stats */}
-      <div className="main-grid-3" style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:14 }}>
-        {/* Workload Health */}
-        <div className="card" style={{ borderRadius:13, border:"1px solid var(--br)", background:"var(--bg1)", padding:20 }}>
-          <h3 style={{ fontSize:13, fontWeight:600, color:"var(--tx2)", marginBottom:18,
-            fontFamily:"var(--font-display)", letterSpacing:"0.01em" }}>Workload Health</h3>
+      <div className="main-grid-3" style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10, alignItems:"stretch" }}>
 
-          <div style={{ display:"flex", alignItems:"center", gap:20, marginBottom:18 }}>
+        {/* Workload Health */}
+        <div className="card" style={{ borderRadius:12, border:"1px solid var(--br)", background:"var(--bg1)", padding:14, display:"flex", flexDirection:"column", gap:10 }}>
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+            <span style={{ fontSize:12, fontWeight:700, color:"var(--tx)", fontFamily:"var(--font-display)" }}>Workload Health</span>
+            <span style={{ fontSize:10, padding:"2px 8px", borderRadius:99, fontWeight:700, fontFamily:"var(--font-mono)",
+              background: healthScore >= 75 ? "rgba(16,185,129,0.1)" : healthScore >= 50 ? "rgba(245,158,11,0.1)" : "rgba(239,68,68,0.1)",
+              color: healthScore >= 75 ? "var(--gr)" : healthScore >= 50 ? "var(--am)" : "var(--rd)",
+              border: `1px solid ${healthScore >= 75 ? "rgba(16,185,129,0.25)" : healthScore >= 50 ? "rgba(245,158,11,0.25)" : "rgba(239,68,68,0.25)"}`,
+            }}>{healthScore >= 75 ? "Healthy" : healthScore >= 50 ? "Moderate" : "Overloaded"}</span>
+          </div>
+          <div style={{ display:"flex", alignItems:"center", gap:14 }}>
             <HealthRing score={healthScore}/>
-            <div style={{ flex:1, display:"flex", flexDirection:"column", gap:12 }}>
+            <div style={{ flex:1, display:"flex", flexDirection:"column", gap:6 }}>
               {[
-                { l:"Total",     v:String(total) },
-                { l:"Done",      v:String(done) },
-                { l:"In Progress", v:String(tasks.filter(t=>t.status==="wip").length) },
+                { l:"Total",       v:String(total),                                    c:"var(--tx)" },
+                { l:"Done",        v:String(done),                                     c:"var(--gr)" },
+                { l:"In Progress", v:String(tasks.filter(t=>t.status==="wip").length), c:"var(--am)" },
               ].map(s => (
-                <div key={s.l} style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                <div key={s.l} style={{ display:"flex", justifyContent:"space-between", alignItems:"center",
+                  padding:"4px 8px", borderRadius:7, background:"var(--bg2)" }}>
                   <span style={{ fontSize:11, color:"var(--tx3)" }}>{s.l}</span>
-                  <span style={{ fontSize:12, fontWeight:600, color:"var(--tx)", fontFamily:"var(--font-mono)" }}>{s.v}</span>
+                  <span style={{ fontSize:12, fontWeight:700, color:s.c, fontFamily:"var(--font-mono)" }}>{s.v}</span>
                 </div>
               ))}
             </div>
           </div>
-
-          <div style={{ height:1, background:"var(--br)", marginBottom:12 }}/>
-          <p style={{ fontSize:11, color:"var(--tx3)", lineHeight:1.6 }}>
-            {healthScore >= 75
-              ? "Workload is balanced."
-              : healthScore >= 50
-              ? "Some high-priority tasks need attention."
-              : "Overloaded  consider deferring low-priority tasks."}
-          </p>
+          <div style={{ padding:"8px 11px", borderRadius:8, marginTop:"auto",
+            background: healthScore >= 75 ? "rgba(16,185,129,0.06)" : "rgba(245,158,11,0.06)",
+            border: `1px solid ${healthScore >= 75 ? "rgba(16,185,129,0.15)" : "rgba(245,158,11,0.15)"}` }}>
+            <p style={{ fontSize:11, lineHeight:1.5, color: healthScore >= 75 ? "var(--gr)" : "var(--am)" }}>
+              {healthScore >= 75 ? "Workload is balanced and healthy." : healthScore >= 50 ? "Some high-priority tasks need attention." : "Overloaded — consider deferring tasks."}
+            </p>
+          </div>
         </div>
 
         {/* Goals */}
-        <div className="card" style={{ borderRadius:13, border:"1px solid var(--br)", background:"var(--bg1)", padding:20 }}>
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
-            <h3 style={{ fontSize:13, fontWeight:700, color:"var(--tx)", fontFamily:"var(--font-display)" }}>Your Goals</h3>
-            <button className="ghost" style={{ fontSize:11, color:"var(--tx2)", background:"transparent",
-              border:"none", padding:"3px 8px", borderRadius:6 }}>Edit</button>
+        <div className="card" style={{ borderRadius:12, border:"1px solid var(--br)", background:"var(--bg1)", padding:14, display:"flex", flexDirection:"column", gap:10 }}>
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+            <span style={{ fontSize:12, fontWeight:700, color:"var(--tx)", fontFamily:"var(--font-display)" }}>Your Goals</span>
+            <button className="ghost" style={{ fontSize:10.5, color:"var(--ac)", background:"var(--as)",
+              border:"1px solid var(--ag)", padding:"2px 9px", borderRadius:99, cursor:"pointer", fontWeight:600 }}>Edit</button>
           </div>
-          <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+          <div style={{ display:"flex", flexDirection:"column", gap:8, flex:1 }}>
             {[
-              { label:"Daily Tasks",       current:done,  goal:dailyGoal,  color:"var(--ac)" },
-              { label:"Weekly Tasks",      current:weeklyDone,    goal:weeklyGoal, color:"var(--gr)" },
-              { label:"Completion Rate",   current:total > 0 ? Math.round((done/total)*100) : 0, goal:100, color:"var(--pu)", suffix:"%" },
+              { label:"Daily Tasks",     current:done,       goal:dailyGoal,  color:"var(--ac)" },
+              { label:"Weekly Tasks",    current:weeklyDone, goal:weeklyGoal, color:"var(--gr)" },
+              { label:"Completion Rate", current:total > 0 ? Math.round((done/total)*100) : 0, goal:100, color:"var(--pu)", suffix:"%" },
             ].map(g => (
-              <div key={g.label}>
-                <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}>
-                  <span style={{ fontSize:12, color:"var(--tx2)" }}>{g.label}</span>
-                  <span style={{ fontSize:12, fontWeight:700, color:g.color, fontFamily:"var(--font-mono)" }}>
-                    {g.current}/{g.goal}{(g as any).suffix ?? ""}
+              <div key={g.label} style={{ padding:"9px 11px", borderRadius:9, background:"var(--bg2)", border:"1px solid var(--br)" }}>
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:7 }}>
+                  <span style={{ fontSize:11.5, color:"var(--tx2)" }}>{g.label}</span>
+                  <span style={{ fontSize:12, fontWeight:800, color:g.color, fontFamily:"var(--font-mono)" }}>
+                    {g.current}<span style={{ fontSize:10, fontWeight:500, color:"var(--tx3)" }}>/{g.goal}{(g as any).suffix ?? ""}</span>
                   </span>
                 </div>
                 <PBar value={(g.current / g.goal) * 100} color={g.color} h={5}/>
@@ -745,23 +749,30 @@ function PageOverview() {
           </div>
         </div>
 
-        {/* Priority Overview */}
-        <div className="card" style={{ borderRadius:13, border:"1px solid var(--br)", background:"var(--bg1)", padding:20 }}>
-          <h3 style={{ fontSize:13, fontWeight:700, color:"var(--tx)", fontFamily:"var(--font-display)",
-            marginBottom:16 }}>Priority Breakdown</h3>
-          <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+        {/* Priority Breakdown */}
+        <div className="card" style={{ borderRadius:12, border:"1px solid var(--br)", background:"var(--bg1)", padding:14, display:"flex", flexDirection:"column", gap:10 }}>
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+            <span style={{ fontSize:12, fontWeight:700, color:"var(--tx)", fontFamily:"var(--font-display)" }}>Priority Breakdown</span>
+            <span style={{ fontSize:10, color:"var(--tx3)", fontFamily:"var(--font-mono)" }}>{total} total</span>
+          </div>
+          <div style={{ display:"flex", flexDirection:"column", gap:7, flex:1 }}>
             {[
-              { label:"Urgent", count:urgentCount, color:"var(--ur)" },
-              { label:"High", count:highCount, color:"var(--rd)" },
-              { label:"Medium", count:mediumCount, color:"var(--am)" },
-              { label:"Low", count:lowCount, color:"var(--tx3)" },
+              { label:"Urgent", count:urgentCount, color:"var(--ur)", bg:"rgba(249,115,22,0.08)",  border:"rgba(249,115,22,0.2)"  },
+              { label:"High",   count:highCount,   color:"var(--rd)", bg:"rgba(239,68,68,0.08)",   border:"rgba(239,68,68,0.2)"   },
+              { label:"Medium", count:mediumCount, color:"var(--am)", bg:"rgba(245,158,11,0.08)",  border:"rgba(245,158,11,0.2)"  },
+              { label:"Low",    count:lowCount,    color:"var(--tx3)", bg:"var(--bg2)",            border:"var(--br)"             },
             ].map(p => (
-              <div key={p.label} style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+              <div key={p.label} style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
+                padding:"9px 11px", borderRadius:9, background:p.bg, border:`1px solid ${p.border}` }}>
                 <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                  <div style={{ width:6, height:6, borderRadius:"50%", background:p.color }}/>
-                  <span style={{ fontSize:12, color:"var(--tx2)" }}>{p.label}</span>
+                  <div style={{ width:7, height:7, borderRadius:"50%", background:p.color, flexShrink:0,
+                    boxShadow:`0 0 6px ${p.color}` }}/>
+                  <span style={{ fontSize:12, color:"var(--tx2)", fontWeight:500 }}>{p.label}</span>
                 </div>
-                <span style={{ fontSize:12, fontWeight:700, color:p.color, fontFamily:"var(--font-mono)" }}>{p.count}</span>
+                <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                  <span style={{ fontSize:13, fontWeight:800, color:p.color, fontFamily:"var(--font-mono)" }}>{p.count}</span>
+                  {total > 0 && <span style={{ fontSize:10, color:"var(--tx3)", fontFamily:"var(--font-mono)" }}>{Math.round((p.count/total)*100)}%</span>}
+                </div>
               </div>
             ))}
           </div>
@@ -772,7 +783,7 @@ function PageOverview() {
       {savedBoards.length > 0 && (
         <div className="fade-up" style={{ animationDelay: ".25s" }}>
           {/* Section header */}
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
             <div>
               <h2 style={{ fontSize:16, fontWeight:800, color:"var(--tx)", fontFamily:"var(--font-display)",
                 letterSpacing:"-0.03em", marginBottom:3 }}>Recent Boards</h2>
@@ -784,12 +795,12 @@ function PageOverview() {
                 fontWeight:600, transition:"all .2s" }}
               onMouseOver={e => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(99,102,241,0.18)"; }}
               onMouseOut={e  => { (e.currentTarget as HTMLButtonElement).style.background = "var(--as)"; }}>
-              View all <Icons.ArrowR size={12}/>
+              View all <Icons.ChevronRight size={12}/>
             </button>
           </div>
 
           {/* Board cards grid */}
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))", gap:14 }}
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))", gap:10 }}
             className="saved-grid">
             {savedBoards.slice(0, 4).map((b, idx) => {
               const ACCENTS = ["var(--ac)","var(--pu)","var(--gr)","var(--am)"] as const;
@@ -803,8 +814,8 @@ function PageOverview() {
                 <div key={b.id}
                   onClick={() => { setTasks(b.tasks); setBoardView("kanban"); navigate("board"); }}
                   style={{
-                    borderRadius:16, border:"1px solid var(--br)", background:"var(--bg1)",
-                    padding:20, cursor:"pointer", position:"relative", overflow:"hidden",
+                    borderRadius:14, border:"1px solid var(--br)", background:"var(--bg1)",
+                    padding:14, cursor:"pointer", position:"relative", overflow:"hidden",
                     transition:"border-color .2s, transform .2s, box-shadow .2s",
                   }}
                   onMouseOver={e => {
@@ -828,7 +839,7 @@ function PageOverview() {
                   }}/>
 
                   {/* Icon + folder badge */}
-                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:14 }}>
+                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:10 }}>
                     <div style={{
                       width:42, height:42, borderRadius:11,
                       background:BGSOF[idx % 4], border:`1px solid ${BORDER[idx % 4]}`,
@@ -852,7 +863,7 @@ function PageOverview() {
                   }}>{b.name}</p>
 
                   {/* Meta row */}
-                  <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:14 }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:10 }}>
                     <span style={{ display:"flex", alignItems:"center", gap:4, fontSize:11, color:"var(--tx3)" }}>
                       <div style={{ width:5, height:5, borderRadius:"50%", background:accent }}/>
                       {b.taskCount} tasks
@@ -863,7 +874,7 @@ function PageOverview() {
                   </div>
 
                   {/* Progress */}
-                  <div style={{ marginBottom:14 }}>
+                  <div style={{ marginBottom:10 }}>
                     <div style={{ display:"flex", justifyContent:"space-between", marginBottom:5 }}>
                       <span style={{ fontSize:10.5, color:"var(--tx3)" }}>Completion</span>
                       <span style={{ fontSize:10.5, fontWeight:700, color:accent, fontFamily:"var(--font-mono)" }}>{donePct}%</span>
@@ -883,7 +894,7 @@ function PageOverview() {
                       fontSize:11.5, fontWeight:700, color:accent,
                       display:"flex", alignItems:"center", gap:4,
                     }}>
-                      Open <Icons.ArrowR size={11}/>
+                      Open <Icons.ChevronRight size={11}/>
                     </span>
                   </div>
                 </div>
@@ -1806,7 +1817,7 @@ function PageAutopilot() {
               <button onClick={createScheduleOnBoard} className="btn-primary"
                 style={{ fontSize:10.5, padding:"4px 10px", borderRadius:7, border:"1px solid var(--ac)",
                   background:"var(--as)", color:"var(--ac)", cursor:"pointer", fontWeight:700 }}>
-                → Add to Board
+                ➜ Add to Board
               </button>
             )}
           </div>
@@ -2442,13 +2453,13 @@ function Sidebar({ page, setPage, theme, toggleTheme, onNavigate }: {
   const { user } = useApp();
 
   const mainNav: [Page, string, ReactNode][] = [
-    ["overview",  "Overview",     <StarIcon size={15}/>        ],
-    ["board",     "Board",        <BoardStarIcon size={15}/>   ],
-    ["saved",     "Saved Boards", <SavedStarIcon size={15}/>   ],
+    ["overview",  "Overview",     <StarIcon size={26}/>        ],
+    ["board",     "Board",        <BoardStarIcon size={26}/>   ],
+    ["saved",     "Saved Boards", <SavedStarIcon size={26}/>   ],
   ];
   const aiNav: [Page, string, ReactNode, string?][] = [
-    ["chat",      "AI Chat",      <ChatStarIcon size={15}/>,    "AI"   ],
-    ["autopilot", "Autopilot",    <PilotStarIcon size={15}/>,   "AUTO" ],
+    ["chat",      "AI Chat",      <ChatStarIcon size={26}/>,    "AI"   ],
+    ["autopilot", "Autopilot",    <PilotStarIcon size={26}/>,   "AUTO" ],
   ];
 
   const boardsUsed  = user?.boards_used_today ?? 0;
@@ -2469,24 +2480,11 @@ function Sidebar({ page, setPage, theme, toggleTheme, onNavigate }: {
           textAlign:"left", marginBottom:2, position:"relative",
           transition:"all .15s", letterSpacing:"-0.01em",
         }}>
-        {/* Active left accent bar */}
-        {active && (
-          <span style={{
-            position:"absolute", left:0, top:"20%", bottom:"20%",
-            width:3, borderRadius:99,
-            background:"linear-gradient(180deg, var(--ac), var(--pu))",
-            boxShadow:"0 0 8px rgba(99,102,241,0.6)",
-          }}/>
-        )}
+
         {/* Icon container */}
         <span style={{
-          width:32, height:32, borderRadius:9, flexShrink:0,
+          width:26, height:26, borderRadius:7, flexShrink:0,
           display:"flex", alignItems:"center", justifyContent:"center",
-          background: active
-            ? "linear-gradient(135deg, rgba(99,102,241,0.22), rgba(167,139,250,0.14))"
-            : "rgba(255,255,255,0.03)",
-          border: active ? "1px solid rgba(99,102,241,0.25)" : "1px solid transparent",
-          boxShadow: active ? "0 2px 10px rgba(99,102,241,0.25), inset 0 1px 0 rgba(255,255,255,0.08)" : "none",
           transition:"all .18s",
         }}>{icon}</span>
         <span style={{ flex:1 }}>{label}</span>
@@ -2541,7 +2539,7 @@ function Sidebar({ page, setPage, theme, toggleTheme, onNavigate }: {
         {aiNav.map(([k, l, i, b]) => <NavBtn key={k} k={k} label={l} icon={i} badge={b}/>)}
 
         <div className="nav-section-label" style={{ marginTop:18 }}>Account</div>
-        <NavBtn k="settings" label="Settings" icon={<SettingsStarIcon size={15}/>}/>
+        <NavBtn k="settings" label="Settings" icon={<SettingsStarIcon size={26}/>}/>
       </nav>
 
       {/* Bottom */}
@@ -2554,33 +2552,9 @@ function Sidebar({ page, setPage, theme, toggleTheme, onNavigate }: {
               {boardsUsed}<span style={{ color:"var(--tx3)", fontWeight:400 }}>/{boardsLimit}</span>
             </span>
           </div>
-          <PBar value={usagePct} h={3} color={usageColor}/>
+          <PBar value={usagePct} h={3} color={usagePct >= 90 ? "var(--rd)" : usagePct >= 70 ? "var(--am)" : "var(--ac)"}/>
         </div>
 
-        {/* Upgrade */}
-        {user?.plan !== "pro" && (
-          <button onClick={async () => {
-            const res = await fetch('/api/stripe/checkout', { method: 'POST' });
-            const data = await res.json();
-            if (data.url) window.location.href = data.url;
-          }}
-            style={{
-              width:"100%", padding:"10px 13px", borderRadius:12,
-              border:"1px solid rgba(245,158,11,0.2)",
-              background:"linear-gradient(135deg, rgba(245,158,11,0.07), rgba(249,115,22,0.04))",
-              color:"var(--am)", fontSize:12, fontWeight:700, cursor:"pointer",
-              display:"flex", alignItems:"center", gap:8, transition:"all .15s",
-              letterSpacing:"-0.01em",
-            }}
-            onMouseOver={e => { (e.currentTarget as HTMLButtonElement).style.background = "linear-gradient(135deg, rgba(245,158,11,0.13), rgba(249,115,22,0.08))"; }}
-            onMouseOut={e =>  { (e.currentTarget as HTMLButtonElement).style.background = "linear-gradient(135deg, rgba(245,158,11,0.07), rgba(249,115,22,0.04))"; }}>
-            <span style={{ width:22, height:22, borderRadius:6, background:"rgba(245,158,11,0.15)",
-              display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-              <Icons.Crown size={11}/>
-            </span>
-            Upgrade to Pro · $9/mo
-          </button>
-        )}
 
         {/* User row */}
         <div style={{ display:"flex", alignItems:"center", gap:9, padding:"6px 4px" }}>
@@ -2664,7 +2638,14 @@ const PAGE_META: Record<Page, { title: string; sub: string; icon: React.ReactNod
     gradient:"linear-gradient(135deg,#6366f1,#06b6d4)",
     icon:(
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="3" y="3" width="5" height="18" rx="1.5"/><rect x="10" y="3" width="5" height="12" rx="1.5"/><rect x="17" y="3" width="4" height="8" rx="1.5"/>
+        <rect x="2" y="3" width="6" height="18" rx="1.5"/>
+        <rect x="9" y="3" width="6" height="18" rx="1.5"/>
+        <rect x="16" y="3" width="6" height="18" rx="1.5"/>
+        <rect x="3" y="5" width="4" height="3" rx="0.5" fill="#fff" stroke="none" opacity="0.5"/>
+        <rect x="3" y="10" width="4" height="3" rx="0.5" fill="#fff" stroke="none" opacity="0.5"/>
+        <rect x="10" y="5" width="4" height="3" rx="0.5" fill="#fff" stroke="none" opacity="0.5"/>
+        <rect x="10" y="10" width="4" height="3" rx="0.5" fill="#fff" stroke="none" opacity="0.5"/>
+        <rect x="17" y="5" width="4" height="3" rx="0.5" fill="#fff" stroke="none" opacity="0.5"/>
       </svg>
     ),
   },

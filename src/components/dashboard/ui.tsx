@@ -1,5 +1,6 @@
 "use client";
 
+import React, { useState } from "react";
 import type { Priority } from "@/components/dashboard/types";
 
 export const PRI: Record<Priority, { label: string; color: string; bg: string }> = {
@@ -27,11 +28,19 @@ export function PriBadge({ p }: { p: Priority }) {
 
 export function Avt({ name, size = 28, avatarUrl }: { name: string; size?: number; avatarUrl?: string }) {
   const init = name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
-  if (avatarUrl) {
+  const [imgErr, setImgErr] = useState(false);
+  if (avatarUrl && !imgErr) {
     return (
-      <img src={avatarUrl} alt={name} width={size} height={size}
+      <img
+        src={avatarUrl}
+        alt={name}
+        width={size}
+        height={size}
+        referrerPolicy="no-referrer"
+        onError={() => setImgErr(true)}
         style={{ borderRadius: "50%", objectFit: "cover", flexShrink: 0,
-          boxShadow: "0 0 0 2px var(--bg1), 0 0 0 3px var(--br)" }} />
+          boxShadow: "0 0 0 2px var(--bg1), 0 0 0 3px var(--br)" }}
+      />
     );
   }
   return (
@@ -39,9 +48,9 @@ export function Avt({ name, size = 28, avatarUrl }: { name: string; size?: numbe
       width: size, height: size, borderRadius: "50%",
       background: "linear-gradient(135deg, var(--ac), var(--pu))",
       display: "flex", alignItems: "center", justifyContent: "center",
-      fontSize: size * 0.34, fontWeight: 700, color: "#fff", flexShrink: 0,
+      fontSize: size * 0.36, fontWeight: 700, color: "#fff", flexShrink: 0,
       fontFamily: "var(--font-display)",
-      boxShadow: "0 0 0 2px var(--bg1), 0 0 0 3px var(--br), 0 2px 8px rgba(99,102,241,0.3)",
+      boxShadow: "0 0 0 2px var(--bg1), 0 0 0 3px var(--br)",
       letterSpacing: "-0.02em",
     }}>
       {init}

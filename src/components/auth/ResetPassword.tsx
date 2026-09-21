@@ -50,7 +50,7 @@ export default function ResetPasswordPage() {
   if (done) {
     return (
       <AuthLayout>
-        <div style={{ padding: "40px 28px", textAlign: "center" }}>
+        <div className="auth-card" style={{ textAlign: "center" }}>
           <div style={{ width: 56, height: 56, borderRadius: 14, background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.25)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--gr)", margin: "0 auto 18px" }}>
             {I.check(26)}
           </div>
@@ -66,16 +66,16 @@ export default function ResetPasswordPage() {
 
   return (
     <AuthLayout>
-      <div style={{ padding: "32px 28px" }}>
-        <div style={{ textAlign: "center", marginBottom: 26 }}>
+      <div className="auth-card">
+        <div style={{ textAlign: "center", marginBottom: 24 }}>
           <div style={{ width: 46, height: 46, borderRadius: 13, background: "var(--as)", border: "1px solid var(--ag)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--ac)", margin: "0 auto 13px" }}>
             {I.shield()}
           </div>
-          <h1 style={{ fontSize: 21, fontWeight: 700, letterSpacing: "-0.035em", color: "var(--tx)", marginBottom: 6 }}>Set new password</h1>
-          <p style={{ fontSize: 13, color: "var(--tx2)" }}>Choose a strong password for your account</p>
+          <h1 style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.035em", color: "var(--tx)", marginBottom: 7 }}>Set new password</h1>
+          <p style={{ fontSize: 13, color: "var(--tx2)", lineHeight: 1.5 }}>Choose a strong password for your account</p>
         </div>
 
-        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <div>
             <AuthField
               label="New Password" type={showPw ? "text" : "password"} value={password} onChange={setPassword}
@@ -101,7 +101,9 @@ export default function ResetPasswordPage() {
             showPassword={showCon} onTogglePassword={() => setShowCon(v => !v)}
           />
 
-          {errors.general && <p style={{ fontSize: 12, color: "var(--rd)", textAlign: "center" }}>⚠ {errors.general}</p>}
+          {errors.general && <p role="alert" style={{ fontSize: 12, color: "var(--rd)", textAlign: "center", lineHeight: 1.45 }}>
+            <span aria-hidden="true">⚠</span> {errors.general}
+          </p>}
 
           <AuthButton loading={loading} icon={I.check(14)}>
             Update Password

@@ -17,7 +17,7 @@ const BLOCKED_HOSTNAMES = [
   '172.20.', '172.21.', '172.22.', '172.23.', '172.24.',
   '172.25.', '172.26.', '172.27.', '172.28.', '172.29.',
   '172.30.', '172.31.', '192.168.',
-  '169.254.', '100.', // CGNAT range — block for safety
+  '169.254.', '100.', // CGNAT range block for safety
 ];
 
 function isBlockedHost(hostname: string): boolean {

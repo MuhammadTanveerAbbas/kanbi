@@ -15,7 +15,7 @@ const LV = `--bg:#f2f3fb;--bg1:#ffffff;--bg2:#eaebf8;--bg3:#e0e2f5;--br:rgba(0,0
 
 function Styles({ theme }: { theme: Theme }) {
   return <style suppressHydrationWarning>{`
-  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0} html{scroll-behavior:smooth}
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
   :root{${theme === "dark" ? DV : LV}--ac:#5e6fe8;--ach:#6e7ff8;--as:rgba(94,111,232,0.12);--ag:rgba(94,111,232,0.22);--gr:#22c55e;--am:#f59e0b;--rd:#ef4444;--pu:#a78bfa;}
   .lp{font-family:inherit;background:var(--bg);color:var(--tx);-webkit-font-smoothing:antialiased;overflow-x:hidden;transition:background .2s,color .2s}
   .lp a{text-decoration:none;color:inherit} .lp button{font-family:inherit;cursor:pointer}
@@ -285,7 +285,7 @@ function Navbar() {
           </button>
           {user
             ? <a href="/dashboard" className="nav-cta-desktop" style={{ height: 34, padding: "0 15px", borderRadius: 8, background: "var(--inv)", color: "var(--inv2)", fontSize: 13, fontWeight: 600, alignItems: "center", transition: "opacity .15s", textDecoration: "none", whiteSpace: "nowrap" }} onMouseOver={e => (e.currentTarget.style.opacity = ".88")} onMouseOut={e => (e.currentTarget.style.opacity = "1")}>Dashboard</a>
-            : <button onClick={handleGetStarted} className="nav-cta-desktop" style={{ height: 34, padding: "0 15px", borderRadius: 8, background: "var(--inv)", color: "var(--inv2)", fontSize: 13, fontWeight: 600, alignItems: "center", transition: "opacity .15s", border: "none", whiteSpace: "nowrap" }} onMouseOver={e => (e.currentTarget.style.opacity = ".88")} onMouseOut={e => (e.currentTarget.style.opacity = "1")}>Get Started Free</button>
+            : <button onClick={handleGetStarted} className="nav-cta-desktop" style={{ height: 34, padding: "0 15px", borderRadius: 8, background: "var(--ac)", color: "#fff", fontSize: 13, fontWeight: 600, alignItems: "center", transition: "opacity .15s", border: "none", whiteSpace: "nowrap" }} onMouseOver={e => (e.currentTarget.style.opacity = ".88")} onMouseOut={e => (e.currentTarget.style.opacity = "1")}>Get Started Free</button>
           }
           <button className="ms" onClick={() => setMob(!mob)} aria-label={mob ? "Close menu" : "Open menu"} aria-expanded={mob}>{mob ? <IC.X size={18} /> : <IC.Menu size={18} />}</button>
         </div>
@@ -317,7 +317,7 @@ function Navbar() {
             ))}
           </div>
           {user
-            ? <a href="/dashboard" className="mob-signin" onClick={closeMob}>Go to your dashboard →</a>
+            ? <a href="/dashboard" className="mob-signin" onClick={closeMob}>Go to your dashboard ➜</a>
             : <a href="/sign-in" className="mob-signin" onClick={closeMob}>Already have an account? Sign in</a>
           }
         </nav>
@@ -384,8 +384,8 @@ function Hero() {
         </h1>
         <p className="hero-sub" style={{ fontSize: 17, color: "var(--tx2)", maxWidth: 560, margin: "0 auto 40px", lineHeight: 1.7 }}>Paste Your Docs. Kanbi extracts tasks, sets priorities, and builds your Kanban board in seconds. Built for freelancers and solo operators.</p>
         <div className="cr" style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-          <button onClick={handleGetStarted} style={{ height: 48, padding: "0 26px", borderRadius: 10, background: "var(--ac)", color: "#fff", fontSize: 14, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 9, boxShadow: "0 0 0 1px var(--ag),0 10px 38px var(--ag)", transition: "background .15s", border: "none" }} onMouseOver={e => (e.currentTarget.style.background = "var(--ach)")} onMouseOut={e => (e.currentTarget.style.background = "var(--ac)")}>Start for Free <IC.Arrow size={15} /></button>
-          <a href="#showcase" className="hero-cta-secondary" style={{ height: 48, padding: "0 22px", borderRadius: 10, fontSize: 14, color: "var(--tx2)", display: "inline-flex", alignItems: "center", gap: 6, transition: "all .15s" }}>See product <IC.ChevD size={14} /></a>
+          <button onClick={handleGetStarted} style={{ height: 48, padding: "0 26px", borderRadius: 10, background: "var(--ac)", color: "#fff", fontSize: 14, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 9, boxShadow: "0 0 0 1px var(--ag),0 10px 38px var(--ag)", transition: "opacity .15s", border: "none" }} onMouseOver={e => (e.currentTarget.style.opacity = ".88")} onMouseOut={e => (e.currentTarget.style.opacity = "1")}>Start for Free <IC.Arrow size={15} /></button>
+          <a href="#showcase" className="hero-cta-secondary" style={{ height: 48, padding: "0 22px", borderRadius: 10, fontSize: 14, color: "var(--tx)", display: "inline-flex", alignItems: "center", gap: 6, transition: "all .15s" }}>See product <IC.ChevD size={14} /></a>
         </div>
         <p style={{ marginTop: 14, fontSize: 12, color: "var(--tx3)" }}>Free plan, 10 AI extractions per day, no card required</p>
         <div ref={ref} className="hero-mock-wrap" style={{ marginTop: 60, borderRadius: 24, border: "1px solid var(--br)", background: "linear-gradient(180deg,rgba(255,255,255,0.03),transparent 28%),var(--bg1)", overflow: "hidden", boxShadow: "0 0 0 1px rgba(255,255,255,0.03),0 42px 120px rgba(0,0,0,0.62)" }}>
@@ -677,7 +677,7 @@ function MockPreview({ tab }: { tab: typeof TABS[0] }) {
           <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
             {[["9:00 AM", "Meridian quote review", "45m"], ["10:00 AM", "Webhook retry logic", "2h"], ["1:30 PM", "Portfolio copy edits", "1h"]].map((s, i) => (
               <div key={i} style={{ display: "flex", gap: 8, padding: "8px 10px", borderRadius: 12, background: "linear-gradient(180deg,var(--bg2),var(--bg1))", border: "1px solid var(--br)", alignItems: "center" }}>
-                <span style={{ fontSize: 9, fontWeight: 800, color: "var(--ac)", fontFamily: "monospace", flexShrink: 0 }}>{s[0]}</span>
+                <span style={{ fontSize: 9, fontWeight: 800, color: "var(--ac)", fontFamily: "var(--font-geist-mono)", flexShrink: 0 }}>{s[0]}</span>
                 <span style={{ fontSize: 9.5, color: "var(--tx)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s[1]}</span>
                 <span style={{ fontSize: 9, color: "var(--tx3)", flexShrink: 0 }}>{s[2]}</span>
               </div>
@@ -784,7 +784,7 @@ function HowItWorks() {
             <div key={s.n} className="sh" style={{ borderRadius: 12, border: "1px solid var(--br)", background: "var(--bg1)", padding: 24, transition: "border-color .18s" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 18 }}>
                 <div style={{ width: 40, height: 40, borderRadius: 10, background: "var(--as)", border: "1px solid var(--ag)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--ac)" }}><s.I size={17} /></div>
-                <span style={{ fontFamily: "monospace", fontSize: 11, fontWeight: 700, color: "var(--tx3)" }}>{s.n}</span>
+                <span style={{ fontFamily: "var(--font-geist-mono)", fontSize: 11, fontWeight: 700, color: "var(--tx3)" }}>{s.n}</span>
               </div>
               <div style={{ fontSize: 14, fontWeight: 600, color: "var(--tx)", marginBottom: 8 }}>{s.t}</div>
               <div style={{ fontSize: 12.5, color: "var(--tx2)", lineHeight: 1.65, marginBottom: 16 }}>{s.d}</div>

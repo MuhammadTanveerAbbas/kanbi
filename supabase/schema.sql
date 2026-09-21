@@ -1,6 +1,12 @@
 -- ================================================
 -- KANBI  Complete Database Schema
--- Run once in Supabase Dashboard → SQL Editor
+-- Run this single file in Supabase Dashboard ➜ SQL Editor
+--
+-- Safe to run more than once. The production hardening steps that used to live
+-- in supabase/patches/001-production-hardening.sql are already included below.
+--
+-- One thing SQL cannot change, switch it on in the dashboard:
+--   Authentication ➜ Sign In / Providers (Email) ➜ Leaked password protection
 -- ================================================
 
 -- ================================================
@@ -282,10 +288,7 @@ CREATE INDEX IF NOT EXISTS idx_autopilot_adjustments_user ON autopilot_adjustmen
 -- FUNCTIONS
 -- ================================================
 
--- ================================================
--- updated_at TRIGGER
--- ================================================
-
+-- updated_at trigger
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -312,7 +315,7 @@ END;
 $$;
 
 -- ================================================
--- FUNCTIONS
+-- FUNCTIONS (usage counters + AI cleanup helpers)
 -- ================================================
 
 CREATE OR REPLACE FUNCTION increment_generation_count(p_user_id UUID, p_date DATE)
@@ -427,6 +430,12 @@ CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION handle_new_user();
 
+-- This function is only meant to run as a trigger. Trigger functions are not
+-- permission checked at run time (PostgreSQL checks EXECUTE when the trigger is
+-- created), so revoking here only stops anon/authenticated from calling
+-- handle_new_user() through /rest/v1/rpc and raising the security advisor.
+REVOKE ALL ON FUNCTION public.handle_new_user() FROM PUBLIC, anon, authenticated;
+
 -- ================================================
 -- ROW LEVEL SECURITY
 -- ================================================
@@ -519,7 +528,8 @@ CREATE POLICY "Users can view own task stats"   ON task_stats FOR SELECT USING (
 CREATE POLICY "Users can insert own task stats" ON task_stats FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can update own task stats" ON task_stats FOR UPDATE USING (auth.uid() = user_id);
 
--- integrations table removed (no third-party integrations in v1)
+-- integrations table removed in v1 (no third-party integrations). Cleanup for
+-- databases that still have it runs in the hardening section at the end of this file.
 
 -- task_completions
 DROP POLICY IF EXISTS "Users can view own completions"   ON task_completions;
@@ -585,14 +595,22 @@ CREATE POLICY "Users can view own settings"   ON autopilot_settings FOR SELECT U
 CREATE POLICY "Users can insert own settings" ON autopilot_settings FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can update own settings" ON autopilot_settings FOR UPDATE USING (auth.uid() = user_id);
 
--- processed_webhook_events (no client access; service role only)
+-- processed_webhook_events (no client access)
+-- The Stripe webhook route uses the service role key, which bypasses RLS, so this
+-- table needs no policy at all. RLS stays enabled, which means the anon and
+-- authenticated keys can read or write nothing here.
 DROP POLICY IF EXISTS "Allow all webhook events" ON processed_webhook_events;
+DROP POLICY IF EXISTS "Allow all for processed_webhook_events" ON processed_webhook_events;
 DROP POLICY IF EXISTS "Service role can manage webhook events" ON processed_webhook_events;
 
 -- feedback
 DROP POLICY IF EXISTS "Users can insert feedback" ON feedback;
 DROP POLICY IF EXISTS "Users can view own feedback" ON feedback;
-CREATE POLICY "Users can insert feedback" ON feedback FOR INSERT WITH CHECK (true);
+-- Visitors may submit feedback without an account, signed in users may only attach
+-- it to their own user id. This keeps WITH CHECK from being an open "true".
+CREATE POLICY "Users can insert feedback" ON feedback FOR INSERT
+  TO anon, authenticated
+  WITH CHECK (user_id IS NULL OR user_id = auth.uid());
 CREATE POLICY "Users can view own feedback" ON feedback FOR SELECT USING (auth.uid() = user_id);
 
 -- burnout_alerts
@@ -602,6 +620,41 @@ DROP POLICY IF EXISTS "Users can update own alerts" ON burnout_alerts;
 CREATE POLICY "Users can view own alerts" ON burnout_alerts FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Users can insert own alerts" ON burnout_alerts FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can update own alerts" ON burnout_alerts FOR UPDATE USING (auth.uid() = user_id);
+
+-- ================================================
+-- PRODUCTION HARDENING + DATA REPAIR
+-- Previously shipped as supabase/patches/001-production-hardening.sql
+-- ================================================
+
+-- Google Calendar support was removed from the product, drop the leftovers
+ALTER TABLE public.tasks DROP COLUMN IF EXISTS gcal_set;
+ALTER TABLE public.tasks DROP COLUMN IF EXISTS gcal_event_id;
+
+-- The integrations table was removed in v1 (no third party integrations).
+-- Older databases still holding that table will lose its rows here. Comment the
+-- line out if the data must be kept.
+DROP TABLE IF EXISTS public.integrations CASCADE;
+
+-- Every account needs at least one board to paste notes into
+INSERT INTO public.boards (user_id, name, folder)
+SELECT p.id, 'My Board', 'General'
+FROM public.profiles p
+WHERE NOT EXISTS (SELECT 1 FROM public.boards b WHERE b.user_id = p.id);
+
+-- board_id is NOT NULL, so this only repairs rows in older databases that still
+-- allow a null board_id. They are attached to the owner's oldest board.
+UPDATE public.tasks t
+SET board_id = (
+  SELECT b.id FROM public.boards b
+  WHERE b.user_id = t.user_id
+  ORDER BY b.created_at ASC
+  LIMIT 1
+)
+WHERE t.board_id IS NULL
+  AND EXISTS (SELECT 1 FROM public.boards b WHERE b.user_id = t.user_id);
+
+-- Whatever is still unattached has nowhere to live and is removed
+DELETE FROM public.tasks WHERE board_id IS NULL;
 
 -- ================================================
 -- STORAGE
@@ -620,6 +673,20 @@ CREATE POLICY "Users can view own files"   ON storage.objects FOR SELECT
   USING (bucket_id = 'files' AND auth.uid()::text = (storage.foldername(name))[1]);
 CREATE POLICY "Users can delete own files" ON storage.objects FOR DELETE
   USING (bucket_id = 'files' AND auth.uid()::text = (storage.foldername(name))[1]);
+
+-- ================================================
+-- SECURITY ADVISOR CHECKLIST
+-- ================================================
+-- rls_policy_always_true (feedback INSERT)
+--   Closed. The WITH CHECK expression now ties inserts to the caller.
+-- rls_policy_always_true (processed_webhook_events ALL)
+--   Closed. The permissive policy is dropped, the service role bypasses RLS.
+-- anon / authenticated security definer function executable (handle_new_user)
+--   Closed. EXECUTE is revoked from PUBLIC, anon and authenticated.
+-- auth_leaked_password_protection
+--   Not a SQL setting. Enable it in the dashboard:
+--   Authentication ➜ Sign In / Providers ➜ Email ➜ enable leaked password protection.
+--   It checks new passwords against HaveIBeenPwned and is worth turning on.
 
 -- ================================================
 -- DONE

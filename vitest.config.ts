@@ -9,6 +9,11 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./vitest.setup.ts'],
     include: ['**/__tests__/**/*.test.ts', '**/__tests__/**/*.test.tsx'],
+    environmentMatchGlobs: [
+      // API/integration tests run in Node (they import server-side ESM modules)
+      ['**/__tests__/integration/**', 'node'],
+      ['**/src/app/dashboard/__tests__/**', 'node'],
+    ],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],

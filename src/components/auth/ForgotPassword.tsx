@@ -44,12 +44,12 @@ export default function ForgotPasswordPage() {
   if (sent) {
     return (
       <AuthLayout>
-        <div style={{ padding: "40px 28px", textAlign: "center" }}>
+        <div className="auth-card" style={{ textAlign: "center" }}>
           <div style={{ width: 56, height: 56, borderRadius: 14, background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.25)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--gr)", margin: "0 auto 18px" }}>
             {I.send(24)}
           </div>
           <h2 style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.03em", color: "var(--tx)", marginBottom: 10 }}>Reset link sent</h2>
-          <p style={{ fontSize: 13.5, color: "var(--tx2)", lineHeight: 1.65, marginBottom: 8, maxWidth: 300, margin: "0 auto 10px" }}>
+          <p style={{ fontSize: 13.5, color: "var(--tx2)", lineHeight: 1.65, marginBottom: 8, maxWidth: 300, margin: "0 auto 10px", wordBreak: "break-word" }}>
             We sent a password reset link to <strong style={{ color: "var(--tx)" }}>{email}</strong>.
           </p>
           <p style={{ fontSize: 12, color: "var(--tx3)", marginBottom: 26 }}>Link expires in 1 hour. Check your spam folder if needed.</p>
@@ -68,14 +68,14 @@ export default function ForgotPasswordPage() {
 
   return (
     <AuthLayout>
-      <div style={{ padding: "32px 28px" }}>
-        <div style={{ textAlign: "center", marginBottom: 26 }}>
+      <div className="auth-card">
+        <div style={{ textAlign: "center", marginBottom: 24 }}>
           <div style={{ width: 46, height: 46, borderRadius: 13, background: "var(--as)", border: "1px solid var(--ag)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--ac)", margin: "0 auto 13px" }}>
             {I.lock()}
           </div>
-          <h1 style={{ fontSize: 21, fontWeight: 700, letterSpacing: "-0.035em", color: "var(--tx)", marginBottom: 6 }}>Forgot your password?</h1>
+          <h1 style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.035em", color: "var(--tx)", marginBottom: 7 }}>Forgot your password?</h1>
           <p style={{ fontSize: 13, color: "var(--tx2)", lineHeight: 1.6, maxWidth: 320, margin: "0 auto" }}>
-            Enter your email and we'll send you a link to reset your password.
+            Enter your email and we&apos;ll send you a link to reset your password.
           </p>
         </div>
 
@@ -90,7 +90,7 @@ export default function ForgotPasswordPage() {
           </AuthButton>
         </form>
 
-        <div style={{ marginTop: 22, paddingTop: 16, borderTop: "1px solid var(--br)", textAlign: "center" }}>
+        <div style={{ marginTop: 20, paddingTop: 16, borderTop: "1px solid var(--br)", textAlign: "center" }}>
           <button onClick={() => router.push("/sign-in")} style={{ fontSize: 13, color: "var(--tx2)", background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, margin: "0 auto" }}>
             {I.back()} Back to Sign In
           </button>

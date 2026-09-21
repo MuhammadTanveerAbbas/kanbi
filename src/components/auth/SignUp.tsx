@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import AuthLayout from "@/components/auth/AuthLayout";
@@ -23,10 +23,13 @@ export default function SignUpPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [showPw, setShowPw] = useState(false);  const [agreed, setAgreed] = useState(false);
+  const [showPw, setShowPw] = useState(false);
+  const [agreed, setAgreed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
+  const termsId = useId();
+  const termsErrorId = `${termsId}-error`;
 
   const strength = password ? getPasswordStrength(password) : { score: 0, label: "", color: "var(--br)" };
 
@@ -67,12 +70,12 @@ export default function SignUpPage() {
   if (submitted) {
     return (
       <AuthLayout>
-        <div style={{ padding: "40px 28px", textAlign: "center" }}>
+        <div className="auth-card" style={{ textAlign: "center" }}>
           <div style={{ width: 56, height: 56, borderRadius: 14, background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.25)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--gr)", margin: "0 auto 18px" }}>
             {I.send()}
           </div>
           <h2 style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.03em", color: "var(--tx)", marginBottom: 10 }}>Check your email</h2>
-          <p style={{ fontSize: 13.5, color: "var(--tx2)", lineHeight: 1.65, marginBottom: 6, maxWidth: 320, margin: "0 auto 10px" }}>
+          <p style={{ fontSize: 13.5, color: "var(--tx2)", lineHeight: 1.65, maxWidth: 320, margin: "0 auto 10px", wordBreak: "break-word" }}>
             We sent a confirmation link to <strong style={{ color: "var(--tx)" }}>{email}</strong>. Click it to activate your account.
           </p>
           <p style={{ fontSize: 12, color: "var(--tx3)", marginBottom: 24 }}>Didn't receive it? Check your spam folder.</p>
@@ -86,20 +89,21 @@ export default function SignUpPage() {
 
   return (
     <AuthLayout>
-      <div style={{ padding: "28px 28px" }}>
+      <div className="auth-card">
         <div style={{ textAlign: "center", marginBottom: 24 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 14 }}>
-            <div style={{ width: 38, height: 38, borderRadius: 11, background: "var(--as)", border: "1px solid var(--ag)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--ac)", flexShrink: 0 }}>
-              {I.zap(17)}
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg,var(--ac),var(--pu))", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", boxShadow: "0 0 18px var(--ag)", flexShrink: 0 }}>
+              {I.zap(16)}
             </div>
             <span style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-0.04em", color: "var(--tx)", lineHeight: 1 }}>kanbi</span>
           </div>
-          <h1 style={{ fontSize: 21, fontWeight: 700, letterSpacing: "-0.035em", color: "var(--tx)", marginBottom: 5 }}>Create your account</h1>
+          <h1 style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.035em", color: "var(--tx)", marginBottom: 7 }}>Create your account</h1>
+          <p style={{ fontSize: 13, color: "var(--tx2)", lineHeight: 1.5 }}>Free forever plan, no card needed</p>
         </div>
 
         <SocialAuth mode="signup" />
 
-        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <AuthField
             label="Full Name" value={name} onChange={setName}
             placeholder="Your full name" error={errors.name}
@@ -130,16 +134,25 @@ export default function SignUpPage() {
           </div>
 
           <div>
-            <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer" }}>
-              <div onClick={() => setAgreed(v => !v)} style={{
+            <label htmlFor={termsId} style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer", position: "relative" }}>
+              <input
+                id={termsId}
+                type="checkbox"
+                className="auth-check"
+                checked={agreed}
+                onChange={e => setAgreed(e.target.checked)}
+                aria-invalid={errors.agreed ? true : undefined}
+                aria-describedby={errors.agreed ? termsErrorId : undefined}
+              />
+              <span className="auth-box" aria-hidden="true" style={{
                 width: 17, height: 17, borderRadius: 5, marginTop: 1, flexShrink: 0,
                 border: `1px solid ${agreed ? "var(--ac)" : errors.agreed ? "var(--rd)" : "var(--br)"}`,
                 background: agreed ? "var(--ac)" : "transparent",
                 display: "flex", alignItems: "center", justifyContent: "center",
-                cursor: "pointer", transition: "all .15s",
+                transition: "all .15s",
               }}>
                 {agreed && I.check()}
-              </div>
+              </span>
               <span style={{ fontSize: 12, color: "var(--tx2)", lineHeight: 1.55 }}>
                 I agree to the{" "}
                 <a href="/terms" style={{ color: "var(--ac)" }}>Terms of Service</a>
@@ -147,10 +160,14 @@ export default function SignUpPage() {
                 <a href="/privacy" style={{ color: "var(--ac)" }}>Privacy Policy</a>
               </span>
             </label>
-            {errors.agreed && <p style={{ fontSize: 11.5, color: "var(--rd)", marginTop: 5 }}>⚠ {errors.agreed}</p>}
+            {errors.agreed && <p id={termsErrorId} role="alert" style={{ fontSize: 11.5, color: "var(--rd)", marginTop: 5, lineHeight: 1.45 }}>
+              <span aria-hidden="true">⚠</span> {errors.agreed}
+            </p>}
           </div>
 
-          {errors.general && <p style={{ fontSize: 12, color: "var(--rd)", textAlign: "center" }}>⚠ {errors.general}</p>}
+          {errors.general && <p role="alert" style={{ fontSize: 12, color: "var(--rd)", textAlign: "center", lineHeight: 1.45 }}>
+            <span aria-hidden="true">⚠</span> {errors.general}
+          </p>}
 
           <AuthButton loading={loading} icon={I.zap()}>
             Create Free Account

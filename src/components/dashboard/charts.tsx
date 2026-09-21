@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 
 export function BarChart({ data }: { data: { label: string; value: number; color?: string }[] }) {
   const [hovered, setHovered] = useState<number | null>(null);

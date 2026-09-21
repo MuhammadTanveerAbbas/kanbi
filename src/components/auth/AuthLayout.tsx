@@ -6,7 +6,6 @@ const DARK_VARS = `--bg:#07070b;--bg1:#0d0d13;--bg2:#111119;--bg3:#16161f;--br:r
 const LIGHT_VARS = `--bg:#f2f3fb;--bg1:#ffffff;--bg2:#eaebf8;--bg3:#e0e2f5;--br:rgba(0,0,0,0.07);--brh:rgba(0,0,0,0.14);--tx:#0a0a18;--tx2:#4a4a72;--tx3:#9898b8;--inp:#eaebf8;--card:#ffffff;`;
 
 const AUTH_CSS = (theme: "dark" | "light") => `
-  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; }
   :root {
@@ -15,7 +14,7 @@ const AUTH_CSS = (theme: "dark" | "light") => `
     --gr:#22c55e; --rd:#ef4444; --am:#f59e0b; --pu:#a78bfa;
   }
   body {
-    font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+    font-family: var(--font-geist), -apple-system, sans-serif;
     background: var(--bg); color: var(--tx);
     -webkit-font-smoothing: antialiased;
     min-height: 100vh;
@@ -25,9 +24,47 @@ const AUTH_CSS = (theme: "dark" | "light") => `
   @keyframes spin { from{transform:rotate(0)} to{transform:rotate(360deg)} }
   .fade-up { animation: fadeUp .38s cubic-bezier(.22,1,.36,1) both; }
   .spin { animation: spin .7s linear infinite; }
+
+  /* Page shell: the card is centred with auto margins so it never gets
+     clipped at the top when the form is taller than the screen */
+  .auth-shell {
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 76px 16px calc(24px + env(safe-area-inset-bottom, 0px));
+  }
+  .auth-card-shell {
+    width: 100%;
+    max-width: 420px;
+    margin: auto;
+    border-radius: 18px;
+    overflow: hidden;
+  }
+  .auth-accent {
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--ac) 35%, var(--pu) 65%, transparent);
+    opacity: .85;
+  }
+
+  /* One padding scale shared by every login screen */
   .auth-card { padding: 32px 28px; }
+
+  .auth-theme-btn:focus-visible { border-color: var(--brh) !important; color: var(--tx) !important; }
+  .auth-check { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+  .auth-check:focus-visible + .auth-box { border-color: var(--ac) !important; box-shadow: 0 0 0 3px var(--as); }
+
   @media (max-width: 480px) {
-    .auth-card { padding: 20px 16px; }
+    .auth-shell { padding: 68px 14px calc(20px + env(safe-area-inset-bottom, 0px)); }
+    .auth-card { padding: 22px 18px; }
+    .auth-card-shell { border-radius: 16px; }
+  }
+  @media (max-width: 380px) {
+    .auth-card { padding: 20px 14px; }
+  }
+  @media (max-height: 720px) {
+    .auth-card { padding: 24px 22px; }
   }
 `;
 
@@ -68,28 +105,29 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
   return (
     <>
       <style suppressHydrationWarning>{AUTH_CSS(t)}</style>
-      <div suppressHydrationWarning style={{
-        minHeight: "100vh", display: "flex", flexDirection: "column",
-        alignItems: "center", justifyContent: "center",
-        padding: "80px 16px 24px",
+      <div suppressHydrationWarning className="auth-shell" style={{
         background: t === "dark"
           ? "radial-gradient(ellipse at 50% -20%, rgba(94,111,232,0.12) 0%, transparent 60%), #07070b"
           : "radial-gradient(ellipse at 50% -20%, rgba(94,111,232,0.08) 0%, transparent 60%), #f2f3fb",
       }}>
-        <div style={{
+        <div aria-hidden="true" style={{
           position: "fixed", inset: 0, pointerEvents: "none", zIndex: 0,
           backgroundImage: "linear-gradient(var(--br) 1px, transparent 1px), linear-gradient(90deg, var(--br) 1px, transparent 1px)",
           backgroundSize: "72px 72px",
         }} />
 
         <div style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 10, padding: "14px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <a href="/" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <a href="/" aria-label="Kanbi home" style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <div style={{ width: 28, height: 28, borderRadius: 8, background: "var(--ac)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", boxShadow: "0 0 18px var(--ag)" }}>
               {I.zap(13)}
             </div>
             <span style={{ fontSize: 15, fontWeight: 700, color: "var(--tx)", letterSpacing: "-0.025em" }}>Kanbi</span>
           </a>
           <button
+            type="button"
+            className="auth-theme-btn"
+            aria-label={t === "dark" ? "Switch to light theme" : "Switch to dark theme"}
+            title="Toggle theme"
             onClick={toggleTheme}
             style={{
               width: 34, height: 34, borderRadius: 8,
@@ -105,15 +143,12 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
           </button>
         </div>
 
-        <div className="fade-up" style={{
-          position: "relative", zIndex: 1,
-          width: "min(100%, 420px)",
-          borderRadius: 18, border: "1px solid var(--br)",
+        <div className="fade-up auth-card-shell" style={{
+          border: "1px solid var(--br)",
           background: "var(--card)",
           boxShadow: t === "dark"
             ? "0 0 0 1px rgba(255,255,255,0.04), 0 24px 80px rgba(0,0,0,0.7)"
             : "0 24px 80px rgba(0,0,0,0.08)",
-          overflow: "hidden",
         }}>
           {children}
         </div>

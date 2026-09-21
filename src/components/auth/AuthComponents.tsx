@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useId, useState } from "react";
 
 const authFieldStyles = `
   .auth-input {
@@ -9,10 +9,15 @@ const authFieldStyles = `
     border-radius: 9px;
     border: 1px solid var(--br);
     background: var(--inp);
+    font-family: inherit;
     font-size: 14px;
+    line-height: 1.45;
     color: var(--tx);
     outline: none;
     transition: border-color .15s, box-shadow .15s;
+  }
+  .auth-input::placeholder {
+    color: var(--tx3);
   }
   .auth-input:focus {
     border-color: var(--ac);
@@ -25,12 +30,30 @@ const authFieldStyles = `
     border-color: var(--rd);
     box-shadow: none;
   }
+  .auth-eye-btn {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--tx3);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 6px;
+    display: flex;
+    transition: color .15s;
+  }
+  .auth-eye-btn:hover,
+  .auth-eye-btn:focus-visible {
+    color: var(--tx);
+  }
 `;
 
 const I = {
   eye: (s = 16) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>,
   eyeOff: (s = 16) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" /><line x1="1" y1="1" x2="23" y2="23" /></svg>,
-  google: (s = 16) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21.35 11.1h-9.2v3h5.3c-.5 2.4-2.6 4-5.3 4a6 6 0 1 1 0-12c1.6 0 3 .6 4.1 1.5l2.2-2.2A9.9 9.9 0 0 0 12 3a10 10 0 1 0 0 20c5.5 0 9.7-3.9 9.7-9.5 0-.6-.1-1.3-.35-2.4z" /></svg>,
+  google: (s = 18) => <svg width={s} height={s} viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.33 2.56 13.22l7.98 6.19C12.43 13.08 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-3.59-13.46-8.91l-7.98 6.19C6.51 42.67 14.62 48 24 48z"/></svg>,
 };
 
 interface FieldProps {
@@ -49,28 +72,35 @@ interface FieldProps {
 }
 
 export function AuthField({ label, type = "text", value, onChange, placeholder, error, hint, icon, autoComplete, required, showPassword, onTogglePassword }: FieldProps) {
+  const inputId = useId();
   const paddingLeft = icon ? "38px" : "14px";
   const paddingRight = onTogglePassword ? "42px" : "14px";
+  const errorId = `${inputId}-error`;
+  const hintId = `${inputId}-hint`;
 
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: authFieldStyles }} />
-      <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-        <label style={{ fontSize: 13, fontWeight: 600, color: "var(--tx2)" }}>
-          {label}{required && <span style={{ color: "var(--rd)", marginLeft: 2 }}>*</span>}
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        <label htmlFor={inputId} style={{ fontSize: 13, fontWeight: 600, color: "var(--tx2)" }}>
+          {label}{required && <span aria-hidden="true" style={{ color: "var(--rd)", marginLeft: 2 }}>*</span>}
         </label>
         <div style={{ position: "relative" }}>
           {icon && (
-            <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--tx3)", pointerEvents: "none" }}>
+            <span aria-hidden="true" style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--tx3)", pointerEvents: "none", display: "flex" }}>
               {icon}
             </span>
           )}
           <input
+            id={inputId}
             type={type}
             value={value}
             onChange={e => onChange(e.target.value)}
             placeholder={placeholder}
             autoComplete={autoComplete}
+            aria-required={required ? true : undefined}
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error ? errorId : hint ? hintId : undefined}
             className={`auth-input ${error ? 'error' : ''}`}
             style={{
               paddingLeft,
@@ -78,16 +108,16 @@ export function AuthField({ label, type = "text", value, onChange, placeholder, 
             }}
           />
           {onTogglePassword && (
-            <button type="button" onClick={onTogglePassword}
-              style={{ position: "absolute", right: 11, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "var(--tx3)", cursor: "pointer", padding: 2, display: "flex" }}>
+            <button type="button" className="auth-eye-btn" onClick={onTogglePassword}
+              aria-label={showPassword ? "Hide password" : "Show password"}>
               {showPassword ? I.eyeOff(15) : I.eye(15)}
             </button>
           )}
         </div>
-        {error && <p style={{ fontSize: 11.5, color: "var(--rd)", display: "flex", alignItems: "center", gap: 4 }}>
-          <span style={{ fontSize: 13 }}>⚠</span> {error}
+        {error && <p id={errorId} role="alert" style={{ fontSize: 11.5, color: "var(--rd)", display: "flex", alignItems: "center", gap: 4, lineHeight: 1.45 }}>
+          <span aria-hidden="true" style={{ fontSize: 13 }}>⚠</span> {error}
         </p>}
-        {hint && !error && <p style={{ fontSize: 11, color: "var(--tx3)" }}>{hint}</p>}
+        {hint && !error && <p id={hintId} style={{ fontSize: 11, color: "var(--tx3)", lineHeight: 1.45 }}>{hint}</p>}
       </div>
     </>
   );
@@ -108,12 +138,15 @@ export function AuthButton({ children, loading, icon, onClick, type = "submit", 
       <button
         type={type}
         onClick={onClick}
+        disabled={loading}
+        aria-busy={loading ? true : undefined}
         style={{
           width: "100%", height: 44, borderRadius: 10,
           background: "transparent", border: "1px solid var(--br)", color: "var(--tx2)",
-          fontSize: 14, fontWeight: 500, cursor: "pointer",
+          fontSize: 14, fontWeight: 500, cursor: loading ? "not-allowed" : "pointer",
           display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
           transition: "border-color .15s, background .15s, color .15s",
+          opacity: loading ? 0.55 : 1,
         }}
         onMouseOver={e => {
           e.currentTarget.style.borderColor = "var(--brh)";
@@ -137,6 +170,7 @@ export function AuthButton({ children, loading, icon, onClick, type = "submit", 
       type={type}
       onClick={onClick}
       disabled={loading}
+      aria-busy={loading ? true : undefined}
       style={{
         width: "100%", height: 44, borderRadius: 10,
         background: "var(--ac)", border: "none", color: "#fff",
@@ -165,8 +199,8 @@ export function AuthButton({ children, loading, icon, onClick, type = "submit", 
         </>
       ) : (
         <>
-          {icon}
           {children}
+          {icon}
         </>
       )}
     </button>
@@ -205,7 +239,9 @@ export function SocialAuth({ mode }: { mode: "signin" | "signup" }) {
         {mode === "signin" ? "Sign in" : "Sign up"} with Google
       </AuthButton>
       {error && (
-        <p style={{ fontSize: 12, color: "var(--rd)", textAlign: "center" }}>⚠ {error}</p>
+        <p role="alert" style={{ fontSize: 12, color: "var(--rd)", textAlign: "center", lineHeight: 1.45 }}>
+          <span aria-hidden="true">⚠</span> {error}
+        </p>
       )}
       <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "4px 0" }}>
         <div style={{ flex: 1, height: 1, background: "var(--br)" }} />

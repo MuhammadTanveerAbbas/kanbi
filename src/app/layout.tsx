@@ -1,4 +1,5 @@
 import LayoutWrapper from "@/components/layout-wrapper";
+import LenisProvider from "@/components/lenis-provider";
 import { Providers } from "@/components/providers";
 import { cn } from "@/lib/utils";
 import type { Metadata } from "next";
@@ -86,13 +87,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="scroll-smooth" data-scroll-behavior="smooth" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <body
         className={cn("antialiased font-sans", geist.variable, geistMono.variable, sora.variable)}
         suppressHydrationWarning
       >
         <Providers>
-          <LayoutWrapper>{children}</LayoutWrapper>
+          <LenisProvider>
+            <LayoutWrapper>{children}</LayoutWrapper>
+          </LenisProvider>
         </Providers>
       </body>
     </html>

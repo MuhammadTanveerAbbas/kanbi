@@ -59,15 +59,15 @@ export default function SignInPage() {
   return (
     <AuthLayout>
       <div className="auth-card">
-        <div style={{ textAlign: "center", marginBottom: 28 }}>
+        <div style={{ textAlign: "center", marginBottom: 24 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 14 }}>
-            <div style={{ width: 38, height: 38, borderRadius: 11, background: "var(--as)", border: "1px solid var(--ag)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--ac)", flexShrink: 0 }}>
-              {I.zap(17)}
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg,var(--ac),var(--pu))", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", boxShadow: "0 0 18px var(--ag)", flexShrink: 0 }}>
+              {I.zap(16)}
             </div>
             <span style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-0.04em", color: "var(--tx)", lineHeight: 1 }}>kanbi</span>
           </div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.035em", color: "var(--tx)", marginBottom: 6 }}>Welcome back</h1>
-          <p style={{ fontSize: 13, color: "var(--tx2)" }}>Sign in to your kanbi account</p>
+          <h1 style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.035em", color: "var(--tx)", marginBottom: 7 }}>Welcome back</h1>
+          <p style={{ fontSize: 13, color: "var(--tx2)", lineHeight: 1.5 }}>Sign in to your kanbi account</p>
         </div>
 
         <SocialAuth mode="signin" />
@@ -85,15 +85,21 @@ export default function SignInPage() {
             showPassword={showPw} onTogglePassword={() => setShowPw(v => !v)}
           />
 
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
-              <div onClick={() => setRemember(v => !v)} style={{
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", position: "relative" }}>
+              <input
+                type="checkbox"
+                className="auth-check"
+                checked={remember}
+                onChange={e => setRemember(e.target.checked)}
+              />
+              <span className="auth-box" aria-hidden="true" style={{
                 width: 16, height: 16, borderRadius: 4, border: `1px solid ${remember ? "var(--ac)" : "var(--br)"}`,
-                background: remember ? "var(--ac)" : "transparent",
-                display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "all .15s",
+                background: remember ? "var(--ac)" : "transparent", flexShrink: 0,
+                display: "flex", alignItems: "center", justifyContent: "center", transition: "all .15s",
               }}>
                 {remember && I.check()}
-              </div>
+              </span>
               <span style={{ fontSize: 12.5, color: "var(--tx2)" }}>Remember me</span>
             </label>
             <a href="/forgot" style={{ fontSize: 13, color: "var(--ac)", cursor: "pointer", transition: "opacity .15s" }} onMouseOver={e => e.currentTarget.style.opacity = ".75"} onMouseOut={e => e.currentTarget.style.opacity = "1"}>
@@ -101,14 +107,16 @@ export default function SignInPage() {
             </a>
           </div>
 
-          {errors.general && <p style={{ fontSize: 12, color: "var(--rd)", textAlign: "center" }}>⚠ {errors.general}</p>}
+          {errors.general && <p role="alert" style={{ fontSize: 12, color: "var(--rd)", textAlign: "center", lineHeight: 1.45 }}>
+            <span aria-hidden="true">⚠</span> {errors.general}
+          </p>}
 
           <AuthButton loading={loading} icon={I.arrow(14)}>
             Sign In
           </AuthButton>
         </form>
 
-        <div style={{ marginTop: 22, paddingTop: 18, borderTop: "1px solid var(--br)", textAlign: "center" }}>
+        <div style={{ marginTop: 20, paddingTop: 16, borderTop: "1px solid var(--br)", textAlign: "center" }}>
           <p style={{ fontSize: 13, color: "var(--tx2)" }}>
             Don't have an account?{" "}
             <a href="/sign-up" style={{ color: "var(--ac)", fontWeight: 600, cursor: "pointer", transition: "opacity .15s" }} onMouseOver={e => e.currentTarget.style.opacity = ".75"} onMouseOut={e => e.currentTarget.style.opacity = "1"}>

@@ -18,7 +18,7 @@ export default async function Home() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  // Already logged in → skip landing page, go straight to dashboard
+  // Already logged in ➜ skip landing page, go straight to dashboard
   if (user) redirect('/dashboard');
 
   return <LandingPage />;

@@ -238,8 +238,8 @@ This project is deployed on Vercel.
 
 For production, update:
 
-- `NEXT_PUBLIC_APP_URL` → your domain
-- `STRIPE_WEBHOOK_SECRET` → production webhook secret from Stripe dashboard
+- `NEXT_PUBLIC_APP_URL` ➜ your domain
+- `STRIPE_WEBHOOK_SECRET` ➜ production webhook secret from Stripe dashboard
 
 ---
 
