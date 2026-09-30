@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
-import Stripe from 'stripe'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { logger } from '@/lib/logging/logger'
+import type Stripe from 'stripe'
+import { getStripe, requireEnv } from '@/lib/billing/stripe'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2026-02-25.clover' as any,
-})
-
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
+/**
+ * The signing secret is read per request rather than at module scope, for the
+ * same reason the client is lazy. A module scope read of this would bake the
+ * value in at build time and the build has no secrets.
+ */
 
 export async function POST(request: NextRequest) {
   const body = await request.text()
@@ -23,7 +24,7 @@ export async function POST(request: NextRequest) {
   let event: Stripe.Event
 
   try {
-    event = stripe.webhooks.constructEvent(body, signature, webhookSecret)
+    event = getStripe().webhooks.constructEvent(body, signature, requireEnv('STRIPE_WEBHOOK_SECRET'))
   } catch (err) {
     const error = err as Error
     logger.error('Webhook signature verification failed', { message: error.message })
@@ -57,7 +58,7 @@ export async function POST(request: NextRequest) {
         }
 
         try {
-          const sub = await stripe.subscriptions.retrieve(
+          const sub = await getStripe().subscriptions.retrieve(
             session.subscription as string
           )
 
@@ -128,7 +129,7 @@ export async function POST(request: NextRequest) {
 
           if (profile) {
             const subscriptionId = (invoice as any).subscription as string
-            const subscriptionData = await stripe.subscriptions.retrieve(subscriptionId)
+            const subscriptionData = await getStripe().subscriptions.retrieve(subscriptionId)
             const { error: updateErr } = await supabaseAdmin
               .from('subscriptions')
               .update({

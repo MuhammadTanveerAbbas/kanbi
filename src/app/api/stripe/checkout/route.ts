@@ -1,12 +1,10 @@
 import { createClient as createServerClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { logger } from "@/lib/logging/logger";
-import Stripe from "stripe";
 import { NextRequest, NextResponse } from "next/server";
+import { getStripe, requireEnv } from '@/lib/billing/stripe';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2026-02-25.clover' as any,
-});
+
 
 export async function POST(request: NextRequest) {
   try {
@@ -36,7 +34,7 @@ export async function POST(request: NextRequest) {
     let customerId = profile.stripe_customer_id;
 
     if (!customerId) {
-      const customer = await stripe.customers.create({
+      const customer = await getStripe().customers.create({
         email: profile.email,
         metadata: { userId },
       });
@@ -49,18 +47,18 @@ export async function POST(request: NextRequest) {
         .eq("id", userId);
     }
 
-    const session = await stripe.checkout.sessions.create({
+    const session = await getStripe().checkout.sessions.create({
       customer: customerId,
       mode: "subscription",
       line_items: [
         {
-          price: process.env.STRIPE_PRICE_ID!,
+          price: requireEnv('STRIPE_PRICE_ID'),
           quantity: 1,
         },
       ],
       metadata: { supabase_user_id: userId },
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?upgraded=true`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/#pricing`,
+      success_url: `${requireEnv('NEXT_PUBLIC_APP_URL')}/dashboard?upgraded=true`,
+      cancel_url: `${requireEnv('NEXT_PUBLIC_APP_URL')}/#pricing`,
     });
 
     return NextResponse.json({ url: session.url });

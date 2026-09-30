@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
+import { optionalEnv } from '@/lib/env';
 
-const UPSTASH_URL = process.env.UPSTASH_REDIS_REST_URL;
-const UPSTASH_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
+// Both are optional. Without them the limiter falls back to an in process map,
+// which is correct for a single instance and weaker across several, so the
+// fallback is a real choice rather than a stub.
+const UPSTASH_URL = optionalEnv('UPSTASH_REDIS_REST_URL');
+const UPSTASH_TOKEN = optionalEnv('UPSTASH_REDIS_REST_TOKEN');
 
 function createRatelimit(maxRequests: number, windowMs: number) {
   if (UPSTASH_URL && UPSTASH_TOKEN) {

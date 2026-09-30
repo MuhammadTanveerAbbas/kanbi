@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
+import { requireEnv } from '@/lib/env';
 
 const updateProfileSchema = z.object({
   full_name: z.string().min(1, 'Name is required').max(100, 'Name too long').trim(),
@@ -70,7 +71,7 @@ export async function DELETE() {
   const { createClient: createAdmin } = await import('@supabase/supabase-js');
   const adminClient = createAdmin(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
+    requireEnv('SUPABASE_SERVICE_ROLE_KEY')
   );
   await adminClient.auth.admin.deleteUser(user.id);
 

@@ -447,6 +447,93 @@ describe('Fitness: the changelog numbers are measurable', () => {
   })
 })
 
+describe('Fitness: the build needs no secrets', () => {
+  it('never constructs a client at module scope', () => {
+    // Next imports every route module while collecting page data for the build.
+    // A constructor call at module scope runs then, with no secrets available,
+    // and takes the whole build down. The Stripe routes did exactly this and
+    // left main red for months, because CI has no keys and the developer's
+    // machine did.
+    const offenders: string[] = []
+    const moduleScopeCtor = /^(?:export\s+)?const\s+\w+\s*=\s*new\s+(Stripe|SupabaseClient|createClient)\b/
+
+    for (const file of sourceFiles(join(ROOT, 'src'))) {
+      const source = codeOnly(readFileSync(file, 'utf-8'))
+      for (const line of source.split('\n')) {
+        if (moduleScopeCtor.test(line.trim())) {
+          offenders.push(`${relative(ROOT, file)}: ${line.trim().slice(0, 60)}`)
+        }
+      }
+    }
+    expect(offenders).toEqual([])
+  })
+
+  it('reads server secrets through a helper that names the variable', () => {
+    // A bare non null assertion on a server secret turns a missing variable
+    // into an `undefined` string inside a request, which fails at the far end
+    // with a message pointing at the provider rather than at the configuration.
+    //
+    // `NEXT_PUBLIC_` variables are excluded on purpose. Next inlines those into
+    // the bundle at build time, they are visible to the visitor by design, and
+    // asserting on them here would be checking something that is already
+    // guaranteed.
+    const offenders: string[] = []
+    const pattern = /process\.env\.(?!NEXT_PUBLIC_)[A-Z_]+!/g
+    for (const file of sourceFiles(join(ROOT, 'src'))) {
+      const source = codeOnly(readFileSync(file, 'utf-8'))
+      for (const match of source.matchAll(pattern)) {
+        offenders.push(`${relative(ROOT, file)}: ${match[0]}`)
+      }
+    }
+    expect(offenders).toEqual([])
+  })
+
+  it('reads a server secret at module scope only with a fallback', () => {
+    // Reading inside a function is what makes the build safe. Reading at module
+    // scope bakes the value in while Next collects page data, which is how the
+    // Stripe routes used to take the whole build down on CI.
+    //
+    // A module scope read is allowed when it has a fallback, because then a
+    // missing value is a legitimate state and nothing is baked in.
+    const offenders: string[] = []
+    const bareRead = /process\.env\.(?!NEXT_PUBLIC_)[A-Z_]+\s*[!),;]?\s*$/
+
+    for (const file of sourceFiles(join(ROOT, 'src'))) {
+      for (const line of codeOnly(readFileSync(file, 'utf-8')).split('\n')) {
+        const trimmed = line.trim()
+        const isModuleScope =
+          /^export\s+(const|let|var)\s/.test(trimmed) || /^const\s+\w+\s*=/.test(trimmed)
+        if (!isModuleScope) continue
+        if (bareRead.test(trimmed)) {
+          offenders.push(`${relative(ROOT, file)}: ${trimmed.slice(0, 60)}`)
+        }
+      }
+    }
+    expect(offenders).toEqual([])
+  })
+
+  it('has a lazy Stripe client and a message that names the variable', () => {
+    const client = readFileSync(join(ROOT, 'src/lib/billing/stripe.ts'), 'utf-8')
+    expect(client).toContain('export function getStripe')
+    // It has to actually be lazy, not merely mention laziness.
+    expect(client).not.toMatch(/^const\s+\w+\s*=\s*new\s+Stripe/m)
+    expect(client).not.toMatch(/^export function requireEnv/m)
+
+    const env = readFileSync(join(ROOT, 'src/lib/env.ts'), 'utf-8')
+    expect(env).toContain('export function requireEnv')
+    expect(env).toContain('export function optionalEnv')
+    // The error has to name the variable, otherwise it is just a stack trace.
+    expect(env).toContain('is not set')
+  })
+
+  it('fails closed when the cron secret is absent', () => {
+    // Failing open here would let anyone call the maintenance routes on a
+    // deployment that simply has not configured one.
+    const cron = readFileSync(join(ROOT, 'src/lib/cron-auth.ts'), 'utf-8')
+    expect(cron).toMatch(/if \(!secret\) return false/)
+  })
+})
+
 describe('Fitness: templates are usable', () => {
   it('gives every template a unique id, a label, and a description', () => {
     const ids = BOARD_TEMPLATES.map((t) => t.id);
