@@ -361,6 +361,46 @@ three times taller than any real month and the caption named it as the busiest
 month. Monthly counts and snapshot counts are now separate series, and a fitness
 check refuses to let a cumulative total into a per-month axis again.
 
+### CI, and the build that could never pass on it
+
+Two separate faults, both of them months old.
+
+**The workflow declared two different versions of pnpm.** The workflow asked for
+version 10 and `package.json` asked for `pnpm@10.6.5`. The action refuses to start
+when those disagree, so every run failed before doing any work. `main` was red and
+the deploy was failing, and the cause was one line in a file nobody opens during
+a release.
+
+**The build required a secret it had no right to require.** The three billing
+routes each called `new Stripe(process.env.STRIPE_SECRET_KEY!)` at module scope.
+Next imports every route module while collecting page data for the build, so the
+Stripe constructor ran during `next build` with no key present and threw:
+
+```
+Error: Failed to collect page data for /api/stripe/checkout
+Error: Neither apiKey nor config.authenticator provided
+```
+
+So the build only ever worked on a machine that happened to have a real secret in
+`.env.local`. CI has no secrets, therefore CI could never have passed. Verified
+by moving `.env.local` aside: the build completes with no environment
+configuration at all, and also completes with it present.
+
+The client is now built on first use. Every server secret is read through
+`src/lib/env.ts`, which throws naming the missing variable instead of sending
+the string `undefined` to a provider and reporting the provider's error. The
+genuinely optional ones, the rate limiter and the cron secret, go through
+`optionalEnv`, so an absent value is a documented choice rather than an assertion
+that it cannot be absent. A non null assertion is not a check, it is a promise
+that nobody verifies.
+
+A fitness check now fails if any module constructs a client at module scope or
+reads a server secret with a non null assertion.
+
+The cron guard was also confirmed to fail closed. With no secret configured it
+returns false, so the maintenance routes stay closed on a deployment that has not
+set one.
+
 ### Brand icons
 
 The footer used three generic line glyphs for GitHub, X, and LinkedIn. They are
