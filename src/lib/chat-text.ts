@@ -1,21 +1,35 @@
-/** Strip em/en dashes from AI text; use plain punctuation instead. */
+/**
+ * Chat text helpers.
+ *
+ * Re-exported from the shared prose normaliser so that chat, briefings, and
+ * exported documents all use exactly one set of punctuation rules.
+ *
+ * The older local implementation replaced every em dash with a comma, which
+ * produced text like "a plan, and a review". The shared normaliser chooses
+ * between a full stop and a comma based on what follows the dash.
+ */
+
+export {
+  normalizeProse,
+  normalizeChatReply,
+  normalizeLine,
+  hasForbiddenPunctuation,
+  type NormalizeOptions,
+} from '@/lib/text/normalize';
+
+import { normalizeChatReply as normalize, normalizeLine as toLine } from '@/lib/text/normalize';
+
+/** Normalises a chat reply and keeps it scannable. */
 export function sanitizeChatText(text: string): string {
-  return text
-    .replace(/\u2014/g, ', ')
-    .replace(/\u2013/g, '-')
-    .replace(/,\s*,/g, ', ')
-    .replace(/\s{2,}/g, ' ')
-    .trim();
+  return normalize(text);
 }
 
-/** Keep chat replies short and scannable. */
-export function truncateChatResponse(text: string, maxChars = 280): string {
-  const cleaned = sanitizeChatText(text);
-  if (cleaned.length <= maxChars) return cleaned;
+/** Kept for callers that want a short, single line reply. */
+export function truncateChatResponse(text: string, maxChars = 320): string {
+  return normalize(text, maxChars);
+}
 
-  const slice = cleaned.slice(0, maxChars);
-  const lastStop = Math.max(slice.lastIndexOf('.'), slice.lastIndexOf('!'), slice.lastIndexOf('?'));
-  if (lastStop > maxChars * 0.45) return slice.slice(0, lastStop + 1).trim();
-
-  return `${slice.trim()}...`;
+/** Normalises a task title, label, or other single line of text. */
+export function normalizeChatLine(text: string): string {
+  return toLine(text);
 }

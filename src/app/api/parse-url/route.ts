@@ -4,37 +4,10 @@ import { usageService } from '@/lib/services/usage-service';
 import { AIService } from '@/lib/ai-service';
 import { logger } from '@/lib/logging/logger';
 import { rateLimit, rateLimitResponse } from '@/lib/rate-limiter';
-import { FETCH_TIMEOUT } from '@/lib/constants';
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const cheerio = require('cheerio') as { load: (html: string) => (sel: string | unknown) => { remove: () => void; text: () => string; attr: (n: string) => string | undefined; each: (fn: (i: number, el: unknown) => void) => void } };
+import { safeFetch, BlockedUrlError } from '@/lib/outbound-url';
+import * as cheerio from 'cheerio';
 
 const MAX_TEXT_LENGTH = 4000;
-
-// SSRF protection: block private/internal IP ranges
-const BLOCKED_HOSTNAMES = [
-  'localhost', '127.0.0.1', '0.0.0.0', '::1',
-  '10.', '172.16.', '172.17.', '172.18.', '172.19.',
-  '172.20.', '172.21.', '172.22.', '172.23.', '172.24.',
-  '172.25.', '172.26.', '172.27.', '172.28.', '172.29.',
-  '172.30.', '172.31.', '192.168.',
-  '169.254.', '100.', // CGNAT range block for safety
-];
-
-function isBlockedHost(hostname: string): boolean {
-  const lower = hostname.toLowerCase();
-  return BLOCKED_HOSTNAMES.some(blocked => lower === blocked || lower.startsWith(blocked));
-}
-
-function isValidUrl(s: string): boolean {
-  try {
-    const u = new URL(s);
-    if (u.protocol !== 'http:' && u.protocol !== 'https:') return false;
-    if (isBlockedHost(u.hostname)) return false;
-    return true;
-  } catch {
-    return false;
-  }
-}
 
 export async function POST(request: NextRequest) {
   const limit = await rateLimit(request, { maxRequests: 15, windowMs: 60000 });
@@ -69,17 +42,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!isValidUrl(url)) {
-      return NextResponse.json(
-        { error: 'Invalid URL format' },
-        { status: 400 }
-      );
+    // safeFetch validates the scheme, the hostname, and every resolved address,
+    // and re-validates each redirect hop. A hostname blocklist alone would miss
+    // a name that resolves to a private address.
+    let res: Response;
+    try {
+      const { response } = await safeFetch(url);
+      res = response;
+    } catch (error) {
+      if (error instanceof BlockedUrlError) {
+        logger.warn('Blocked outbound URL request', { reason: error.reason });
+        return NextResponse.json({ error: 'Invalid URL format' }, { status: 400 });
+      }
+      if (error instanceof Error && (error.name === 'TimeoutError' || error.name === 'AbortError')) {
+        return NextResponse.json(
+          { error: 'URL took too long to load. Try a different URL.' },
+          { status: 408 }
+        );
+      }
+      throw error;
     }
-
-    const res = await fetch(url, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; KanbiBot/1.0)' },
-      signal: AbortSignal.timeout(FETCH_TIMEOUT)
-    });
 
     if (!res.ok) {
       return NextResponse.json(
@@ -88,15 +70,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const contentLength = res.headers.get('content-length');
-    if (contentLength && parseInt(contentLength, 10) > 2 * 1024 * 1024) {
-      return NextResponse.json(
-        { error: 'Response too large' },
-        { status: 413 }
-      );
+    let html: string;
+    try {
+      html = await res.text();
+    } catch {
+      return NextResponse.json({ error: 'Response too large' }, { status: 413 });
     }
-
-    const html = await res.text();
     if (html.length > 2 * 1024 * 1024) {
       return NextResponse.json(
         { error: 'Response too large' },
@@ -112,11 +91,11 @@ export async function POST(request: NextRequest) {
     const parts: string[] = [];
     if (title) parts.push(title);
     if (desc) parts.push(desc);
-    $('h1, h2, h3, h4, h5, h6').each((i: number, el: unknown) => {
+    $('h1, h2, h3, h4, h5, h6').each((_i, el) => {
       const t = ($(el).text() || '').trim();
       if (t) parts.push(t);
     });
-    $('p, li').each((i: number, el: unknown) => {
+    $('p, li').each((_i, el) => {
       const t = ($(el).text() || '').trim();
       if (t) parts.push(t);
     });
@@ -149,7 +128,9 @@ export async function POST(request: NextRequest) {
         { status: 408 }
       );
     }
-    const message = error instanceof Error ? error.message : 'Failed to extract tasks from URL';
+    // The upstream message is not echoed to the client, since a fetch failure can
+    // contain internal hostnames and addresses.
+    const message = 'Failed to extract tasks from URL';
     return NextResponse.json(
       { error: message },
       { status: 500 }

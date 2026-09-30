@@ -1,17 +1,15 @@
 import jsPDF from 'jspdf';
-
-interface Task {
-  id: string;
-  title: string;
-  priority: string;
-  status: string;
-  owner?: string;
-  deadline?: string;
-}
+import {
+  BOARD_TASK_COLUMNS,
+  PRIORITY_LABELS,
+  type BoardTaskPriority,
+  type BoardTaskStatus,
+} from '@/lib/constants';
+import type { ExportedTask } from './docx-exporter';
 
 interface BoardData {
   title: string;
-  tasks: Task[];
+  tasks: ExportedTask[];
   createdAt?: string;
   userName?: string;
 }
@@ -33,10 +31,8 @@ export class PdfExporter {
     doc.text(`Created: ${createdAt || new Date().toLocaleDateString()} | By: ${userName || 'User'} | Total: ${tasks.length} tasks`, 105, yPos, { align: 'center' });
     yPos += 15;
 
-    const statuses = ['To Do', 'In Progress', 'Done'];
-    
-    for (const status of statuses) {
-      const filtered = tasks.filter(t => t.status === status);
+    for (const column of BOARD_TASK_COLUMNS) {
+      const filtered = tasks.filter((t) => t.status === column.status);
       if (filtered.length === 0) continue;
 
       if (yPos > 250) {
@@ -46,7 +42,7 @@ export class PdfExporter {
 
       doc.setFontSize(14);
       doc.setFont('helvetica', 'bold');
-      doc.text(status, 20, yPos);
+      doc.text(column.label, 20, yPos);
       yPos += 8;
 
       doc.setFontSize(10);
@@ -69,7 +65,7 @@ export class PdfExporter {
 
         doc.setFontSize(8);
         doc.setTextColor(100);
-        doc.text(`Priority: ${task.priority} | Owner: ${task.owner || 'Me'} | Deadline: ${task.deadline || 'Not set'}`, 27, yPos);
+        doc.text(detailsLine(task), 27, yPos);
         doc.setTextColor(0);
         doc.setFontSize(10);
         yPos += 8;
@@ -86,13 +82,26 @@ export class PdfExporter {
     return pdfBuffer;
   }
 
-  private static getPriorityColor(priority: string): { r: number; g: number; b: number } {
-    const colors: Record<string, { r: number; g: number; b: number }> = {
-      'Urgent': { r: 239, g: 68, b: 68 },
-      'High': { r: 249, g: 115, b: 22 },
-      'Medium': { r: 234, g: 179, b: 8 },
-      'Low': { r: 34, g: 197, b: 94 },
-    };
-    return colors[priority] || { r: 156, g: 163, b: 175 };
+  private static getPriorityColor(priority: BoardTaskPriority): { r: number; g: number; b: number } {
+    return PRIORITY_RGB[priority] ?? { r: 156, g: 163, b: 175 };
   }
+}
+
+const PRIORITY_RGB: Record<BoardTaskPriority, { r: number; g: number; b: number }> = {
+  urgent: { r: 225, g: 29, b: 72 },
+  high: { r: 234, g: 88, b: 12 },
+  medium: { r: 202, g: 138, b: 4 },
+  low: { r: 22, g: 163, b: 74 },
+};
+
+/** Detail line under each task, using the same fields as the DOCX export. */
+function detailsLine(task: ExportedTask): string {
+  return [
+    `Priority: ${PRIORITY_LABELS[task.priority] ?? task.priority}`,
+    task.label ? `Label: ${task.label}` : null,
+    task.estimate ? `Estimate: ${task.estimate}` : null,
+    `Due: ${task.dueDate || 'Not set'}`,
+  ]
+    .filter(Boolean)
+    .join(' | ');
 }

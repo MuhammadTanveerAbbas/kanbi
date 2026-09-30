@@ -2,6 +2,11 @@ import Groq from 'groq-sdk'
 import { GROQ_API_KEY, GROQ_MODEL } from '@/lib/constants'
 import { cacheManager } from '@/lib/cache/cache-manager'
 import { logger } from '@/lib/logging/logger'
+import {
+  selectModelFromCatalog,
+  type ModelRequirement,
+  type GroqModelInfo,
+} from '@/lib/ai/model-selector'
 
 const MODEL_CACHE_KEY = 'groq:models'
 const MODEL_CACHE_TTL_MS = 60 * 60 * 1000 // 1 hour
@@ -11,15 +16,6 @@ const MAX_TRANSIENT_RETRIES = 2
 const BASE_BACKOFF_MS = 400
 const MAX_BACKOFF_MS = 10_000
 const MAX_RETRY_AFTER_MS = 15_000
-
-/** Preferred chat models in deterministic order. The first available one wins. */
-const MODEL_PREFERENCES = [
-  GROQ_MODEL,
-  'llama-3.1-8b-instant',
-  'llama-3.1-70b-versatile',
-  'gemma2-9b-it',
-  'mixtral-8x7b-32768',
-]
 
 let groqClient: Groq | null = null
 
@@ -38,55 +34,88 @@ export function getGroq(): Groq {
   return groqClient
 }
 
-/** Fetches the available model list from Groq, cached server-side with a TTL. */
-async function fetchAvailableModels(forceRefresh: boolean): Promise<string[]> {
+/**
+ * Fetches the model catalog from Groq, cached server-side with a TTL.
+ *
+ * The catalog is the only source of truth about which models exist right now.
+ * Nothing in this file hardcodes a belief that one model is permanently correct.
+ */
+export async function fetchModelCatalog(forceRefresh = false): Promise<GroqModelInfo[]> {
   if (!forceRefresh) {
-    const cached = cacheManager.get<string[]>(MODEL_CACHE_KEY)
+    const cached = cacheManager.get<GroqModelInfo[]>(MODEL_CACHE_KEY)
     if (cached) return cached
   }
 
   const list = await getGroq().models.list()
-  const ids = (list.data ?? [])
-    // runtime tolerance for deprecated models the SDK type does not expose
-    .filter((model) => (model as { active?: boolean }).active !== false)
-    .map((model) => model.id)
-    .filter((id): id is string => Boolean(id))
 
-  if (ids.length > 0) {
-    cacheManager.set(MODEL_CACHE_KEY, ids, MODEL_CACHE_TTL_MS)
+  // The SDK's Model type is looser than the live response, which also carries
+  // active, context_window, and max_completion_tokens. Reading through unknown
+  // keeps this resilient to either shape without asserting a field exists.
+  type RawModel = {
+    id?: unknown
+    active?: unknown
+    context_window?: unknown
+    max_completion_tokens?: unknown
   }
-  return ids
+
+  const catalog: GroqModelInfo[] = []
+  for (const entry of list.data ?? []) {
+    const model = entry as RawModel
+    if (model.active === false) continue
+    if (typeof model.id !== 'string' || model.id.length === 0) continue
+
+    catalog.push({
+      id: model.id,
+      contextWindow:
+        typeof model.context_window === 'number' ? model.context_window : undefined,
+      maxCompletionTokens:
+        typeof model.max_completion_tokens === 'number'
+          ? model.max_completion_tokens
+          : undefined,
+    })
+  }
+
+  if (catalog.length > 0) {
+    cacheManager.set(MODEL_CACHE_KEY, catalog, MODEL_CACHE_TTL_MS)
+  }
+  return catalog
 }
 
 /**
- * Selects a model deterministically: the preferred model first, then known
- * compatible candidates, then the first available model. When discovery fails,
- * degrades to the preferred model so requests can still be attempted.
+ * Chooses a model for a request.
+ *
+ * Selection is driven by the live catalog plus the request's actual
+ * requirements, not by a permanent winner. When the catalog cannot be reached
+ * the configured GROQ_MODEL is used so the request can still be attempted, and
+ * the createChatCompletion fallback path handles a rejection.
  */
-export async function selectModel(forceRefresh = false): Promise<string> {
-  let available: string[] = []
+export async function selectModelForRequest(
+  requirement: ModelRequirement = {},
+  forceRefresh = false
+): Promise<string> {
+  let catalog: GroqModelInfo[] = []
   try {
-    available = await fetchAvailableModels(forceRefresh)
+    catalog = await fetchModelCatalog(forceRefresh)
   } catch (error) {
-    logger.warn('Failed to fetch Groq model list, using preferred model', {
+    logger.warn('Failed to fetch Groq model list, using configured model', {
       error: error instanceof Error ? error.message : String(error),
     })
   }
 
-  for (const candidate of MODEL_PREFERENCES) {
-    if (available.includes(candidate)) return candidate
-  }
-  if (available.length > 0) return available[0] ?? GROQ_MODEL
-  return GROQ_MODEL
+  // GROQ_MODEL is the last resort when discovery failed or nothing in the
+  // catalog is usable. If it is also rejected, createChatCompletion surfaces a
+  // controlled error rather than looping.
+  return selectModelFromCatalog(catalog, requirement, GROQ_MODEL) ?? GROQ_MODEL
 }
 
-/** Picks the next deterministic candidate, excluding the failed model. */
-function pickFallbackModel(failedModel: string, available: string[]): string | null {
-  const candidates =
-    available.length > 0
-      ? MODEL_PREFERENCES.filter((m) => available.includes(m))
-      : MODEL_PREFERENCES
-  return candidates.find((m) => m !== failedModel) ?? null
+/** Picks the next candidate after a failure, excluding the model that just failed. */
+function pickFallbackModel(failedModel: string, catalog: GroqModelInfo[]): string | null {
+  const preferred = selectModelFromCatalog(
+    catalog,
+    { exclude: [failedModel] },
+    null
+  )
+  return preferred
 }
 
 function getErrorStatus(error: unknown): number | undefined {
@@ -188,17 +217,19 @@ export interface ChatCompletionParams {
 
 /**
  * Centralized Groq chat completion with self-healing behavior:
- * - model discovery (cached) with deterministic selection
- * - automatic model fallback (refresh list, pick next compatible, retry once)
+ * - model selection from the live catalog against the request's requirements
+ * - automatic model fallback (refresh catalog, pick next compatible, retry once)
  * - bounded retries for rate limits (Retry-After / backoff + jitter) and transient errors
  * - controlled failure when no recovery is possible
  */
 export async function createChatCompletion(params: ChatCompletionParams) {
   const client = getGroq()
-  let model = params.model ?? (await selectModel())
+  const requirement: ModelRequirement = { maxOutputTokens: params.max_tokens }
 
-  // At most 2 model attempts: preferred model, then the next suitable one.
-  for (let modelAttempt = 0; modelAttempt <= 1; modelAttempt++) {
+  let model = params.model ?? (await selectModelForRequest(requirement))
+
+  // At most 2 model attempts: the selected model, then the next suitable one.
+  for (let modelAttempt = 0; modelAttempt < 2; modelAttempt++) {
     try {
       return await withRetries(() =>
         client.chat.completions.create({ ...params, model, stream: false })
@@ -206,16 +237,16 @@ export async function createChatCompletion(params: ChatCompletionParams) {
     } catch (error) {
       if (!isModelUnavailableError(error) || modelAttempt === 1) throw error
 
-      let available: string[] = []
+      let catalog: GroqModelInfo[] = []
       try {
-        available = await fetchAvailableModels(true)
+        catalog = await fetchModelCatalog(true)
       } catch (refreshError) {
         logger.warn('Failed to refresh Groq model list', {
           error: refreshError instanceof Error ? refreshError.message : String(refreshError),
         })
       }
 
-      const fallback = pickFallbackModel(model, available)
+      const fallback = pickFallbackModel(model, catalog)
       if (!fallback) throw error
       logger.warn('Groq model unavailable, switching model', { from: model, to: fallback })
       model = fallback

@@ -1,17 +1,25 @@
-import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, Table, TableRow, TableCell, WidthType, BorderStyle } from 'docx';
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from 'docx';
+import {
+  BOARD_TASK_COLUMNS,
+  PRIORITY_LABELS,
+  type BoardTaskPriority,
+  type BoardTaskStatus,
+} from '@/lib/constants';
 
-interface Task {
-  id: string;
+/** A task as stored on the board. Priority and status are the storage casings. */
+export interface ExportedTask {
+  id?: string;
   title: string;
-  priority: string;
-  status: string;
-  owner?: string;
-  deadline?: string;
+  priority: BoardTaskPriority;
+  status: BoardTaskStatus;
+  label?: string;
+  dueDate?: string;
+  estimate?: string;
 }
 
 interface BoardData {
   title: string;
-  tasks: Task[];
+  tasks: ExportedTask[];
   createdAt?: string;
   userName?: string;
 }
@@ -39,9 +47,9 @@ export class DocxExporter {
             alignment: AlignmentType.CENTER,
             spacing: { after: 600 },
           }),
-          ...this.createTasksByStatus(tasks, 'To Do'),
-          ...this.createTasksByStatus(tasks, 'In Progress'),
-          ...this.createTasksByStatus(tasks, 'Done'),
+          // flatMap, not map, so each column's paragraphs are spliced in rather
+          // than nested as arrays inside the section.
+          ...BOARD_TASK_COLUMNS.flatMap((column) => this.createTasksByStatus(tasks, column)),
           new Paragraph({
             text: '---',
             spacing: { before: 400, after: 200 },
@@ -59,48 +67,44 @@ export class DocxExporter {
     return await Packer.toBuffer(doc);
   }
 
-  private static createTasksByStatus(tasks: Task[], status: string): Paragraph[] {
-    const filtered = tasks.filter(t => t.status === status);
+  private static createTasksByStatus(
+    tasks: ExportedTask[],
+    column: (typeof BOARD_TASK_COLUMNS)[number]
+  ): Paragraph[] {
+    const filtered = tasks.filter((t) => t.status === column.status);
     if (filtered.length === 0) return [];
 
     const paragraphs: Paragraph[] = [
       new Paragraph({
-        text: status,
+        text: column.label,
         heading: HeadingLevel.HEADING_2,
         spacing: { before: 400, after: 200 },
       }),
     ];
 
     filtered.forEach((task, index) => {
-      const priorityEmoji = this.getPriorityEmoji(task.priority);
-      
+      const details = [
+        `Priority: ${PRIORITY_LABELS[task.priority]}`,
+        task.label ? `Label: ${task.label}` : null,
+        task.estimate ? `Estimate: ${task.estimate}` : null,
+        `Due: ${task.dueDate || 'Not set'}`,
+      ].filter(Boolean).join(' | ');
+
       paragraphs.push(
         new Paragraph({
           children: [
-            new TextRun({ text: `${index + 1}. ${priorityEmoji} `, bold: true }),
+            new TextRun({ text: `${index + 1}. `, bold: true }),
             new TextRun({ text: task.title, bold: true }),
           ],
           spacing: { after: 100 },
         }),
         new Paragraph({
-          children: [
-            new TextRun({ text: `   Priority: ${task.priority} | Owner: ${task.owner || 'Me'} | Deadline: ${task.deadline || 'Not set'}`, size: 20 }),
-          ],
+          children: [new TextRun({ text: `   ${details}`, size: 20 })],
           spacing: { after: 200 },
         })
       );
     });
 
     return paragraphs;
-  }
-
-  private static getPriorityEmoji(priority: string): string {
-    const map: Record<string, string> = {
-      'Urgent': '🔴',
-      'High': '🟠',
-      'Medium': '🟡',
-      'Low': '🟢',
-    };
-    return map[priority] || '⚪';
   }
 }

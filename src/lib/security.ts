@@ -37,23 +37,58 @@ function isSameSiteRequest(request: NextRequest, url: URL): boolean {
   return !!host && url.host === host;
 }
 
+/**
+ * API paths that are legitimately called without a browser origin. Each one
+ * authenticates the caller by its own means (a webhook signature, a bearer
+ * token), so the origin check does not apply to them.
+ */
+const SERVER_TO_SERVER_PATHS = [
+  '/api/webhooks/',
+  '/api/cron/',
+  '/api/keep-alive',
+];
+
+function isServerToServerPath(pathname: string): boolean {
+  return SERVER_TO_SERVER_PATHS.some(
+    (path) => pathname === path || pathname.startsWith(path)
+  );
+}
+
 export function checkCsrfOrigin(request: NextRequest): boolean {
   if (request.method === 'GET' || request.method === 'HEAD' || request.method === 'OPTIONS') {
+    return true;
+  }
+
+  const { pathname } = request.nextUrl;
+  if (isServerToServerPath(pathname)) {
     return true;
   }
 
   const origin = request.headers.get('origin');
   const referer = request.headers.get('referer');
 
-  // Allow server-to-server calls (webhooks, cron) with no browser origin
-  if (!origin && !referer) return true;
+  // A state-changing browser request always carries an Origin header in every
+  // currently supported browser. When it is absent, treat the request as
+  // cross-site rather than allowing it, so a forged form POST that suppresses
+  // both headers is rejected instead of admitted.
+  if (!origin && !referer) {
+    return false;
+  }
 
   const allowed = collectAllowedOrigins(request);
 
   if (origin) {
     try {
       const originUrl = new URL(origin);
-      return isSameSiteRequest(request, originUrl) || matchesAllowedOrigin(originUrl, allowed);
+      if (isSameSiteRequest(request, originUrl)) return true;
+      if (matchesAllowedOrigin(originUrl, allowed)) return true;
+
+      // An explicit same-site fetch from our own origin is trustworthy even when
+      // the Host header differs, which happens behind a proxy or preview domain.
+      const fetchSite = request.headers.get('sec-fetch-site');
+      if (fetchSite === 'same-origin' || fetchSite === 'none') return true;
+
+      return false;
     } catch {
       return false;
     }

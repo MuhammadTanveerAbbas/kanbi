@@ -1,17 +1,12 @@
 import { z } from 'zod';
-import { TASK_STATUSES, TASK_PRIORITIES } from '@/lib/constants';
+import {
+  TASK_STATUSES,
+  TASK_PRIORITIES,
+  BOARD_TASK_PRIORITIES,
+  BOARD_TASK_STATUSES,
+} from '@/lib/constants';
 
-export const parseTasksSchema = z.object({
-  notes: z.string().min(1, 'Notes are required').max(10000, 'Notes too long. Max 10,000 characters'),
-});
 
-export const generateSchema = z.object({
-  input: z.string().min(1, 'Input text is required'),
-  tone: z.string().optional(),
-  length: z.enum(['short', 'medium', 'long']).optional(),
-  format: z.enum(['text', 'markdown', 'json', 'html']).optional(),
-  model: z.string().optional(),
-});
 
 export const analyzeWorkloadSchema = z.object({
   tasks: z.array(z.object({
@@ -27,20 +22,48 @@ export const analyzeWorkloadSchema = z.object({
   userCapacity: z.number().min(1).max(24).optional(),
 });
 
-export const saveBoardSchema = z.object({
-  title: z.string().min(1, 'Title is required').max(200),
-  tasks: z.array(z.any()),
-  tags: z.array(z.string()).optional(),
+/**
+ * A single task as the client sends it when saving a board.
+ *
+ * This is the largest AI-shaped payload the app accepts, so it is validated
+ * rather than passed through as `z.any()`. Every field is bounded because the
+ * value is stored as JSON and later re-read for rendering and export.
+ */
+export const boardTaskSchema = z.object({
+  id: z.string().max(100).optional(),
+  title: z.string().min(1, 'Task title is required').max(200),
+  priority: z.enum(BOARD_TASK_PRIORITIES).catch('medium'),
+  label: z.string().max(50).optional(),
+  status: z.enum(BOARD_TASK_STATUSES).catch('todo'),
+  dueDate: z.string().max(40).optional(),
+  estimate: z.string().max(20).optional(),
 });
 
-export const createSavedGenerationSchema = z.object({
-  input_text: z.string().min(1, 'Input text is required'),
-  output_text: z.string().min(1, 'Output text is required'),
-  tone: z.string().optional(),
-  length: z.string().optional(),
-  format: z.string().optional(),
-  title: z.string().optional(),
+/** A board cannot be arbitrarily large, so the task count is capped. */
+export const MAX_TASKS_PER_BOARD = 500;
+
+export const saveBoardSchema = z.object({
+  title: z.string().trim().min(1, 'Title is required').max(200),
+  tasks: z.array(boardTaskSchema).max(MAX_TASKS_PER_BOARD, 'Too many tasks in one board'),
+  tags: z.array(z.string().max(50)).max(20).optional(),
+  category: z.string().max(50).optional(),
+  icon: z.string().max(50).optional(),
 });
+
+/**
+ * Input for the AI extraction endpoint.
+ *
+ * The text is trimmed before the length check so a whitespace-only payload is
+ * rejected as empty rather than reaching the model.
+ */
+export const extractSchema = z.object({
+  text: z
+    .string()
+    .trim()
+    .min(1, 'Text is required')
+    .max(10_000, 'Text too long. Max 10,000 characters'),
+});
+
 
 export const trackCompletionSchema = z.object({
   taskId: z.string(),
@@ -60,10 +83,4 @@ export const feedbackSchema = z.object({
   email: z.string().email().optional(),
 });
 
-export const parseEmailSchema = z.object({
-  emailContent: z.string().min(1, 'Email content is required'),
-});
 
-export const parseUrlSchema = z.object({
-  url: z.string().url('Invalid URL'),
-});

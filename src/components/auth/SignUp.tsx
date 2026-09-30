@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import AuthLayout from "@/components/auth/AuthLayout";
 import { AuthField, AuthButton, SocialAuth, getPasswordStrength } from "@/components/auth/AuthComponents";
+import { ErrorNotice } from "@/components/error-notice";
 
 const I = {
   spark: (s = 20) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .962 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.962 0z" /></svg>,
@@ -71,14 +72,14 @@ export default function SignUpPage() {
     return (
       <AuthLayout>
         <div className="auth-card" style={{ textAlign: "center" }}>
-          <div style={{ width: 56, height: 56, borderRadius: 14, background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.25)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--gr)", margin: "0 auto 18px" }}>
+          <div style={{ width: 56, height: 56, borderRadius: 14, background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.25)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--gr-text)", margin: "0 auto 18px" }}>
             {I.send()}
           </div>
           <h2 style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.03em", color: "var(--tx)", marginBottom: 10 }}>Check your email</h2>
           <p style={{ fontSize: 13.5, color: "var(--tx2)", lineHeight: 1.65, maxWidth: 320, margin: "0 auto 10px", wordBreak: "break-word" }}>
             We sent a confirmation link to <strong style={{ color: "var(--tx)" }}>{email}</strong>. Click it to activate your account.
           </p>
-          <p style={{ fontSize: 12, color: "var(--tx3)", marginBottom: 24 }}>Didn't receive it? Check your spam folder.</p>
+          <p style={{ fontSize: 12, color: "var(--tx3)", marginBottom: 24 }}>Didn&rsquo;t receive it? Check your spam folder.</p>
           <AuthButton variant="ghost" icon={I.back()} onClick={() => router.push("/sign-in")} type="button">
             Back to Sign In
           </AuthButton>
@@ -155,18 +156,20 @@ export default function SignUpPage() {
               </span>
               <span style={{ fontSize: 12, color: "var(--tx2)", lineHeight: 1.55 }}>
                 I agree to the{" "}
-                <a href="/terms" style={{ color: "var(--ac)" }}>Terms of Service</a>
+                <a href="/terms" style={{ color: "var(--ac-text)" }}>Terms of Service</a>
                 {" "}and{" "}
-                <a href="/privacy" style={{ color: "var(--ac)" }}>Privacy Policy</a>
+                <a href="/privacy" style={{ color: "var(--ac-text)" }}>Privacy Policy</a>
               </span>
             </label>
-            {errors.agreed && <p id={termsErrorId} role="alert" style={{ fontSize: 11.5, color: "var(--rd)", marginTop: 5, lineHeight: 1.45 }}>
-              <span aria-hidden="true">⚠</span> {errors.agreed}
+            {errors.agreed && <p id={termsErrorId} role="alert" style={{ fontSize: 11.5, color: "var(--rd-text)", marginTop: 5, lineHeight: 1.45 }}>
+              <ErrorNotice variant="inline">{errors.agreed}</ErrorNotice>
             </p>}
           </div>
 
-          {errors.general && <p role="alert" style={{ fontSize: 12, color: "var(--rd)", textAlign: "center", lineHeight: 1.45 }}>
-            <span aria-hidden="true">⚠</span> {errors.general}
+          {errors.general && <p role="alert" style={{ fontSize: 12, color: "var(--rd-text)", textAlign: "center", lineHeight: 1.45 }}>
+            <div style={{ display: "flex", justifyContent: "center" }}>
+              <ErrorNotice variant="inline">{errors.general}</ErrorNotice>
+            </div>
           </p>}
 
           <AuthButton loading={loading} icon={I.zap()}>
@@ -177,7 +180,7 @@ export default function SignUpPage() {
         <div style={{ marginTop: 20, paddingTop: 16, borderTop: "1px solid var(--br)", textAlign: "center" }}>
           <p style={{ fontSize: 13, color: "var(--tx2)" }}>
             Already have an account?{" "}
-            <a href="/sign-in" style={{ color: "var(--ac)", fontWeight: 600, cursor: "pointer", transition: "opacity .15s" }} onMouseOver={e => e.currentTarget.style.opacity = ".75"} onMouseOut={e => e.currentTarget.style.opacity = "1"}>
+            <a href="/sign-in" style={{ color: "var(--ac-text)", fontWeight: 600, cursor: "pointer", transition: "opacity .15s" }} onMouseOver={e => e.currentTarget.style.opacity = ".75"} onMouseOut={e => e.currentTarget.style.opacity = "1"}>
               Sign in
             </a>
           </p>

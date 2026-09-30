@@ -2,6 +2,7 @@ import LayoutWrapper from "@/components/layout-wrapper";
 import LenisProvider from "@/components/lenis-provider";
 import { Providers } from "@/components/providers";
 import { cn } from "@/lib/utils";
+import { SITE_URL } from "@/app/sitemap";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Sora } from "next/font/google";
 import "./globals.css";
@@ -25,40 +26,46 @@ const sora = Sora({
   weight: ["300", "400", "500", "600", "700", "800"],
 });
 
+/**
+ * One title and one description, reused everywhere. The previous values made
+ * time and effort claims ("saves 2 hours daily", "in 10 seconds") that no
+ * measurement in this repository supports, and pointed metadataBase at a
+ * different domain than the sitemap and robots file.
+ */
+const SITE_TITLE = 'Kanbi - Turn notes into a task board';
+const SITE_DESCRIPTION =
+  'Paste text, upload a PDF, or give a web page URL. Kanbi extracts the action items into a Kanban board, scores how loaded your week is, and exports to DOCX or PDF.';
+
 export const metadata: Metadata = {
-  title: "KANBI - AI Task Management That Saves 2 Hours Daily",
-  description:
-    "AI powered task management that turns messy notes into organized Kanban boards in 10 seconds. Features AI workload management, burnout prevention, and productivity coaching. Export to DOCX, PDF. $9/month.",
+  title: SITE_TITLE,
+  description: SITE_DESCRIPTION,
   keywords:
     "AI task management, kanban board, productivity app, AI workload management, burnout prevention, AI productivity coach, task automation, AI assistant, project management, free kanban, AI productivity tool, Groq AI",
   authors: [{ name: "Muhammad Tanveer Abbas" }],
   creator: "Muhammad Tanveer Abbas",
   publisher: "KANBI",
   robots: "index, follow",
-  metadataBase: new URL('https://kanbi.vercel.app'),
+  metadataBase: new URL(SITE_URL),
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "https://kanbi.vercel.app",
-    title: "KANBI - AI Task Management That Saves 2 Hours Daily",
-    description:
-      "Turns hours of task planning into 10 seconds. Smart workload management prevents burnout. Only $9/month.",
+    url: SITE_URL,
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
     siteName: "KANBI",
     images: [
       {
         url: '/opengraph-image',
         width: 1200,
         height: 630,
-        alt: 'Kanbi - AI Task Management',
+        alt: 'Kanbi - a Kanban board filled with extracted tasks',
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "KANBI - AI Task Management That Saves 2 Hours Daily",
-    description:
-      "AI powered task management with burnout prevention and productivity coaching. $9/month.",
-    creator: "@yourtwitterhandle",
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
     images: ['/twitter-image'],
   },
   icons: {

@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import AuthLayout from "@/components/auth/AuthLayout";
 import { AuthField, AuthButton, SocialAuth } from "@/components/auth/AuthComponents";
+import { ErrorNotice } from "@/components/error-notice";
 
 const I = {
   zap: (s = 22) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" /></svg>,
@@ -24,11 +25,15 @@ export default function SignInPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [remember, setRemember] = useState(false);
 
-  // Show error from OAuth callback redirect (e.g. Google denied)
-  useEffect(() => {
-    const err = searchParams.get("error");
-    if (err) setErrors({ general: decodeURIComponent(err) });
-  }, [searchParams]);
+  // Surface an error forwarded by the OAuth callback (for example when the
+  // provider denies access). Read during render so the message is present on the
+  // first paint instead of appearing a frame later.
+  const oauthError = searchParams.get("error");
+  const [shownOAuthError, setShownOAuthError] = useState<string | null>(null);
+  if (oauthError && oauthError !== shownOAuthError) {
+    setShownOAuthError(oauthError);
+    setErrors({ general: decodeURIComponent(oauthError) });
+  }
 
   const validate = () => {
     const e: Record<string, string> = {};
@@ -102,14 +107,16 @@ export default function SignInPage() {
               </span>
               <span style={{ fontSize: 12.5, color: "var(--tx2)" }}>Remember me</span>
             </label>
-            <a href="/forgot" style={{ fontSize: 13, color: "var(--ac)", cursor: "pointer", transition: "opacity .15s" }} onMouseOver={e => e.currentTarget.style.opacity = ".75"} onMouseOut={e => e.currentTarget.style.opacity = "1"}>
+            <a href="/forgot" style={{ fontSize: 13, color: "var(--ac-text)", cursor: "pointer", transition: "opacity .15s" }} onMouseOver={e => e.currentTarget.style.opacity = ".75"} onMouseOut={e => e.currentTarget.style.opacity = "1"}>
               Forgot password?
             </a>
           </div>
 
-          {errors.general && <p role="alert" style={{ fontSize: 12, color: "var(--rd)", textAlign: "center", lineHeight: 1.45 }}>
-            <span aria-hidden="true">⚠</span> {errors.general}
-          </p>}
+          {errors.general && (
+            <div style={{ display: "flex", justifyContent: "center" }}>
+              <ErrorNotice variant="inline">{errors.general}</ErrorNotice>
+            </div>
+          )}
 
           <AuthButton loading={loading} icon={I.arrow(14)}>
             Sign In
@@ -118,8 +125,8 @@ export default function SignInPage() {
 
         <div style={{ marginTop: 20, paddingTop: 16, borderTop: "1px solid var(--br)", textAlign: "center" }}>
           <p style={{ fontSize: 13, color: "var(--tx2)" }}>
-            Don't have an account?{" "}
-            <a href="/sign-up" style={{ color: "var(--ac)", fontWeight: 600, cursor: "pointer", transition: "opacity .15s" }} onMouseOver={e => e.currentTarget.style.opacity = ".75"} onMouseOut={e => e.currentTarget.style.opacity = "1"}>
+            Don&rsquo;t have an account?{" "}
+            <a href="/sign-up" style={{ color: "var(--ac-text)", fontWeight: 600, cursor: "pointer", transition: "opacity .15s" }} onMouseOver={e => e.currentTarget.style.opacity = ".75"} onMouseOut={e => e.currentTarget.style.opacity = "1"}>
               Sign up free
             </a>
           </p>

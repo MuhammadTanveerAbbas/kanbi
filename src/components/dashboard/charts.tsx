@@ -130,7 +130,7 @@ export function BarChart({ data }: { data: { label: string; value: number; color
             Peak <span style={{ color:"var(--tx)", fontWeight:700, fontFamily:"var(--font-mono)" }}>{max}</span>
           </span>
           <span style={{ fontSize:10.5, color:"var(--tx3)" }}>
-            Total <span style={{ color:"var(--ac)", fontWeight:700, fontFamily:"var(--font-mono)" }}>{total}</span>
+            Total <span style={{ color:"var(--ac-text)", fontWeight:700, fontFamily:"var(--font-mono)" }}>{total}</span>
           </span>
         </div>
       </div>
@@ -270,8 +270,8 @@ export function CompletionChart({ done, wip, todo, total }: { done: number; wip:
   const dashOffset = circ * (1 - (mounted ? pct / 100 : 0));
 
   const stats = [
-    { key:"done",  label:"Done",        value:done, color:"var(--gr)" },
-    { key:"wip",   label:"In Progress", value:wip,  color:"var(--ac)" },
+    { key:"done",  label:"Done",        value:done, color:"var(--gr-text)" },
+    { key:"wip",   label:"In Progress", value:wip,  color:"var(--ac-text)" },
     { key:"todo",  label:"To Do",       value:todo, color:"var(--tx3)" },
     { key:"total", label:"Total",       value:total,color:"var(--tx)"  },
   ];

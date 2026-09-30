@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancel superseded runs on the same ref so a new push does not queue behind
+# work whose result nobody needs.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      # pnpm is read from the `packageManager` field in package.json. Declaring a
+      # `version` here as well is an error, not a preference: the action refuses
+      # to run when the two disagree, which is exactly what failed the last run
+      # and left main with a red build and a broken deploy.
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      # Catches a package.json change that was never committed to the lockfile.
+      # This is the failure that broke the Vercel deploy in commit 5163f78.
+      - name: Verify lockfile matches package.json
+        run: pnpm install --frozen-lockfile
+
+      # Fast feedback first, broadest check last.
+      - name: Lint
+        run: pnpm lint
+
+      - name: Type check
+        run: pnpm typecheck
+
+      - name: Unit and integration tests
+        run: pnpm test
+
+      - name: Build
+        run: pnpm run build

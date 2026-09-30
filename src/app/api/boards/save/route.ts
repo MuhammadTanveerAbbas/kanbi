@@ -24,7 +24,8 @@ export async function POST(request: NextRequest) {
             throw new RateLimitError('Board usage limit exceeded');
         }
 
-        // Validate request body
+        // Validate request body. The task array is fully validated rather than
+        // accepted as opaque JSON, since it is persisted and re-read later.
         const body = await request.json();
         const validated = saveBoardSchema.parse(body);
 
@@ -35,8 +36,8 @@ export async function POST(request: NextRequest) {
                 user_id: user.id,
                 title: validated.title,
                 content: JSON.stringify(validated.tasks),
-                category: (body.category as string) || 'other',
-                icon: (body.icon as string) || 'file',
+                category: validated.category || 'other',
+                icon: validated.icon || 'file',
                 is_favorite: false,
             })
             .select()

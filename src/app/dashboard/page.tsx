@@ -7,6 +7,7 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { appThemeVars, startThemeWatch, useTheme } from "@/lib/theme";
 import ReactMarkdown from "react-markdown";
 import {
   AppCtx, useApp,
@@ -18,26 +19,40 @@ import {
 } from "@/components/dashboard/icons";
 import { PriBadge, Avt, PBar, Toggle, Skeleton } from "@/components/dashboard/ui";
 import { BarChart, DonutChart, CompletionChart, HealthRing } from "@/components/dashboard/charts";
-import { sanitizeChatText, truncateChatResponse } from "@/lib/chat-text";
+import { useBoardExport } from "@/components/dashboard/use-board-export";
+import { normalizeBriefingResponse } from "@/lib/autopilot/normalize";
+import { BOARD_TEMPLATES } from "@/lib/templates";
+import { copyTextToClipboard } from "@/lib/clipboard";
+import { ChatBubble } from "@/components/dashboard/chat-bubble";
+import { QUICK_ACTIONS, CHAT_ERRORS, type QuickActionId } from "@/lib/ai/chat-copy";
+import { normalizeChatReply } from "@/lib/text/normalize";
+import {
+  computeBoardHealthScore, healthBand, healthMessage, type HealthBand,
+} from "@/lib/workload/health-score";
 
-const DARK_VARS = `
-  --bg:#07070e; --bg1:#0e0e18; --bg2:#13131f; --bg3:#18182a;
-  --br:rgba(255,255,255,0.07); --brh:rgba(255,255,255,0.14);
-  --tx:#eaeaf8; --tx2:#6e6e9a; --tx3:#35354e;
-  --nb:rgba(7,7,14,0.93); --sb:#0a0a15;
-  --sh:rgba(0,0,0,0.6); --inp:#13131f;
-  --card-glow:rgba(99,102,241,0.05);
-  --sidebar-border:rgba(255,255,255,0.055);
-`;
-const LIGHT_VARS = `
-  --bg:#f4f5fd; --bg1:#ffffff; --bg2:#eceef9; --bg3:#e2e4f5;
-  --br:rgba(0,0,0,0.07); --brh:rgba(0,0,0,0.14);
-  --tx:#0a0a1a; --tx2:#44447a; --tx3:#9494bc;
-  --nb:rgba(244,245,253,0.95); --sb:#ffffff;
-  --sh:rgba(0,0,0,0.08); --inp:#eceef9;
-  --card-glow:rgba(99,102,241,0.04);
-  --sidebar-border:rgba(0,0,0,0.07);
-`;
+const HEALTH_BAND_LABELS: Record<HealthBand, string> = {
+  healthy: "Healthy",
+  moderate: "Moderate",
+  overloaded: "Overloaded",
+};
+
+const HEALTH_BAND_BG: Record<HealthBand, string> = {
+  healthy: "rgba(16,185,129,0.1)",
+  moderate: "rgba(245,158,11,0.1)",
+  overloaded: "rgba(239,68,68,0.1)",
+};
+
+const HEALTH_BAND_FG: Record<HealthBand, string> = {
+  healthy: "var(--gr)",
+  moderate: "var(--am)",
+  overloaded: "var(--rd)",
+};
+
+const HEALTH_BAND_BORDER: Record<HealthBand, string> = {
+  healthy: "rgba(16,185,129,0.25)",
+  moderate: "rgba(245,158,11,0.25)",
+  overloaded: "rgba(239,68,68,0.25)",
+};
 
 type ApiTaskRow = {
   id: string;
@@ -68,31 +83,6 @@ async function loadTasksFromApi(): Promise<Task[]> {
   return (d.tasks ?? []).map(mapApiTask);
 }
 
-async function copyTextToClipboard(text: string): Promise<boolean> {
-  try {
-    if (navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(text);
-      return true;
-    }
-  } catch {
-    /* fall through to legacy copy */
-  }
-  try {
-    const ta = document.createElement('textarea');
-    ta.value = text;
-    ta.style.position = 'fixed';
-    ta.style.left = '-9999px';
-    document.body.appendChild(ta);
-    ta.focus();
-    ta.select();
-    const ok = document.execCommand('copy');
-    document.body.removeChild(ta);
-    return ok;
-  } catch {
-    return false;
-  }
-}
-
 function formatChatTime(value?: string): string {
   if (!value) return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   const d = new Date(value);
@@ -104,20 +94,20 @@ function formatChatTime(value?: string): string {
 function GlobalStyles({ theme }: { theme: "dark" | "light" }) {
   return (
     <style suppressHydrationWarning>{`
-      @import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&display=swap');
-
       *,*::before,*::after { box-sizing:border-box; margin:0; padding:0 }
       html { font-size:16px }
 
       :root {
-        ${theme === "dark" ? DARK_VARS : LIGHT_VARS}
+        ${appThemeVars(theme)}
         --ac:#6366f1; --ach:#818cf8; --as:rgba(99,102,241,0.10); --ag:rgba(99,102,241,0.22);
         --gr:#10b981; --am:#f59e0b; --rd:#ef4444; --pu:#a78bfa; --ur:#f97316;
-        --inv:${theme==="dark"?"#fff":"#07070e"}; --inv2:${theme==="dark"?"#07070e":"#fff"};
         --radius-sm:8px; --radius-md:12px; --radius-lg:16px; --radius-xl:22px;
-        --font-display:'Geist',-apple-system,sans-serif;
-        --font-body:'Geist',-apple-system,sans-serif;
-        --font-mono:'Geist',-apple-system,monospace;
+        /* These must point at the variables next/font generates. The previous
+           values named a literal family called "Geist", which is not a loaded
+           font, so every heading silently fell back to the system sans serif. */
+        --font-display: var(--font-sora), var(--font-geist), sans-serif;
+        --font-body: var(--font-geist), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        --font-mono: var(--font-geist-mono), ui-monospace, monospace;
         --sidebar-w:236px;
         --content-max:1140px;
         --chat-max:960px;
@@ -234,7 +224,7 @@ function GlobalStyles({ theme }: { theme: "dark" | "light" }) {
 
       /* ── Inputs ── */
       .input-focus { transition: border-color .15s, box-shadow .15s; outline: none }
-      .input-focus:focus { border-color: var(--ac) !important; box-shadow: 0 0 0 3px rgba(99,102,241,0.14) }
+      .input-focus:focus { border-color: var(--ac-text) !important; box-shadow: 0 0 0 3px rgba(99,102,241,0.14) }
 
       .chat-input {
         outline: none !important;
@@ -380,7 +370,7 @@ function GlobalStyles({ theme }: { theme: "dark" | "light" }) {
       .quick-ai-badge {
         margin-left: auto;
         font-size: 10px;
-        color: var(--ac);
+        color: var(--ac-text);
         padding: 2px 9px;
         border-radius: 99px;
         background: var(--as);
@@ -406,7 +396,7 @@ function GlobalStyles({ theme }: { theme: "dark" | "light" }) {
         letter-spacing: -0.01em;
       }
       .quick-ai-input:focus {
-        border-color: var(--ac);
+        border-color: var(--ac-text);
         box-shadow: 0 0 0 3px rgba(99,102,241,0.14);
       }
       .quick-ai-input::placeholder { color: var(--tx3) }
@@ -471,7 +461,7 @@ function TaskCard({
       {!compact && (
         <div style={{ display:"flex", alignItems:"center", gap:5, flexWrap:"wrap", marginBottom:10 }}>
           <span style={{ fontSize:10, padding:"2px 8px", borderRadius:99, background:"var(--as)",
-            color:"var(--ac)", fontWeight:600, fontFamily:"var(--font-mono)", border:"1px solid var(--ag)" }}>{task.label}</span>
+            color:"var(--ac-text)", fontWeight:600, fontFamily:"var(--font-mono)", border:"1px solid var(--ag)" }}>{task.label}</span>
           {task.dueDate && (
             <span style={{ display:"flex", alignItems:"center", gap:3, fontSize:10.5, color:"var(--tx3)" }}>
               <Icons.Calendar size={9}/>{task.dueDate}
@@ -509,8 +499,8 @@ function PageOverview() {
   const done  = tasks.filter(t => t.status === "done").length;
   const total = tasks.length;
   const wip   = tasks.filter(t => t.status === "wip").length;
-  const healthScore = total === 0 ? 100 :
-    Math.round(Math.max(0, 100 - (tasks.filter(t => t.priority === "urgent" || t.priority === "high").length / Math.max(total, 1)) * 42));
+  const healthScore = computeBoardHealthScore(tasks);
+  const band = healthBand(healthScore);
 
   const [quickInput, setQuickInput] = useState("");
   const [addLoading, setAddLoading] = useState(false);
@@ -561,14 +551,14 @@ function PageOverview() {
 
   const boardsToday   = user?.boards_used_today ?? 0;
   const aiUsesMonth   = user?.ai_uses_this_month ?? 0;
-  const boardsLimit   = user?.plan === "pro" ? 50 : 10;
-  const aiLimit       = user?.plan === "pro" ? 1500 : 300;
+  const boardsLimit   = user?.boards_today_limit ?? 10;
+  const aiLimit       = user?.ai_month_limit ?? 300;
 
   const statCards = [
     { label:"Boards Today",  value:`${boardsToday}/${boardsLimit}`, sub:`${boardsLimit - boardsToday} remaining`, icon:<Icons.Board size={13}/>, prog: boardsToday / boardsLimit * 100 },
-    { label:"AI This Month", value:`${aiUsesMonth}/${aiLimit}`, sub:`${aiLimit - aiUsesMonth} remaining`, icon:<Icons.Autopilot size={13}/>, color:"var(--pu)" },
+    { label:"AI This Month", value:`${aiUsesMonth}/${aiLimit}`, sub:`${aiLimit - aiUsesMonth} remaining`, icon:<Icons.Autopilot size={13}/>, color:"var(--pu-text)" },
     { label:"Tasks Total",   value:String(total), sub:`${done} done · ${wip} in progress`, icon:<Icons.Target size={13}/>, color: done === total && total > 0 ? "var(--gr)" : undefined },
-    { label:"Plan",          value: user?.plan === "pro" ? "Pro" : "Free", sub: user?.plan === "pro" ? "All features unlocked" : "$9/mo ➜ Pro", icon:<Icons.Crown size={13}/>, color:"var(--am)" },
+    { label:"Plan",          value: user?.plan === "pro" ? "Pro" : "Free", sub: user?.plan === "pro" ? "All features unlocked" : "$9/mo <Icons.ArrowRight size={13}/> Pro", icon:<Icons.Crown size={13}/>, color:"var(--am-text)" },
   ];
 
   return (
@@ -583,15 +573,15 @@ function PageOverview() {
             : <>
                 <h1 style={{ fontSize:20, fontWeight:800, letterSpacing:"-0.035em", color:"var(--tx)",
                   marginBottom:2, fontFamily:"var(--font-display)" }}>
-                  {greeting}, {displayName} 👋
+                  {greeting}, {displayName}<Icons.Wave size={19} style={{ color: "var(--ac-text)", display: "inline-block", verticalAlign: "-3px", marginLeft:6 }}/>
                 </h1>
-                <p style={{ fontSize:13, color:"var(--tx2)" }}>Here's your workload snapshot</p>
+                <p style={{ fontSize:13, color:"var(--tx2)" }}>Here&rsquo;s your workload snapshot</p>
               </>
           }
         </div>
         <div style={{ display:"flex", alignItems:"center", gap:8 }}>
           <div className="pulse" style={{ width:6, height:6, borderRadius:"50%", background:"var(--gr)" }}/>
-          <span style={{ fontSize:12, color:"var(--gr)", fontWeight:600 }}>All systems active</span>
+          <span style={{ fontSize:12, color:"var(--gr-text)", fontWeight:600 }}>All systems active</span>
         </div>
       </div>
 
@@ -600,15 +590,15 @@ function PageOverview() {
         <div className="quick-ai-header">
           <div className="quick-ai-icon"><Icons.Zap size={13}/></div>
           <span className="quick-ai-title">Quick AI Extract</span>
-          <span className="quick-ai-sub">kanbi paste any text, AI extracts tasks instantly</span>
-          <span className="quick-ai-badge">➜ Board</span>
+          <span className="quick-ai-sub">Paste any text and it becomes tasks on your board</span>
+          <span className="quick-ai-badge"><Icons.ArrowRight size={13}/> Board</span>
         </div>
         <div className="quick-ai-row">
           <input
             value={quickInput}
             onChange={e => setQuickInput(e.target.value)}
             onKeyDown={e => e.key === "Enter" && handleQuickInput()}
-            placeholder="Paste a task, email, or note to extract instantly..."
+            placeholder="Paste a task, email, or note to turn into board items..."
             className="quick-ai-input"
           />
           <button
@@ -629,10 +619,10 @@ function PageOverview() {
       {/* Quick Actions */}
       <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:10 }}>
         {[
-          { label:"New Task", icon:<Icons.Plus size={15}/>, action:"board", color:"var(--ac)" },
-          { label:"View Board", icon:<Icons.Layers size={15}/>, action:"board", color:"var(--pu)" },
-          { label:"AI Chat", icon:<Icons.Zap size={15}/>, action:"chat", color:"var(--am)" },
-          { label:"Settings", icon:<Icons.Settings size={15}/>, action:"settings", color:"var(--gr)" },
+          { label:"New Task", icon:<Icons.Plus size={15}/>, action:"board", color:"var(--ac-text)" },
+          { label:"View Board", icon:<Icons.Layers size={15}/>, action:"board", color:"var(--pu-text)" },
+          { label:"AI Chat", icon:<Icons.Zap size={15}/>, action:"chat", color:"var(--am-text)" },
+          { label:"Settings", icon:<Icons.Settings size={15}/>, action:"settings", color:"var(--gr-text)" },
         ].map(a => (
           <button key={a.label}
             onClick={() => navigate(a.action as any)}
@@ -675,7 +665,7 @@ function PageOverview() {
                 </div>
             }
             <p style={{ fontSize:10.5, color:"var(--tx3)" }}>{s.sub}</p>
-            {(s as { trend?: string }).trend && <p style={{ fontSize:10.5, color:"var(--gr)", marginTop:3, fontWeight:600 }}>{(s as { trend?: string }).trend}</p>}
+            {(s as { trend?: string }).trend && <p style={{ fontSize:10.5, color:"var(--gr-text)", marginTop:3, fontWeight:600 }}>{(s as { trend?: string }).trend}</p>}
             {s.prog !== undefined && (
               <div style={{ marginTop:10 }}>
                 <PBar value={s.prog} h={3} color="var(--ac)"/>
@@ -693,10 +683,10 @@ function PageOverview() {
           <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
             <span style={{ fontSize:12, fontWeight:700, color:"var(--tx)", fontFamily:"var(--font-display)" }}>Workload Health</span>
             <span style={{ fontSize:10, padding:"2px 8px", borderRadius:99, fontWeight:700, fontFamily:"var(--font-mono)",
-              background: healthScore >= 75 ? "rgba(16,185,129,0.1)" : healthScore >= 50 ? "rgba(245,158,11,0.1)" : "rgba(239,68,68,0.1)",
-              color: healthScore >= 75 ? "var(--gr)" : healthScore >= 50 ? "var(--am)" : "var(--rd)",
-              border: `1px solid ${healthScore >= 75 ? "rgba(16,185,129,0.25)" : healthScore >= 50 ? "rgba(245,158,11,0.25)" : "rgba(239,68,68,0.25)"}`,
-            }}>{healthScore >= 75 ? "Healthy" : healthScore >= 50 ? "Moderate" : "Overloaded"}</span>
+              background: HEALTH_BAND_BG[band],
+              color: HEALTH_BAND_FG[band],
+              border: `1px solid ${HEALTH_BAND_BORDER[band]}`,
+            }}>{HEALTH_BAND_LABELS[band]}</span>
           </div>
           <div style={{ display:"flex", alignItems:"center", gap:14 }}>
             <HealthRing score={healthScore}/>
@@ -715,10 +705,10 @@ function PageOverview() {
             </div>
           </div>
           <div style={{ padding:"8px 11px", borderRadius:8, marginTop:"auto",
-            background: healthScore >= 75 ? "rgba(16,185,129,0.06)" : "rgba(245,158,11,0.06)",
-            border: `1px solid ${healthScore >= 75 ? "rgba(16,185,129,0.15)" : "rgba(245,158,11,0.15)"}` }}>
-            <p style={{ fontSize:11, lineHeight:1.5, color: healthScore >= 75 ? "var(--gr)" : "var(--am)" }}>
-              {healthScore >= 75 ? "Workload is balanced and healthy." : healthScore >= 50 ? "Some high-priority tasks need attention." : "Overloaded — consider deferring tasks."}
+            background: HEALTH_BAND_BG[band],
+            border: `1px solid ${HEALTH_BAND_BORDER[band]}` }}>
+            <p style={{ fontSize:11, lineHeight:1.5, color: HEALTH_BAND_FG[band] }}>
+              {healthMessage(healthScore)}
             </p>
           </div>
         </div>
@@ -727,14 +717,14 @@ function PageOverview() {
         <div className="card" style={{ borderRadius:12, border:"1px solid var(--br)", background:"var(--bg1)", padding:14, display:"flex", flexDirection:"column", gap:10 }}>
           <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
             <span style={{ fontSize:12, fontWeight:700, color:"var(--tx)", fontFamily:"var(--font-display)" }}>Your Goals</span>
-            <button className="ghost" style={{ fontSize:10.5, color:"var(--ac)", background:"var(--as)",
+            <button className="ghost" style={{ fontSize:10.5, color:"var(--ac-text)", background:"var(--as)",
               border:"1px solid var(--ag)", padding:"2px 9px", borderRadius:99, cursor:"pointer", fontWeight:600 }}>Edit</button>
           </div>
           <div style={{ display:"flex", flexDirection:"column", gap:8, flex:1 }}>
             {[
-              { label:"Daily Tasks",     current:done,       goal:dailyGoal,  color:"var(--ac)" },
-              { label:"Weekly Tasks",    current:weeklyDone, goal:weeklyGoal, color:"var(--gr)" },
-              { label:"Completion Rate", current:total > 0 ? Math.round((done/total)*100) : 0, goal:100, color:"var(--pu)", suffix:"%" },
+              { label:"Daily Tasks",     current:done,       goal:dailyGoal,  color:"var(--ac-text)" },
+              { label:"Weekly Tasks",    current:weeklyDone, goal:weeklyGoal, color:"var(--gr-text)" },
+              { label:"Completion Rate", current:total > 0 ? Math.round((done/total)*100) : 0, goal:100, color:"var(--pu-text)", suffix:"%" },
             ].map(g => (
               <div key={g.label} style={{ padding:"9px 11px", borderRadius:9, background:"var(--bg2)", border:"1px solid var(--br)" }}>
                 <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:7 }}>
@@ -758,8 +748,8 @@ function PageOverview() {
           <div style={{ display:"flex", flexDirection:"column", gap:7, flex:1 }}>
             {[
               { label:"Urgent", count:urgentCount, color:"var(--ur)", bg:"rgba(249,115,22,0.08)",  border:"rgba(249,115,22,0.2)"  },
-              { label:"High",   count:highCount,   color:"var(--rd)", bg:"rgba(239,68,68,0.08)",   border:"rgba(239,68,68,0.2)"   },
-              { label:"Medium", count:mediumCount, color:"var(--am)", bg:"rgba(245,158,11,0.08)",  border:"rgba(245,158,11,0.2)"  },
+              { label:"High",   count:highCount,   color:"var(--rd-text)", bg:"rgba(239,68,68,0.08)",   border:"rgba(239,68,68,0.2)"   },
+              { label:"Medium", count:mediumCount, color:"var(--am-text)", bg:"rgba(245,158,11,0.08)",  border:"rgba(245,158,11,0.2)"  },
               { label:"Low",    count:lowCount,    color:"var(--tx3)", bg:"var(--bg2)",            border:"var(--br)"             },
             ].map(p => (
               <div key={p.label} style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
@@ -790,7 +780,7 @@ function PageOverview() {
               <p style={{ fontSize:11.5, color:"var(--tx3)" }}>Jump back into your latest work</p>
             </div>
             <button onClick={() => navigate("saved")} className="ghost"
-              style={{ fontSize:12, color:"var(--ac)", background:"var(--as)", border:"1px solid var(--ag)",
+              style={{ fontSize:12, color:"var(--ac-text)", background:"var(--as)", border:"1px solid var(--ag)",
                 padding:"6px 14px", borderRadius:8, display:"flex", alignItems:"center", gap:6,
                 fontWeight:600, transition:"all .2s" }}
               onMouseOver={e => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(99,102,241,0.18)"; }}
@@ -913,6 +903,7 @@ function PageOverview() {
 function PageBoard() {
   const { tasks, setTasks, savedBoards, setSavedBoards, boardView, setBoardView } = useApp();
   const [inputMode, setInputMode] = useState<InputMode>("paste");
+  const [urlInput, setUrlInput] = useState("");
   const [inputText, setInputText] = useState("");
   const [extracting, setExtracting] = useState(false);
   const [extractError, setExtractError] = useState("");
@@ -969,9 +960,56 @@ function PageBoard() {
 
   const inputModes = [
     { key:"paste"    as InputMode, label:"Paste",     icon:<Icons.Paste size={12}/> },
+    { key:"url"      as InputMode, label:"URL",       icon:<Icons.Link size={12}/>  },
     { key:"pdf"      as InputMode, label:"PDF",       icon:<Icons.Pdf size={12}/>   },
     { key:"template" as InputMode, label:"Templates", icon:<Icons.Template size={12}/> },
   ];
+
+  /**
+   * Fetches a public web page server side and turns its readable text into
+   * tasks. The URL is never fetched from the browser, so the server side SSRF
+   * protections apply and the page's address is not leaked to third parties.
+   */
+  const handleUrlExtract = async () => {
+    const url = urlInput.trim();
+    if (!url) return;
+    setExtracting(true);
+    setExtractError("");
+    try {
+      const res = await fetch('/api/parse-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setExtractError(data.error ?? 'Could not read that page. Try a different URL.');
+        return;
+      }
+      if (!Array.isArray(data.tasks) || data.tasks.length === 0) {
+        setExtractError('No actionable tasks were found on that page.');
+        return;
+      }
+      // The endpoint returns extracted tasks but does not persist them, so the
+      // board is populated from the response rather than by reloading.
+      const loaded = data.tasks.map((t: Record<string, string>, i: number) => ({
+        id: t.id ?? `url-${Date.now()}-${i}`,
+        title: t.task ?? t.title ?? 'Untitled task',
+        priority: (t.priority ?? 'medium').toLowerCase(),
+        label: 'From URL',
+        status: 'todo' as TaskStatus,
+        dueDate: t.deadline,
+        estimate: t.estimate,
+      }));
+      setTasks(loaded);
+      setUrlInput("");
+      setBoardView('kanban');
+    } catch {
+      setExtractError('Network error. Check your connection and try again.');
+    } finally {
+      setExtracting(false);
+    }
+  };
 
   const handleExtract = async () => {
     if (!inputText.trim()) return;
@@ -1054,8 +1092,8 @@ function PageBoard() {
       {overloaded && boardView === "kanban" && (
         <div className="slide-r" style={{ display:"flex", alignItems:"center", gap:9, padding:"9px 26px",
           background:"rgba(239,68,68,0.07)", borderBottom:"1px solid rgba(239,68,68,0.18)" }}>
-          <Icons.AlertTri size={13} style={{ color:"var(--rd)", flexShrink:0 }}/>
-          <span style={{ fontSize:12, color:"var(--rd)", fontWeight:500 }}>
+          <Icons.AlertTri size={13} style={{ color:"var(--rd-text)", flexShrink:0 }}/>
+          <span style={{ fontSize:12, color:"var(--rd-text)", fontWeight:500 }}>
             Autopilot warning: High task load detected. Consider completing or deferring tasks before adding more.
           </span>
         </div>
@@ -1068,7 +1106,7 @@ function PageBoard() {
             <div style={{ textAlign:"center", marginBottom:28 }}>
               <div style={{ display:"inline-flex", alignItems:"center", gap:7, padding:"5px 14px",
                 borderRadius:100, background:"var(--as)", border:"1px solid var(--ag)",
-                marginBottom:16, color:"var(--ac)", fontSize:11.5, fontWeight:600 }}>
+                marginBottom:16, color:"var(--ac-text)", fontSize:11.5, fontWeight:600 }}>
                 <Icons.Sparkle size={11}/> AI-Powered Extraction
               </div>
               <h1 style={{ fontSize:26, fontWeight:800, letterSpacing:"-0.04em", color:"var(--tx)",
@@ -1118,6 +1156,39 @@ function PageBoard() {
                     </p>
                   </>
                 )}
+                {inputMode === "url" && (
+                  <>
+                    <p style={{ fontSize:11, color:"var(--tx3)", marginBottom:8 }}>
+                      Paste a public page link and Kanbi will pull out the action items.
+                    </p>
+                    <div style={{ display:"flex", gap:8 }}>
+                      <input
+                        type="url"
+                        value={urlInput}
+                        onChange={e => setUrlInput(e.target.value)}
+                        onKeyDown={e => { if (e.key === "Enter") handleUrlExtract(); }}
+                        placeholder="https://example.com/meeting-notes"
+                        aria-label="Page URL to extract tasks from"
+                        className="input-focus"
+                        style={{ flex:1, background:"var(--inp)", border:"1px solid var(--br)",
+                          borderRadius:10, padding:"12px 14px", fontSize:13, color:"var(--tx)",
+                          height:44, boxSizing:"border-box" }}/>
+                      <button onClick={handleUrlExtract}
+                        disabled={!urlInput.trim() || extracting}
+                        className="btn-primary"
+                        style={{ padding:"0 18px", borderRadius:10, background:"var(--ac-solid)",
+                          border:"none", color:"#fff", fontSize:13, fontWeight:700,
+                          display:"flex", alignItems:"center", gap:7, height:44,
+                          cursor: (!urlInput.trim() || extracting) ? "default" : "pointer",
+                          opacity: (!urlInput.trim() || extracting) ? 0.6 : 1 }}>
+                        {extracting ? "Reading…" : "Extract"}
+                      </button>
+                    </div>
+                    <p style={{ fontSize:10, color:"var(--tx3)", marginTop:8 }}>
+                      The page is fetched on the server. Private and internal addresses are refused.
+                    </p>
+                  </>
+                )}
                 {inputMode === "pdf" && (
                   <div style={{ border:"2px dashed var(--br)", borderRadius:12, padding:"50px 24px",
                     textAlign:"center", cursor:"pointer", transition:"all .15s" }}
@@ -1135,43 +1206,21 @@ function PageBoard() {
                   </div>
                 )}
                 {inputMode === "template" && (
-                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:9 }}>
-                    {[
-                      {
-                        label: "Daily Standup",
-                        text: `# Daily Standup – ${new Date().toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'})}\n\n## Yesterday\n- Finished API integration for user auth\n- Reviewed PR #42 and left comments\n- Fixed bug in payment flow\n\n## Today\n- Implement dashboard analytics charts\n- Write unit tests for auth module\n- Sync with design team on new UI mockups\n- Deploy staging build\n\n## Blockers\n- Waiting on backend team for API docs\n- Need design approval before starting new feature`,
-                      },
-                      {
-                        label: "Sprint Planning",
-                        text: `# Sprint Planning – Sprint 14\n\n## Sprint Goal\nShip user onboarding flow and fix critical billing bugs\n\n## Backlog Items\n- Build onboarding wizard (3 steps: profile, preferences, first board)\n- Fix Stripe webhook not firing on subscription renewal\n- Add email verification resend button\n- Improve mobile responsiveness on dashboard\n- Write API documentation for v2 endpoints\n- Set up error monitoring with Sentry\n- Performance audit and lazy-load heavy components\n- Add CSV export for board data`,
-                      },
-                      {
-                        label: "Client Project",
-                        text: `# Client Project – Website Redesign\n\n## Discovery Phase\n- Conduct stakeholder interviews (CEO, Marketing, Sales)\n- Audit existing site: performance, SEO, conversion rates\n- Competitor analysis – review 5 competitor sites\n- Define target audience personas\n\n## Design Phase\n- Create wireframes for homepage and key landing pages\n- Design component library in Figma\n- Get client approval on design direction\n- Build interactive prototype for user testing\n\n## Development Phase\n- Set up Next.js project with CMS integration\n- Implement responsive design across all breakpoints\n- Integrate analytics and heatmap tracking\n- QA testing across browsers and devices\n- Client review and feedback round\n- Final launch and handoff`,
-                      },
-                      {
-                        label: "Content Calendar",
-                        text: `# Content Calendar – Q1 Campaign\n\n## Blog Posts\n- Write "10 productivity hacks for remote teams" (due Friday)\n- Draft case study: how Acme Corp saved 20hrs/week\n- Update SEO meta for top 5 landing pages\n- Research keywords for new product category\n\n## Social Media\n- Create 3 LinkedIn posts about product launch\n- Design 5 Instagram carousel graphics\n- Schedule Twitter thread on industry trends\n- Respond to all comments from last week's posts\n\n## Email\n- Write monthly newsletter (500 subscribers)\n- Set up drip campaign for new signups (5 emails)\n- A/B test subject lines for re-engagement campaign\n\n## Video\n- Record product demo walkthrough (5 min)\n- Edit and caption YouTube tutorial`,
-                      },
-                      {
-                        label: "Bug Tracker",
-                        text: `# Bug Tracker – Release v2.4\n\n## Critical (P0)\n- App crashes on iOS 17 when opening notifications\n- Payment fails silently when card is declined – no error shown\n- Data loss: board state not saved after browser refresh\n\n## High Priority (P1)\n- Login with Google fails for users with 2FA enabled\n- Dashboard charts show wrong date range on first load\n- File upload hangs at 99% for files over 10MB\n\n## Medium Priority (P2)\n- Dark mode toggle resets on page navigation\n- Search results don't update when filters change\n- Email notifications sent twice for same event\n- Tooltip overlaps button on mobile screens\n\n## Low Priority (P3)\n- Typo in onboarding step 2 copy\n- Footer links open in same tab instead of new tab`,
-                      },
-                      {
-                        label: "Meeting Notes",
-                        text: `# Meeting Notes – Product Review\nDate: ${new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})}\nAttendees: Product, Engineering, Design, Marketing\n\n## Decisions Made\n- Launch date confirmed for March 15th\n- Drop feature X from v1 scope, move to v1.1\n- Pricing: keep free tier at 10 uses/day\n\n## Action Items\n- PM: Update roadmap and share with stakeholders by EOD\n- Engineering: Finalize API contracts and share docs\n- Design: Deliver final assets to dev by Wednesday\n- Marketing: Prepare launch announcement email draft\n- All: Review and sign off on QA checklist before Thursday\n\n## Open Questions\n- Do we need legal review for new data retention policy?\n- Who owns customer support during launch week?`,
-                      },
-                    ].map(t => (
-                      <button key={t.label}
-                        onClick={() => { setInputText(t.text); setInputMode("paste"); }}
+                  <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))", gap:9 }}>
+                    {BOARD_TEMPLATES.map(t => (
+                      <button key={t.id} type="button"
+                        onClick={() => { setInputText(t.build()); setInputMode("paste"); }}
                         className="ghost"
-                        style={{ padding:"14px 13px", borderRadius:9, border:"1px solid var(--br)",
-                          background:"var(--bg2)", color:"var(--tx2)", fontSize:12, fontWeight:500,
+                        style={{ padding:"13px", borderRadius:9, border:"1px solid var(--br)",
+                          background:"var(--bg2)", color:"var(--tx2)", fontSize:12, fontWeight:600,
                           textAlign:"left", cursor:"pointer", transition:"all .15s" }}
                         onMouseOver={e => { (e.currentTarget).style.borderColor = "var(--ac)"; (e.currentTarget).style.color = "var(--tx)"; }}
                         onMouseOut={e =>  { (e.currentTarget).style.borderColor = "var(--br)";  (e.currentTarget).style.color = "var(--tx2)"; }}>
-                        {t.label}
+                        <span style={{ display:"block", marginBottom:3 }}>{t.label}</span>
+                        <span style={{ display:"block", fontSize:10.5, fontWeight:400, color:"var(--tx3)",
+                          lineHeight:1.45 }}>{t.blurb}</span>
                       </button>
+
                     ))}
                   </div>
                 )}
@@ -1194,7 +1243,7 @@ function PageBoard() {
                   </button>
                 )}
                 {extractError && (
-                  <p style={{ fontSize:12, color:"var(--rd)", marginTop:10, lineHeight:1.5 }}>
+                  <p style={{ fontSize:12, color:"var(--rd-text)", marginTop:10, lineHeight:1.5 }}>
                     {extractError}
                   </p>
                 )}
@@ -1204,7 +1253,7 @@ function PageBoard() {
               <div style={{ display:"flex", flexDirection:"column", gap:11 }}>
                 <div style={{ borderRadius:12, border:"1px solid var(--br)", background:"var(--bg1)", padding:17 }}>
                   <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:14 }}>
-                    <Icons.Target size={13} style={{ color:"var(--ac)" }}/>
+                    <Icons.Target size={13} style={{ color:"var(--ac-text)" }}/>
                     <span style={{ fontSize:13, fontWeight:700, color:"var(--tx)", fontFamily:"var(--font-display)" }}>Progress</span>
                   </div>
                   <div style={{ marginBottom:13 }}>
@@ -1238,7 +1287,7 @@ function PageBoard() {
                 {tasks.length > 0 && (
                   <button onClick={() => setBoardView("kanban")} className="btn-primary"
                     style={{ padding:"11px", borderRadius:10, border:"1px solid var(--ac)",
-                      background:"var(--as)", color:"var(--ac)", fontSize:12, fontWeight:700 }}>
+                      background:"var(--as)", color:"var(--ac-text)", fontSize:12, fontWeight:700 }}>
                     View Board ({tasks.length} tasks)
                   </button>
                 )}
@@ -1256,7 +1305,7 @@ function PageBoard() {
                 style={{ padding:"5px 11px", borderRadius:8, border:"1px solid var(--br)",
                   background:"transparent", color:"var(--tx2)", fontSize:12, cursor:"pointer",
                   display:"flex", alignItems:"center", gap:5 }}>
-                ← Back
+                <Icons.ArrowLeft size={13}/> Back
               </button>
               <span style={{ fontSize:13, fontWeight:700, color:"var(--tx)", fontFamily:"var(--font-display)" }}>My Board</span>
               <span style={{ fontSize:10, padding:"2px 8px", borderRadius:5, background:"var(--br)",
@@ -1265,13 +1314,13 @@ function PageBoard() {
             <div className="board-kanban-actions" style={{ display:"flex", alignItems:"center", gap:9, flexWrap:"wrap" }}>
               <div style={{ display:"flex", alignItems:"center", gap:5, padding:"4px 11px",
                 borderRadius:8, background:"var(--as)", border:"1px solid var(--ag)" }}>
-                <div className="pulse" style={{ width:5, height:5, borderRadius:"50%", background:"var(--ac)" }}/>
-                <span style={{ fontSize:10.5, color:"var(--ac)", fontWeight:600 }}>
+                <div className="pulse" style={{ width:5, height:5, borderRadius:"50%", background:"var(--ac-solid)" }}/>
+                <span style={{ fontSize:10.5, color:"var(--ac-text)", fontWeight:600 }}>
                   AI extracted {tasks.length} tasks
                 </span>
               </div>
               <button onClick={handleSaveBoard} className="btn-primary"
-                style={{ height:33, padding:"0 13px", borderRadius:8, background:"var(--ac)",
+                style={{ height:33, padding:"0 13px", borderRadius:8, background:"var(--ac-solid)",
                   border:"none", color:"#fff", fontSize:12, fontWeight:700 }}>
                 Save Board
               </button>
@@ -1332,88 +1381,6 @@ function PageBoard() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   CHAT AVATAR
-═══════════════════════════════════════════════════════════════════════════ */
-function ChatAvatar({ size = 30, icon = 14 }: { size?: number; icon?: number }) {
-  return (
-    <div style={{ width:size, height:size, borderRadius:8, flexShrink:0,
-      background:"linear-gradient(135deg, #6366f1, #a78bfa)",
-      boxShadow:"0 2px 8px rgba(99,102,241,0.35)",
-      display:"flex", alignItems:"center", justifyContent:"center" }}>
-      <ChatBotIcon size={icon} color="#fff"/>
-    </div>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   CHAT MESSAGE  (extracted to fix useState-in-map hook violation)
-═══════════════════════════════════════════════════════════════════════════ */
-function ChatMessage({ m }: { m: ChatMsg }) {
-  const [copied, setCopied] = useState(false);
-  const handleCopy = async (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const ok = await copyTextToClipboard(m.content);
-    if (ok) {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
-  };
-  return (
-    <div className="fade-up"
-      style={{ display:"flex", gap:10, alignItems:"flex-start",
-        flexDirection: m.role === "user" ? "row-reverse" : "row",
-        position:"relative" }}>
-      {m.role === "ai" && <ChatAvatar size={30} icon={14}/>}
-      <div style={{
-        maxWidth:"82%", padding: m.role === "ai" ? "11px 15px 36px" : "11px 15px",
-        borderRadius: m.role === "user" ? "14px 4px 14px 14px" : "4px 14px 14px 14px",
-        background: m.role === "user" ? "var(--ac)" : "var(--bg1)",
-        border: m.role === "user" ? "none" : "1px solid var(--br)",
-        color: m.role === "user" ? "#fff" : "var(--tx)",
-        position:"relative",
-        boxShadow: m.role === "ai" ? "0 8px 24px rgba(0,0,0,0.08)" : undefined,
-      }}>
-        {m.role === "ai" && (
-          <button type="button" onClick={handleCopy}
-            style={{ position:"absolute", bottom:8, right:8,
-              background: copied ? "rgba(16,185,129,0.15)" : "var(--bg2)",
-              border:`1px solid ${copied ? "rgba(16,185,129,0.35)" : "var(--br)"}`,
-              borderRadius:7, padding:"5px 8px", cursor:"pointer",
-              display:"flex", alignItems:"center", gap:5,
-              color: copied ? "var(--gr)" : "var(--tx2)", fontSize:11, fontWeight:600,
-              transition:"all .15s", zIndex:2 }}
-            title={copied ? "Copied!" : "Copy message"}>
-            {copied ? <Icons.Check size={12}/> : <Icons.Copy size={12}/>}
-            {copied ? "Copied" : "Copy"}
-          </button>
-        )}
-        {m.role === "ai" ? (
-          <div style={{ fontSize:13, lineHeight:1.6 }}>
-            <ReactMarkdown
-              components={{
-                p: ({node, ...props}) => <p style={{ margin:"0 0 8px 0" }} {...props} />,
-                ul: ({node, ...props}) => <ul style={{ margin:"8px 0", paddingLeft:"20px" }} {...props} />,
-                ol: ({node, ...props}) => <ol style={{ margin:"8px 0", paddingLeft:"20px" }} {...props} />,
-                li: ({node, ...props}) => <li style={{ margin:"4px 0" }} {...props} />,
-                strong: ({node, ...props}) => <strong style={{ fontWeight:600 }} {...props} />,
-                em: ({node, ...props}) => <em style={{ fontStyle:"italic" }} {...props} />,
-                code: ({node, ...props}) => <code style={{ background:"rgba(0,0,0,0.1)", padding:"2px 6px", borderRadius:"4px", fontFamily:"var(--font-mono)", fontSize:"0.9em" }} {...props} />,
-              }}
-            >{m.content}</ReactMarkdown>
-          </div>
-        ) : (
-          <p style={{ fontSize:13, lineHeight:1.6, whiteSpace:"pre-wrap" }}>{m.content}</p>
-        )}
-        <p style={{ fontSize:9.5, opacity:.55, marginTop:5,
-          textAlign: m.role === "user" ? "right" : "left",
-          fontFamily:"var(--font-mono)" }}>{m.ts}</p>
-      </div>
-    </div>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
    PAGE: AI CHAT
 ═══════════════════════════════════════════════════════════════════════════ */
 function PageChat() {
@@ -1438,44 +1405,81 @@ function PageChat() {
     setClearing(false);
   };
 
+  const pushMessage = useCallback((role: "user" | "ai", content: string) => {
+    setChatMessages(prev => [
+      ...prev,
+      { id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, role, content, ts: ts() },
+    ]);
+  }, [setChatMessages]);
+
   const send = useCallback(async (text: string) => {
     if (!text.trim() || loading) return;
-    const uid = Date.now().toString();
-    setChatMessages(prev => [...prev, { id:uid, role:"user", content:text, ts:ts() }]);
-    setInput(""); setLoading(true);
+    pushMessage("user", text.trim());
+    setInput("");
+    setLoading(true);
 
     try {
       const res = await fetch('/api/ai/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          message: text,
+          message: text.trim(),
           tasks: tasks.map(t => ({ id: t.id, title: t.title, priority: t.priority, status: t.status })),
-          workloadHealth: Math.round(Math.max(0, 100 - (tasks.filter(t => t.priority === "urgent" || t.priority === "high").length / Math.max(tasks.length, 1)) * 42)),
+          // The same function the board uses, so the chat and the board never
+          // report different health numbers for the same board.
+          workloadHealth: computeBoardHealthScore(tasks),
           completedToday: tasks.filter(t => t.status === "done").length,
-          estimatedHours: tasks.filter(t => t.status !== "done").length,
+          estimatedHours: Math.round((tasks.filter(t => t.status !== "done").length * 0.75) * 10) / 10,
         }),
       });
-      const data = await res.json();
+
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const errMsg = data.error ?? data.message ?? 'Something went wrong. Please try again.';
-        setChatMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: "ai", content: `Sorry, ${errMsg}`, ts: ts() }]);
+        pushMessage("ai", data?.error ?? CHAT_ERRORS.rateLimited);
         return;
       }
-      const reply = truncateChatResponse(data.response ?? data.reply ?? "Sorry, I couldn't get a response.");
-      setChatMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: "ai", content: reply, ts: ts() }]);
+      const reply = normalizeChatReply(data.response ?? data.reply ?? "", 600);
+      pushMessage("ai", reply || CHAT_ERRORS.empty);
     } catch {
-      setChatMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: "ai", content: "Sorry, I couldn't connect to the AI. Please try again.", ts: ts() }]);
+      pushMessage("ai", CHAT_ERRORS.offline);
     } finally {
       setLoading(false);
     }
-  }, [tasks, setChatMessages, loading]);
+  }, [tasks, loading, pushMessage]);
+
+  /** Runs a quick action, which is computed on the server and needs no model. */
+  const runQuickAction = useCallback(async (action: QuickActionId) => {
+    if (loading) return;
+    setLoading(true);
+    try {
+      const res = await fetch('/api/ai/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          quickAction: action,
+          tasks: tasks.map(t => ({ id: t.id, title: t.title, priority: t.priority, status: t.status })),
+          workloadHealth: computeBoardHealthScore(tasks),
+          completedToday: tasks.filter(t => t.status === "done").length,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        pushMessage("ai", data?.error ?? CHAT_ERRORS.rateLimited);
+        return;
+      }
+      pushMessage("ai", normalizeChatReply(data.response ?? "", 600) || CHAT_ERRORS.empty);
+    } catch {
+      pushMessage("ai", CHAT_ERRORS.offline);
+    } finally {
+      setLoading(false);
+    }
+  }, [tasks, loading, pushMessage]);
 
   const chatPrompts = [
-    "What should I work on first today?",
-    "Help me prioritize my urgent tasks",
-    "Break down my biggest task into steps",
-    "Am I at risk of burnout this week?",
+    "What should I work on first?",
+    "Break down my top task",
+    "How should I plan today?",
+    "What can wait until tomorrow?",
   ];
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior:"smooth" }); }, [chatMessages]);
@@ -1574,24 +1578,68 @@ function PageChat() {
           ) : (
             <div style={{ display:"flex", flexDirection:"column", gap:14, maxWidth:"var(--chat-max)", margin:"0 auto", width:"100%" }}>
               {chatMessages.map((m) => (
-                <ChatMessage key={m.id} m={m}/>
+                <ChatBubble
+                  key={m.id}
+                  role={m.role === "ai" ? "ai" : "user"}
+                  content={m.content}
+                  timestamp={m.ts}
+                />
               ))}
 
               {loading && (
-                <div className="fade-in" style={{ display:"flex", gap:10, alignItems:"center" }}>
-                  <ChatAvatar size={30} icon={14}/>
-                  <div style={{ padding:"11px 15px", borderRadius:"4px 14px 14px 14px",
+                <div
+                  className="fade-in"
+                  role="status"
+                  aria-live="polite"
+                  aria-label="Assistant is typing"
+                  style={{ display:"flex", gap:10, alignItems:"center" }}
+                >
+                  <ChatBotIcon size={30} color="#fff"/>
+                  <div style={{ padding:"13px 15px", borderRadius:"4px 14px 14px 14px",
                     background:"var(--bg1)", border:"1px solid var(--br)", display:"flex", gap:5, alignItems:"center" }}>
-                    {[0,1,2].map(i => (
+                    {[0, 1, 2].map(i => (
                       <div key={i} className="pulse" style={{ width:6, height:6, borderRadius:"50%",
-                        background:"var(--ac)", animationDelay:`${i*.15}s` }}/>
+                        background:"var(--ac-solid)", animationDelay:`${i * 0.15}s` }}/>
                     ))}
+                    <span style={{ fontSize:11, color:"var(--tx3)", marginLeft:6 }}>Thinking</span>
                   </div>
                 </div>
               )}
               <div ref={bottomRef}/>
             </div>
           )}
+        </div>
+
+        {/* Quick actions. Each one is computed on the server from the board, so
+            none of them waits on a model. */}
+        <div style={{ padding:"0 28px 10px", flexShrink:0, maxWidth:"var(--chat-max)", margin:"0 auto", width:"100%" }}>
+          <div style={{ display:"flex", gap:7, flexWrap:"wrap" }}>
+            {QUICK_ACTIONS.map(action => (
+              <button
+                key={action.id}
+                type="button"
+                onClick={() => runQuickAction(action.id)}
+                disabled={loading}
+                title={action.hint}
+                className="chat-quick-action"
+                style={{ padding:"5px 11px", borderRadius:999, border:"1px solid var(--br)",
+                  background:"var(--bg1)", color:"var(--tx2)", fontSize:11, fontWeight:600,
+                  cursor: loading ? "default" : "pointer", opacity: loading ? 0.55 : 1,
+                  transition:"all .15s", whiteSpace:"nowrap" }}
+                onMouseOver={e => {
+                  if (loading) return;
+                  (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--ac)";
+                  (e.currentTarget as HTMLButtonElement).style.color = "var(--tx)";
+                }}
+                onMouseOut={e => {
+                  (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--br)";
+                  (e.currentTarget as HTMLButtonElement).style.color = "var(--tx2)";
+                }}
+              >
+                {action.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Input bar */}
@@ -1607,7 +1655,7 @@ function PageChat() {
                 borderRadius:12, padding:"11px 14px", fontSize:13, color:"var(--tx)",
                 resize:"none", lineHeight:1.5, maxHeight:120, outline:"none" }}/>
             <button onClick={() => send(input)} disabled={!input.trim() || loading} className="btn-primary"
-              style={{ width:42, height:42, borderRadius:12, background:"var(--ac)", border:"none",
+              style={{ width:42, height:42, borderRadius:12, background:"var(--ac-solid)", border:"none",
                 color:"#fff", display:"flex", alignItems:"center", justifyContent:"center",
                 opacity: !input.trim() ? .5 : 1, flexShrink:0 }}>
               {loading ? <div className="spin" style={{ width:14, height:14, borderRadius:"50%",
@@ -1681,8 +1729,8 @@ function PageAutopilot() {
   });
 
   const pendingTasks = tasks.filter(t => t.status !== "done");
-  const healthScore  = tasks.length === 0 ? 100 :
-    Math.round(Math.max(0, 100 - (tasks.filter(t=>t.priority==="urgent"||t.priority==="high").length / Math.max(tasks.length,1)) * 42));
+  const healthScore  = computeBoardHealthScore(tasks);
+  const pilotBand    = healthBand(healthScore);
 
   const [briefingError, setBriefingError] = useState("");
 
@@ -1699,23 +1747,39 @@ function PageAutopilot() {
         }),
       });
       const data = await res.json();
-      if (!res.ok) { setBriefingError(data.error ?? "Failed to generate briefing. Please try again."); return; }
+      if (!res.ok) {
+        setBriefingError(data?.error ?? "Could not generate a briefing. Please try again.");
+        return;
+      }
+
+      // The response is normalised before it reaches state. Reading the raw
+      // payload put a task object where a title string was expected, which
+      // crashed the render and surfaced as a generic error boundary message.
+      const view = normalizeBriefingResponse(data, {
+        pendingCount: pendingTasks.length,
+        healthNote:
+          pilotBand === "healthy"
+            ? "No warnings. Your workload looks balanced."
+            : "Your board is carrying more than one high priority task.",
+      });
+
       const nb: Briefing = {
         id: Date.now().toString(),
-        date: new Date().toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" }),
-        summary: data.briefing?.summary ?? data.summary ?? `You have ${pendingTasks.length} pending tasks today.`,
-        schedule: (data.briefing?.schedule ?? data.schedule ?? []).map((s: { time?: string; task?: string; task_title?: string; duration?: string; estimated_duration?: string }) => ({
-          time: s.time ?? s.task_title ?? '',
-          task: s.task ?? s.task_title ?? '',
-          duration: s.duration ?? s.estimated_duration ?? '30m',
-        })),
-        healthNote: data.briefing?.warnings?.[0] ?? data.healthNote ?? (healthScore >= 75
-          ? "✓ Workload looks healthy."
-          : "⚠ High load detected."),
+        date: new Date().toLocaleDateString("en-US", {
+          weekday: "long",
+          month: "short",
+          day: "numeric",
+        }),
+        summary: view.summary,
+        schedule: view.schedule,
+        healthNote: view.healthNote,
+        quote: view.quote,
+        priorities: view.priorities,
+        warnings: view.warnings,
       };
       setBriefings(prev => [nb, ...prev]);
     } catch {
-      setBriefingError("Network error. Please check your connection and try again.");
+      setBriefingError("Network error. Check your connection and try again.");
     } finally {
       setGenLoading(false);
     }
@@ -1742,7 +1806,7 @@ function PageAutopilot() {
           <p style={{ fontSize:13, color:"var(--tx2)" }}>Autonomous workload management & morning briefings</p>
         </div>
         <button onClick={handleGenerate} disabled={genLoading} className="btn-primary"
-          style={{ height:40, padding:"0 18px", borderRadius:10, background:"var(--ac)",
+          style={{ height:40, padding:"0 18px", borderRadius:10, background:"var(--ac-solid)",
             border:"none", color:"#fff", fontSize:13, fontWeight:700,
             display:"flex", alignItems:"center", gap:8 }}>
           {genLoading
@@ -1756,10 +1820,10 @@ function PageAutopilot() {
       {briefingError && (
         <div style={{ display:"flex", alignItems:"center", gap:9, padding:"10px 14px",
           borderRadius:10, background:"rgba(239,68,68,0.07)", border:"1px solid rgba(239,68,68,0.2)" }}>
-          <Icons.AlertTri size={13} style={{ color:"var(--rd)", flexShrink:0 }}/>
-          <span style={{ fontSize:12, color:"var(--rd)", flex:1 }}>{briefingError}</span>
+          <Icons.AlertTri size={13} style={{ color:"var(--rd-text)", flexShrink:0 }}/>
+          <span style={{ fontSize:12, color:"var(--rd-text)", flex:1 }}>{briefingError}</span>
           <button onClick={() => setBriefingError("")} style={{ background:"transparent",
-            border:"none", color:"var(--rd)", cursor:"pointer", padding:2, display:"flex" }}>
+            border:"none", color:"var(--rd-text)", cursor:"pointer", padding:2, display:"flex" }}>
             <Icons.X size={11}/>
           </button>
         </div>
@@ -1768,8 +1832,8 @@ function PageAutopilot() {
       {/* Live sync status */}
       <div style={{ display:"flex", alignItems:"center", gap:11, padding:"12px 16px",
         borderRadius:11, background:"var(--as)", border:"1px solid var(--ag)" }}>
-        <div className="pulse" style={{ width:7, height:7, borderRadius:"50%", background:"var(--ac)", flexShrink:0 }}/>
-        <span style={{ fontSize:12, color:"var(--ac)", fontWeight:600 }}>
+        <div className="pulse" style={{ width:7, height:7, borderRadius:"50%", background:"var(--ac-solid)", flexShrink:0 }}/>
+        <span style={{ fontSize:12, color:"var(--ac-text)", fontWeight:600 }}>
           Live sync with board: {pendingTasks.length} pending tasks · Health {healthScore}/100 · {pendingTasks.filter(t=>t.priority==="urgent").length} urgent
         </span>
       </div>
@@ -1781,7 +1845,7 @@ function PageAutopilot() {
             <h3 style={{ fontSize:13, fontWeight:700, color:"var(--tx)", fontFamily:"var(--font-display)" }}>Morning Briefing</h3>
             {briefings.length > 0 && (
               <span style={{ fontSize:10, padding:"2px 9px", borderRadius:100,
-                background:"rgba(16,185,129,0.1)", color:"var(--gr)", border:"1px solid rgba(16,185,129,0.2)", fontWeight:700 }}>
+                background:"rgba(16,185,129,0.1)", color:"var(--gr-text)", border:"1px solid rgba(16,185,129,0.2)", fontWeight:700 }}>
                 Latest
               </span>
             )}
@@ -1790,21 +1854,57 @@ function PageAutopilot() {
             <div style={{ textAlign:"center", padding:"32px 18px" }}>
               <div style={{ width:48, height:48, borderRadius:13, background:"var(--as)",
                 display:"flex", alignItems:"center", justifyContent:"center",
-                color:"var(--ac)", margin:"0 auto 14px" }}>
+                color:"var(--ac-text)", margin:"0 auto 14px" }}>
                 <Icons.Autopilot size={22}/>
               </div>
               <p style={{ fontSize:13.5, color:"var(--tx2)", marginBottom:8, fontWeight:500 }}>No briefing yet</p>
               <p style={{ fontSize:11.5, color:"var(--tx3)", lineHeight:1.65 }}>
-                Generate your first AI briefing to see a smart summary of today's tasks.
+                Generate your first AI briefing to see a smart summary of today&rsquo;s tasks.
               </p>
             </div>
           ) : (
             <div style={{ display:"flex", flexDirection:"column", gap:13 }}>
               <p style={{ fontSize:11, color:"var(--tx3)", fontWeight:700, fontFamily:"var(--font-mono)" }}>{briefings[0]!.date}</p>
               <p style={{ fontSize:12.5, color:"var(--tx2)", lineHeight:1.7 }}>{briefings[0]!.summary}</p>
-              <div style={{ padding:"10px 13px", borderRadius:9, background:"var(--as)", border:"1px solid var(--ag)" }}>
-                <p style={{ fontSize:11.5, color:"var(--ac)" }}>{briefings[0]!.healthNote}</p>
-              </div>
+
+              {(briefings[0]!.priorities?.length ?? 0) > 0 && (
+                <div style={{ marginTop:13 }}>
+                  <p style={{ fontSize:10, color:"var(--tx3)", fontWeight:700, letterSpacing:"0.06em",
+                    textTransform:"uppercase", marginBottom:8 }}>Top priorities</p>
+                  <div style={{ display:"flex", flexDirection:"column", gap:7 }}>
+                    {briefings[0]!.priorities!.map((p, i) => (
+                      <div key={i} style={{ display:"flex", gap:9, alignItems:"flex-start" }}>
+                        <span style={{ fontSize:10, fontWeight:700, color:"var(--ac-text)", flexShrink:0,
+                          width:16, fontFamily:"var(--font-mono)" }}>{i + 1}</span>
+                        <div style={{ minWidth:0 }}>
+                          <p style={{ fontSize:12, color:"var(--tx)", fontWeight:500, marginBottom:1 }}>{p.task}</p>
+                          <p style={{ fontSize:10.5, color:"var(--tx3)", lineHeight:1.5 }}>{p.reason}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {(briefings[0]!.warnings?.length ?? 0) > 0 && (
+                <div style={{ marginTop:13, padding:"10px 13px", borderRadius:9,
+                  background:"rgba(245,158,11,0.07)", border:"1px solid rgba(245,158,11,0.22)" }}>
+                  <p style={{ fontSize:10, color:"var(--am-text)", fontWeight:700, letterSpacing:"0.06em",
+                    textTransform:"uppercase", marginBottom:6 }}>Worth knowing</p>
+                  <ul style={{ margin:0, padding:0, listStyle:"none", display:"flex", flexDirection:"column", gap:5 }}>
+                    {briefings[0]!.warnings!.map((w, i) => (
+                      <li key={i} style={{ fontSize:11, color:"var(--tx2)", lineHeight:1.55 }}>{w}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {briefings[0]!.quote && (
+                <p style={{ fontSize:11.5, color:"var(--tx3)", fontStyle:"italic", marginTop:13,
+                  lineHeight:1.6, paddingTop:11, borderTop:"1px solid var(--br)" }}>
+                  {briefings[0]!.quote}
+                </p>
+              )}
             </div>
           )}
         </div>
@@ -1816,8 +1916,8 @@ function PageAutopilot() {
             {briefings.length > 0 && (
               <button onClick={createScheduleOnBoard} className="btn-primary"
                 style={{ fontSize:10.5, padding:"4px 10px", borderRadius:7, border:"1px solid var(--ac)",
-                  background:"var(--as)", color:"var(--ac)", cursor:"pointer", fontWeight:700 }}>
-                ➜ Add to Board
+                  background:"var(--as)", color:"var(--ac-text)", cursor:"pointer", fontWeight:700 }}>
+                <Icons.ArrowRight size={13}/> Add to Board
               </button>
             )}
           </div>
@@ -1826,13 +1926,20 @@ function PageAutopilot() {
               <Icons.Clock size={30} style={{ color:"var(--tx3)", display:"block", margin:"0 auto 13px" }}/>
               <p style={{ fontSize:12, color:"var(--tx3)" }}>Generate a briefing first to see your AI schedule</p>
             </div>
+          ) : briefings[0]!.schedule.length === 0 ? (
+            <div style={{ textAlign:"center", padding:"22px 18px" }}>
+              <p style={{ fontSize:12, color:"var(--tx3)", marginBottom:6 }}>Nothing fits into your working hours</p>
+              <p style={{ fontSize:11, color:"var(--tx3)" }}>
+                Add a shorter estimate to a task, or widen your working hours in autopilot settings.
+              </p>
+            </div>
           ) : (
             <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
               {briefings[0]!.schedule.map((s, i) => (
                 <div key={i} style={{ display:"flex", alignItems:"center", gap:11, padding:"9px 12px",
                   borderRadius:9, background:"var(--bg2)", border:"1px solid var(--br)" }}>
-                  <span style={{ fontSize:10, fontWeight:700, color:"var(--ac)", fontFamily:"var(--font-mono)",
-                    flexShrink:0, minWidth:56 }}>{s.time}</span>
+                  <span style={{ fontSize:10, fontWeight:700, color:"var(--ac-text)", fontFamily:"var(--font-mono)",
+                    flexShrink:0, minWidth:78 }}>{s.time}</span>
                   <span style={{ fontSize:12, color:"var(--tx)", flex:1, overflow:"hidden",
                     textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{s.task}</span>
                   <span style={{ fontSize:10, color:"var(--tx3)", flexShrink:0,
@@ -1851,10 +1958,10 @@ function PageAutopilot() {
           </div>
           <div style={{ display:"flex", flexDirection:"column", gap:11 }}>
             <div style={{ padding:"11px 13px", borderRadius:9,
-              background: healthScore >= 75 ? "rgba(16,185,129,0.06)" : "rgba(239,68,68,0.06)",
-              border:`1px solid ${healthScore >= 75 ? "rgba(16,185,129,0.2)" : "rgba(239,68,68,0.2)"}` }}>
-              <p style={{ fontSize:12, fontWeight:700, color: healthScore >= 75 ? "var(--gr)" : "var(--rd)", marginBottom:3 }}>
-                {healthScore >= 75 ? "✓ No burnout risk detected" : "⚠ Elevated burnout risk"}
+              background: pilotBand === "healthy" ? "rgba(16,185,129,0.06)" : "rgba(239,68,68,0.06)",
+              border:`1px solid ${pilotBand === "healthy" ? "rgba(16,185,129,0.2)" : "rgba(239,68,68,0.2)"}` }}>
+              <p style={{ fontSize:12, fontWeight:700, color: pilotBand === "healthy" ? "var(--gr)" : "var(--rd)", marginBottom:3 }}>
+                {pilotBand === "healthy" ? "No burnout risk detected" : "Elevated burnout risk"}
               </p>
               <p style={{ fontSize:11.5, color:"var(--tx2)" }}>
                 {pendingTasks.length} pending · {pendingTasks.filter(t=>t.priority==="urgent"||t.priority==="high").length} high priority
@@ -1862,14 +1969,14 @@ function PageAutopilot() {
             </div>
             {burnoutAlerts.length === 0 ? (
               <p style={{ fontSize:11.5, color:"var(--tx3)", textAlign:"center", padding:"12px 0" }}>
-                No burnout alerts in history. Great work! 🎉
+                No burnout alerts in history. Great work! <Icons.Party size={26}/>
               </p>
             ) : (
               burnoutAlerts.map(a => (
                 <div key={a.id} style={{ padding:"9px 11px", borderRadius:9,
                   background:"var(--bg2)", border:"1px solid var(--br)" }}>
                   <div style={{ display:"flex", justifyContent:"space-between", marginBottom:3 }}>
-                    <span style={{ fontSize:11, color:"var(--rd)", fontWeight:700 }}>Score: {a.score}/100</span>
+                    <span style={{ fontSize:11, color:"var(--rd-text)", fontWeight:700 }}>Score: {a.score}/100</span>
                     <span style={{ fontSize:10, color:"var(--tx3)", fontFamily:"var(--font-mono)" }}>{a.date}</span>
                   </div>
                   <p style={{ fontSize:11.5, color:"var(--tx2)" }}>{a.message}</p>
@@ -1938,6 +2045,8 @@ function PageSaved() {
   const [renamingId, setRenamingId] = useState<string|null>(null);
   const [renameVal, setRenameVal] = useState("");
   const [movingId, setMovingId] = useState<string|null>(null);
+  const [exportMenuId, setExportMenuId] = useState<string|null>(null);
+  const { exportBoard, exportingId, error: exportError, setError: setExportError } = useBoardExport();
 
   const folders = ["All","Clients","Personal","Dev","Content"];
   const filtered = savedBoards.filter(b =>
@@ -1966,6 +2075,7 @@ function PageSaved() {
     setMovingId(null);
   };
 
+
   return (
     <div className="fade-up page-pad" style={{ padding:"28px 30px", height:"100%", overflowY:"auto" }}>
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:24, flexWrap:"wrap", gap:12 }}>
@@ -1975,7 +2085,7 @@ function PageSaved() {
           <p style={{ fontSize:13, color:"var(--tx2)" }}>{savedBoards.length} boards · {folders.length-1} folders</p>
         </div>
         <button onClick={() => navigate("board")} className="btn-primary"
-          style={{ height:38, padding:"0 16px", borderRadius:10, background:"var(--ac)",
+          style={{ height:38, padding:"0 16px", borderRadius:10, background:"var(--ac-solid)",
             border:"none", color:"#fff", fontSize:13, fontWeight:700, display:"flex", alignItems:"center", gap:7 }}>
           <Icons.Plus size={13}/> New Board
         </button>
@@ -2033,6 +2143,21 @@ function PageSaved() {
         </div>
       )}
 
+      {exportError && (
+        <div role="alert"
+          style={{ marginBottom:16, padding:"10px 13px", borderRadius:10, display:"flex",
+            alignItems:"center", gap:9, fontSize:12.5,
+            background:"rgba(239,68,68,0.08)", border:"1px solid rgba(239,68,68,0.25)", color:"var(--rd-text)" }}>
+          <Icons.Alert size={13}/>
+          <span style={{ flex:1 }}>{exportError}</span>
+          <button onClick={() => setExportError(null)} aria-label="Dismiss export error"
+            style={{ border:"none", background:"transparent", color:"var(--rd-text)", cursor:"pointer",
+              display:"flex", alignItems:"center" }}>
+            <Icons.X size={13}/>
+          </button>
+        </div>
+      )}
+
       {view === "grid" ? (
         <div className="saved-grid" style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(235px,1fr))", gap:13 }}>
           {filtered.map(b => (
@@ -2040,7 +2165,7 @@ function PageSaved() {
               style={{ borderRadius:14, border:"1px solid var(--br)", background:"var(--bg1)", padding:20 }}>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:13 }}>
                 <div style={{ width:36, height:36, borderRadius:9, background:"var(--as)",
-                  display:"flex", alignItems:"center", justifyContent:"center", color:"var(--ac)" }}>
+                  display:"flex", alignItems:"center", justifyContent:"center", color:"var(--ac-text)" }}>
                   <Icons.Layers size={15}/>
                 </div>
                 <span style={{ fontSize:10, padding:"2px 9px", borderRadius:100,
@@ -2085,6 +2210,20 @@ function PageSaved() {
                   onMouseOut={e  => { (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--br)"; (e.currentTarget as HTMLButtonElement).style.color = "var(--tx2)"; }}>
                   Open
                 </button>
+                <button
+                  onClick={() => setExportMenuId(exportMenuId === b.id ? null : b.id)}
+                  disabled={exportingId === b.id}
+                  title="Export board"
+                  aria-label={`Export ${b.name}`}
+                  style={{ width:32, borderRadius:8, border:"1px solid var(--br)",
+                    background:"transparent", color:"var(--tx3)", cursor:"pointer",
+                    display:"flex", alignItems:"center", justifyContent:"center",
+                    opacity: exportingId === b.id ? 0.5 : 1, transition:"all .15s" }}>
+                  {exportingId === b.id
+                    ? <span className="spin" style={{ width:11, height:11, borderRadius:"50%",
+                        border:"2px solid rgba(99,102,241,0.3)", borderTopColor:"var(--ac)" }}/>
+                    : <Icons.Download size={12}/>}
+                </button>
                 {[
                   { icon:<Icons.Edit size={12}/>, onClick:()=>{setRenamingId(b.id);setRenameVal(b.name);} },
                   { icon:<Icons.MoveFolder size={12}/>, onClick:()=>setMovingId(movingId===b.id?null:b.id) },
@@ -2100,6 +2239,23 @@ function PageSaved() {
                   </button>
                 ))}
               </div>
+              {exportMenuId === b.id && (
+                <div role="menu" aria-label="Export format"
+                  style={{ marginTop:9, padding:"5px", borderRadius:9,
+                    background:"var(--bg2)", border:"1px solid var(--br)" }}>
+                  {(["docx","pdf"] as const).map(f => (
+                    <button key={f} role="menuitem"
+                      onClick={() => { setExportMenuId(null); exportBoard(b.id, f); }}
+                      style={{ display:"block", width:"100%", padding:"6px 10px", borderRadius:6,
+                        border:"none", background:"transparent", color:"var(--tx2)", fontSize:12,
+                        textAlign:"left", cursor:"pointer", transition:"all .12s" }}
+                      onMouseOver={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--bg3)"; }}
+                      onMouseOut={e =>  { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}>
+                      {f === "docx" ? "Word document (.docx)" : "PDF document (.pdf)"}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -2111,7 +2267,7 @@ function PageSaved() {
               onMouseOver={e => { (e.currentTarget as HTMLDivElement).style.background = "var(--bg1)"; (e.currentTarget as HTMLDivElement).style.borderColor = "var(--br)"; }}
               onMouseOut={e =>  { (e.currentTarget as HTMLDivElement).style.background = "transparent"; (e.currentTarget as HTMLDivElement).style.borderColor = "transparent"; }}>
               <div style={{ width:32, height:32, borderRadius:8, background:"var(--as)",
-                display:"flex", alignItems:"center", justifyContent:"center", color:"var(--ac)", flexShrink:0 }}>
+                display:"flex", alignItems:"center", justifyContent:"center", color:"var(--ac-text)", flexShrink:0 }}>
                 <Icons.Layers size={13}/>
               </div>
               {renamingId === b.id ? (
@@ -2145,7 +2301,7 @@ function PageSaved() {
                 </button>
                 <button onClick={() => deleteBoard(b.id)}
                   style={{ width:30, height:30, borderRadius:7, border:"1px solid rgba(239,68,68,0.2)",
-                    background:"transparent", color:"var(--rd)", cursor:"pointer",
+                    background:"transparent", color:"var(--rd-text)", cursor:"pointer",
                     display:"flex", alignItems:"center", justifyContent:"center" }}>
                   <Icons.Trash size={12}/>
                 </button>
@@ -2162,7 +2318,8 @@ function PageSaved() {
    PAGE: SETTINGS
 ═══════════════════════════════════════════════════════════════════════════ */
 function PageSettings({ theme, toggleTheme }: { theme: Theme; toggleTheme: () => void }) {
-  const { user } = useApp();
+  const { user, savedBoards } = useApp();
+  const { exportBoard: exportFromSettings, exportingId, error: settingsExportError } = useBoardExport();
   const [tab, setTab] = useState("profile");
   const [profileName, setProfileName] = useState(user?.full_name ?? "");
   const [saving, setSaving] = useState(false);
@@ -2247,7 +2404,7 @@ function PageSettings({ theme, toggleTheme }: { theme: Theme; toggleTheme: () =>
               <span style={{ fontSize:11, lineHeight:1.2, textAlign:"center" }}>{t.label}</span>
               {(t.key === "data") && (
                 <span style={{
-                  fontSize:8, fontWeight:700, color:"var(--am)", background:"rgba(245,158,11,0.15)",
+                  fontSize:8, fontWeight:700, color:"var(--am-text)", background:"rgba(245,158,11,0.15)",
                   border:"0.5px solid rgba(245,158,11,0.3)", padding:"1px 5px", borderRadius:99,
                   letterSpacing:"0.05em", textTransform:"uppercase", marginTop:2
                 }}>Soon</span>
@@ -2271,7 +2428,7 @@ function PageSettings({ theme, toggleTheme }: { theme: Theme; toggleTheme: () =>
                   </p>
                   <p style={{ fontSize:11.5, color:"var(--tx3)", wordBreak:"break-all" }}>{user?.email}</p>
                   <p style={{ fontSize:10.5, padding:"2px 8px", borderRadius:100, display:"inline-block",
-                    marginTop:4, background:"var(--as)", color:"var(--ac)", fontWeight:700 }}>
+                    marginTop:4, background:"var(--as)", color:"var(--ac-text)", fontWeight:700 }}>
                     {user?.plan === "pro" ? "Pro Plan" : "Free Plan"}
                   </p>
                 </div>
@@ -2294,7 +2451,7 @@ function PageSettings({ theme, toggleTheme }: { theme: Theme; toggleTheme: () =>
                 <div style={{ display:"flex", gap:10, flexWrap:"wrap" }}>
                   <button onClick={handleSaveProfile} disabled={saving} className="btn-primary"
                     style={{ flex:"1 1 auto", minWidth:"140px", height:38, padding:"0 18px", borderRadius:9,
-                      background:"var(--ac)", border:"none", color:"#fff", fontSize:13, fontWeight:700,
+                      background:"var(--ac-solid)", border:"none", color:"#fff", fontSize:13, fontWeight:700,
                       display:"flex", alignItems:"center", justifyContent:"center", gap:8 }}>
                     {saving
                       ? <><div className="spin" style={{ width:12, height:12, borderRadius:"50%",
@@ -2333,11 +2490,11 @@ function PageSettings({ theme, toggleTheme }: { theme: Theme; toggleTheme: () =>
                         borderRadius:9, padding:"10px 13px", fontSize:13, color:"var(--tx)" }}/>
                   </div>
                 ))}
-                {pwError && <p style={{ fontSize:12, color:"var(--rd)" }}>{pwError}</p>}
-                {pwSuccess && <p style={{ fontSize:12, color:"var(--gr)" }}>Password updated successfully.</p>}
+                {pwError && <p style={{ fontSize:12, color:"var(--rd-text)" }}>{pwError}</p>}
+                {pwSuccess && <p style={{ fontSize:12, color:"var(--gr-text)" }}>Password updated successfully.</p>}
                 <button onClick={handleChangePassword} disabled={pwSaving} className="btn-primary"
                   style={{ alignSelf:"flex-start", height:38, padding:"0 18px", borderRadius:9,
-                    background:"var(--ac)", border:"none", color:"#fff", fontSize:13, fontWeight:700,
+                    background:"var(--ac-solid)", border:"none", color:"#fff", fontSize:13, fontWeight:700,
                     display:"flex", alignItems:"center", gap:8 }}>
                   {pwSaving
                     ? <><div className="spin" style={{ width:12, height:12, borderRadius:"50%", border:"2px solid rgba(255,255,255,.3)", borderTopColor:"#fff" }}/> Saving...</>
@@ -2368,7 +2525,7 @@ function PageSettings({ theme, toggleTheme }: { theme: Theme; toggleTheme: () =>
                     const data = await res.json();
                     if (data.url) window.location.href = data.url;
                   }}
-                    style={{ height:36, padding:"0 16px", borderRadius:9, background:"var(--ac)",
+                    style={{ height:36, padding:"0 16px", borderRadius:9, background:"var(--ac-solid)",
                       border:"none", color:"#fff", fontSize:12, fontWeight:700, flexShrink:0, whiteSpace:"nowrap" }}>
                     Upgrade to Pro · $9/mo
                   </button>
@@ -2399,11 +2556,11 @@ function PageSettings({ theme, toggleTheme }: { theme: Theme; toggleTheme: () =>
 
           {tab === "danger" && (
             <div>
-              <h3 style={{ fontSize:15, fontWeight:800, color:"var(--rd)", marginBottom:4, fontFamily:"var(--font-display)" }}>Danger Zone</h3>
+              <h3 style={{ fontSize:15, fontWeight:800, color:"var(--rd-text)", marginBottom:4, fontFamily:"var(--font-display)" }}>Danger Zone</h3>
               <p style={{ fontSize:12.5, color:"var(--tx2)", marginBottom:22 }}>These actions are permanent and cannot be undone.</p>
               <div style={{ borderRadius:11, border:"1px solid rgba(239,68,68,0.22)",
                 background:"rgba(239,68,68,0.04)", padding:"20px 22px" }}>
-                <p style={{ fontSize:13.5, fontWeight:700, color:"var(--rd)", marginBottom:6 }}>Delete Account</p>
+                <p style={{ fontSize:13.5, fontWeight:700, color:"var(--rd-text)", marginBottom:6 }}>Delete Account</p>
                 <p style={{ fontSize:12.5, color:"var(--tx2)", marginBottom:16, lineHeight:1.65 }}>
                   Permanently deletes your account, all boards, and all data. Type <strong>DELETE</strong> to confirm.
                 </p>
@@ -2415,7 +2572,7 @@ function PageSettings({ theme, toggleTheme }: { theme: Theme; toggleTheme: () =>
                   disabled={deleteConfirm !== "DELETE" || deleting}
                   style={{ height:36, padding:"0 16px", borderRadius:9,
                     border:"1px solid var(--rd)", background: deleteConfirm === "DELETE" ? "rgba(239,68,68,0.12)" : "transparent",
-                    color:"var(--rd)", fontSize:13, fontWeight:700, cursor: deleteConfirm === "DELETE" ? "pointer" : "not-allowed",
+                    color:"var(--rd-text)", fontSize:13, fontWeight:700, cursor: deleteConfirm === "DELETE" ? "pointer" : "not-allowed",
                     opacity: deleteConfirm === "DELETE" ? 1 : 0.5, transition:"all .15s",
                     display:"flex", alignItems:"center", gap:8 }}>
                   {deleting
@@ -2431,11 +2588,59 @@ function PageSettings({ theme, toggleTheme }: { theme: Theme; toggleTheme: () =>
             <div>
               <h3 style={{ fontSize:15, fontWeight:800, color:"var(--tx)", marginBottom:4, fontFamily:"var(--font-display)" }}>Data & Export</h3>
               <p style={{ fontSize:12.5, color:"var(--tx2)", marginBottom:22 }}>Export and manage your data</p>
-              <div style={{ borderRadius:12, border:"1px solid var(--br)", background:"var(--bg2)", padding:"20px", textAlign:"center" }}>
-                <div style={{ fontSize:40, marginBottom:12, display:"flex", justifyContent:"center" }}><Icons.Download size={32} style={{ color:"var(--tx3)" }}/></div>
-                <p style={{ fontSize:13.5, fontWeight:600, color:"var(--tx)", marginBottom:6 }}>Coming Soon</p>
-                <p style={{ fontSize:12, color:"var(--tx3)" }}>Export your boards, tasks, and data in multiple formats coming soon.</p>
-              </div>
+
+              {savedBoards.length === 0 ? (
+                <div style={{ borderRadius:12, border:"1px solid var(--br)", background:"var(--bg2)", padding:"24px", textAlign:"center" }}>
+                  <div style={{ marginBottom:12, display:"flex", justifyContent:"center" }}><Icons.Download size={30} style={{ color:"var(--tx3)" }}/></div>
+                  <p style={{ fontSize:13.5, fontWeight:600, color:"var(--tx)", marginBottom:6 }}>No saved boards yet</p>
+                  <p style={{ fontSize:12, color:"var(--tx3)" }}>Save a board from the Board page, then export it here as DOCX or PDF.</p>
+                </div>
+              ) : (
+                <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+                  {settingsExportError && (
+                    <div role="alert"
+                      style={{ padding:"9px 12px", borderRadius:9, display:"flex", alignItems:"center", gap:8,
+                        fontSize:12, background:"rgba(239,68,68,0.08)",
+                        border:"1px solid rgba(239,68,68,0.25)", color:"var(--rd-text)" }}>
+                      <Icons.Alert size={12}/>
+                      <span style={{ flex:1 }}>{settingsExportError}</span>
+                    </div>
+                  )}
+                  {savedBoards.map(b => (
+                    <div key={b.id}
+                      style={{ display:"flex", alignItems:"center", gap:12, padding:"11px 13px",
+                        borderRadius:10, border:"1px solid var(--br)", background:"var(--bg2)" }}>
+                      <div style={{ flex:1, minWidth:0 }}>
+                        <p style={{ fontSize:13, fontWeight:600, color:"var(--tx)", marginBottom:2,
+                          overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{b.name}</p>
+                        <p style={{ fontSize:11, color:"var(--tx3)", fontFamily:"var(--font-mono)" }}>{b.taskCount} tasks</p>
+                      </div>
+                      <button onClick={() => exportFromSettings(b.id, "docx")}
+                        disabled={exportingId === b.id}
+                        className="btn-primary"
+                        style={{ padding:"6px 12px", borderRadius:8, border:"1px solid var(--br)",
+                          background:"transparent", color:"var(--tx2)", fontSize:11.5, fontWeight:600,
+                          cursor: exportingId === b.id ? "default" : "pointer",
+                          opacity: exportingId === b.id ? 0.5 : 1 }}>
+                        DOCX
+                      </button>
+                      <button onClick={() => exportFromSettings(b.id, "pdf")}
+                        disabled={exportingId === b.id}
+                        className="btn-primary"
+                        style={{ padding:"6px 12px", borderRadius:8, border:"1px solid var(--br)",
+                          background:"transparent", color:"var(--tx2)", fontSize:11.5, fontWeight:600,
+                          cursor: exportingId === b.id ? "default" : "pointer",
+                          opacity: exportingId === b.id ? 0.5 : 1 }}>
+                        PDF
+                      </button>
+                    </div>
+                  ))}
+                  <p style={{ fontSize:11.5, color:"var(--tx3)", marginTop:4, lineHeight:1.55 }}>
+                    Each board exports as a single document grouped by column, with priority, label,
+                    estimate, and due date for every task.
+                  </p>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -2447,59 +2652,67 @@ function PageSettings({ theme, toggleTheme }: { theme: Theme; toggleTheme: () =>
 /* ═══════════════════════════════════════════════════════════════════════════
    SIDEBAR
 ═══════════════════════════════════════════════════════════════════════════ */
+/**
+ * Defined at module scope rather than inside Sidebar. Defining it during render
+ * makes React treat every render as producing a new component type, which
+ * discards the subtree state and remounts the nav on each parent render.
+ */
+function NavBtn({ page, k, label, icon, badge, setPage, onNavigate }: {
+  page: Page; k: Page; label: string; icon: ReactNode; badge?: string;
+  setPage: (p: Page) => void; onNavigate?: () => void;
+}) {
+  const active = page === k;
+  return (
+    <button onClick={() => { setPage(k); onNavigate?.(); }} className="nav-btn"
+      style={{
+        width:"100%", padding:"7px 10px 7px 8px", borderRadius:10, border:"none",
+        background: active ? "rgba(99,102,241,0.1)" : "transparent",
+        color: active ? "var(--ac)" : "var(--tx2)",
+        fontSize:13, fontWeight: active ? 600 : 400,
+        cursor:"pointer", display:"flex", alignItems:"center", gap:9,
+        textAlign:"left", marginBottom:2, position:"relative",
+        transition:"all .15s", letterSpacing:"-0.01em",
+      }}>
+
+      {/* Icon container */}
+      <span style={{
+        width:26, height:26, borderRadius:7, flexShrink:0,
+        display:"flex", alignItems:"center", justifyContent:"center",
+        transition:"all .18s",
+      }}>{icon}</span>
+      <span style={{ flex:1 }}>{label}</span>
+      {badge && (
+        <span style={{
+          fontSize:9, padding:"2px 7px", borderRadius:99,
+          background: badge === "AI" ? "var(--as)" : "rgba(167,139,250,0.12)",
+          color: badge === "AI" ? "var(--ac)" : "var(--pu)",
+          fontWeight:700, fontFamily:"var(--font-mono)", letterSpacing:"0.04em",
+          border: `1px solid ${badge === "AI" ? "var(--ag)" : "rgba(167,139,250,0.2)"}`,
+        }}>{badge}</span>
+      )}
+    </button>
+  );
+}
+
 function Sidebar({ page, setPage, theme, toggleTheme, onNavigate }: {
   page: Page; setPage: (p: Page) => void; theme: Theme; toggleTheme: () => void; onNavigate?: () => void;
 }) {
   const { user } = useApp();
 
   const mainNav: [Page, string, ReactNode][] = [
-    ["overview",  "Overview",     <StarIcon size={26}/>        ],
-    ["board",     "Board",        <BoardStarIcon size={26}/>   ],
-    ["saved",     "Saved Boards", <SavedStarIcon size={26}/>   ],
+    ["overview",  "Overview",     <StarIcon key="overview" size={26}/>        ],
+    ["board",     "Board",        <BoardStarIcon key="board" size={26}/>   ],
+    ["saved",     "Saved Boards", <SavedStarIcon key="saved" size={26}/>   ],
   ];
   const aiNav: [Page, string, ReactNode, string?][] = [
-    ["chat",      "AI Chat",      <ChatStarIcon size={26}/>,    "AI"   ],
-    ["autopilot", "Autopilot",    <PilotStarIcon size={26}/>,   "AUTO" ],
+    ["chat",      "AI Chat",      <ChatStarIcon key="chat" size={26}/>,    "AI"   ],
+    ["autopilot", "Autopilot",    <PilotStarIcon key="autopilot" size={26}/>,   "AUTO" ],
   ];
 
   const boardsUsed  = user?.boards_used_today ?? 0;
-  const boardsLimit = user?.plan === "pro" ? 50 : 10;
+  const boardsLimit = user?.boards_today_limit ?? 10;
   const usagePct    = Math.min((boardsUsed / boardsLimit) * 100, 100);
   const usageColor  = usagePct >= 90 ? "var(--rd)" : usagePct >= 70 ? "var(--am)" : "var(--ac)";
-
-  const NavBtn = ({ k, label, icon, badge }: { k: Page; label: string; icon: ReactNode; badge?: string }) => {
-    const active = page === k;
-    return (
-      <button onClick={() => { setPage(k); onNavigate?.(); }} className="nav-btn"
-        style={{
-          width:"100%", padding:"7px 10px 7px 8px", borderRadius:10, border:"none",
-          background: active ? "rgba(99,102,241,0.1)" : "transparent",
-          color: active ? "var(--ac)" : "var(--tx2)",
-          fontSize:13, fontWeight: active ? 600 : 400,
-          cursor:"pointer", display:"flex", alignItems:"center", gap:9,
-          textAlign:"left", marginBottom:2, position:"relative",
-          transition:"all .15s", letterSpacing:"-0.01em",
-        }}>
-
-        {/* Icon container */}
-        <span style={{
-          width:26, height:26, borderRadius:7, flexShrink:0,
-          display:"flex", alignItems:"center", justifyContent:"center",
-          transition:"all .18s",
-        }}>{icon}</span>
-        <span style={{ flex:1 }}>{label}</span>
-        {badge && (
-          <span style={{
-            fontSize:9, padding:"2px 7px", borderRadius:99,
-            background: badge === "AI" ? "var(--as)" : "rgba(167,139,250,0.12)",
-            color: badge === "AI" ? "var(--ac)" : "var(--pu)",
-            fontWeight:700, fontFamily:"var(--font-mono)", letterSpacing:"0.04em",
-            border: `1px solid ${badge === "AI" ? "var(--ag)" : "rgba(167,139,250,0.2)"}`,
-          }}>{badge}</span>
-        )}
-      </button>
-    );
-  };
 
   return (
     <aside className="sidebar" style={{
@@ -2533,13 +2746,13 @@ function Sidebar({ page, setPage, theme, toggleTheme, onNavigate }: {
       {/* Nav */}
       <nav style={{ flex:1, padding:"10px 10px 0", overflowY:"auto" }}>
         <div className="nav-section-label">Workspace</div>
-        {mainNav.map(([k, l, i]) => <NavBtn key={k} k={k} label={l} icon={i}/>)}
+        {mainNav.map(([k, l, i]) => <NavBtn key={k} page={page} k={k} label={l} icon={i} setPage={setPage} onNavigate={onNavigate}/>)}
 
         <div className="nav-section-label" style={{ marginTop:18 }}>AI Features</div>
-        {aiNav.map(([k, l, i, b]) => <NavBtn key={k} k={k} label={l} icon={i} badge={b}/>)}
+        {aiNav.map(([k, l, i, b]) => <NavBtn key={k} page={page} k={k} label={l} icon={i} badge={b} setPage={setPage} onNavigate={onNavigate}/>)}
 
         <div className="nav-section-label" style={{ marginTop:18 }}>Account</div>
-        <NavBtn k="settings" label="Settings" icon={<SettingsStarIcon size={26}/>}/>
+        <NavBtn page={page} k="settings" label="Settings" icon={<SettingsStarIcon size={26}/>} setPage={setPage} onNavigate={onNavigate}/>
       </nav>
 
       {/* Bottom */}
@@ -2589,12 +2802,12 @@ function Sidebar({ page, setPage, theme, toggleTheme, onNavigate }: {
 ═══════════════════════════════════════════════════════════════════════════ */
 function BottomNav({ page, setPage, onNavigate }: { page: Page; setPage: (p: Page) => void; onNavigate?: () => void }) {
   const items: [Page, string, ReactNode][] = [
-    ["overview",  "Home",     <StarIcon size={19}/>        ],
-    ["board",     "Board",    <BoardStarIcon size={19}/>   ],
-    ["chat",      "Chat",     <ChatStarIcon size={19}/>    ],
-    ["autopilot", "Pilot",    <PilotStarIcon size={19}/>   ],
-    ["saved",     "Saved",    <SavedStarIcon size={19}/>   ],
-    ["settings",  "Settings", <SettingsStarIcon size={19}/>],
+    ["overview",  "Home",     <StarIcon key="overview" size={19}/>        ],
+    ["board",     "Board",    <BoardStarIcon key="board" size={19}/>   ],
+    ["chat",      "Chat",     <ChatStarIcon key="chat" size={19}/>    ],
+    ["autopilot", "Pilot",    <PilotStarIcon key="autopilot" size={19}/>   ],
+    ["saved",     "Saved",    <SavedStarIcon key="saved" size={19}/>   ],
+    ["settings",  "Settings", <SettingsStarIcon key="settings" size={19}/>],
   ];
   return (
     <div className="bottom-nav" style={{
@@ -2744,7 +2957,7 @@ function Topbar({ page, onMenuOpen }: { page: Page; onMenuOpen?: () => void }) {
 ═══════════════════════════════════════════════════════════════════════════ */
 export default function Dashboard() {
   const [page, setPage]   = useState<Page>("overview");
-  const [theme, setTheme] = useState<Theme>("dark");
+  const { theme, toggle: toggleTheme } = useTheme();
   const [mobSidebar, setMobSidebar] = useState(false);
 
   useEffect(() => {
@@ -2754,26 +2967,15 @@ export default function Dashboard() {
     return () => window.removeEventListener("keydown", onKey);
   }, [mobSidebar]);
 
-  /* ── Theme persist ── */
-  useEffect(() => {
-    const stored = localStorage.getItem("kanbi-theme") as Theme | null;
-    if (stored) { setTheme(stored); return; }
-    const mq = window.matchMedia("(prefers-color-scheme: dark)");
-    setTheme(mq.matches ? "dark" : "light");
-    const fn = (e: MediaQueryListEvent) => { if (!localStorage.getItem("kanbi-theme")) setTheme(e.matches ? "dark" : "light"); };
-    mq.addEventListener("change", fn);
-    return () => mq.removeEventListener("change", fn);
-  }, []);
-
-  const toggleTheme = useCallback(() => {
-    setTheme(t => { const n = t === "dark" ? "light" : "dark"; localStorage.setItem("kanbi-theme", n); return n; });
-  }, []);
+  /* ── System preference and other tabs, both owned by the shared theme store ── */
+  useEffect(() => startThemeWatch(), []);
 
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Runs once on mount. isLoading already starts as true, so there is no need to
+  // set it again here before the fetches resolve.
   useEffect(() => {
-    setIsLoading(true);
     Promise.all([
       fetch("/api/profile").then(r => r.json()).catch(() => ({})),
       fetch("/api/usage").then(r => r.json()).catch(() => ({})),
@@ -2786,6 +2988,12 @@ export default function Dashboard() {
         plan:               usage.plan === "premium" ? "pro" : "free",
         boards_used_today:  usage.boardsUsedToday ?? 0,
         ai_uses_this_month: usage.aiUsedMonth ?? 0,
+        // Limits come from the server, which reads them from USAGE_LIMITS. The
+        // interface must not restate them or it will drift from what is enforced.
+        boards_today_limit:  usage.boardsTodayLimit ?? 10,
+        boards_month_limit: usage.boardsMonthLimit ?? 300,
+        ai_today_limit:      usage.aiTodayLimit ?? 10,
+        ai_month_limit:      usage.aiMonthLimit ?? 300,
       });
     }).finally(() => setIsLoading(false));
   }, []);
@@ -2821,7 +3029,7 @@ export default function Dashboard() {
         setChatMessages(d.messages.map((m: { role?: string; message?: string; timestamp?: string }, i: number) => ({
           id: `hist-${i}-${m.timestamp ?? i}`,
           role: m.role === 'assistant' ? 'ai' as const : 'user' as const,
-          content: sanitizeChatText(m.message ?? ''),
+          content: normalizeChatReply(m.message ?? '', 600),
           ts: formatChatTime(m.timestamp),
         })));
       })

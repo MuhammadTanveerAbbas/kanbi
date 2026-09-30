@@ -2,7 +2,9 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { checkCsrfOrigin } from '@/lib/security'
 
-const PUBLIC_PATHS = ['/', '/sign-in', '/sign-up', '/forgot', '/reset-password', '/pricing', '/features', '/privacy', '/terms']
+// Pages reachable without signing in. '/features' is intentionally absent: no such
+// route exists, and listing it here implied a page that was never built.
+const PUBLIC_PATHS = ['/', '/sign-in', '/sign-up', '/forgot', '/reset-password', '/pricing', '/changelog', '/privacy', '/terms']
 const AUTH_PATHS = ['/sign-in', '/sign-up', '/forgot', '/reset-password']
 
 export async function proxy(request: NextRequest) {

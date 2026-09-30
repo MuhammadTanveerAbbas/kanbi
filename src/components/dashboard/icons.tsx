@@ -97,6 +97,61 @@ export const Icons = {
   X: ({ size = 16, style }: IC) => (
     <S size={size} style={style}><path d="M18 6L6 18M6 6l12 12"/></S>
   ),
+  Alert: ({ size = 16, style }: IC) => (
+    <S size={size} style={style}>
+      <circle cx="12" cy="12" r="9"/><path d="M12 8v4.5"/><path d="M12 16h.01"/>
+    </S>
+  ),
+  Link: ({ size = 16, style }: IC) => (
+    <S size={size} style={style}>
+      <path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/>
+      <path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/>
+    </S>
+  ),
+  /** Right pointing arrow, used instead of a text arrow character. */
+  ArrowRight: ({ size = 16, style }: IC) => (
+    <S size={size} style={style}>
+      <path d="M4 12h15"/><path d="m13 6 6 6-6 6"/>
+    </S>
+  ),
+  /** Left pointing arrow, used instead of a text arrow character. */
+  ArrowLeft: ({ size = 16, style }: IC) => (
+    <S size={size} style={style}>
+      <path d="M20 12H5"/><path d="m11 18-6-6 6-6"/>
+    </S>
+  ),
+  /** Waving hand, used in the dashboard greeting. */
+  Wave: ({ size = 16, style }: IC) => (
+    <S size={size} style={style}>
+      <path d="M11 11V4.5a1.5 1.5 0 0 1 3 0V11"/>
+      <path d="M14 10.5V3.8a1.5 1.5 0 0 1 3 0v6.7"/>
+      <path d="M17 10.5V6.3a1.5 1.5 0 0 1 3 0v8.2a6 6 0 0 1-6 6h-1.6a5 5 0 0 1-3.9-1.9L5 14.6a1.6 1.6 0 0 1 2.4-2.1L11 15.4V11"/>
+    </S>
+  ),
+  /** Party popper, used where a success message used an emoji. */
+  Party: ({ size = 16, style }: IC) => (
+    <S size={size} style={style}>
+      <path d="M3 21l5.5-5.5"/>
+      <path d="M8.5 15.5 3 21"/>
+      <path d="M14 4 20 10 10 20 4 14z"/>
+      <path d="M18.5 2.5v3M22 5.5h-3M20.5 9.5l1.8 1.8"/>
+    </S>
+  ),
+  /** Filled warning triangle, used instead of the warning emoji. */
+  Warn: ({ size = 16, style }: IC) => (
+    <S size={size} style={style}>
+      <path d="M10.3 3.9 1.9 18a2 2 0 0 0 1.7 3h16.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/>
+      <path d="M12 9v4.5" stroke="var(--bg1, #0e0e18)"/>
+      <path d="M12 17h.01" stroke="var(--bg1, #0e0e18)"/>
+    </S>
+  ),
+  /** Filled check inside a circle, the success state. */
+  CheckCircle: ({ size = 16, style }: IC) => (
+    <S size={size} style={style}>
+      <circle cx="12" cy="12" r="9" fill="currentColor" stroke="none"/>
+      <path d="m8 12.2 2.7 2.7L16 9.6" stroke="var(--bg1, #0e0e18)"/>
+    </S>
+  ),
   Search: ({ size = 16, style }: IC) => (
     <S size={size} style={style}><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></S>
   ),

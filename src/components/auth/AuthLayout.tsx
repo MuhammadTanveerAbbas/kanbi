@@ -1,15 +1,14 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-
-const DARK_VARS = `--bg:#07070b;--bg1:#0d0d13;--bg2:#111119;--bg3:#16161f;--br:rgba(255,255,255,0.07);--brh:rgba(255,255,255,0.13);--tx:#e0e0ea;--tx2:#787896;--tx3:#3e3e55;--inp:#111119;--card:#0d0d13;`;
-const LIGHT_VARS = `--bg:#f2f3fb;--bg1:#ffffff;--bg2:#eaebf8;--bg3:#e0e2f5;--br:rgba(0,0,0,0.07);--brh:rgba(0,0,0,0.14);--tx:#0a0a18;--tx2:#4a4a72;--tx3:#9898b8;--inp:#eaebf8;--card:#ffffff;`;
+import { useEffect } from "react";
+import Link from "next/link";
+import { appThemeVars, startThemeWatch, useTheme } from "@/lib/theme";
 
 const AUTH_CSS = (theme: "dark" | "light") => `
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; }
   :root {
-    ${theme === "dark" ? DARK_VARS : LIGHT_VARS}
+    ${appThemeVars(theme)}
     --ac:#5e6fe8; --ach:#6e7ff8; --as:rgba(94,111,232,0.12); --ag:rgba(94,111,232,0.22);
     --gr:#22c55e; --rd:#ef4444; --am:#f59e0b; --pu:#a78bfa;
   }
@@ -53,7 +52,7 @@ const AUTH_CSS = (theme: "dark" | "light") => `
 
   .auth-theme-btn:focus-visible { border-color: var(--brh) !important; color: var(--tx) !important; }
   .auth-check { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
-  .auth-check:focus-visible + .auth-box { border-color: var(--ac) !important; box-shadow: 0 0 0 3px var(--as); }
+  .auth-check:focus-visible + .auth-box { border-color: var(--ac-text) !important; box-shadow: 0 0 0 3px var(--as); }
 
   @media (max-width: 480px) {
     .auth-shell { padding: 68px 14px calc(20px + env(safe-area-inset-bottom, 0px)); }
@@ -78,29 +77,13 @@ interface AuthLayoutProps {
   children: React.ReactNode;
 }
 
+
 export default function AuthLayout({ children }: AuthLayoutProps) {
-  const [theme, setTheme] = useState<"dark" | "light">("dark");
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    const stored = localStorage.getItem("kanbi-theme") as "dark" | "light" | null;
-    if (stored) { setTheme(stored); setMounted(true); return; }
-    const mq = window.matchMedia("(prefers-color-scheme: dark)");
-    setTheme(mq.matches ? "dark" : "light");
-    setMounted(true);
-    const fn = (e: MediaQueryListEvent) => {
-      if (!localStorage.getItem("kanbi-theme")) setTheme(e.matches ? "dark" : "light");
-    };
-    mq.addEventListener("change", fn);
-    return () => mq.removeEventListener("change", fn);
-  }, []);
-
-  const toggleTheme = useCallback(() => {
-    setTheme(t => { const n = t === "dark" ? "light" : "dark"; localStorage.setItem("kanbi-theme", n); return n; });
-  }, []);
-
-  // Use dark as the consistent SSR default; client will update after mount
-  const t = mounted ? theme : "dark";
+  const { theme: t, toggle: toggleTheme } = useTheme();
+  // The sign in screens previously carried their own copy of the theme store.
+  // It worked, but it did not follow changes made in another tab and it had its
+  // own idea of which grey was muted, which is how the two drifted apart.
+  useEffect(() => startThemeWatch(), []);
 
   return (
     <>
@@ -117,12 +100,12 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
         }} />
 
         <div style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 10, padding: "14px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <a href="/" aria-label="Kanbi home" style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div style={{ width: 28, height: 28, borderRadius: 8, background: "var(--ac)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", boxShadow: "0 0 18px var(--ag)" }}>
+          <Link href="/" aria-label="Kanbi home" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ width: 28, height: 28, borderRadius: 8, background: "var(--ac-solid)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", boxShadow: "0 0 18px var(--ag)" }}>
               {I.zap(13)}
             </div>
             <span style={{ fontSize: 15, fontWeight: 700, color: "var(--tx)", letterSpacing: "-0.025em" }}>Kanbi</span>
-          </a>
+          </Link>
           <button
             type="button"
             className="auth-theme-btn"

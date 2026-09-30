@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useId, useState } from "react";
+import { ErrorNotice } from "@/components/error-notice";
 
 const authFieldStyles = `
   .auth-input {
@@ -20,14 +21,14 @@ const authFieldStyles = `
     color: var(--tx3);
   }
   .auth-input:focus {
-    border-color: var(--ac);
+    border-color: var(--ac-text);
     box-shadow: 0 0 0 3px var(--as);
   }
   .auth-input.error {
-    border-color: var(--rd);
+    border-color: var(--rd-text);
   }
   .auth-input.error:focus {
-    border-color: var(--rd);
+    border-color: var(--rd-text);
     box-shadow: none;
   }
   .auth-eye-btn {
@@ -83,7 +84,7 @@ export function AuthField({ label, type = "text", value, onChange, placeholder, 
       <style dangerouslySetInnerHTML={{ __html: authFieldStyles }} />
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         <label htmlFor={inputId} style={{ fontSize: 13, fontWeight: 600, color: "var(--tx2)" }}>
-          {label}{required && <span aria-hidden="true" style={{ color: "var(--rd)", marginLeft: 2 }}>*</span>}
+          {label}{required && <span aria-hidden="true" style={{ color: "var(--rd-text)", marginLeft: 2 }}>*</span>}
         </label>
         <div style={{ position: "relative" }}>
           {icon && (
@@ -114,9 +115,7 @@ export function AuthField({ label, type = "text", value, onChange, placeholder, 
             </button>
           )}
         </div>
-        {error && <p id={errorId} role="alert" style={{ fontSize: 11.5, color: "var(--rd)", display: "flex", alignItems: "center", gap: 4, lineHeight: 1.45 }}>
-          <span aria-hidden="true" style={{ fontSize: 13 }}>⚠</span> {error}
-        </p>}
+        {error && <ErrorNotice id={errorId} variant="inline">{error}</ErrorNotice>}
         {hint && !error && <p id={hintId} style={{ fontSize: 11, color: "var(--tx3)", lineHeight: 1.45 }}>{hint}</p>}
       </div>
     </>
@@ -173,7 +172,7 @@ export function AuthButton({ children, loading, icon, onClick, type = "submit", 
       aria-busy={loading ? true : undefined}
       style={{
         width: "100%", height: 44, borderRadius: 10,
-        background: "var(--ac)", border: "none", color: "#fff",
+        background: "var(--ac-solid)", border: "none", color: "#fff",
         fontSize: 14, fontWeight: 600, cursor: loading ? "not-allowed" : "pointer",
         display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
         transition: "background .15s, box-shadow .15s",
@@ -239,9 +238,9 @@ export function SocialAuth({ mode }: { mode: "signin" | "signup" }) {
         {mode === "signin" ? "Sign in" : "Sign up"} with Google
       </AuthButton>
       {error && (
-        <p role="alert" style={{ fontSize: 12, color: "var(--rd)", textAlign: "center", lineHeight: 1.45 }}>
-          <span aria-hidden="true">⚠</span> {error}
-        </p>
+        <div style={{ display: "flex", justifyContent: "center" }}>
+          <ErrorNotice variant="inline">{error}</ErrorNotice>
+        </div>
       )}
       <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "4px 0" }}>
         <div style={{ flex: 1, height: 1, background: "var(--br)" }} />
@@ -261,11 +260,11 @@ export function getPasswordStrength(pw: string): { score: number; label: string;
   if (/[^a-zA-Z0-9]/.test(pw)) score++;
   const map = [
     { label: "", color: "var(--br)" },
-    { label: "Very weak", color: "var(--rd)" },
-    { label: "Weak", color: "var(--am)" },
-    { label: "Fair", color: "var(--am)" },
-    { label: "Good", color: "var(--gr)" },
-    { label: "Strong", color: "var(--gr)" },
+    { label: "Very weak", color: "var(--rd-text)" },
+    { label: "Weak", color: "var(--am-text)" },
+    { label: "Fair", color: "var(--am-text)" },
+    { label: "Good", color: "var(--gr-text)" },
+    { label: "Strong", color: "var(--gr-text)" },
   ];
   return { score, ...map[score]! };
 }

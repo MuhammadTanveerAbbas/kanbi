@@ -6,7 +6,7 @@ export default async function AuthLayout({ children }: { children: ReactNode }) 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Already logged in ➜ go straight to dashboard (no flicker)
+  // Already logged in <Icons.ArrowRight size={13}/> go straight to dashboard (no flicker)
   if (user) redirect('/dashboard')
 
   return <>{children}</>

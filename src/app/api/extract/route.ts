@@ -4,7 +4,8 @@ import { extractJsonArray } from '@/lib/ai-service'
 import { createChatCompletion } from '@/lib/ai/groq-client'
 import { usageService } from '@/lib/services/usage-service'
 import { rateLimit, rateLimitResponse } from '@/lib/rate-limiter'
-import { AuthError, RateLimitError, ExternalServiceError } from '@/lib/errors/AppError'
+import { AuthError, RateLimitError, ExternalServiceError, ValidationError } from '@/lib/errors/AppError'
+import { extractSchema } from '@/lib/validation/schemas'
 import { sanitizeInput } from '@/lib/security'
 import { getOrCreateDefaultBoard } from '@/lib/services/default-board'
 import DOMPurify from 'isomorphic-dompurify'
@@ -25,9 +26,12 @@ export async function POST(request: NextRequest): Promise<Response> {
       return NextResponse.json(err.toJSON(), { status: 401 })
     }
 
-    const body = await request.json()
-    if (!body.text?.trim()) {
-      return NextResponse.json({ error: 'Text is required' }, { status: 400 })
+    // Validated with a schema so the length limit lives in one definition rather
+    // than in an ad hoc check, and so a non-object body is rejected cleanly.
+    const parsed = extractSchema.safeParse(await request.json().catch(() => null))
+    if (!parsed.success) {
+      const err = new ValidationError(parsed.error.errors[0]?.message || 'Text is required')
+      return NextResponse.json(err.toJSON(), { status: err.statusCode })
     }
 
     logger.info('Extract request', { userId: user.id, requestId })
@@ -38,7 +42,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       return NextResponse.json(err.toJSON(), { status: 429 })
     }
 
-    const cleanInput = sanitizeInput(body.text, 8000)
+    const cleanInput = sanitizeInput(parsed.data.text, 8000)
     if (!cleanInput) {
       return NextResponse.json({ error: 'No usable text provided' }, { status: 400 })
     }

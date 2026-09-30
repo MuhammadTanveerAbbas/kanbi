@@ -185,7 +185,7 @@ export class WorkloadAnalyzer {
     const suggestions: string[] = [];
 
     if (status === 'critical') {
-      suggestions.push(`⚠️ Critical overload! You're ${Math.round(overloadHours)}h over capacity`);
+      suggestions.push(`Critical overload. You are ${Math.round(overloadHours)}h over capacity.`);
       suggestions.push(`Move ${Math.ceil(totalTasks * 0.5)} tasks to tomorrow or next week`);
       suggestions.push('Focus only on urgent tasks today');
     } else if (status === 'overloaded') {
@@ -203,7 +203,7 @@ export class WorkloadAnalyzer {
         suggestions.push('Tackle high-priority tasks in the morning');
       }
     } else {
-      suggestions.push('✅ You\'re on track! Good workload balance');
+      suggestions.push('You are on track. The workload balance looks good.');
       if (totalTasks === 0) {
         suggestions.push('Add your tasks to get started');
       }

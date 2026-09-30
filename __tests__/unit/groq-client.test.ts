@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { createChatCompletion, selectModel } from '@/lib/ai/groq-client'
+import { createChatCompletion, selectModelForRequest } from '@/lib/ai/groq-client'
 import { cacheManager } from '@/lib/cache/cache-manager'
 
 const mocks = vi.hoisted(() => ({
@@ -59,15 +59,15 @@ describe('groq-client', () => {
     vi.useFakeTimers()
     mocks.list.mockResolvedValue({ data: [{ id: PREFERRED, active: true }] })
 
-    await selectModel()
+    await selectModelForRequest()
     expect(mocks.list).toHaveBeenCalledTimes(1)
 
-    await selectModel()
+    await selectModelForRequest()
     expect(mocks.list).toHaveBeenCalledTimes(1)
 
     vi.advanceTimersByTime(60 * 60 * 1000 + 1000)
 
-    await selectModel()
+    await selectModelForRequest()
     expect(mocks.list).toHaveBeenCalledTimes(2)
   })
 
@@ -79,7 +79,51 @@ describe('groq-client', () => {
       ],
     })
 
-    await expect(selectModel()).resolves.toBe(FALLBACK)
+    await expect(selectModelForRequest()).resolves.toBe(FALLBACK)
+  })
+
+  it('does not select a model the provider has retired even if the catalog lists it', async () => {
+    // A cached catalog can go stale and still name a shut down model. Selection
+    // must reject it without waiting for a failed request.
+    mocks.list.mockResolvedValue({
+      data: [
+        { id: 'gemma2-9b-it', active: true },
+        { id: PREFERRED, active: true },
+      ],
+    })
+
+    await expect(selectModelForRequest()).resolves.toBe(PREFERRED)
+  })
+
+  it('falls back to the configured model when the catalog cannot be fetched', async () => {
+    mocks.list.mockRejectedValue(new Error('network down'))
+
+    // The request is still attempted rather than failing outright.
+    await expect(selectModelForRequest()).resolves.toBe(PREFERRED)
+    expect(mocks.create).toHaveBeenCalledTimes(0)
+  })
+
+  it('does not select a model that cannot satisfy the requested output length', async () => {
+    mocks.list.mockResolvedValue({
+      data: [
+        { id: 'too-small', active: true, max_completion_tokens: 1024 },
+        { id: PREFERRED, active: true, max_completion_tokens: 32768 },
+      ],
+    })
+
+    await expect(selectModelForRequest({ maxOutputTokens: 2048 })).resolves.toBe(PREFERRED)
+  })
+
+  it('passes the requested output length to the model it selects', async () => {
+    mocks.list.mockResolvedValue({
+      data: [{ id: PREFERRED, active: true, max_completion_tokens: 32768 }],
+    })
+
+    await createChatCompletion({ messages: [{ role: 'user', content: 'hi' }], max_tokens: 2048 })
+
+    expect(mocks.create).toHaveBeenCalledWith(
+      expect.objectContaining({ model: PREFERRED, max_tokens: 2048 })
+    )
   })
 
   it('falls back to the next compatible model when the preferred model is unavailable', async () => {

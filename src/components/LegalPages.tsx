@@ -1,7 +1,9 @@
 'use client'
 
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
+import { appThemeVars, startThemeWatch, useTheme } from '@/lib/theme'
 
 interface Section {
   id: string
@@ -41,22 +43,43 @@ const TERMS_SECS: Section[] = [
   { id: 'terms-contact', title: '14. Contact Information', content: ['For terms questions, contact: themvpguy.contact@gmail.com'] },
 ]
 
-export default function LegalPages() {
-  const [pathname, setPathname] = useState<string>('/')
-  const [activeId, setActiveId] = useState<string>('')
+/** Small inline arrow, kept local so the legal pages need no icon set. */
+function ArrowLeftIcon({ size = 13 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+      <path d="M20 12H5"/><path d="m11 18-6-6 6-6"/>
+    </svg>
+  );
+}
 
-  useEffect(() => {
-    setPathname(window.location.pathname)
-  }, [])
+export default function LegalPages() {
+  // usePathname is available during the server render too, so the correct page
+  // is produced on the first pass with no effect and no hydration mismatch.
+  const pathname = usePathname() ?? '/'
+  const [activeId, setActiveId] = useState<string>('')
+  // Privacy and terms were the only pages pinned to a dark palette. A visitor who
+  // chose light anywhere else on the site met a black page here, on a different
+  // set of greys, for no reason anyone had recorded.
+  const { theme, toggle: toggleTheme } = useTheme();
+  useEffect(() => startThemeWatch(), []);
 
   const isTerms = pathname.includes('/terms')
   const sections = useMemo(() => (isTerms ? TERMS_SECS : PRIV_SECS), [isTerms])
   const pageTitle = isTerms ? 'Terms of Service' : 'Privacy Policy'
   const updatedDate = 'March 2026'
 
+  // Seed activeId during render rather than in the effect body. The effect only
+  // needs to attach the observer, so the initial value is already correct on the
+  // first paint and no cascading render happens.
+  const [lastSections, setLastSections] = useState(sections)
+  if (lastSections !== sections) {
+    setLastSections(sections)
+    setActiveId(sections[0]?.id ?? '')
+  }
+
   useEffect(() => {
     if (!sections.length) return
-    setActiveId(sections[0]!.id)
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -90,7 +113,10 @@ export default function LegalPages() {
           background: var(--bg);
           color: var(--tx);
           padding: 40px 20px 80px;
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+          /* Uses the loaded Geist family like every other page. This previously
+             named a raw system stack, so privacy and terms were the only two
+             pages in the product not using the real typeface. */
+          font-family: var(--font-geist), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         }
         .layout {
           max-width: 1100px;
@@ -131,10 +157,20 @@ export default function LegalPages() {
           background: var(--bg3);
           color: var(--tx);
         }
+        button.chip {
+          cursor: pointer;
+          font-family: inherit;
+        }
+        button.chip:focus-visible,
+        a:focus-visible {
+          outline: 2px solid var(--ac);
+          outline-offset: 2px;
+        }
+        }
         .chip.active {
           background: var(--as);
-          border-color: var(--ac);
-          color: var(--ac);
+          border-color: var(--ac-text);
+          color: var(--ac-text);
           font-weight: 600;
         }
         .page-header {
@@ -223,8 +259,8 @@ export default function LegalPages() {
           color: var(--tx);
         }
         .toc button.active {
-          border-left-color: var(--ac);
-          color: var(--ac);
+          border-left-color: var(--ac-text);
+          color: var(--ac-text);
           background: var(--as);
           font-weight: 500;
         }
@@ -237,17 +273,7 @@ export default function LegalPages() {
           }
         }
         .legal-page {
-          --bg: #07090d;
-          --bg1: #0d1117;
-          --bg2: #131920;
-          --bg3: #192028;
-          --br: #1e2a38;
-          --brh: #283a50;
-          --tx: #eef2ff;
-          --tx2: #a8b8d0;
-          --tx3: #6a7f9d;
-          --ac: #6ea8ff;
-          --as: rgba(110, 168, 255, 0.1);
+          ${appThemeVars(theme)}
         }
       `}</style>
 
@@ -256,10 +282,18 @@ export default function LegalPages() {
           <div className="topbar">
             <div className="navgroup">
               <Link href="/" className="chip">
-                ← Home
+                <ArrowLeftIcon size={13}/> Home
               </Link>
             </div>
             <div className="navgroup">
+              <button
+                type="button"
+                className="chip"
+                onClick={toggleTheme}
+                aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
+              >
+                {theme === 'dark' ? 'Light' : 'Dark'}
+              </button>
               <Link href="/privacy" className={`chip ${!isTerms ? 'active' : ''}`}>
                 Privacy Policy
               </Link>

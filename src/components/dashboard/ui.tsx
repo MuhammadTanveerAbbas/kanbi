@@ -5,8 +5,8 @@ import type { Priority } from "@/components/dashboard/types";
 
 export const PRI: Record<Priority, { label: string; color: string; bg: string }> = {
   urgent: { label:"Urgent", color:"var(--ur)",  bg:"rgba(249,115,22,0.11)" },
-  high:   { label:"High",   color:"var(--rd)",  bg:"rgba(239,68,68,0.11)"  },
-  medium: { label:"Med",    color:"var(--am)",  bg:"rgba(245,158,11,0.11)" },
+  high:   { label:"High",   color:"var(--rd-text)",  bg:"rgba(239,68,68,0.11)"  },
+  medium: { label:"Med",    color:"var(--am-text)",  bg:"rgba(245,158,11,0.11)" },
   low:    { label:"Low",    color:"var(--tx3)", bg:"rgba(255,255,255,0.04)"},
 };
 
@@ -31,12 +31,20 @@ export function Avt({ name, size = 28, avatarUrl }: { name: string; size?: numbe
   const [imgErr, setImgErr] = useState(false);
   if (avatarUrl && !imgErr) {
     return (
+      // next/image is intentionally not used here. The avatar URL comes from the
+      // user's own profile record and can point at any host, so allowing it would
+      // mean adding a wildcard remotePatterns entry that permits Next's image
+      // optimizer to fetch any attacker-chosen URL. These avatars are 28 to 32px
+      // and already carry explicit width, height, and referrerPolicy, so the
+      // optimizer would not measurably help at this size.
+      // eslint-disable-next-line @next/next/no-img-element
       <img
         src={avatarUrl}
         alt={name}
         width={size}
         height={size}
         referrerPolicy="no-referrer"
+        loading="lazy"
         onError={() => setImgErr(true)}
         style={{ borderRadius: "50%", objectFit: "cover", flexShrink: 0,
           boxShadow: "0 0 0 2px var(--bg1), 0 0 0 3px var(--br)" }}

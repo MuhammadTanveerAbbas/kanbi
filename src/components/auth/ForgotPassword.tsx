@@ -45,7 +45,7 @@ export default function ForgotPasswordPage() {
     return (
       <AuthLayout>
         <div className="auth-card" style={{ textAlign: "center" }}>
-          <div style={{ width: 56, height: 56, borderRadius: 14, background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.25)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--gr)", margin: "0 auto 18px" }}>
+          <div style={{ width: 56, height: 56, borderRadius: 14, background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.25)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--gr-text)", margin: "0 auto 18px" }}>
             {I.send(24)}
           </div>
           <h2 style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.03em", color: "var(--tx)", marginBottom: 10 }}>Reset link sent</h2>
@@ -70,7 +70,7 @@ export default function ForgotPasswordPage() {
     <AuthLayout>
       <div className="auth-card">
         <div style={{ textAlign: "center", marginBottom: 24 }}>
-          <div style={{ width: 46, height: 46, borderRadius: 13, background: "var(--as)", border: "1px solid var(--ag)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--ac)", margin: "0 auto 13px" }}>
+          <div style={{ width: 46, height: 46, borderRadius: 13, background: "var(--as)", border: "1px solid var(--ag)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--ac-text)", margin: "0 auto 13px" }}>
             {I.lock()}
           </div>
           <h1 style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.035em", color: "var(--tx)", marginBottom: 7 }}>Forgot your password?</h1>

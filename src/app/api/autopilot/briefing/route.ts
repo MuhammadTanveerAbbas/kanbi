@@ -56,6 +56,17 @@ export async function POST(request: NextRequest) {
     const adjustments = detectBlockersAndAdjust(tasks, schedule);
     const overflow = rescheduleOverflow(tasks, schedule.map(s => s.task));
 
+    // Burnout alerts are derived from the deterministic calculation, not from a
+    // model. The score is the same value WorkloadAnalyzer uses, so the alert and
+    // the health score on the board can never disagree.
+    if (briefing.warnings.length > 0 && healthScore < 50) {
+      await supabase.from('burnout_alerts').insert({
+        user_id: user.id,
+        score: healthScore,
+        message: briefing.warnings.join(' '),
+      });
+    }
+
     const today = new Date().toISOString().split('T')[0];
     await supabase
       .from('morning_briefings')

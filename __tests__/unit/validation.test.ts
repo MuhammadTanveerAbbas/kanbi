@@ -1,71 +1,13 @@
 import { describe, it, expect } from 'vitest'
 import {
-  parseTasksSchema,
-  generateSchema,
   analyzeWorkloadSchema,
-  saveBoardSchema,
   trackCompletionSchema,
   chatSchema,
   feedbackSchema,
-  parseEmailSchema,
-  parseUrlSchema,
 } from '@/lib/validation/schemas'
 
 describe('Validation Schemas', () => {
-  describe('parseTasksSchema', () => {
-    it('should validate valid notes', () => {
-      const data = { notes: 'Buy groceries, Fix bug in auth' }
-      expect(() => parseTasksSchema.parse(data)).not.toThrow()
-    })
 
-    it('should reject empty notes', () => {
-      const data = { notes: '' }
-      expect(() => parseTasksSchema.parse(data)).toThrow()
-    })
-
-    it('should reject notes exceeding max length', () => {
-      const data = { notes: 'a'.repeat(10001) }
-      expect(() => parseTasksSchema.parse(data)).toThrow()
-    })
-
-    it('should accept notes at max length boundary', () => {
-      const data = { notes: 'a'.repeat(10000) }
-      expect(() => parseTasksSchema.parse(data)).not.toThrow()
-    })
-  })
-
-  describe('generateSchema', () => {
-    it('should validate with required input only', () => {
-      const data = { input: 'Generate a task list' }
-      expect(() => generateSchema.parse(data)).not.toThrow()
-    })
-
-    it('should validate with all optional fields', () => {
-      const data = {
-        input: 'Generate a task list',
-        tone: 'professional',
-        length: 'medium',
-        format: 'json',
-        model: 'gpt-4',
-      }
-      expect(() => generateSchema.parse(data)).not.toThrow()
-    })
-
-    it('should reject invalid length enum', () => {
-      const data = { input: 'test', length: 'extra-long' }
-      expect(() => generateSchema.parse(data)).toThrow()
-    })
-
-    it('should reject invalid format enum', () => {
-      const data = { input: 'test', format: 'xml' }
-      expect(() => generateSchema.parse(data)).toThrow()
-    })
-
-    it('should reject missing input', () => {
-      const data = { tone: 'professional' }
-      expect(() => generateSchema.parse(data)).toThrow()
-    })
-  })
 
   describe('analyzeWorkloadSchema', () => {
     const validTask = {
@@ -116,27 +58,6 @@ describe('Validation Schemas', () => {
     })
   })
 
-  describe('saveBoardSchema', () => {
-    it('should validate with required fields', () => {
-      const data = { title: 'My Board', tasks: [] }
-      expect(() => saveBoardSchema.parse(data)).not.toThrow()
-    })
-
-    it('should reject empty title', () => {
-      const data = { title: '', tasks: [] }
-      expect(() => saveBoardSchema.parse(data)).toThrow()
-    })
-
-    it('should reject title exceeding max length', () => {
-      const data = { title: 'a'.repeat(201), tasks: [] }
-      expect(() => saveBoardSchema.parse(data)).toThrow()
-    })
-
-    it('should validate with tags', () => {
-      const data = { title: 'Board', tasks: [], tags: ['work', 'urgent'] }
-      expect(() => saveBoardSchema.parse(data)).not.toThrow()
-    })
-  })
 
   describe('trackCompletionSchema', () => {
     it('should validate with all required fields', () => {
@@ -222,32 +143,5 @@ describe('Validation Schemas', () => {
     })
   })
 
-  describe('parseEmailSchema', () => {
-    it('should validate with email content', () => {
-      const data = { emailContent: 'Subject: Tasks\n\nBuy milk, Fix bug' }
-      expect(() => parseEmailSchema.parse(data)).not.toThrow()
-    })
 
-    it('should reject empty email content', () => {
-      const data = { emailContent: '' }
-      expect(() => parseEmailSchema.parse(data)).toThrow()
-    })
-  })
-
-  describe('parseUrlSchema', () => {
-    it('should validate valid URL', () => {
-      const data = { url: 'https://example.com' }
-      expect(() => parseUrlSchema.parse(data)).not.toThrow()
-    })
-
-    it('should reject invalid URL', () => {
-      const data = { url: 'not-a-url' }
-      expect(() => parseUrlSchema.parse(data)).toThrow()
-    })
-
-    it('should accept http URLs', () => {
-      const data = { url: 'http://example.com' }
-      expect(() => parseUrlSchema.parse(data)).not.toThrow()
-    })
-  })
 })

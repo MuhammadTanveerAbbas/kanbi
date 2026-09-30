@@ -2,7 +2,7 @@ import { ImageResponse } from 'next/og';
 
 export const runtime = 'edge';
 
-export const alt = 'Kanbi - AI Task Management That Saves 2 Hours Daily';
+export const alt = 'Kanbi - turn notes into a task board';
 export const size = {
   width: 1200,
   height: 630,
@@ -115,7 +115,7 @@ export default async function Image() {
               textAlign: 'center',
             }}
           >
-            AI Task Management That Saves 2 Hours Daily
+            Turn Notes Into a Task Board
           </div>
 
           {/* Features */}

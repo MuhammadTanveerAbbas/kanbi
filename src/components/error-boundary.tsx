@@ -96,7 +96,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 </CardTitle>
               </div>
               <CardDescription className="text-sm text-muted-foreground">
-                Don't worry - your tasks are safe. Let's get you back on track.
+                Don&rsquo;t worry, your tasks are safe. Let&rsquo;s get you back on track.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">

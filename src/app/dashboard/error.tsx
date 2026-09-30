@@ -32,7 +32,7 @@ export default function DashboardError({
         onClick={reset}
         style={{
           padding: '10px 24px', borderRadius: 10, border: 'none',
-          background: 'var(--ac)', color: '#fff', fontSize: 13, fontWeight: 600,
+          background: 'var(--ac-solid)', color: '#fff', fontSize: 13, fontWeight: 600,
           cursor: 'pointer', transition: 'filter .15s',
         }}
         onMouseOver={e => e.currentTarget.style.filter = 'brightness(1.1)'}

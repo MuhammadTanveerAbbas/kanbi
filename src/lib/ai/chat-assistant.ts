@@ -1,7 +1,25 @@
-import { truncateChatResponse } from '@/lib/chat-text';
+/**
+ * Board aware chat assistant.
+ *
+ * The assistant is a thin layer over two things:
+ *
+ *   1. A language model, which reads the board and the question and writes a
+ *      short reply. This is the only part that is probabilistic.
+ *   2. Deterministic rules, which answer the common questions directly from the
+ *      board. These are not a fallback bolted on afterwards. Asking "what should
+ *      I do first" is arithmetic over a list, so it is computed, not generated.
+ *
+ * Every reply passes through the prose normaliser before it leaves this file, so
+ * no dash punctuation or semicolon can reach the interface.
+ */
+
+import { normalizeChatReply, normalizeLine } from '@/lib/text/normalize';
 import { GROQ_API_KEY } from '@/lib/constants';
 import { createChatCompletion } from '@/lib/ai/groq-client';
 import { logger } from '@/lib/logging/logger';
+import { CHAT_SYSTEM_PROMPT, FALLBACK_RESPONSES, type QuickActionId } from '@/lib/ai/chat-copy';
+
+export type { QuickActionId } from '@/lib/ai/chat-copy';
 
 export interface ChatMessage {
   role: 'user' | 'assistant';
@@ -23,195 +41,231 @@ export interface ChatContext {
   completedToday?: number;
 }
 
-/** AI-powered chat assistant with full board context awareness. */
+/** How many prior turns are sent to the model. */
+const HISTORY_TURNS = 6;
+/** Cap on a model reply, in characters. */
+const MAX_REPLY_CHARS = 320;
+/** How many tasks are described to the model. */
+const MAX_TASKS_IN_PROMPT = 20;
+
+function priorityOf(task: ChatTask): string {
+  return (task.priority ?? 'medium').toLowerCase();
+}
+
+function isOpen(task: ChatTask): boolean {
+  return (task.status ?? '').toLowerCase() !== 'done';
+}
+
+/** Partitions open tasks by priority, which most answers are built from. */
+function partition(tasks: ChatTask[]): { open: ChatTask[]; urgent: ChatTask[]; high: ChatTask[] } {
+  const open = (tasks ?? []).filter((t) => t && typeof t.title === 'string' && isOpen(t));
+  return {
+    open,
+    urgent: open.filter((t) => priorityOf(t) === 'urgent'),
+    high: open.filter((t) => priorityOf(t) === 'high'),
+  };
+}
+
+function titles(list: ChatTask[]): string[] {
+  return list.map((t) => normalizeLine(t.title));
+}
+
+/** Builds the task list the model is allowed to refer to. */
+function formatTaskList(tasks: ChatTask[]): string {
+  const open = (tasks ?? []).filter((t) => t && typeof t.title === 'string' && isOpen(t));
+  if (open.length === 0) return '- (no open tasks)';
+  return open
+    .slice(0, MAX_TASKS_IN_PROMPT)
+    .map((t) => `- [${priorityOf(t)}] ${normalizeLine(t.title)}`)
+    .join('\n');
+}
+
+function buildSystemPrompt(context: ChatContext): string {
+  const all = context.tasks ?? [];
+  const { open } = partition(all);
+  return CHAT_SYSTEM_PROMPT.replace('PENDING of TOTAL', `${open.length} of ${all.length}`)
+    .replace('HEALTH out of 100', String(context.workloadHealth ?? 'unknown'))
+    .replace('DONE', String(context.completedToday ?? 0))
+    .replace('TASKS', formatTaskList(all));
+}
+
 export class ChatAssistant {
+  /**
+   * Answers a question about the board.
+   *
+   * The model is used when there is something to reason about. When the message
+   * is a common question with a computable answer, the deterministic path runs
+   * first, so the answer is consistent and instant.
+   */
   static async generateResponse(
     userMessage: string,
     context: ChatContext,
     chatHistory: ChatMessage[] = []
   ): Promise<string> {
+    const question = normalizeLine(userMessage ?? '');
+
+    if (question.length === 0) return FALLBACK_RESPONSES.noContext;
+
+    const direct = this.answerFromBoard(question, context);
+    if (direct) return direct;
+
     try {
       if (!GROQ_API_KEY) throw new Error('Groq API key not configured');
 
-      const systemPrompt = this.buildSystemPrompt(context);
-      const historyMessages = chatHistory.slice(-6).map(msg => ({
-        role: msg.role === 'user' ? 'user' as const : 'assistant' as const,
-        content: msg.message,
-      }));
+      const historyMessages = chatHistory
+        .slice(-HISTORY_TURNS)
+        .map((msg) => ({
+          role: msg.role === 'user' ? ('user' as const) : ('assistant' as const),
+          content: normalizeChatReply(msg.message, MAX_REPLY_CHARS),
+        }));
 
       const completion = await createChatCompletion({
-        temperature: 0.35,
-        max_tokens: 120,
+        temperature: 0.4,
+        max_tokens: 220,
         messages: [
-          { role: 'system', content: systemPrompt },
+          { role: 'system', content: buildSystemPrompt(context) },
           ...historyMessages,
-          { role: 'user', content: userMessage },
+          { role: 'user', content: question },
         ],
       });
 
       const raw = completion.choices[0]?.message?.content?.trim() ?? '';
       if (!raw) throw new Error('Empty AI response');
-      return truncateChatResponse(raw);
+      return normalizeChatReply(raw, MAX_REPLY_CHARS);
     } catch (error) {
-      logger.error('Chat assistant error:', { error });
-      return truncateChatResponse(this.getFallbackResponse(userMessage, context));
+      logger.error('Chat assistant error:', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return FALLBACK_RESPONSES.errored;
     }
   }
 
-  private static buildSystemPrompt(context: ChatContext): string {
-    const { tasks, workloadHealth, estimatedHours, completedToday } = context;
-    const taskLines = this.formatTaskList(tasks);
+  /**
+   * Answers a recognised question directly from the board.
+   *
+   * Returns null when the question is not one these rules cover, which tells
+   * the caller to use the model instead.
+   */
+  private static answerFromBoard(question: string, context: ChatContext): string | null {
+    const { open, urgent, high } = partition(context.tasks ?? []);
 
-    return `You are Kanbi, a sharp productivity coach inside a task board app.
-
-Board snapshot:
-- Pending tasks: ${tasks.filter(t => t.status !== 'done').length} of ${tasks.length}
-- Workload health: ${workloadHealth ?? 'n/a'}/100
-- Done today: ${completedToday ?? 0}
-
-Tasks on board:
-${taskLines}
-
-Rules:
-- Reply in 1-3 short sentences OR a tight bullet list (max 4 bullets)
-- Max 60 words total
-- Only mention real tasks from the board above
-- Give one clear next action when possible
-- No filler, no lectures, no em/en dashes
-- No emojis unless the user asks for motivation
-- Plain text only`;
-  }
-
-  private static formatTaskList(tasks: ChatTask[]): string {
-    const pending = tasks
-      .filter(t => t.status !== 'done')
-      .slice(0, 10);
-
-    if (pending.length === 0) return '- (none pending)';
-
-    return pending
-      .map(t => `- [${(t.priority ?? 'medium').toLowerCase()}] ${t.title}`)
-      .join('\n');
-  }
-
-  private static getFallbackResponse(userMessage: string, context: ChatContext): string {
-    const msg = userMessage.toLowerCase();
-    const pending = context.tasks.filter(t => t.status !== 'done');
-    const urgent = pending.filter(t => (t.priority ?? '').toLowerCase() === 'urgent');
-    const high = pending.filter(t => (t.priority ?? '').toLowerCase() === 'high');
-    const top = urgent.length > 0 ? urgent : high;
-
-    if (msg.includes('first') || msg.includes('start') || msg.includes('priorit')) {
-      if (top.length > 0) {
-        return `Start with "${top[0]!.title}"${top[1] ? `, then "${top[1].title}"` : ''}. Tackle urgent work first.`;
-      }
-      return pending[0]
-        ? `Start with "${pending[0].title}". One task at a time.`
-        : 'Your board is clear. Add tasks or review what is done.';
+    if (open.length === 0) {
+      return FALLBACK_RESPONSES.emptyBoard;
     }
 
-    if (msg.includes('overwhelm') || msg.includes('too much') || msg.includes('stressed') || msg.includes('burnout')) {
-      if (pending.length > 8) {
-        return `You have ${pending.length} open tasks. Pick the top 3 for today and defer the rest.`;
-      }
-      return 'Focus on one small win first. Momentum beats a long list.';
+    if (/^(\W*)(what|which|who).{0,12}\b(first|start|begin|next|now)\b/.test(question)) {
+      return FALLBACK_RESPONSES.prioritise(titles(urgent), titles(high));
     }
 
-    if (msg.includes('break') && (msg.includes('down') || msg.includes('task'))) {
-      const target = top[0] ?? pending[0];
+    if (/\b(priorit|prioriti|triage)\w*\b/.test(question)) {
+      return FALLBACK_RESPONSES.prioritise(titles(urgent), titles(high));
+    }
+
+    if (/\b(overwhelm|too much|stressed|burn ?out|behind|swamped)\b/.test(question)) {
+      return FALLBACK_RESPONSES.overloaded(open.length);
+    }
+
+    if (/\b(break|split|chunk|sub ?task)\w*\b/.test(question)) {
+      const target = urgent[0] ?? high[0] ?? open[0];
       return target
-        ? `Break "${target.title}" into 3 steps: prep, do, review. Want me to list them?`
-        : 'Tell me which task to break down.';
+        ? FALLBACK_RESPONSES.breakdown(normalizeLine(target.title))
+        : FALLBACK_RESPONSES.breakdownNeedTask;
     }
 
-    if (msg.includes('plan') || msg.includes('schedule')) {
-      return pending.length > 0
-        ? `Plan: urgent/high first (${top.length || high.length} items), then medium. ${pending.length} tasks left.`
-        : 'Nothing pending. Good time to plan tomorrow or clear inbox.';
+    if (/\b(plan|schedule|sequence|order|today)\b/.test(question)) {
+      return FALLBACK_RESPONSES.plan(urgent.length, high.length, open.length);
     }
 
-    if (msg.includes('motivat') || msg.includes('stuck')) {
-      return 'Pick the smallest task and finish it in 10 minutes. Progress unlocks the next step.';
+    if (/\b(motivat|stuck|procrastinat|lazy|tired)\b/.test(question)) {
+      return FALLBACK_RESPONSES.motivate(context.completedToday ?? 0);
     }
 
-    return pending.length > 0
-      ? `You have ${pending.length} open tasks. Ask me to prioritize, plan, or break one down.`
-      : 'Board looks clear. I can help plan your next batch of work.';
-  }
-
-  static async handleQuickAction(
-    action: 'prioritize' | 'breakdown' | 'defer' | 'plan' | 'motivate',
-    context: ChatContext
-  ): Promise<string> {
-    const { tasks } = context;
-    const pending = tasks.filter(t => t.status !== 'done');
-    const urgent = pending.filter(t => (t.priority ?? '').toLowerCase() === 'urgent');
-    const high = pending.filter(t => (t.priority ?? '').toLowerCase() === 'high');
-
-    switch (action) {
-      case 'prioritize':
-        if (urgent.length > 0) {
-          return truncateChatResponse(
-            `Do "${urgent[0]!.title}" first. Then ${high[0]?.title ?? 'medium tasks'}. ${urgent.length} urgent, ${high.length} high.`
-          );
-        }
-        return high.length > 0
-          ? `Start with "${high[0]!.title}". ${high.length} high-priority items waiting.`
-          : 'No urgent/high tasks. Work medium items or clear quick wins.';
-
-      case 'breakdown':
-        return pending[0]
-          ? `For "${pending[0].title}": define outcome, list 3 steps, timebox each.`
-          : 'Add a task first, then I can break it down.';
-
-      case 'defer': {
-        const low = pending.filter(t => {
-          const p = (t.priority ?? '').toLowerCase();
-          return p === 'low' || p === 'medium';
-        });
-        if (low.length > 0) {
-          return truncateChatResponse(
-            `Defer to tomorrow: ${low.slice(0, 3).map(t => t.title).join(', ')}.`
-          );
-        }
-        return 'Already on high-priority work. Defer anything non-urgent manually.';
+    if (/\b(defer|later|postpone|skip|drop)\b/.test(question)) {
+      const deferrable = open.filter((t) => {
+        const p = priorityOf(t);
+        return p === 'low' || p === 'medium';
+      });
+      if (deferrable.length === 0) {
+        return 'Everything open is urgent or high priority. Nothing is safe to defer today.';
       }
-
-      case 'plan':
-        return truncateChatResponse(
-          `Morning: urgent/high (${urgent.length + high.length}). Afternoon: medium. ~${context.estimatedHours ?? pending.length}h total.`
-        );
-
-      case 'motivate':
-        return (context.completedToday ?? 0) > 0
-          ? `${context.completedToday} done today. Keep going with the next highest priority.`
-          : 'One finished task changes the day. Start with the smallest item.';
-
-      default:
-        return 'Ask me to prioritize, plan, or break down a task.';
-    }
-  }
-
-  static isBreakdownRequest(message: string): boolean {
-    const msg = message.toLowerCase();
-    return (msg.includes('break') && msg.includes('down')) ||
-           msg.includes('split') ||
-           msg.includes('subtask');
-  }
-
-  static extractTaskName(message: string, tasks: ChatTask[]): string | null {
-    const quotedMatch = message.match(/"([^"]+)"/);
-    if (quotedMatch) return quotedMatch[1] ?? null;
-
-    const breakdownMatch = message.match(/break\s+down\s+(.+?)(?:\s+into|\s+task|$)/i);
-    if (breakdownMatch) {
-      const potentialName = breakdownMatch[1]!.trim();
-      const matchingTask = tasks.find(t =>
-        t.title.toLowerCase().includes(potentialName.toLowerCase())
-      );
-      return matchingTask?.title || potentialName;
+      const names = titles(deferrable).slice(0, 3);
+      return `Safe to move to tomorrow: ${names.join(', ')}.`;
     }
 
     return null;
+  }
+
+  /**
+   * Runs a quick action. Every one of these is arithmetic over the board, so
+   * none of them uses a model.
+   */
+  static handleQuickAction(action: QuickActionId, context: ChatContext): string {
+    const { open, urgent, high } = partition(context.tasks ?? []);
+
+    if (open.length === 0) return FALLBACK_RESPONSES.emptyBoard;
+
+    switch (action) {
+      case 'prioritize':
+        return FALLBACK_RESPONSES.prioritise(titles(urgent), titles(high));
+
+      case 'breakdown': {
+        const target = urgent[0] ?? high[0] ?? open[0];
+        return target
+          ? FALLBACK_RESPONSES.breakdown(normalizeLine(target.title))
+          : FALLBACK_RESPONSES.breakdownNeedTask;
+      }
+
+      case 'plan':
+        return FALLBACK_RESPONSES.plan(urgent.length, high.length, open.length);
+
+      case 'defer': {
+        const deferrable = open.filter((t) => {
+          const p = priorityOf(t);
+          return p === 'low' || p === 'medium';
+        });
+        if (deferrable.length === 0) {
+          return 'Everything open is urgent or high priority. Nothing is safe to defer today.';
+        }
+        return `Safe to move to tomorrow: ${titles(deferrable).slice(0, 3).join(', ')}.`;
+      }
+
+      case 'motivate':
+        return FALLBACK_RESPONSES.motivate(context.completedToday ?? 0);
+
+      default:
+        return FALLBACK_RESPONSES.quickActionHint;
+    }
+  }
+
+  /** True when the user is asking for a task to be split up. */
+  static isBreakdownRequest(message: string): boolean {
+    const msg = (message ?? '').toLowerCase();
+    return /\b(break|split|chunk)\w*\b/.test(msg) || msg.includes('subtask');
+  }
+
+  /** Reads a task name out of a message, for example the one inside quotes. */
+  static extractTaskName(message: string, tasks: ChatTask[]): string | null {
+    const text = message ?? '';
+    const quoted = text.match(/["']([^"']{3,})["']/);
+    if (quoted) return normalizeLine(quoted[1]!);
+
+    const requested = text.match(/(?:break|split|chunk)\w*\s+(.+?)(?:\s+into|\s+into steps|\?|$)/i);
+    if (requested) {
+      const name = normalizeLine(requested[1]!);
+      if (!name) return null;
+      const match = (tasks ?? []).find((t) =>
+        normalizeLine(t.title).toLowerCase().includes(name.toLowerCase())
+      );
+      return match ? normalizeLine(match.title) : name;
+    }
+    return null;
+  }
+
+  /** Summary of the board used by the chat header. */
+  static describeBoard(context: ChatContext): string {
+    const { open, urgent } = partition(context.tasks ?? []);
+    if (open.length === 0) return 'No open tasks';
+    const urgentPart = urgent.length > 0 ? `, ${urgent.length} urgent` : '';
+    return `${open.length} open${urgentPart}`;
   }
 }

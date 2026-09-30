@@ -2,7 +2,6 @@ import type { NextConfig } from "next";
 
 function withOptionalBundleAnalyzer(config: NextConfig): NextConfig {
   if (process.env.ANALYZE === 'true') {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const withBundleAnalyzer = require('@next/bundle-analyzer')({ enabled: true });
     return withBundleAnalyzer(config);
   }

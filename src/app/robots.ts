@@ -1,12 +1,14 @@
 import { MetadataRoute } from 'next';
+import { SITE_URL } from '@/app/sitemap';
 
 export default function robots(): MetadataRoute.Robots {
   return {
     rules: {
       userAgent: '*',
       allow: '/',
-      disallow: '/api/',
+      // The API surface and the authenticated dashboard must not be indexed.
+      disallow: ['/api/', '/dashboard', '/auth/'],
     },
-    sitemap: 'https://kanbi-actionboard.vercel.app/sitemap.xml',
+    sitemap: `${SITE_URL}/sitemap.xml`,
   };
 }
