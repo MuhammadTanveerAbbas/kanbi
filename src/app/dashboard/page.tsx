@@ -2111,7 +2111,7 @@ function PageAutopilot() {
               {briefings[0]!.quote && (
                 <p style={{ fontSize:11.5, color:"var(--tx3)", fontStyle:"italic", marginTop:2,
                   lineHeight:1.6, paddingTop:11, borderTop:"1px solid var(--br)" }}>
-                  "{briefings[0]!.quote}"
+                  &ldquo;{briefings[0]!.quote}&rdquo;
                 </p>
               )}
             </div>
