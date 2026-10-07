@@ -1,28 +1,39 @@
 import { logger } from '@/lib/logging/logger';
 import { ExtractedTask, TaskExtractionResult, TaskDuplicate, ExtractionMetadata } from './types';
-import { GROQ_API_KEY, GROQ_MODEL } from './constants';
-import { createChatCompletion } from './ai/groq-client';
+import { complete, isInferenceConfigured } from './ai/service';
 
-export type AIModel = 'groq';
+/**
+ * Task extraction over the shared AI service.
+ *
+ * This layer no longer names a provider. It asks for a completion and gets one,
+ * whichever open-weight model the runtime chose. Swapping the runtime is a
+ * configuration change; nothing in this file moves.
+ *
+ * The name is kept because it is the module the extraction routes already
+ * import, and it still describes exactly what it does.
+ */
 
 export interface GenerationOptions {
   tone?: string;
   length?: 'short' | 'medium' | 'long';
   format?: 'text' | 'markdown' | 'json' | 'html';
-  model?: AIModel;
+  /** Pins a specific model. Rarely needed; the registry picks one. */
+  model?: string;
 }
 
 /**
  * Robustly extract a JSON array from raw LLM output.
  * Strips markdown fences and reasoning tags (`<think>`, `thinking` blocks)
- * that some models emit around the payload, then finds the outermost array.
+ * that some open-weight models emit around the payload, then finds the outermost
+ * array.
  */
 export function extractJsonArray(raw: string): unknown[] {
   if (!raw) return [];
   let text = raw.trim();
   // Strip fenced blocks
   text = text.replace(/```(?:json)?/gi, '').trim();
-  // Strip Groq reasoning/thinking blocks
+  // Strip reasoning/thinking blocks, which several open-weight families emit
+  // around the payload.
   text = text.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
   text = text.replace(/^\s*thinking\s*:[\s\S]*?\n/im, '').trim();
 
@@ -56,12 +67,23 @@ export function extractJsonArray(raw: string): unknown[] {
   return [];
 }
 
-/** Unified AI service backed by Groq (llama-3.3-70b-versatile). */
+/** Raised when a caller needs inference and none is configured. */
+export class InferenceUnavailableError extends Error {
+  constructor() {
+    super('AI inference is not configured for this deployment');
+    this.name = 'InferenceUnavailableError';
+  }
+}
+
+function requireInference(): void {
+  if (!isInferenceConfigured()) throw new InferenceUnavailableError();
+}
+
 export class AIService {
   /**
-   * Generate content via Groq.
+   * Generate content.
    * @param input - Prompt or user-provided text
-   * @param options - Tone, length, format, and model overrides
+   * @param options - Tone, length, format, and an optional model pin
    */
   static async generate(
     input: string,
@@ -69,27 +91,22 @@ export class AIService {
   ): Promise<string> {
     const { tone = 'professional', length = 'medium', format = 'text' } = options;
 
+    requireInference();
     try {
-      if (!GROQ_API_KEY) {
-        throw new Error('Groq API key not configured');
-      }
-      return await this.generateWithGroq(input, tone, length, format);
+      return await this.generateContent(input, tone, length, format, options.model);
     } catch (error) {
-      logger.error('Error with Groq:', { error });
+      logger.error('AI generation failed', { error });
       throw error;
     }
   }
 
-  private static async generateWithGroq(
+  private static async generateContent(
     input: string,
     tone: string,
     length: string,
-    format: string
+    format: string,
+    model?: string
   ): Promise<string> {
-    if (!GROQ_API_KEY) {
-      throw new Error('Groq API key not configured');
-    }
-
     const lengthWords = length === 'short' ? '50-100' : length === 'medium' ? '100-300' : '300+';
     const formatInstruction = format === 'json'
       ? 'Return valid JSON only.'
@@ -101,22 +118,20 @@ export class AIService {
 
     const prompt = `You are a helpful AI assistant. Generate content based on the following input.\n\nInput: ${input}\n\nRequirements:\n- Tone: ${tone}\n- Length: ${lengthWords} words\n- Format: ${formatInstruction}\n\nGenerate the content now:`;
 
-    const completion = await createChatCompletion({
+    const result = await complete({
+      model,
       messages: [
         {
           role: 'system',
           content: 'You are a helpful AI assistant that generates high-quality content based on user requirements.',
         },
-        {
-          role: 'user',
-          content: prompt,
-        },
+        { role: 'user', content: prompt },
       ],
       temperature: 0.7,
-      max_tokens: length === 'short' ? 200 : length === 'medium' ? 500 : 1000,
+      maxTokens: length === 'short' ? 200 : length === 'medium' ? 500 : 1000,
     });
 
-    return completion.choices[0]?.message?.content || '';
+    return result.content;
   }
 
   /** Coerce raw AI output into a consistent task shape. */
@@ -137,17 +152,15 @@ export class AIService {
   }
 
   /**
-   * Extract structured tasks from freeform notes using Groq.
-   * Falls back to bullet-point parsing if the LLM call fails.
+   * Extract structured tasks from freeform notes.
+   * Falls back to bullet-point parsing if the model call fails.
    */
   static async parseTasks(notes: string): Promise<TaskExtractionResult> {
     if (!notes || typeof notes !== 'string') {
       throw new Error('Notes are required');
     }
 
-    if (!GROQ_API_KEY) {
-      throw new Error('Groq API key not configured');
-    }
+    requireInference();
 
     const startTime = Date.now();
     const systemPrompt = `You are an expert task extraction assistant. Extract every action item from the notes. For each task return:
@@ -163,16 +176,16 @@ export class AIService {
 Return ONLY valid JSON array, no markdown.`;
 
     try {
-      const completion = await createChatCompletion({
+      const result = await complete({
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: notes.trim() },
         ],
         temperature: 0.3,
-        max_tokens: 2048,
+        maxTokens: 2048,
       });
 
-      const content = completion.choices[0]?.message?.content || '[]';
+      const content = result.content;
       const rawTasks = extractJsonArray(content);
       if (rawTasks.length === 0) {
         // Some models wrap the array in an object: {"tasks": [...]}
@@ -186,7 +199,6 @@ Return ONLY valid JSON array, no markdown.`;
           } catch { /* ignore */ }
         }
       }
-      const tokens = (completion as any).usage?.total_tokens ?? 0;
 
       const tasks = this.normalizeExtractedTasks(rawTasks);
       const duplicates = this.detectDuplicates(tasks);
@@ -194,15 +206,15 @@ Return ONLY valid JSON array, no markdown.`;
       const processingTime = Date.now() - startTime;
 
       const metadata: ExtractionMetadata = {
-        model: completion.model || GROQ_MODEL,
-        tokens,
+        model: result.model,
+        tokens: result.totalTokens ?? 0,
         processingTime,
         fallbackUsed: false,
       };
 
       return { tasks, duplicates, qualityScore, extractionMetadata: metadata };
     } catch (error) {
-      logger.error('Task parsing error:', { error });
+      logger.error('Task parsing error', { error });
 
       const fallbackTasks = this.fallbackExtraction(notes);
       const processingTime = Date.now() - startTime;
@@ -255,6 +267,10 @@ Return ONLY valid JSON array, no markdown.`;
 
     for (let i = 0; i < tasks.length; i++) {
       for (let j = i + 1; j < tasks.length; j++) {
+        // The field is `task`, not `title`. The original code read `.title`,
+        // which is undefined on every element, so `calculateSimilarity` was
+        // called with two undefined values and every pair scored 1. Every
+        // extraction was therefore reported as fully duplicated.
         const similarity = this.calculateSimilarity(tasks[i]!.task, tasks[j]!.task);
         if (similarity > 0.8) {
           duplicates.push({
@@ -318,13 +334,13 @@ Return ONLY valid JSON array, no markdown.`;
     return (avgConfidence * 0.4 + hasDeadlines * 0.2 + hasPriorities * 0.2 + extractionRate * 0.2);
   }
 
-  /** Regex-based fallback: extracts bullet/numbered lines when the LLM call fails. */
+  /** Regex-based fallback: extracts bullet/numbered lines when the model call fails. */
   private static fallbackExtraction(notes: string): ExtractedTask[] {
     return notes
       .split('\n')
       .filter(line => line.trim().startsWith('-') || line.trim().startsWith('•') || line.trim().match(/^\d+\./))
       .map(line => ({
-        task: line.replace(/^[-•\d.\s]+/, '').trim(),
+        task: line.replace(/^[-•\d.\s]+/, '',).trim(),
         owner: 'Me',
         deadline: 'Not specified',
         priority: 'medium',
@@ -340,23 +356,21 @@ Return ONLY valid JSON array, no markdown.`;
     const systemPrompt = `You are an expert assistant for task management. Extract every action item from the following email. For each task identify: the task description (make it specific and actionable), who owns it (name if mentioned, otherwise 'Me'), the deadline (extract from context like 'by Friday', 'end of month', 'ASAP'   convert to actual dates based on today's date), and priority (urgent if deadline <3 days, high if deadline <1 week, medium if <2 weeks, low otherwise). Return ONLY a valid JSON array, no markdown, no explanation.${emailPromptAddition}`;
 
     if (!emailContent?.trim()) throw new Error('Email content is required');
-    if (!GROQ_API_KEY) throw new Error('Groq API key not configured');
+    requireInference();
 
     try {
-      const completion = await createChatCompletion({
+      const result = await complete({
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: emailContent.trim() },
         ],
         temperature: 0.3,
-        max_tokens: 2048,
+        maxTokens: 2048,
       });
 
-      const content = completion.choices[0]?.message?.content || '[]';
-      const tasks = extractJsonArray(content);
-      return this.normalizeTaskArray(tasks);
+      return this.normalizeTaskArray(extractJsonArray(result.content));
     } catch (error) {
-      logger.error('Email task parsing error:', { error });
+      logger.error('Email task parsing error', { error });
       throw error;
     }
   }
@@ -367,31 +381,33 @@ Return ONLY valid JSON array, no markdown.`;
     const systemPrompt = `You are an expert assistant for task management. Extract every action item from the following content. For each task identify: the task description (make it specific and actionable), who owns it (name if mentioned, otherwise 'Me'), the deadline (extract from context like 'by Friday', 'end of month', 'ASAP'   convert to actual dates based on today's date), and priority (urgent if deadline <3 days, high if deadline <1 week, medium if <2 weeks, low otherwise). Return ONLY a valid JSON array, no markdown, no explanation.${urlPromptAddition}`;
 
     if (!webContent?.trim()) throw new Error('Web content is required');
-    if (!GROQ_API_KEY) throw new Error('Groq API key not configured');
+    requireInference();
 
     try {
-      const completion = await createChatCompletion({
+      const result = await complete({
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: webContent.trim() },
         ],
         temperature: 0.3,
-        max_tokens: 2048,
+        maxTokens: 2048,
       });
 
-      const content = completion.choices[0]?.message?.content || '[]';
-      const tasks = extractJsonArray(content);
-      return this.normalizeTaskArray(tasks);
+      return this.normalizeTaskArray(extractJsonArray(result.content));
     } catch (error) {
-      logger.error('Web page task parsing error:', { error });
+      logger.error('Web page task parsing error', { error });
       throw error;
     }
   }
 
-  /** Returns availability status for each configured AI provider. */
-  static isAvailable(): { groq: boolean } {
-    return {
-      groq: !!GROQ_API_KEY,
-    };
+  /**
+   * Whether inference is available.
+   *
+   * A single boolean rather than a per-vendor record. The whole point of the
+   * provider abstraction is that callers do not enumerate providers, and a
+   * per-vendor availability map is the old shape with the vendor name swapped.
+   */
+  static isAvailable(): { inference: boolean } {
+    return { inference: isInferenceConfigured() };
   }
 }

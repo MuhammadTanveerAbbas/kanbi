@@ -13,6 +13,16 @@ export default defineConfig({
       // API/integration tests run in Node (they import server-side ESM modules)
       ['**/__tests__/integration/**', 'node'],
       ['**/src/app/dashboard/__tests__/**', 'node'],
+      // The provider adapter talks to a real loopback HTTP server. Under jsdom
+      // the global `AbortController` is jsdom's, while the `fetch` that Node
+      // injects validates a signal against Node's own class, so every request
+      // carrying a signal is rejected with
+      //   RequestInit: Expected signal (...) to be an instance of AbortSignal
+      // before a byte is sent. That reads as a fault in the adapter rather than
+      // a harness artefact, and the test then encodes the workaround instead of
+      // the behaviour. Node has exactly one AbortSignal, so the mismatch does not
+      // exist here.
+      ['**/__tests__/unit/openai-compatible-provider.test.ts', 'node'],
     ],
     coverage: {
       provider: 'v8',

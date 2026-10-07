@@ -2,21 +2,315 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── Font stack ── */
-html {
-  font-family: var(--font-geist), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+/* ── Hard font lock ────────────────────────────────────────────────────────
+   Every element on every screen and browser must use only Sora (display) or
+   PT Sans (body/mono). The wildcard rule fires before any component style,
+   browser default, or third-party stylesheet can override it.
+   ───────────────────────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  font-family: var(--font-body) !important;
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-sora), sans-serif;
+  font-family: var(--font-display) !important;
 }
 
-code, pre, kbd, samp {
-  font-family: var(--font-geist-mono), monospace;
+/* ───────────────────────────────────────────────────────────────────────────
+   Typography
+   ───────────────────────────────────────────────────────────────────────────
+
+   The three families are declared once here and nowhere else. Eleven files
+   previously spelled out their own stack: some referenced the next/font
+   variables with no fallback, some appended a different fallback chain, and
+   one named a literal family "Geist" that is never loaded, so every heading on
+   that page quietly fell back to the system sans serif.
+
+   `--font-display`, `--font-body`, and `--font-mono` are set as inline style on
+   <body> by the root layout, so they are available before first paint and
+   cannot shift layout when they resolve.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+@layer base {
+  html {
+    font-family: var(--font-body);
+    font-size: 16px;
+    line-height: 1.5;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  body {
+    font-family: var(--font-body);
+    font-weight: 400;
+    /* Tightened tracking on body text. Sora and Geist both sit wide at the
+       default, and the previous per-page values ranged from -0.01em to
+       -0.03em with no rule about which applied where. */
+    letter-spacing: -0.011em;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    /* Display faces need tighter tracking than body faces to look right at
+       large sizes, and looser at small ones. One rule each, rather than a
+       value repeated per component. */
+    letter-spacing: -0.022em;
+    line-height: 1.15;
+    font-weight: 700;
+    text-wrap: balance;
+  }
+
+  h1 { font-size: clamp(2rem, 1.35rem + 2.6vw, 3.25rem); line-height: 1.08; }
+  h2 { font-size: clamp(1.5rem, 1.2rem + 1.2vw, 2.125rem); }
+  h3 { font-size: clamp(1.2rem, 1.08rem + 0.5vw, 1.5rem); }
+  h4 { font-size: 1.125rem; letter-spacing: -0.015em; }
+  h5 { font-size: 1rem; letter-spacing: -0.01em; }
+  h6 {
+    font-size: 0.8125rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+
+  p { line-height: 1.6; }
+
+  code, pre, kbd, samp {
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+  }
+
+  /* Long, unbroken strings are the single most common source of horizontal
+     overflow on mobile: a long task title in a table cell, an unbroken URL in
+     a changelog entry, a model id in a log line. */
+  p, li, td, th, dd, dt, h1, h2, h3, h4, h5, h6 {
+    overflow-wrap: break-word;
+  }
+
+  button, input, select, textarea {
+    font-family: inherit;
+    font-size: inherit;
+    letter-spacing: inherit;
+    color: inherit;
+  }
+
+  /* Buttons inherit the page's tight tracking, which makes labels sit oddly at
+     small sizes. One reset for every control. */
+  button { letter-spacing: -0.005em; }
+
+  img, svg, video, canvas {
+    max-width: 100%;
+  }
+
+  img, video {
+    height: auto;
+  }
+
+  table {
+    border-collapse: collapse;
+  }
 }
 
-/* ── Lenis smooth scroll ── */
-/* Base rules from lenis/dist/lenis.css, kept inline so no build change is needed */
+/* ───────────────────────────────────────────────────────────────────────────
+   Theme bridge
+   ───────────────────────────────────────────────────────────────────────────
+
+   The design tokens (--bg, --tx, --ac, and the rest) are emitted into the head
+   by the root layout as two `[data-theme]` blocks. This section only maps the
+   shadcn-style HSL names in `tailwind.config.ts` onto the same palette, so a
+   component written with `bg-background` and one written with `background:
+   var(--bg)` resolve to the same colour instead of to two different greys that
+   were both called "background".
+   ─────────────────────────────────────────────────────────────────────────── */
+
+@layer base {
+  :root {
+    color-scheme: light;
+
+    --background: 228 40% 97%;
+    --foreground: 240 51% 7%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 51% 7%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 51% 7%;
+    --primary: 234 68% 63%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 228 44% 95%;
+    --secondary-foreground: 240 51% 7%;
+    --muted: 228 44% 95%;
+    --muted-foreground: 236 27% 38%;
+    --accent: 228 44% 95%;
+    --accent-foreground: 240 51% 7%;
+    --destructive: 0 69% 39%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 228 30% 89%;
+    --input: 228 30% 89%;
+    --ring: 234 68% 63%;
+    --radius: 0.75rem;
+    --chart-1: 234 68% 63%;
+    --chart-2: 152 62% 36%;
+    --chart-3: 32 90% 45%;
+    --chart-4: 263 70% 62%;
+    --chart-5: 340 70% 50%;
+  }
+
+  [data-theme='dark'] {
+    color-scheme: dark;
+
+    --background: 240 24% 4%;
+    --foreground: 240 20% 90%;
+    --card: 240 20% 6%;
+    --card-foreground: 240 20% 90%;
+    --popover: 240 20% 6%;
+    --popover-foreground: 240 20% 90%;
+    --primary: 234 85% 68%;
+    --primary-foreground: 240 51% 7%;
+    --secondary: 240 16% 10%;
+    --secondary-foreground: 240 20% 90%;
+    --muted: 240 16% 10%;
+    --muted-foreground: 240 12% 61%;
+    --accent: 240 16% 10%;
+    --accent-foreground: 240 20% 90%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 240 14% 14%;
+    --input: 240 14% 14%;
+    --ring: 234 85% 68%;
+    --chart-1: 234 85% 68%;
+    --chart-2: 152 62% 45%;
+    --chart-3: 38 92% 50%;
+    --chart-4: 263 70% 68%;
+    --chart-5: 340 80% 62%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  /* Focus styles for accessibility. A single ring token, so the visible focus
+     state is identical on a light card and a dark one. */
+  :focus-visible {
+    @apply outline-none ring-2 ring-primary ring-offset-2 ring-offset-background;
+  }
+
+  /* Hidden scrollbars, keeping scrolling fully functional. Firefox uses
+     `scrollbar-width`, WebKit uses `::-webkit-scrollbar`. Some page level
+     stylesheets restyle the scrollbar to a visible 3px thumb, which is a
+     deliberate difference, so those opt in explicitly. */
+  * {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  *::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+
+  *::-webkit-scrollbar-track,
+  *::-webkit-scrollbar-thumb,
+  *::-webkit-scrollbar-corner {
+    display: none;
+    background: transparent;
+  }
+
+  html {
+    overflow-x: hidden;
+  }
+
+  html, body {
+    max-width: 100%;
+  }
+}
+
+@layer utilities {
+  /* Mobile-first responsive utilities */
+  .container-mobile {
+    @apply px-4 sm:px-5 md:px-6 lg:px-8;
+  }
+
+  .section-py {
+    @apply py-12 sm:py-16 md:py-20 lg:py-24;
+  }
+
+  .text-responsive-xs {
+    @apply text-xs sm:text-sm;
+  }
+
+  .text-responsive-sm {
+    @apply text-sm sm:text-base;
+  }
+
+  .text-responsive-base {
+    @apply text-base sm:text-lg;
+  }
+
+  .text-responsive-lg {
+    @apply text-lg sm:text-xl md:text-2xl;
+  }
+
+  .text-responsive-xl {
+    @apply text-xl sm:text-2xl md:text-3xl;
+  }
+
+  .text-responsive-2xl {
+    @apply text-2xl sm:text-3xl md:text-4xl;
+  }
+
+  .text-responsive-3xl {
+    @apply text-3xl sm:text-4xl md:text-5xl;
+  }
+
+  .gap-responsive {
+    @apply gap-3 sm:gap-4 md:gap-6;
+  }
+
+  .space-y-responsive > * + * {
+    @apply mt-3 sm:mt-4 md:mt-6;
+  }
+
+  .p-responsive {
+    @apply p-4 sm:p-6 md:p-8;
+  }
+
+  .card-responsive {
+    @apply p-4 sm:p-6 md:p-8 rounded-lg sm:rounded-xl;
+  }
+}
+
+@layer components {
+  .fast-fade-in {
+    animation: fadeIn 0.3s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease-out;
+  }
+
+  /* A shared focus ring for components that manage their own focus styling, so
+     the ring does not have to be restated on every card and button. */
+  .focus-ring {
+    @apply outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+  }
+
+  /* Screen reader only, but focusable. Used by the skip link and by icon
+     buttons that carry their accessible name on an inner element. */
+  .sr-only-focusable {
+    @apply sr-only focus:not-sr-only focus:absolute focus:z-50 focus:m-2 focus:rounded-md focus:bg-card focus:px-3 focus:py-2 focus:text-sm focus:shadow-lg;
+  }
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+   Lenis smooth scroll
+   ───────────────────────────────────────────────────────────────────────────
+   Base rules from lenis/dist/lenis.css, kept inline so no build change is
+   needed. */
 html.lenis,
 html.lenis body {
   height: auto;
@@ -43,209 +337,27 @@ html.lenis {
   scroll-behavior: auto !important;
 }
 
-/* ── Global responsive base ── */
-html, body {
-  overflow-x: hidden;
-  width: 100%;
-}
+/* ───────────────────────────────────────────────────────────────────────────
+   Motion
+   ───────────────────────────────────────────────────────────────────────────
 
-* {
-  box-sizing: border-box;
-}
-
-img, video, svg {
-  max-width: 100%;
-  height: auto;
-}
-
-/* Responsive table wrapper utility */
-.table-responsive {
-  width: 100%;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-@layer base {
-  :root {
-    --background: 0 0% 0%;
-    --foreground: 210 40% 98%;
-    --card: 0 0% 8%;
-    --card-foreground: 210 40% 98%;
-    --popover: 0 0% 2%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 0 0% 60%;
-    --primary-foreground: 0 0% 10%;
-    --secondary: 0 0% 15%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 0 0% 15%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 0 0% 15%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 0 0% 15%;
-    --input: 0 0% 15%;
-    --ring: 0 0% 70%;
-    --radius: 0.5rem;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
-  }
-
-  .light {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-  }
-}
-
-@layer base {
-  * {
-    @apply border-border;
-  }
-  
-  /* Focus styles for accessibility */
-  *:focus-visible {
-    @apply outline-none ring-2 ring-primary ring-offset-2 ring-offset-background;
-  }
-  
-  button:focus-visible,
-  a:focus-visible {
-    @apply outline-none ring-2 ring-primary ring-offset-2 ring-offset-background;
-  }
-  
-  /* Hide scrollbars everywhere while keeping scrolling fully functional
-     (Firefox uses `scrollbar-width: none`, WebKit uses `::-webkit-scrollbar`) */
-  * {
-    scrollbar-width: none; /* Firefox */
-    -ms-overflow-style: none; /* IE / Edge legacy */
-  }
-
-  *::-webkit-scrollbar {
-    display: none; /* Chrome / Safari / Edge (Chromium) */
-    width: 0;
-    height: 0;
-  }
-
-  *::-webkit-scrollbar-track,
-  *::-webkit-scrollbar-thumb,
-  *::-webkit-scrollbar-corner {
-    display: none;
-    background: transparent;
-  }
-
+   The reduced motion block is hoisted to the top level rather than living
+   inside `@layer components`. A rule inside a layer loses to a Tailwind
+   utility that also sets animation duration, and every page here uses utility
+   classes for animation, so the previous placement meant reduced motion was
+   honoured only on elements that happened to use the custom classes.
+   ─────────────────────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
   html {
-    overflow-x: hidden;
+    scroll-behavior: auto !important;
   }
-}
 
-@layer utilities {
-  /* Mobile-first responsive utilities */
-  .container-mobile {
-    @apply px-3 sm:px-4 md:px-6 lg:px-8;
-  }
-  
-  .section-py {
-    @apply py-12 sm:py-16 md:py-20 lg:py-24;
-  }
-  
-  .text-responsive-xs {
-    @apply text-xs sm:text-sm;
-  }
-  
-  .text-responsive-sm {
-    @apply text-sm sm:text-base;
-  }
-  
-  .text-responsive-base {
-    @apply text-base sm:text-lg;
-  }
-  
-  .text-responsive-lg {
-    @apply text-lg sm:text-xl md:text-2xl;
-  }
-  
-  .text-responsive-xl {
-    @apply text-xl sm:text-2xl md:text-3xl;
-  }
-  
-  .text-responsive-2xl {
-    @apply text-2xl sm:text-3xl md:text-4xl;
-  }
-  
-  .text-responsive-3xl {
-    @apply text-3xl sm:text-4xl md:text-5xl;
-  }
-  
-  .gap-responsive {
-    @apply gap-3 sm:gap-4 md:gap-6;
-  }
-  
-  .space-y-responsive > * + * {
-    @apply mt-3 sm:mt-4 md:mt-6;
-  }
-  
-  .p-responsive {
-    @apply p-4 sm:p-6 md:p-8;
-  }
-  
-  .card-responsive {
-    @apply p-4 sm:p-6 md:p-8 rounded-lg sm:rounded-xl;
-  }
-}
-
-@layer components {
-    .fast-fade-in {
-    animation: fadeIn 0.3s ease-out;
-  }
-  
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  
-  .animate-fade-in {
-    animation: fadeIn 0.5s ease-out;
-  }
-  
-  .hero-text-stroke {
-    color: hsl(var(--primary));
-    text-shadow: 
-      -2px -2px 0 hsl(var(--foreground)),
-      2px -2px 0 hsl(var(--foreground)),
-      -2px 2px 0 hsl(var(--foreground)),
-      2px 2px 0 hsl(var(--foreground)),
-      -3px 0 0 hsl(var(--foreground)),
-      3px 0 0 hsl(var(--foreground)),
-      0 -3px 0 hsl(var(--foreground)),
-      0 3px 0 hsl(var(--foreground));
-  }
-  
-  @media (prefers-reduced-motion: reduce) {
-    *,
-    *::before,
-    *::after {
-      animation-duration: 0.01ms !important;
-      animation-iteration-count: 1 !important;
-      transition-duration: 0.01ms !important;
-    }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

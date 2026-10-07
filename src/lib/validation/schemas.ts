@@ -77,6 +77,29 @@ export const chatSchema = z.object({
   tasks: z.array(z.any()).optional(),
 });
 
+/**
+ * The streaming assistant endpoint.
+ *
+ * The history is sent by the client rather than read from the database, because
+ * a stream that has already started cannot be given a different turn count
+ * mid-flight, and because the client is the only party that knows what it has
+ * already displayed. Bounded to a small number of turns for the same reason the
+ * buffered path bounds it: the board context, not the transcript, is what the
+ * answer depends on.
+ */
+export const chatStreamSchema = z.object({
+  message: z.string().min(1, 'Message is required').max(2000, 'Message too long. Max 2,000 characters'),
+  history: z
+    .array(
+      z.object({
+        role: z.enum(['user', 'assistant']),
+        content: z.string().max(2000),
+      }),
+    )
+    .max(20, 'Too much conversation history')
+    .default([]),
+});
+
 export const feedbackSchema = z.object({
   type: z.enum(['bug', 'feature', 'improvement', 'other', 'general']),
   message: z.string().min(1).max(1000),

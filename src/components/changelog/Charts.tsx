@@ -318,9 +318,9 @@ function LineChart({ data }: { data: ReturnType<typeof historyWithNow> }) {
   const max = Math.max(...data.map((d) => d.sourceFiles), 1)
 
   const series = [
-    { key: 'sourceFiles' as const, color: 'var(--ac-text)', label: 'Source files' },
-    { key: 'testFiles' as const, color: 'var(--gr-text)', label: 'Test files' },
-    { key: 'apiRoutes' as const, color: 'var(--am-text)', label: 'API routes' },
+    { key: 'sourceFiles' as const, color: 'var(--ac)', label: 'Source files' },
+    { key: 'testFiles' as const, color: 'var(--gr)', label: 'Test files' },
+    { key: 'apiRoutes' as const, color: 'var(--am)', label: 'API routes' },
   ]
 
   const x = (i: number) => (i / (data.length - 1)) * (W - 8) + 4

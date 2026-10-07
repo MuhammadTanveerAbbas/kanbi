@@ -132,10 +132,19 @@ export function VercelIcon({ size = 16, style, title }: BrandIconProps) {
   );
 }
 
-export function GroqIcon({ size = 16, style, title }: BrandIconProps) {
+/**
+ * The open-weight model runtime.
+ *
+ * This stood in for a specific hosted vendor, which was a claim about who served
+ * the product. It is now a neutral cube, and the entry below names the stack
+ * rather than a company. Which model actually answers is a deployment decision
+ * recorded in configuration, not something the footer should assert.
+ */
+export function OpenWeightsIcon({ size = 16, style, title }: BrandIconProps) {
   return (
-    <Svg size={size} style={style} title={title}>
+    <Svg size={size} style={style} title={title} viewBox="0 0 24 24">
       <path d="M12 1.5 2.5 6.7v10.6L12 22.5l9.5-5.2V6.7L12 1.5Zm0 2.3 7.3 4v8.4l-7.3 4-7.3-4V7.8l7.3-4Z" />
+      <circle cx="12" cy="12" r="2.6" />
     </Svg>
   );
 }
@@ -156,14 +165,7 @@ export const TECH_STACK = [
   { name: 'TypeScript', Icon: TypeScriptIcon },
   { name: 'Tailwind CSS', Icon: TailwindIcon },
   { name: 'Supabase', Icon: SupabaseIcon },
-  { name: 'Groq', Icon: GroqIcon },
+  { name: 'Open-weight models', Icon: OpenWeightsIcon },
   { name: 'Stripe', Icon: StripeIcon },
   { name: 'Vercel', Icon: VercelIcon },
-] as const;
-
-/** Social links shown in the footer. */
-export const SOCIAL_LINKS = [
-  { name: 'GitHub', href: 'https://github.com/MuhammadTanveerAbbas', Icon: GitHubIcon },
-  { name: 'X', href: 'https://x.com/m_tanveerabbas', Icon: XIcon },
-  { name: 'LinkedIn', href: 'https://linkedin.com/in/MuhammadTanveerAbbas', Icon: LinkedInIcon },
 ] as const;

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import {
   CHANGELOG,
@@ -10,7 +10,7 @@ import {
 } from '@/lib/changelog-data'
 import { TECH_STACK } from '@/components/brand-icons'
 import { ReleaseCharts } from '@/components/changelog/Charts'
-import { startThemeWatch, themeVars, useTheme } from '@/lib/theme'
+import { useTheme } from '@/lib/theme'
 
 /**
  * Public changelog.
@@ -21,13 +21,11 @@ import { startThemeWatch, themeVars, useTheme } from '@/lib/theme'
  * describes what changed and what is better now. Neither page is generated from
  * the other by hand, so they cannot drift.
  *
- * It follows the site theme, keyed on the same `kanbi-theme` entry as the
- * landing and pricing pages, and falls back to the operating system preference.
- * Before this rewrite it was dark only, which meant a visitor who chose the
- * light theme anywhere else on the site hit a black page here.
+ * The theme is inherited from the document rather than applied here. This page
+ * previously interpolated the palette into its own `<style>` element from React
+ * state, which meant the server always sent light and the visitor saw a white
+ * page before the correction landed. See `src/lib/theme.ts`.
  */
-
-type Theme = 'dark' | 'light'
 
 const FILTERS: Array<{ key: ChangeKind | 'all'; label: string }> = [
   { key: 'all', label: 'Everything' },
@@ -51,32 +49,53 @@ function countByKind(): Record<string, number> {
 
 export default function ChangelogPage() {
   const [filter, setFilter] = useState<ChangeKind | 'all'>('all')
+  // The store is the single source of truth. This page only reads it to label
+  // the toggle; the palette comes from the document head.
   const { theme, toggle } = useTheme()
-
-  // One listener setup for the system preference and for other browser tabs,
-  // both owned by the shared theme store.
-  useEffect(() => startThemeWatch(), [])
 
   const counts = useMemo(() => countByKind(), [])
   const latest = CHANGELOG[0]
   const totalChanges = counts.all ?? 0
 
+  /**
+   * Releases that have something to show, paired with the changes that survive
+   * the active filter.
+   *
+   * `index` is the position in the full changelog, not in the filtered list, so
+   * "Latest" keeps pointing at the newest release even when the visitor is
+   * looking at a filtered subset. That is why this is computed in one pass
+   * rather than by filtering inside the render.
+   */
+  const visibleReleases = useMemo(() => {
+    const out: Array<{
+      release: (typeof CHANGELOG)[number]
+      index: number
+      matching: (typeof CHANGELOG)[number]['changes']
+    }> = []
+    CHANGELOG.forEach((release, index) => {
+      const matching =
+        filter === 'all'
+          ? release.changes
+          : release.changes.filter((c) => c.kind === filter)
+      // Under a specific filter a release with no matching entry is skipped.
+      // Under "Everything" every release shows even with no entries, because a
+      // version quietly vanishing from the history would read as though it
+      // never shipped.
+      if (filter !== 'all' && matching.length === 0) return
+      out.push({ release, index, matching })
+    })
+    return out
+  }, [filter])
+
   return (
-    <div className="cl-page" data-theme={theme}>
+    <div className="cl-page">
       <style>{`
         .cl-page {
-          ${themeVars(theme)}
-          --ac: #5e6fe8;
-          --ach: #6e7ff8;
-          --as: rgba(94, 111, 232, 0.12);
-          --gr: #22c55e;
-          --am: #f59e0b;
           min-height: 100vh;
           background: var(--bg);
           color: var(--tx);
-          font-family: var(--font-geist), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+          font-family: var(--font-body);
           -webkit-font-smoothing: antialiased;
-          transition: background 0.2s ease, color 0.2s ease;
         }
         .cl-page *, .cl-page *::before, .cl-page *::after {
           box-sizing: border-box;
@@ -298,7 +317,7 @@ export default function ChangelogPage() {
           fill: var(--tx2);
           font-size: 9px;
           text-anchor: middle;
-          font-family: var(--font-geist-mono), monospace;
+          font-family: var(--font-mono);
         }
         .chart .tick {
           fill: var(--tx3);
@@ -351,7 +370,11 @@ export default function ChangelogPage() {
           margin-top: 0;
           flex: 1;
         }
-        .legend.tall li { min-width: 120px; }
+        /* A percentage rather than 120px. The legend sits beside a 150px donut,
+           and a fixed floor meant the pair could not narrow together: on a
+           narrow viewport the legend either wrapped under the chart or forced
+           the whole row wider than the screen. */
+        .legend.tall li { min-width: min(120px, 100%); }
         .swatch {
           width: 9px;
           height: 9px;
@@ -360,7 +383,7 @@ export default function ChangelogPage() {
         }
         .legend-num {
           margin-left: auto;
-          font-family: var(--font-geist-mono), monospace;
+          font-family: var(--font-mono);
           color: var(--tx3);
         }
         .donut-row {
@@ -425,49 +448,99 @@ export default function ChangelogPage() {
           font-weight: 500;
         }
         .data-table td {
-          font-family: var(--font-geist-mono), monospace;
+          font-family: var(--font-mono);
           color: var(--tx2);
         }
 
-        /* ── Timeline ── */
+        /* ── Release timeline ──
+           A dated timeline down the left, with the release itself as a card.
+           The card is what carries the hierarchy: version and date on one
+           baseline, the summary beneath at reading size, and the changes as a
+           scannable list. The previous version floated the version text
+           directly on the timeline, so at narrow widths the date wrapped under
+           the version and the rhythm broke. */
+        .timeline {
+          position: relative;
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
+          margin-top: 8px;
+        }
+        /* The spine. Sits behind the dots, so it is drawn on the container and
+           inset by half a step to line up with the 10px dot. */
+        .timeline::before {
+          content: '';
+          position: absolute;
+          left: 5px;
+          top: 12px;
+          bottom: 12px;
+          width: 1px;
+          background: var(--br);
+        }
         .release {
           position: relative;
-          padding-left: 30px;
-          padding-bottom: 44px;
-          border-left: 1px solid var(--br);
-        }
-        .release:last-child {
-          border-left-color: transparent;
-          padding-bottom: 0;
+          padding-left: 26px;
         }
         .dot {
           position: absolute;
-          left: -5px;
-          top: 7px;
-          width: 9px;
-          height: 9px;
+          left: 0;
+          top: 20px;
+          width: 11px;
+          height: 11px;
           border-radius: 50%;
-          background: var(--ac);
-          border: 2px solid var(--bg);
+          background: var(--bg);
+          border: 2px solid var(--brh);
         }
         .dot.latest {
+          border-color: var(--ac);
+          background: var(--ac);
           box-shadow: 0 0 0 4px var(--as);
         }
+
+        .card {
+          background: var(--bg1);
+          border: 1px solid var(--br);
+          border-radius: 14px;
+          padding: 18px 20px;
+          transition: border-color 0.18s ease;
+        }
+        .card:hover { border-color: var(--brh); }
+        .card.latest {
+          border-color: var(--ag);
+          box-shadow: 0 1px 0 var(--as);
+        }
+
         .ver {
           display: flex;
-          align-items: baseline;
+          align-items: center;
           gap: 10px;
           flex-wrap: wrap;
-          margin-bottom: 7px;
+          margin-bottom: 8px;
         }
         .ver h2 {
-          font-size: 20px;
-          letter-spacing: -0.02em;
+          /* Sized to sit under the page h1 without competing with it. The
+             global h2 scale is for section heads; a release number is a label
+             at heading level two, so it gets an explicit size. */
+          font-size: 1.0625rem;
+          font-weight: 700;
+          letter-spacing: -0.015em;
+          line-height: 1.3;
         }
         .date {
           font-size: 12.5px;
           color: var(--tx3);
           font-variant-numeric: tabular-nums;
+          white-space: nowrap;
+        }
+        /* Pushed to the right on wide screens so the date reads as metadata
+           rather than as part of the version, and falls back inline on narrow
+           ones where there is no room. */
+        .ver-meta {
+          margin-left: auto;
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          flex-wrap: wrap;
         }
         .tag {
           font-size: 10px;
@@ -476,30 +549,43 @@ export default function ChangelogPage() {
           letter-spacing: 0.07em;
           padding: 3px 8px;
           border-radius: 999px;
-          border: 1px solid var(--brh);
+          background: var(--as);
           color: var(--ac-text);
+          white-space: nowrap;
+        }
+        .tag.count-tag {
+          background: var(--bg2);
+          color: var(--tx3);
+          font-weight: 600;
+          letter-spacing: 0.04em;
+          font-variant-numeric: tabular-nums;
         }
         .summary {
           font-size: 14px;
-          line-height: 1.7;
+          line-height: 1.65;
           color: var(--tx2);
           max-width: 68ch;
-          margin-bottom: 16px;
+          margin-bottom: 14px;
         }
-        ul.changes {
+        /* A hairline between the summary and the list, so the two read as
+           different levels of information rather than as one wall of text. */
+        .changes {
           list-style: none;
           display: flex;
           flex-direction: column;
-          gap: 9px;
+          gap: 8px;
+          padding-top: 14px;
+          border-top: 1px solid var(--br);
         }
         li.change {
           display: flex;
           gap: 11px;
           align-items: flex-start;
           font-size: 13.5px;
-          line-height: 1.65;
+          line-height: 1.6;
           color: var(--tx2);
         }
+        .change > span:last-child { min-width: 0; }
         .badge {
           flex-shrink: 0;
           margin-top: 1px;
@@ -512,10 +598,42 @@ export default function ChangelogPage() {
           min-width: 62px;
           text-align: center;
         }
+
+        /* ── Empty states ──
+           One rule for both the "this release had no notes" case and the
+           "your filter matched nothing" case, so neither looks like a bug. */
         .empty {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 10px;
+          text-align: center;
           font-size: 13.5px;
           color: var(--tx3);
-          padding: 20px 0;
+          line-height: 1.6;
+          padding: 34px 20px;
+          border: 1px dashed var(--brh);
+          border-radius: 14px;
+        }
+        .empty strong { color: var(--tx2); font-weight: 600; }
+        .empty button {
+          margin-top: 2px;
+          padding: 7px 14px;
+          border-radius: 8px;
+          border: 1px solid var(--brh);
+          background: var(--bg2);
+          color: var(--tx);
+          font-size: 12.5px;
+          font-weight: 500;
+          font-family: inherit;
+          cursor: pointer;
+          transition: border-color 0.15s ease, color 0.15s ease;
+        }
+        .empty button:hover { border-color: var(--ac); color: var(--ac-text); }
+        .empty-inline {
+          font-size: 13px;
+          color: var(--tx3);
+          padding: 4px 0 2px;
         }
 
         /* ── Stack and footer ── */
@@ -553,7 +671,7 @@ export default function ChangelogPage() {
         footer a { color: var(--tx2); }
         footer p { margin-bottom: 7px; }
         footer code {
-          font-family: var(--font-geist-mono), monospace;
+          font-family: var(--font-mono);
           font-size: 11.5px;
           padding: 2px 5px;
           border-radius: 4px;
@@ -568,12 +686,21 @@ export default function ChangelogPage() {
           .section-head { flex-direction: column; }
           .hero-stats { grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); }
         }
+        @media (max-width: 560px) {
+          /* The metadata row can no longer sit opposite the version once the
+             version and date are on the same line, so it drops below. */
+          .ver-meta { margin-left: 0; width: 100%; }
+        }
         @media (max-width: 520px) {
           .wrap { padding: 18px 14px 56px; }
           h1 { margin-bottom: 11px; }
           .lede { font-size: 14.5px; margin-bottom: 18px; }
           .topbar { margin-bottom: 30px; }
-          .release { padding-left: 22px; padding-bottom: 36px; }
+          .timeline { gap: 16px; }
+          .release { padding-left: 22px; }
+          .timeline::before { left: 4px; }
+          .dot { width: 9px; height: 9px; }
+          .card { padding: 15px 15px; }
           .badge { min-width: 54px; font-size: 9px; }
           li.change { font-size: 13px; }
           .hero-stat b { font-size: 19px; }
@@ -598,36 +725,37 @@ export default function ChangelogPage() {
           </button>
         </div>
 
-        <h1>Changelog</h1>
-        <p className="lede">
-          Every user visible change to Kanbi, newest first. Each entry describes
-          what is better now, not the internals of how it was fixed.
-        </p>
+        <main>
+          <h1>Changelog</h1>
+          <p className="lede">
+            Every user visible change to Kanbi, newest first. Each entry
+            describes what is better now, not the internals of how it was fixed.
+          </p>
 
-        <div className="hero-stats">
-          <div className="hero-stat">
-            <b>{CHANGELOG.length}</b>
-            <span>releases</span>
+          <div className="hero-stats">
+            <div className="hero-stat">
+              <b>{CHANGELOG.length}</b>
+              <span>releases</span>
+            </div>
+            <div className="hero-stat">
+              <b>{totalChanges}</b>
+              <span>recorded changes</span>
+            </div>
+            <div className="hero-stat">
+              <b>{counts.fixed ?? 0}</b>
+              <span>fixes</span>
+            </div>
+            <div className="hero-stat">
+              <b>{counts.added ?? 0}</b>
+              <span>additions</span>
+            </div>
+            <div className="hero-stat">
+              <b>{(counts.security ?? 0) + (counts.changed ?? 0)}</b>
+              <span>improvements</span>
+            </div>
           </div>
-          <div className="hero-stat">
-            <b>{totalChanges}</b>
-            <span>recorded changes</span>
-          </div>
-          <div className="hero-stat">
-            <b>{counts.fixed ?? 0}</b>
-            <span>fixes</span>
-          </div>
-          <div className="hero-stat">
-            <b>{counts.added ?? 0}</b>
-            <span>additions</span>
-          </div>
-          <div className="hero-stat">
-            <b>{(counts.security ?? 0) + (counts.changed ?? 0)}</b>
-            <span>improvements</span>
-          </div>
-        </div>
 
-        <ReleaseCharts />
+          <ReleaseCharts />
 
         <div className="filters" role="group" aria-label="Filter changes by type">
           {FILTERS.map((f) => {
@@ -650,55 +778,73 @@ export default function ChangelogPage() {
           })}
         </div>
 
-        {CHANGELOG.map((release, index) => {
-          const matching = release.changes.filter(
-            (c) => filter === 'all' || c.kind === filter
-          )
-          // Under a specific filter a release with no matching entry is skipped.
-          // Under "Everything" every release shows even with no entries, because
-          // a version quietly vanishing from the history would read as though it
-          // never shipped.
-          if (filter !== 'all' && matching.length === 0) return null
+        {visibleReleases.length > 0 ? (
+          <div className="timeline">
+            {visibleReleases.map(({ release, index, matching }) => (
+              <section
+                key={release.version}
+                className="release"
+                aria-labelledby={`rel-${release.version}`}
+              >
+                <span
+                  className={`dot${index === 0 ? ' latest' : ''}`}
+                  aria-hidden="true"
+                />
+                <div className={`card${index === 0 ? ' latest' : ''}`}>
+                  <div className="ver">
+                    <h2 id={`rel-${release.version}`}>{release.version}</h2>
+                    <span className="ver-meta">
+                      {index === 0 && <span className="tag">Latest</span>}
+                      <span className="date">
+                        {formatReleaseDate(release.date)}
+                      </span>
+                      <span className="tag count-tag">
+                        {release.changes.length}{' '}
+                        {release.changes.length === 1 ? 'change' : 'changes'}
+                      </span>
+                    </span>
+                  </div>
+                  <p className="summary">{release.summary}</p>
 
-          return (
-            <section key={release.version} className="release">
-              <span
-                className={`dot${index === 0 ? ' latest' : ''}`}
-                aria-hidden="true"
-              />
-              <div className="ver">
-                <h2>{release.version}</h2>
-                <span className="date">{formatReleaseDate(release.date)}</span>
-                {index === 0 && <span className="tag">Latest</span>}
-              </div>
-              <p className="summary">{release.summary}</p>
-
-              {matching.length > 0 ? (
-                <ul className="changes">
-                  {matching.map((change, i) => {
-                    const meta = KIND_META[change.kind]
-                    return (
-                      <li key={i} className="change">
-                        <span
-                          className="badge"
-                          style={{ color: meta.color, background: meta.bg }}
-                        >
-                          {meta.label}
-                        </span>
-                        <span>{change.text}</span>
-                      </li>
-                    )
-                  })}
-                </ul>
-              ) : (
-                <p className="empty">
-                  No detailed notes were recorded for this version. The date
-                  above is taken from the project manifest.
-                </p>
-              )}
-            </section>
-          )
-        })}
+                  {matching.length > 0 ? (
+                    <ul className="changes">
+                      {matching.map((change, i) => {
+                        const meta = KIND_META[change.kind]
+                        return (
+                          <li key={i} className="change">
+                            <span
+                              className="badge"
+                              style={{ color: meta.color, background: meta.bg }}
+                            >
+                              {meta.label}
+                            </span>
+                            <span>{change.text}</span>
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  ) : (
+                    <p className="empty-inline">
+                      No detailed notes were recorded for this version. The date
+                      above is taken from the project manifest.
+                    </p>
+                  )}
+                </div>
+              </section>
+            ))}
+          </div>
+        ) : (
+          <div className="empty">
+            <strong>Nothing matches this filter yet</strong>
+            <span>
+              {FILTERS.find((f) => f.key === filter)?.label} has no entries
+              across the {CHANGELOG.length} recorded releases.
+            </span>
+            <button type="button" onClick={() => setFilter('all')}>
+              Show everything
+            </button>
+          </div>
+        )}
 
         <div className="stack">
           <span className="stack-label">Built with</span>
@@ -709,18 +855,7 @@ export default function ChangelogPage() {
             </span>
           ))}
         </div>
-
-        <footer>
-          <p>
-            Current version: <strong>{latest?.version}</strong>, released{' '}
-            {latest ? formatReleaseDate(latest.date) : 'not yet dated'}.
-          </p>
-          <p>
-            Every figure on this page is measured from the repository. The full
-            engineering record, including how each number was produced, is in{' '}
-            <code>CHANGELOG.md</code>.
-          </p>
-        </footer>
+        </main>
       </div>
     </div>
   )

@@ -73,6 +73,17 @@ export const FALLBACK_RESPONSES = {
     `You have ${openCount} open tasks. Ask me to prioritise, plan, or break one down.`,
   genericClear: 'Your board looks clear. I can help you plan the next batch of work.',
   noContext: 'I do not have enough on the board to answer that. Add a task or two and ask again.',
+  /**
+   * Used when no model runtime is configured at all.
+   *
+   * Distinct from `errored` because the cause is not transient. Telling someone
+   * to "try again in a moment" when the deployment has no runtime is a
+   * instruction that cannot succeed, and it is the kind of thing that erodes
+   * trust in every other message.
+   */
+  unconfigured:
+    'I am running without a model, so I can only answer from your board. Ask me to prioritise, plan, or break something down and I will.',
+
   errored:
     'I could not reach the assistant just now. Try again in a moment, or ask me to prioritise and I will answer from your board alone.',
   quickActionHint: 'Pick one of the shortcuts above, or ask in your own words.',
@@ -97,6 +108,7 @@ export const CHAT_EMPTY_STATE = {
     'What should I start with?',
     'Break down my top task',
     'How should I plan today?',
+    'What can I defer to tomorrow?',
   ],
 } as const;
 

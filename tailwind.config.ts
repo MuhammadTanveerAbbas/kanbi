@@ -29,10 +29,34 @@ const config = {
       },
     },
     extend: {
+      // These read the variables the root layout sets on <body>, which are
+      // defined once in `src/lib/theme.ts`. Previously each family listed a
+      // different partial fallback chain here, in globals.css, and in seven
+      // page level stylesheets, so the same weight rendered in a different
+      // face depending on which page it was on.
       fontFamily: {
-        sans: ["var(--font-geist)", "-apple-system", "sans-serif"],
-        headline: ["var(--font-sora)", "sans-serif"],
-        mono: ["var(--font-geist-mono)", "monospace"],
+        sans: [
+          "var(--font-geist)",
+          "ui-sans-serif",
+          "-apple-system",
+          "BlinkMacSystemFont",
+          "Segoe UI",
+          "Roboto",
+          "Helvetica Neue",
+          "Arial",
+          "sans-serif",
+        ],
+        headline: ["var(--font-sora)", "var(--font-geist)", "ui-sans-serif", "sans-serif"],
+        mono: [
+          "var(--font-geist-mono)",
+          "ui-monospace",
+          "SFMono-Regular",
+          "SF Mono",
+          "Menlo",
+          "Consolas",
+          "Liberation Mono",
+          "monospace",
+        ],
       },
       colors: {
         border: "hsl(var(--border))",

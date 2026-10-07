@@ -26,11 +26,19 @@ const productionSecurityHeaders = [
     key: 'Content-Security-Policy',
     value: [
       "default-src 'self'",
+      // 'unsafe-inline' is required by the blocking theme script, which sets
+      // the theme attribute before first paint. That script is the reason the
+      // app never flashes the wrong theme, so it is load bearing rather than a
+      // convenience.
       "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://js.stripe.com https://cdn.vercel-insights.com",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "img-src 'self' data: https: blob:",
       "font-src 'self' data: https://fonts.gstatic.com",
-      "connect-src 'self' https://*.supabase.co https://api.stripe.com https://api.groq.com wss://*.supabase.co",
+      // The model runtime is called server-side only, so the browser never
+      // needs to reach it and no inference host has to be allow-listed here.
+      // The deployment names its runtime in AI_BASE_URL, which the browser has
+      // no way to see.
+      "connect-src 'self' https://*.supabase.co https://api.stripe.com wss://*.supabase.co",
       "frame-src 'self' https://js.stripe.com",
       "media-src 'self' blob:",
       "worker-src 'self' blob:",

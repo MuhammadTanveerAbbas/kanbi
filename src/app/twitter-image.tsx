@@ -1,6 +1,6 @@
 import { ImageResponse } from 'next/og';
 
-export const runtime = 'edge';
+export const runtime = 'nodejs';
 
 export const alt = 'Kanbi - turn notes into a task board';
 export const size = {
@@ -126,7 +126,7 @@ export default async function Image() {
               marginTop: '20px',
             }}
           >
-            {['Groq AI Powered', 'Burnout Prevention', 'Free Forever'].map((feature) => (
+            {['Open-weight AI', 'Burnout Prevention', 'Free Forever'].map((feature) => (
               <div
                 key={feature}
                 style={{

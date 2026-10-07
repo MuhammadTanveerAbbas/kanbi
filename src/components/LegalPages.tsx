@@ -1,9 +1,8 @@
 'use client'
 
-import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { useEffect, useMemo, useState } from 'react'
-import { appThemeVars, startThemeWatch, useTheme } from '@/lib/theme'
+import { usePathname, useRouter } from 'next/navigation'
+import { useMemo } from 'react'
+import { useTheme } from '@/lib/theme'
 
 interface Section {
   id: string
@@ -12,10 +11,10 @@ interface Section {
 }
 
 const PRIV_SECS: Section[] = [
-  { id: 'introduction', title: '1. Introduction', content: ['KANBI ("we," "us," "our," or "Company") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use Kanbi.', 'Please read this Privacy Policy carefully. If you do not agree with our policies and practices, please do not use our Service.'] },
-  { id: 'information-collected', title: '2. Information We Collect', content: ['We collect account information, board and task data, and operational metadata needed to provide the product.', 'When AI features are used, relevant note content may be sent to Groq for processing according to their own privacy policy.'] },
+  { id: 'introduction', title: '1. Introduction', content: ['KANBI (\"we,\" \"us,\" \"our,\" or \"Company\") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use Kanbi.', 'Please read this Privacy Policy carefully. If you do not agree with our policies and practices, please do not use our Service.'] },
+  { id: 'information-collected', title: '2. Information We Collect', content: ['We collect account information, board and task data, and operational metadata needed to provide the product.', 'When AI features are used, relevant note content is sent to the language model runtime configured for this deployment, which is processed under that provider\'s own privacy policy.'] },
   { id: 'how-we-use-data', title: '3. How We Use Your Information', content: ['We use data to provide and improve Kanbi, process subscriptions, secure accounts, and support customers.', 'We also use aggregate usage signals to improve reliability and product experience.'] },
-  { id: 'third-party-services', title: '4. Third-Party Service Providers', content: ['Kanbi uses Supabase for authentication and storage, Groq for AI task extraction/chat capabilities, and Stripe for payments.', 'Each provider has its own privacy and security commitments.'] },
+  { id: 'third-party-services', title: '4. Third-Party Service Providers', content: ['Kanbi uses Supabase for authentication and storage, an open-weight language model runtime for task extraction and assistant features, and Stripe for payments.', 'Each provider has its own privacy and security commitments.'] },
   { id: 'cookies', title: '5. Cookies and Tracking', content: ['We use cookies and related technologies to keep you signed in, remember preferences, and maintain service reliability.', 'You can control cookie behavior through your browser settings.'] },
   { id: 'data-security', title: '6. Data Security', content: ['We implement industry-standard controls including encrypted transport and secure infrastructure practices.', 'No internet transmission method is perfect, so absolute security cannot be guaranteed.'] },
   { id: 'data-retention', title: '7. Data Retention', content: ['We retain account data while your account is active and for limited periods after deletion as required for operations or legal obligations.'] },
@@ -23,13 +22,13 @@ const PRIV_SECS: Section[] = [
   { id: 'children-privacy', title: "9. Children's Privacy", content: ['Kanbi is not intended for children under 13, and we do not knowingly collect personal information from children under that age.'] },
   { id: 'international-transfers', title: '10. International Data Transfers', content: ['Data may be processed in countries outside your own. By using the Service, you consent to those transfers where permitted by law.'] },
   { id: 'policy-changes', title: '11. Changes to This Policy', content: ['We may update this Privacy Policy from time to time. Material updates are reflected by changing the effective date and posting the updated policy.'] },
-  { id: 'privacy-contact', title: '12. Contact Us', content: ['For privacy questions, contact: themvpguy.contact@gmail.com'] },
+  { id: 'privacy-contact', title: '12. Contact Us', content: ['For privacy questions, contact: support@kanbi.app'] },
 ]
 
 const TERMS_SECS: Section[] = [
   { id: 'agreement', title: '1. Agreement to Terms', content: ['By accessing and using Kanbi, you agree to these Terms of Service. If you do not agree, you must not use the Service.'] },
   { id: 'license', title: '2. Use License', content: ['You receive a limited, non-exclusive, revocable license to use Kanbi for lawful purposes in accordance with these terms.'] },
-  { id: 'disclaimer', title: '3. Disclaimer', content: ['The Service is provided "as is" and "as available" without warranties of any kind, to the extent permitted by law.'] },
+  { id: 'disclaimer', title: '3. Disclaimer', content: ['The Service is provided \"as is\" and \"as available\" without warranties of any kind, to the extent permitted by law.'] },
   { id: 'limitations', title: '4. Limitations of Liability', content: ['To the fullest extent permitted by law, Kanbi is not liable for indirect, incidental, or consequential damages from service use.'] },
   { id: 'accounts', title: '5. User Accounts', content: ['You are responsible for account credentials and activity under your account.', 'You must provide accurate registration information and keep it updated.'] },
   { id: 'billing', title: '6. Subscription and Billing', content: ['Paid plans renew automatically unless cancelled.', 'Pricing, refunds, and cancellation terms are presented at checkout and may be updated with notice.'] },
@@ -40,70 +39,45 @@ const TERMS_SECS: Section[] = [
   { id: 'termination', title: '11. Termination', content: ['We may suspend or terminate access for violations of these terms or to protect the Service and users.'] },
   { id: 'changes', title: '12. Changes to Terms', content: ['We may revise these terms at any time. Continued use after updates means you accept the revised terms.'] },
   { id: 'governing-law', title: '13. Governing Law', content: ['These terms are governed by applicable law and subject to the jurisdiction stated by Kanbi.'] },
-  { id: 'terms-contact', title: '14. Contact Information', content: ['For terms questions, contact: themvpguy.contact@gmail.com'] },
+  { id: 'terms-contact', title: '14. Contact Information', content: ['For terms questions, contact: support@kanbi.app'] },
 ]
 
-/** Small inline arrow, kept local so the legal pages need no icon set. */
-function ArrowLeftIcon({ size = 13 }: { size?: number }) {
+function BackIcon() {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
-      <path d="M20 12H5"/><path d="m11 18-6-6 6-6"/>
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M19 12H5"/><path d="m12 19-7-7 7-7"/>
     </svg>
-  );
+  )
+}
+
+function SunIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+    </svg>
+  )
+}
+
+function MoonIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+    </svg>
+  )
 }
 
 export default function LegalPages() {
-  // usePathname is available during the server render too, so the correct page
-  // is produced on the first pass with no effect and no hydration mismatch.
   const pathname = usePathname() ?? '/'
-  const [activeId, setActiveId] = useState<string>('')
-  // Privacy and terms were the only pages pinned to a dark palette. A visitor who
-  // chose light anywhere else on the site met a black page here, on a different
-  // set of greys, for no reason anyone had recorded.
-  const { theme, toggle: toggleTheme } = useTheme();
-  useEffect(() => startThemeWatch(), []);
+  const router = useRouter()
+  const { theme, toggle: toggleTheme } = useTheme()
 
   const isTerms = pathname.includes('/terms')
   const sections = useMemo(() => (isTerms ? TERMS_SECS : PRIV_SECS), [isTerms])
   const pageTitle = isTerms ? 'Terms of Service' : 'Privacy Policy'
   const updatedDate = 'March 2026'
-
-  // Seed activeId during render rather than in the effect body. The effect only
-  // needs to attach the observer, so the initial value is already correct on the
-  // first paint and no cascading render happens.
-  const [lastSections, setLastSections] = useState(sections)
-  if (lastSections !== sections) {
-    setLastSections(sections)
-    setActiveId(sections[0]?.id ?? '')
-  }
-
-  useEffect(() => {
-    if (!sections.length) return
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visibleEntries = entries.filter((entry) => entry.isIntersecting)
-        if (visibleEntries.length === 0) return
-        const topEntry = visibleEntries.sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0]!
-        setActiveId(topEntry.target.id)
-      },
-      { rootMargin: '-20% 0px -60% 0px', threshold: [0.2, 0.4, 0.7] },
-    )
-
-    sections.forEach((section) => {
-      const element = document.getElementById(section.id)
-      if (element) observer.observe(element)
-    })
-
-    return () => observer.disconnect()
-  }, [sections])
-
-  const handleTocClick = (id: string): void => {
-    const section = document.getElementById(id)
-    if (!section) return
-    section.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }
 
   return (
     <div className="legal-page">
@@ -112,77 +86,112 @@ export default function LegalPages() {
           min-height: 100vh;
           background: var(--bg);
           color: var(--tx);
-          padding: 40px 20px 80px;
-          /* Uses the loaded Geist family like every other page. This previously
-             named a raw system stack, so privacy and terms were the only two
-             pages in the product not using the real typeface. */
-          font-family: var(--font-geist), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-        }
-        .layout {
-          max-width: 1100px;
-          margin: 0 auto;
-          display: grid;
-          grid-template-columns: minmax(0, 1fr) 260px;
-          gap: 48px;
-          align-items: start;
-        }
-        .content {
-          min-width: 0;
+          font-family: var(--font-body);
         }
         .topbar {
+          position: sticky;
+          top: 0;
+          z-index: 10;
+          background: var(--bg);
+          border-bottom: 1px solid var(--br);
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+        }
+        .topbar-inner {
+          max-width: 820px;
+          margin: 0 auto;
+          padding: 0 24px;
+          height: 56px;
           display: flex;
-          flex-wrap: wrap;
           align-items: center;
           justify-content: space-between;
           gap: 12px;
-          margin-bottom: 32px;
         }
-        .navgroup {
-          display: flex;
-          gap: 8px;
-        }
-        .chip {
-          border: 1px solid var(--br);
+        .back-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 7px;
           background: var(--bg2);
+          border: 1px solid var(--br);
           color: var(--tx2);
-          border-radius: 999px;
-          padding: 7px 14px;
-          text-decoration: none;
+          border-radius: 10px;
+          padding: 7px 14px 7px 10px;
           font-size: 13px;
           font-weight: 500;
-          transition: all 0.18s ease;
-        }
-        .chip:hover {
-          border-color: var(--brh);
-          background: var(--bg3);
-          color: var(--tx);
-        }
-        button.chip {
-          cursor: pointer;
           font-family: inherit;
+          line-height: 1;
+          cursor: pointer;
+          transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.12s;
+          text-decoration: none;
         }
-        button.chip:focus-visible,
-        a:focus-visible {
+        .back-btn:hover {
+          background: var(--bg3);
+          border-color: var(--brh);
+          color: var(--tx);
+          transform: translateX(-2px);
+        }
+        .back-btn:active {
+          transform: translateX(-1px);
+        }
+        .back-btn:focus-visible {
           outline: 2px solid var(--ac);
           outline-offset: 2px;
         }
+        .theme-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          background: var(--bg2);
+          border: 1px solid var(--br);
+          color: var(--tx2);
+          border-radius: 10px;
+          padding: 7px 12px;
+          font-size: 13px;
+          font-weight: 500;
+          font-family: inherit;
+          line-height: 1;
+          cursor: pointer;
+          transition: background 0.15s, border-color 0.15s, color 0.15s;
         }
-        .chip.active {
-          background: var(--as);
-          border-color: var(--ac-text);
-          color: var(--ac-text);
-          font-weight: 600;
+        .theme-btn:hover {
+          background: var(--bg3);
+          border-color: var(--brh);
+          color: var(--tx);
+        }
+        .theme-btn:focus-visible {
+          outline: 2px solid var(--ac);
+          outline-offset: 2px;
+        }
+        .layout {
+          max-width: 820px;
+          margin: 0 auto;
+          padding: 40px 24px 80px;
         }
         .page-header {
-          margin-bottom: 36px;
-          padding-bottom: 28px;
+          margin-bottom: 32px;
+          padding-bottom: 24px;
           border-bottom: 1px solid var(--br);
         }
+        .page-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          background: var(--bg2);
+          border: 1px solid var(--br);
+          border-radius: 999px;
+          padding: 4px 12px;
+          font-size: 11px;
+          font-weight: 600;
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+          color: var(--tx3);
+          margin-bottom: 16px;
+        }
         h1 {
-          margin: 0 0 10px;
-          font-size: clamp(28px, 4vw, 42px);
+          margin: 0 0 8px;
+          font-size: clamp(26px, 5vw, 40px);
           line-height: 1.1;
-          letter-spacing: -0.025em;
+          letter-spacing: -0.03em;
           font-weight: 700;
           color: var(--tx);
         }
@@ -190,29 +199,31 @@ export default function LegalPages() {
           color: var(--tx3);
           margin: 0;
           font-size: 13px;
-          font-weight: 500;
+        }
+        .sections {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
         }
         .section {
           border: 1px solid var(--br);
           border-radius: 12px;
-          padding: 22px 24px 20px;
+          padding: 20px 22px 18px;
           background: var(--bg1);
-          margin-bottom: 12px;
-          scroll-margin-top: 88px;
-          transition: border-color 0.18s;
+          transition: border-color 0.15s;
         }
         .section:hover {
           border-color: var(--brh);
         }
         .section h2 {
-          margin: 0 0 12px;
-          font-size: 16px;
+          margin: 0 0 10px;
+          font-size: 15px;
           font-weight: 600;
           color: var(--tx);
           letter-spacing: -0.01em;
         }
         .section p {
-          margin: 0 0 10px;
+          margin: 0 0 8px;
           line-height: 1.75;
           color: var(--tx2);
           font-size: 14px;
@@ -220,94 +231,50 @@ export default function LegalPages() {
         .section p:last-child {
           margin-bottom: 0;
         }
-        .toc {
-          position: sticky;
-          top: 24px;
-          align-self: start;
-          border: 1px solid var(--br);
-          border-radius: 12px;
-          background: var(--bg1);
-          padding: 16px;
-          max-height: calc(100vh - 48px);
-          overflow-y: auto;
+        @media (max-width: 600px) {
+          .topbar-inner { padding: 0 16px; height: 52px; }
+          .layout { padding: 28px 16px 64px; }
+          .back-btn span { display: none; }
+          .back-btn { padding: 8px 10px; border-radius: 9px; }
+          .section { padding: 16px 16px 14px; border-radius: 10px; }
+          h1 { font-size: clamp(22px, 6vw, 32px); }
         }
-        .toc h3 {
-          margin: 0 0 10px;
-          font-size: 11px;
-          text-transform: uppercase;
-          letter-spacing: 0.07em;
-          color: var(--tx3);
-          font-weight: 700;
-        }
-        .toc button {
-          width: 100%;
-          text-align: left;
-          border: 0;
-          border-left: 2px solid transparent;
-          background: transparent;
-          color: var(--tx2);
-          padding: 7px 8px 7px 10px;
-          border-radius: 6px;
-          cursor: pointer;
-          font-size: 12.5px;
-          line-height: 1.4;
-          transition: all 0.15s;
-          display: block;
-        }
-        .toc button:hover {
-          background: var(--bg2);
-          color: var(--tx);
-        }
-        .toc button.active {
-          border-left-color: var(--ac-text);
-          color: var(--ac-text);
-          background: var(--as);
-          font-weight: 500;
-        }
-        @media (max-width: 860px) {
-          .layout {
-            grid-template-columns: 1fr;
-          }
-          .toc {
-            display: none;
-          }
-        }
-        .legal-page {
-          ${appThemeVars(theme)}
+        @media (max-width: 380px) {
+          .layout { padding: 20px 12px 56px; }
         }
       `}</style>
 
+      <div className="topbar">
+        <div className="topbar-inner">
+          <button
+            type="button"
+            className="back-btn"
+            onClick={() => router.back()}
+            aria-label="Go back"
+          >
+            <BackIcon />
+            <span>Back</span>
+          </button>
+          <button
+            type="button"
+            className="theme-btn"
+            onClick={toggleTheme}
+            aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+          >
+            {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
+            {theme === 'dark' ? 'Light' : 'Dark'}
+          </button>
+        </div>
+      </div>
+
       <div className="layout">
-        <main className="content">
-          <div className="topbar">
-            <div className="navgroup">
-              <Link href="/" className="chip">
-                <ArrowLeftIcon size={13}/> Home
-              </Link>
-            </div>
-            <div className="navgroup">
-              <button
-                type="button"
-                className="chip"
-                onClick={toggleTheme}
-                aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
-              >
-                {theme === 'dark' ? 'Light' : 'Dark'}
-              </button>
-              <Link href="/privacy" className={`chip ${!isTerms ? 'active' : ''}`}>
-                Privacy Policy
-              </Link>
-              <Link href="/terms" className={`chip ${isTerms ? 'active' : ''}`}>
-                Terms of Service
-              </Link>
-            </div>
-          </div>
+        <div className="page-header">
+          <div className="page-badge">Legal</div>
+          <h1>{pageTitle}</h1>
+          <p className="updated">Last updated: {updatedDate}</p>
+        </div>
 
-          <div className="page-header">
-            <h1>{pageTitle}</h1>
-            <p className="updated">Last updated: {updatedDate}</p>
-          </div>
-
+        <div className="sections">
           {sections.map((section) => (
             <section id={section.id} key={section.id} className="section">
               <h2>{section.title}</h2>
@@ -316,21 +283,7 @@ export default function LegalPages() {
               ))}
             </section>
           ))}
-        </main>
-
-        <aside className="toc" aria-label="Table of contents">
-          <h3>On this page</h3>
-          {sections.map((section) => (
-            <button
-              key={section.id}
-              type="button"
-              className={activeId === section.id ? 'active' : ''}
-              onClick={() => handleTocClick(section.id)}
-            >
-              {section.title}
-            </button>
-          ))}
-        </aside>
+        </div>
       </div>
     </div>
   )

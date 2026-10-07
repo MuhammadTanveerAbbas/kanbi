@@ -467,21 +467,21 @@ Version numbers before `0.1.0` were not recorded.
 
 ## Project history, reconstructed from the repository
 
-### 2025-09 to 2025-11 — foundation
+### 2025-09 to 2025-11 | foundation
 
 - Initial commit and first upload on 2025-09-15 at version `0.1.0`.
 - A landing page, a Kanban board, and a Groq-powered task extraction flow.
 - Supabase authentication and PostgreSQL with row level security.
 - Version `0.1.0` throughout this period.
 
-### 2025-12 to 2026-01 — product surface
+### 2025-12 to 2026-01 | product surface
 
 - 2025-12-21, `0.1.0` to `0.3.0`.
 - 2025-12-30, `0.3.0` to `3.0.0`.
 - The API surface grew from 2 routes to 21, and the schema from 0 tables to 6.
 - Stripe subscriptions, board export, and the analytics views were added.
 
-### 2026-03 — the largest development month
+### 2026-03 | the largest development month
 
 - 37 of the repository's 83 commits, the highest activity by a wide margin.
 - The version moved to `3.1.0` on 2026-03-15.
@@ -489,7 +489,7 @@ Version numbers before `0.1.0` were not recorded.
 - The workload analyzer, autopilot engine, and AI chat were developed here.
 - The dependency list fell from 42 to 28, indicating a deliberate consolidation.
 
-### 2026-04 to 2026-09 — consolidation and deployment fixes
+### 2026-04 to 2026-09 | consolidation and deployment fixes
 
 - 2026-04-12, deployment and Vercel configuration work.
 - 2026-07-06, a lockfile was synced with `package.json` to fix a failed Vercel

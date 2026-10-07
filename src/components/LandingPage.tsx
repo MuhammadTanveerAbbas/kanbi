@@ -1,23 +1,257 @@
 "use client";
 // KANBI LANDING PAGE v3
 // Updates: (1) Hero mock matches new dashboard (sidebar+health ring+progress bars)
-//          (2) NEW tabbed Product Showcase   Dashboard, Board, AI Chat, Autopilot
-import { startThemeWatch, themeVars, useTheme as useSiteTheme } from '@/lib/theme';
+//          (2) NEW tabbed Product Showcase   Dashboard, Board, Assistant, Autopilot
+import { useTheme as useSiteTheme } from '@/lib/theme';
 import { useState, useEffect, useRef, createContext, useContext, useCallback, type ComponentType } from "react";
 import { createClient } from '@/lib/supabase/client';
 import { BarChart3, CalendarDays, CircleGauge, ClipboardList, Layers3, MessageSquareText, Workflow, ShieldCheck, Eye, ArrowRight, CheckCircle2, TimerReset, PanelTop, FileDown, BrainCircuit, Boxes, Target, ListTodo, TrendingUp, BadgeCheck, Flame, Orbit, LaptopMinimal, PanelRightOpen, Stars, GitBranch, Gauge, Clock3, Route, BadgeInfo, SquareKanban, SplitSquareVertical, ArrowUpRight, BookOpenText, Sparkles, MoveRight } from "lucide-react";
 import Link from "next/link";
-import { SOCIAL_LINKS, TECH_STACK } from "./brand-icons";
 
 type Theme = "dark" | "light";
 const ThemeCtx = createContext<{ theme: Theme; toggle: () => void }>({ theme: "dark", toggle: () => { } });
 const useTheme = () => useContext(ThemeCtx);
 
 
-function Styles({ theme }: { theme: Theme }) {
-  return <style suppressHydrationWarning>{`
-  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-  :root{${themeVars(theme)}
+/**
+ * Page level styles only. The palette and the font stack are not repeated here:
+ * they are emitted once into the document head by the root layout, which is what
+ * lets the blocking theme script resolve the correct theme before first paint.
+ */
+function Styles() {
+  return <style>{`
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0} html{scroll-behavior:smooth}
+  .lp{font-family:inherit;background:var(--bg);color:var(--tx);-webkit-font-smoothing:antialiased;overflow-x:hidden;transition:background .2s,color .2s}
+  .lp a{text-decoration:none;color:inherit} .lp button{font-family:inherit;cursor:pointer}
+  .lp ::-webkit-scrollbar{display:none;width:0;height:0} .lp ::-webkit-scrollbar-track{display:none} .lp ::-webkit-scrollbar-thumb{display:none} .lp{scrollbar-width:none;-ms-overflow-style:none}
+  @keyframes shimmer{from{background-position:-300% center}to{background-position:300% center}}
+  @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.55)}}
+  @keyframes badgeFadeUp{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+  .shimmer{background:linear-gradient(90deg,var(--ac),var(--pu) 40%,var(--ac) 70%,var(--pu));background-size:300% auto;-webkit-background-clip:text;background-clip:text;color:transparent;animation:shimmer 4s linear infinite}
+  .pulse{animation:pulse 2.2s ease-in-out infinite}
+  .wavy{stroke-dasharray:380;stroke-dashoffset:380;transition:stroke-dashoffset 1.1s cubic-bezier(.4,0,.2,1) .2s}
+  .wavy.drawn{stroke-dashoffset:0}
+  .na:hover{color:var(--tx)!important;background:var(--bg2)!important}
+  .fc{transition:background .18s,border-color .18s,transform .18s} .fc:hover{background:var(--bg2)!important;border-color:var(--brh)!important;transform:translateY(-2px)}
+  .sh:hover{border-color:var(--ac)!important}
+  .fi{transition:border-color .18s}
+  .tb{transition:all .15s;min-width:0}
+  .cmp-mobile{display:none;flex-direction:column;gap:12px}
+  .cmp-card{border-radius:14px;border:1px solid var(--br);background:var(--bg1);overflow:hidden}
+  .cmp-card-head{padding:14px 16px;border-bottom:1px solid var(--br);display:flex;align-items:center;gap:10px;font-size:13.5px;font-weight:600;color:var(--tx)}
+  .cmp-card-row{display:grid;grid-template-columns:72px 1fr;gap:10px;padding:11px 16px;border-bottom:1px solid var(--br);align-items:center}
+  .cmp-card-row:last-child{border-bottom:none}
+  .cmp-card-row.kanbi{background:var(--as)}
+  .cmp-card-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--tx3)}
+  .cmp-card-row.kanbi .cmp-card-label{color:var(--ac)}
+  .cmp-card-val{font-size:12.5px;color:var(--tx2);line-height:1.45}
+  .cmp-card-row.kanbi .cmp-card-val{color:var(--tx);font-weight:500}
+  .lp-wrap{max-width:1140px;margin:0 auto;padding:0 clamp(16px,4vw,24px);width:100%}
+  .lp-section{padding:clamp(56px,8vw,96px) 0}
+  .lp-nav{position:fixed;top:0;left:0;right:0;z-index:200;height:64px;display:flex;align-items:center;transition:background .3s,border-color .3s}
+  .nav-inner{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px;max-width:none;padding:0 clamp(20px,3vw,48px);width:100%}
+  .nav-actions{display:flex;gap:8px;align-items:center;flex-shrink:0;justify-content:flex-end}
+  .nav-cta-desktop{display:inline-flex}
+  .ms{display:none;background:none;border:none;color:var(--tx2);padding:4px;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;transition:background .15s,color .15s}
+  .ms:hover{background:var(--bg2);color:var(--tx)}
+  .hero-cta-secondary{background:var(--bg2)!important;border:1px solid var(--brh)!important;color:var(--tx2)!important}
+  @keyframes mobMenuIn{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes mobLinkIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:translateX(0)}}
+  .hero-section{padding:148px 0 80px}
+  .hero-mock-grid{display:grid;grid-template-columns:220px 1fr;min-height:520px}
+  .hero-kanban{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+  .hero-charts{display:grid;grid-template-columns:1.05fr .95fr;gap:12px}
+  .hero-mock-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .cta-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:26px;align-items:center}
+  .g3{display:grid;grid-template-columns:repeat(3,1fr)}
+  .fc-item{border-right:1px solid var(--br);border-bottom:1px solid var(--br)}
+  .g3 .fc-item:nth-child(3n){border-right:none}
+  .g3 .fc-item:nth-child(n+7){border-bottom:none}
+  @media(max-width:1024px){
+    .hero-section{padding:128px 0 64px!important}
+    .hero-mock-grid{grid-template-columns:1fr!important;min-height:auto!important}
+    .hero-charts{grid-template-columns:1fr!important}
+    .cta-grid{grid-template-columns:1fr!important}
+    .g2{grid-template-columns:1fr!important}
+    .g3{grid-template-columns:repeat(2,1fr)!important}
+    .g3 .fc-item{border-right:1px solid var(--br)!important;border-bottom:1px solid var(--br)!important}
+    .g3 .fc-item:nth-child(3n){border-right:1px solid var(--br)!important}
+    .g3 .fc-item:nth-child(2n){border-right:none!important}
+    .g3 .fc-item:nth-child(n+7){border-bottom:1px solid var(--br)!important}
+    .g3 .fc-item:nth-child(n+8){border-bottom:none!important}
+    .fg{grid-template-columns:1fr 1fr!important;gap:32px!important}
+    .hero-kanban{grid-template-columns:1fr!important}
+    .nl{gap:2px!important}
+    .nl a{font-size:12.5px!important;padding:5px 9px!important}
+  }
+  @media(max-width:900px){
+    .nl{display:none!important}
+    .ms{display:flex!important}
+    .nav-cta-desktop{display:none!important}
+    .nav-theme-btn{display:none!important}
+    .nav-inner{grid-template-columns:auto 1fr auto!important}
+    .nav-actions{justify-content:flex-end!important}
+    .lp-nav-open{background:var(--nb)!important;border-bottom:1px solid var(--br)!important;backdrop-filter:blur(24px)!important;-webkit-backdrop-filter:blur(24px)!important}
+    .mob-menu{position:fixed;inset:0;z-index:210;display:flex;flex-direction:column;background:var(--bg);animation:mobMenuIn .26s cubic-bezier(.22,1,.36,1);overflow:hidden}
+    .mob-menu-grid{position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(var(--br) 1px,transparent 1px),linear-gradient(90deg,var(--br) 1px,transparent 1px);background-size:64px 64px;opacity:.45}
+    .mob-menu-glow{position:absolute;top:-20%;left:50%;transform:translateX(-50%);width:120%;height:45%;background:radial-gradient(ellipse,var(--ag) 0%,transparent 68%);pointer-events:none;opacity:.7}
+    .mob-menu-head{position:relative;z-index:2;display:flex;align-items:center;justify-content:space-between;padding:14px clamp(16px,4vw,24px);border-bottom:1px solid var(--br);background:var(--nb);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);flex-shrink:0}
+    .mob-menu-body{position:relative;z-index:2;flex:1;min-height:0;overflow-y:auto;padding:20px clamp(16px,4vw,24px) 16px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:14px;-webkit-overflow-scrolling:touch}
+    .mob-menu-intro{width:100%;max-width:400px}
+    .mob-menu-kicker{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ac);margin-bottom:6px}
+    .mob-menu-desc{font-size:13px;color:var(--tx2);line-height:1.5}
+    .mob-nav-panel{width:100%;max-width:400px;border:1px solid var(--br);border-radius:16px;background:linear-gradient(180deg,var(--bg1),rgba(255,255,255,.01));overflow:hidden;box-shadow:0 16px 48px rgba(0,0,0,.18),inset 0 1px 0 rgba(255,255,255,.04)}
+    .mob-link{display:flex;align-items:center;gap:12px;padding:13px 14px;border-bottom:1px solid var(--br);font-size:15px;font-weight:600;color:var(--tx);letter-spacing:-0.02em;transition:background .15s;animation:mobLinkIn .32s cubic-bezier(.22,1,.36,1) both}
+    .mob-link:last-child{border-bottom:none}
+    .mob-link:nth-child(1){animation-delay:.04s}
+    .mob-link:nth-child(2){animation-delay:.07s}
+    .mob-link:nth-child(3){animation-delay:.10s}
+    .mob-link:nth-child(4){animation-delay:.13s}
+    .mob-link:nth-child(5){animation-delay:.16s}
+    .mob-link:hover,.mob-link:active{background:var(--bg2)}
+    .mob-link-num{width:30px;height:30px;border-radius:9px;background:var(--as);border:1px solid var(--ag);color:var(--ac);font-size:11px;font-weight:800;font-variant-numeric:tabular-nums;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .mob-link-text{flex:1;min-width:0}
+    .mob-link-arrow{width:30px;height:30px;border-radius:9px;background:var(--bg3);border:1px solid var(--br);color:var(--tx3);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s,border-color .15s,color .15s,transform .15s}
+    .mob-link:hover .mob-link-arrow,.mob-link:active .mob-link-arrow{background:var(--as);border-color:var(--ag);color:var(--ac);transform:translateX(2px)}
+    .mob-signin{width:100%;max-width:400px;text-align:center;font-size:12.5px;color:var(--tx3);padding:4px 0 2px;transition:color .15s}
+    .mob-signin:hover{color:var(--ac)}
+    .mob-menu-foot{position:relative;z-index:2;flex-shrink:0;padding:16px clamp(16px,4vw,24px) max(24px,env(safe-area-inset-bottom));border-top:1px solid var(--br);background:var(--nb);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);display:flex;justify-content:center}
+    .mob-foot-panel{width:100%;max-width:400px;display:flex;flex-direction:column;gap:10px}
+    .mob-theme-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-radius:14px;border:1px solid var(--br);background:linear-gradient(180deg,var(--bg1),var(--bg2))}
+    .mob-theme-info{display:flex;align-items:center;gap:10px;min-width:0}
+    .mob-theme-icon{width:34px;height:34px;border-radius:10px;background:var(--as);border:1px solid var(--ag);color:var(--ac);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .mob-theme-copy{display:flex;flex-direction:column;gap:1px;min-width:0}
+    .mob-theme-label{font-size:13px;font-weight:600;color:var(--tx);letter-spacing:-0.01em}
+    .mob-theme-value{font-size:11px;color:var(--tx3)}
+    .mob-theme-toggle{height:34px;padding:0 12px;border-radius:9px;border:1px solid var(--br);background:var(--bg3);color:var(--tx2);font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;flex-shrink:0;transition:all .15s;white-space:nowrap}
+    .mob-theme-toggle:hover{border-color:var(--brh);color:var(--tx);background:var(--bg2)}
+    .mob-cta{height:50px;border-radius:14px;background:linear-gradient(135deg,var(--ac),#7c83ff);color:#fff;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 12px 36px var(--ag);border:1px solid rgba(255,255,255,.12);transition:opacity .15s,transform .12s,box-shadow .15s;position:relative;z-index:1}
+    .mob-cta:hover{box-shadow:0 16px 40px var(--ag);opacity:.96}
+    .mob-cta:active{transform:scale(.98);opacity:.92}
+    .mob-menu-close{width:38px;height:38px;border-radius:10px;border:1px solid var(--br);background:var(--bg1);color:var(--tx2);display:flex;align-items:center;justify-content:center;transition:all .15s}
+    .mob-menu-close:hover{border-color:var(--brh);color:var(--tx);background:var(--bg2)}
+    .msb{border-right:none!important;border-bottom:1px solid var(--br)!important;padding:12px 14px!important;display:flex!important;align-items:center!important;justify-content:space-between!important}
+    .msb-brand{padding:0!important;margin-bottom:0!important;border-bottom:none!important}
+    .msb-nav{display:flex!important;flex-direction:row!important;gap:6px!important;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:0!important}
+    .msb-nav-item{flex-shrink:0!important;margin:0!important;padding:8px 11px!important;font-size:11px!important;white-space:nowrap}
+  }
+  @media(max-width:768px){
+    .hh{font-size:clamp(36px,8vw,56px)!important}
+    .hero-section{padding:112px 0 48px!important}
+    .msb-nav-item .msb-nav-label{display:none}
+    .msb-nav-item{padding:8px 10px!important;gap:0!important}
+    .hero-kanban{grid-template-columns:1fr!important}
+    .hero-mock-head{align-items:flex-start!important}
+    .cr{flex-direction:column!important;align-items:stretch!important}
+    .cr a,.cr button{justify-content:center!important}
+    .g3{grid-template-columns:1fr!important}
+    .g3 .fc-item{border-right:none!important}
+    .g3 .fc-item{border-bottom:1px solid var(--br)!important}
+    .g3 .fc-item:last-child{border-bottom:none!important}
+    .fg{grid-template-columns:1fr 1fr!important}
+    .tsc{display:grid!important;grid-template-columns:1fr 1fr;gap:6px;overflow:visible;padding:6px!important}
+    .tb{flex:none!important;font-size:11.5px!important;padding:10px 8px!important;white-space:normal!important;line-height:1.25;text-align:center}
+    .showcase-mock{height:auto!important;min-height:320px;max-height:none!important}
+    .mock-board-cols,.mock-overview-stats{grid-template-columns:1fr!important}
+    .mock-overview-charts,.mock-chat-layout,.mock-footer-actions{grid-template-columns:1fr!important}
+    .hero-badge{padding:5px 10px!important}
+    .badge-text{font-size:10px!important;white-space:normal!important;text-align:center!important;line-height:1.3!important}
+    .cmp-desktop{display:none!important}
+    .cmp-mobile{display:flex!important}
+    .hero-mock-wrap{margin-top:40px!important;border-radius:18px!important}
+    .hero-mock-head{padding:12px 14px!important}
+    .hero-kanban{padding:12px 14px!important}
+    .hero-sub{font-size:15px!important;padding:0 4px!important}
+    .cta-banner-inner{padding:24px 18px!important;border-radius:18px!important}
+    .cta-stats{gap:14px!important}
+    .cmp-testimonial{padding:20px 18px!important;margin-top:28px!important}
+    .faq-btn{font-size:13px!important;padding:14px 15px!important}
+  }
+
+  /* ── Footer ──
+     The footer is the last thing on the page, so it is the first thing a
+     visitor sees wrong at an awkward width. Every rule here is a consequence of
+     a specific measured failure, not a guess.
+
+     min-width: 0 on the grid children is the one that matters most: the brand
+     column contains a paragraph and a row of icons, and without it the grid
+     track is sized by the content's max-content width, which is wider than the
+     viewport on a phone. That is the classic cause of a footer that scrolls the
+     whole page sideways. */
+  .lp-footer{border-top:1px solid var(--br);padding:clamp(40px,6vw,64px) 0 28px;margin-top:auto}
+  /* Two grid items live here: .footer-brand and the <nav> that itself lays
+     out the 4 link columns. A 5-track definition (1 brand + 4 link tracks)
+     was being applied to those 2 items, so the extra tracks went unused and
+     .footer-nav was squeezed into a single minmax(90px,1fr) track far too
+     narrow for its own 4-column grid on large screens. */
+  .footer-grid{display:grid;grid-template-columns:minmax(220px,1fr) minmax(0,2.2fr);gap:clamp(24px,3vw,44px);align-items:start}
+  .footer-brand{min-width:0}
+  .footer-logo{display:flex;align-items:center;gap:9px;margin-bottom:14px}
+  .footer-logo-mark{width:30px;height:30px;border-radius:9px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff;background:linear-gradient(135deg,var(--ac),var(--pu));box-shadow:0 0 16px var(--ag)}
+  .footer-logo-text{font-family:var(--font-display);font-size:15px;font-weight:700;letter-spacing:-0.025em;color:var(--tx)}
+  .footer-blurb{font-size:13px;line-height:1.65;color:var(--tx2);max-width:34ch;margin:0 0 20px;text-wrap:pretty}
+  .footer-cta{
+    display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 18px;
+    border-radius:10px;background:var(--ac-solid);color:#fff;font-size:13px;font-weight:600;
+    text-decoration:none;box-shadow:0 8px 24px var(--ag);
+    transition:background .15s,transform .15s,box-shadow .15s;
+  }
+  .footer-cta:hover{background:var(--ac-solid-h);transform:translateY(-1px);box-shadow:0 12px 30px var(--ag)}
+  .footer-social{list-style:none;display:flex;gap:8px;flex-wrap:wrap;margin:18px 0 0;padding:0}
+  .footer-social-link{
+    display:flex;align-items:center;justify-content:center;width:40px;height:40px;
+    border-radius:9px;border:1px solid var(--br);background:var(--bg1);color:var(--tx2);
+    transition:border-color .15s,color .15s,background .15s;
+  }
+  .footer-social-link:hover{border-color:var(--brh);color:var(--tx);background:var(--bg2)}
+
+  .footer-nav{display:grid;grid-template-columns:repeat(4,1fr);gap:clamp(16px,2vw,28px);min-width:0}
+  .footer-col{min-width:0}
+  /* The h6 scale from globals.css is the right one here: a small uppercase
+     label, not a section heading. The previous markup used a <p> at 10px in
+     one column and 11px in the others. */
+  .footer-col-heading{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--tx3);margin:0 0 14px}
+  .footer-col-list{list-style:none;display:flex;flex-direction:column;gap:10px;margin:0;padding:0}
+  .footer-link{
+    display:inline-block;/* the padding would otherwise not be part of the target */
+    font-size:13px;color:var(--tx2);text-decoration:none;
+    padding:2px 0;transition:color .15s;
+  }
+  .footer-link:hover{color:var(--tx)}
+
+  .footer-bottom{margin-top:clamp(32px,4vw,48px);padding-top:20px;border-top:1px solid var(--br);display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+  .footer-bottom p{margin:0;font-size:12px;color:var(--tx3)}
+  .footer-bottom-links{list-style:none;display:flex;gap:18px;margin:0;padding:0}
+  .footer-bottom-links a{font-size:12px;color:var(--tx3);transition:color .15s}
+  .footer-bottom-links a:hover{color:var(--tx)}
+
+  /* One focus treatment for every footer control. Without this, keyboard users
+     get the browser default on a dark surface and it is easy to lose. */
+  .lp-footer a:focus-visible{outline:2px solid var(--ac);outline-offset:3px;border-radius:4px}
+
+  @media(max-width:1024px){
+    /* Two rows of two rather than one long column: four columns at this width
+       leaves each link column about 120px, which wraps "How it works" onto two
+       lines and makes the footer twice as tall as its content needs. */
+    .footer-grid{grid-template-columns:1fr;gap:36px}
+    .footer-nav{grid-template-columns:repeat(2,1fr);gap:28px 24px;max-width:32rem}
+  }
+  @media(max-width:640px){
+    .lp-footer{padding-top:36px}
+    .footer-blurb{max-width:none}
+  }
+  @media(max-width:480px){
+    .fg,.sg{grid-template-columns:1fr!important}
+    .hero-section{padding:100px 0 40px!important}
+    .tsc{grid-template-columns:1fr 1fr;gap:5px}
+    .tb{font-size:11px!important;padding:9px 6px!important}
+    .cmp-card-row{grid-template-columns:64px 1fr;padding:10px 14px}
+    .board-kanban-pad{padding:14px 12px!important}
+    /* A single column of links at 375px leaves short lines and a very tall
+       footer. Two columns is the point where the labels stop wrapping. */
+    .footer-nav{gap:24px 16px}
+    .footer-cta{width:100%;justify-content:center}
+  }
 `}</style>;
 }
 
@@ -138,13 +372,13 @@ function Navbar() {
   return (<>
     <nav className={`lp-nav${mob ? " lp-nav-open" : ""}`} style={{ borderBottom: `1px solid ${scrolled || mob ? "var(--br)" : "transparent"}`, background: scrolled || mob ? "var(--nb)" : "transparent", backdropFilter: scrolled || mob ? "blur(24px)" : "none", WebkitBackdropFilter: scrolled || mob ? "blur(24px)" : "none" }}>
       <div style={{ position: "absolute", bottom: -1, left: 0, height: 1, background: "linear-gradient(90deg,var(--ac),var(--pu))", width: `${prog * 100}%`, transition: "width .1s linear", opacity: mob ? 0 : 1 }} />
-      <div className="lp-wrap nav-inner">
+      <div className="lp-wrap nav-inner" style={{ width: "100%", maxWidth: "none" }}>
         <Link href="/" style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }} onClick={closeMob}>
-          <div style={{ width: 28, height: 28, borderRadius: 8, background: "var(--ac-solid)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", boxShadow: "0 0 18px var(--ag)" }}><IC.Zap size={13} /></div>
+          <div style={{ width: 28, height: 28, borderRadius: 8, background: "var(--ac)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", boxShadow: "0 0 18px var(--ag)" }}><IC.Zap size={13} /></div>
           <span style={{ fontSize: 15, fontWeight: 700, color: "var(--tx)", letterSpacing: "-0.025em" }}>Kanbi</span>
         </Link>
-        <div className="nl" style={{ display: "flex", gap: 26, alignItems: "center", flex: 1, justifyContent: "center" }}>
-          {links.map(([l, h]) => <a key={l} href={h} className="na" style={{ fontSize: 13, color: "var(--tx2)", transition: "color .15s", whiteSpace: "nowrap" }}>{l}</a>)}
+        <div className="nl" style={{ display: "flex", gap: 6, alignItems: "center", justifyContent: "center" }}>
+          {links.map(([l, h]) => <a key={l} href={h} className="na" style={{ fontSize: 13.5, fontWeight: 500, color: "var(--tx2)", transition: "color .15s", whiteSpace: "nowrap", padding: "6px 12px", borderRadius: 8 }}>{l}</a>)}
         </div>
         <div className="nav-actions">
           <button className="nav-theme-btn" onClick={toggle} aria-label="Toggle theme" style={{ width: 34, height: 34, borderRadius: 8, border: "1px solid var(--br)", background: "var(--bg1)", color: "var(--tx2)", display: "flex", alignItems: "center", justifyContent: "center", transition: "all .15s", flexShrink: 0 }} onMouseOver={e => { e.currentTarget.style.borderColor = "var(--brh)"; e.currentTarget.style.color = "var(--tx)" }} onMouseOut={e => { e.currentTarget.style.borderColor = "var(--br)"; e.currentTarget.style.color = "var(--tx2)" }}>
@@ -152,7 +386,7 @@ function Navbar() {
           </button>
           {user
             ? <a href="/dashboard" className="nav-cta-desktop" style={{ height: 34, padding: "0 15px", borderRadius: 8, background: "var(--inv)", color: "var(--inv2)", fontSize: 13, fontWeight: 600, alignItems: "center", transition: "opacity .15s", textDecoration: "none", whiteSpace: "nowrap" }} onMouseOver={e => (e.currentTarget.style.opacity = ".88")} onMouseOut={e => (e.currentTarget.style.opacity = "1")}>Dashboard</a>
-            : <button onClick={handleGetStarted} className="nav-cta-desktop" style={{ height: 34, padding: "0 15px", borderRadius: 8, background: "var(--ac-solid)", color: "#fff", fontSize: 13, fontWeight: 600, alignItems: "center", transition: "opacity .15s", border: "none", whiteSpace: "nowrap" }} onMouseOver={e => (e.currentTarget.style.opacity = ".88")} onMouseOut={e => (e.currentTarget.style.opacity = "1")}>Get Started Free</button>
+            : <button onClick={handleGetStarted} className="nav-cta-desktop" style={{ height: 34, padding: "0 15px", borderRadius: 8, background: "var(--ac)", color: "#fff", fontSize: 13, fontWeight: 600, alignItems: "center", transition: "opacity .15s", border: "none", whiteSpace: "nowrap" }} onMouseOver={e => (e.currentTarget.style.opacity = ".88")} onMouseOut={e => (e.currentTarget.style.opacity = "1")}>Get Started Free</button>
           }
           <button className="ms" onClick={() => setMob(!mob)} aria-label={mob ? "Close menu" : "Open menu"} aria-expanded={mob}>{mob ? <IC.X size={18} /> : <IC.Menu size={18} />}</button>
         </div>
@@ -229,6 +463,33 @@ function HeroWorkloadBar({ active, score = 82 }: { active: boolean; score?: numb
   );
 }
 
+const BADGE_WORDS = [
+  { pre: "Paste notes.", hi: "Get a board instantly." },
+  { pre: "AI extracts tasks.", hi: "You stay in control." },
+  { pre: "Plan your week.", hi: "Autopilot does the math." },
+  { pre: "Built for solo work.", hi: "No team required." },
+];
+function HeroBadge() {
+  const [i, setI] = useState(0);
+  const [vis, setVis] = useState(true);
+  useEffect(() => {
+    const id = setInterval(() => {
+      setVis(false);
+      setTimeout(() => { setI(p => (p + 1) % BADGE_WORDS.length); setVis(true); }, 220);
+    }, 2600);
+    return () => clearInterval(id);
+  }, []);
+  const w = BADGE_WORDS[i]!;
+  return (
+    <div style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "5px 13px 5px 6px", borderRadius: 100, border: "1px solid var(--ag)", background: "var(--as)", marginBottom: 28 }}>
+      <span style={{ width: 18, height: 18, borderRadius: "50%", background: "linear-gradient(135deg,var(--ac),var(--pu))", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 0 7px var(--ag)" }}><IC.Spark size={10} /></span>
+      <span style={{ fontSize: 12, fontWeight: 500, color: "var(--tx2)", animation: vis ? "badgeFadeUp .22s ease both" : "none", opacity: vis ? 1 : 0, whiteSpace: "nowrap", letterSpacing: "-0.01em" }}>
+        {w.pre} <span style={{ fontWeight: 800, color: "var(--tx)" }}>{w.hi}</span>
+      </span>
+    </div>
+  );
+}
+
 function Hero() {
   const ref = useRef<HTMLDivElement>(null);
   const v = useInView(ref as React.RefObject<HTMLElement>);
@@ -240,19 +501,16 @@ function Hero() {
       <div style={{ position: "absolute", inset: 0, pointerEvents: "none", backgroundImage: "linear-gradient(var(--br) 1px,transparent 1px),linear-gradient(90deg,var(--br) 1px,transparent 1px)", backgroundSize: "72px 72px" }} />
       <div style={{ position: "absolute", top: -60, left: "50%", transform: "translateX(-50%)", width: 800, height: 520, background: "radial-gradient(ellipse,var(--ag) 0%,transparent 68%)", pointerEvents: "none" }} />
       <div className="lp-wrap" style={{ textAlign: "center", position: "relative" }}>
-        <div className="hero-badge" style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "5px 14px 5px 10px", borderRadius: 100, border: "1px solid var(--ag)", background: "var(--as)", marginBottom: 28 }}>
-          <div style={{ width: 20, height: 20, borderRadius: 6, background: "var(--as)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--ac-text)", flexShrink: 0 }}><IC.Spark size={13} /></div>
-          <span className="badge-text" style={{ fontSize: "clamp(10px,2vw,12px)", color: "var(--ac-text)", fontWeight: 500, whiteSpace: "nowrap" }}>Groq AI, Kanban, workload health, Autopilot</span>
-        </div>
-        <h1 className="hh" style={{ fontSize: "clamp(44px,7.5vw,86px)", fontWeight: 800, letterSpacing: "-0.048em", lineHeight: 1.04, color: "var(--tx)", marginBottom: 24 }}>
+<HeroBadge />
+        <h1 className="hh" style={{ fontSize: "clamp(52px,7vw,96px)", fontWeight: 800, letterSpacing: "-0.05em", lineHeight: 1.03, color: "var(--tx)", marginBottom: 28 }}>
           Turn hours of task{" "}
           <span style={{ position: "relative", display: "inline-block" }}><Wavy /><span style={{ color: "var(--ac-text)", fontWeight: 800 }}>planning</span></span>
-          <br />into <span style={{ color: "var(--ac-text)", fontWeight: 800 }}>a real task board</span>
+          {" "}into{" "}<span style={{ color: "var(--ac-text)", fontWeight: 800 }}>a real task board</span>
         </h1>
-        <p className="hero-sub" style={{ fontSize: 17, color: "var(--tx2)", maxWidth: 560, margin: "0 auto 40px", lineHeight: 1.7 }}>Paste Your Docs. Kanbi extracts tasks, sets priorities, and builds your Kanban board in seconds. Built for freelancers and solo operators.</p>
+        <p className="hero-sub" style={{ fontSize: 19, color: "var(--tx2)", maxWidth: 580, margin: "0 auto 44px", lineHeight: 1.65 }}>Paste Your Docs. Kanbi extracts tasks, sets priorities, and builds your Kanban board in seconds. Built for freelancers and solo operators.</p>
         <div className="cr" style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-          <button onClick={handleGetStarted} style={{ height: 48, padding: "0 26px", borderRadius: 10, background: "var(--ac-solid)", color: "#fff", fontSize: 14, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 9, boxShadow: "0 0 0 1px var(--ag),0 10px 38px var(--ag)", transition: "opacity .15s", border: "none" }} onMouseOver={e => (e.currentTarget.style.opacity = ".88")} onMouseOut={e => (e.currentTarget.style.opacity = "1")}>Start for Free <IC.Arrow size={15} /></button>
-          <a href="#showcase" className="hero-cta-secondary" style={{ height: 48, padding: "0 22px", borderRadius: 10, fontSize: 14, color: "var(--tx)", display: "inline-flex", alignItems: "center", gap: 6, transition: "all .15s" }}>See product <IC.ChevD size={14} /></a>
+          <button onClick={handleGetStarted} style={{ height: 48, padding: "0 26px", borderRadius: 10, background: "var(--ac)", color: "#fff", fontSize: 14, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 9, boxShadow: "0 0 0 1px var(--ag),0 10px 38px var(--ag)", transition: "opacity .15s", border: "none" }} onMouseOver={e => (e.currentTarget.style.opacity = ".88")} onMouseOut={e => (e.currentTarget.style.opacity = "1")}>Start for Free <IC.Arrow size={15} /></button>
+          <a href="#showcase" className="hero-cta-secondary" style={{ height: 48, padding: "0 22px", borderRadius: 10, fontSize: 14, fontWeight: 500, display: "inline-flex", alignItems: "center", gap: 8 }}><Eye size={15} />See product</a>
         </div>
         <p style={{ marginTop: 14, fontSize: 12, color: "var(--tx3)" }}>Free plan, 10 AI requests per day, no card required</p>
         <div ref={ref} className="hero-mock-wrap" style={{ marginTop: 60, borderRadius: 24, border: "1px solid var(--br)", background: "linear-gradient(180deg,rgba(255,255,255,0.03),transparent 28%),var(--bg1)", overflow: "hidden", boxShadow: "0 0 0 1px rgba(255,255,255,0.03),0 42px 120px rgba(0,0,0,0.62)" }}>
@@ -273,14 +531,14 @@ function Hero() {
                 {[
                   { label: "Overview", icon: ICONS.dashboard, active: true },
                   { label: "Board", icon: ICONS.board },
-                  { label: "AI Chat", icon: ICONS.chat },
+                  { label: "Assistant", icon: ICONS.chat },
                   { label: "Autopilot", icon: ICONS.autopilot },
                   { label: "Saved", icon: FileDown },
                 ].map(item => {
                   const Icon = item.icon;
                   return (
-                    <div key={item.label} className="msb-nav-item" style={{ padding: "10px 10px", margin: "4px 0", borderRadius: 10, background: item.active ? "var(--as)" : "transparent", fontSize: 12, color: item.active ? "var(--ac-text)" : "var(--tx2)", fontWeight: item.active ? 600 : 500, border: "1px solid", borderColor: item.active ? "var(--ag)" : "transparent", display: "flex", alignItems: "center", gap: 10 }}>
-                      <span style={{ width: 24, height: 24, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", background: item.active ? "rgba(94,111,232,0.18)" : "var(--bg2)", color: item.active ? "var(--ac-text)" : "var(--tx3)" }}><Icon size={13} /></span>
+                    <div key={item.label} className="msb-nav-item" style={{ padding: "10px 10px", margin: "4px 0", borderRadius: 10, background: item.active ? "var(--as)" : "transparent", fontSize: 12, color: item.active ? "var(--ac)" : "var(--tx2)", fontWeight: item.active ? 600 : 500, border: "1px solid", borderColor: item.active ? "var(--ag)" : "transparent", display: "flex", alignItems: "center", gap: 10 }}>
+                      <span style={{ width: 24, height: 24, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", background: item.active ? "rgba(94,111,232,0.18)" : "var(--bg2)", color: item.active ? "var(--ac)" : "var(--tx3)" }}><Icon size={13} /></span>
                       <span className="msb-nav-label">{item.label}</span>
                     </div>
                   );
@@ -298,7 +556,7 @@ function Hero() {
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 10px", borderRadius: 999, background: "var(--as)", border: "1px solid var(--ag)" }}>
-                    <div className="pulse" style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--ac-solid)" }} />
+                    <div className="pulse" style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--ac)" }} />
                     <span style={{ fontSize: 10, color: "var(--ac-text)", fontWeight: 600 }}>6 tasks added</span>
                   </div>
                 </div>
@@ -329,7 +587,7 @@ function Hero() {
                               <BadgeInfo size={10} />{t.tag}
                             </div>
                           </div>
-                          <span style={{ fontSize: 9, fontWeight: 700, color: t.p === "high" ? "var(--rd-text)" : "var(--am-text)", flexShrink: 0, marginTop: 3, textTransform: "uppercase" }}>{t.p}</span>
+                          <span style={{ fontSize: 9, fontWeight: 700, color: t.p === "high" ? "var(--rd)" : "var(--am)", flexShrink: 0, marginTop: 3, textTransform: "uppercase" }}>{t.p}</span>
                         </div>
                         {"prog" in t && t.prog !== undefined && (
                           <div style={{ height: 4, borderRadius: 999, background: "var(--bg2)", overflow: "hidden" }}>
@@ -403,7 +661,7 @@ function Hero() {
 const TABS = [
   { key: "overview", label: "Dashboard", desc: "See workload health, usage limits, and recent activity in one place. Know when you're overloaded before the week runs away.", features: ["Health score from your active tasks", "Weekly completion chart", "Usage counters for AI and boards", "Quick jump to any workspace"] },
   { key: "board", label: "Kanban Board", desc: "Drag tasks across To Do, In Progress, and Done. Each card shows priority, label, and progress where it matters.", features: ["Three-column Kanban layout", "Priority tags on every card", "Progress bars on active work", "Save and export when you're ready"] },
-  { key: "chat", label: "AI Chat", desc: "Ask what to tackle first, add tasks in plain English, or reprioritize without leaving the board. The assistant reads your current tasks.", features: ["Board-aware answers", "Create tasks from chat", "Suggest next actions", "Stays in sync with your board"] },
+  { key: "chat", label: "Assistant", desc: "Ask what to tackle first, add tasks in plain English, or reprioritize without leaving the board. The assistant reads your current tasks.", features: ["Board-aware answers", "Create tasks from chat", "Suggest next actions", "Stays in sync with your board"] },
   { key: "autopilot", label: "Autopilot", desc: "Get a morning briefing and a time-blocked plan based on what's on your board. Adjust, then push blocks back as tasks.", features: ["Daily briefing summary", "Suggested time blocks", "Capacity-aware scheduling", "Add plan to your board"] },
 ];
 
@@ -461,7 +719,7 @@ function MockPreview({ tab }: { tab: typeof TABS[0] }) {
               <p style={{ fontSize: 10, color: "var(--tx3)", marginTop: 8 }}>Score 82, balanced</p>
             </div>
             <div style={{ borderRadius: 16, border: "1px solid var(--br)", background: "linear-gradient(180deg,var(--bg2),var(--bg1))", padding: 12 }}>
-              {[["AI today", "7/10", "var(--ac-text)", "70%"], ["Boards", "3/10", "var(--pu-text)", "30%"], ["Done rate", "68%", "var(--gr-text)", "68%"]].map(([l, v, c, w]) => (
+              {[["AI today", "7/10", "var(--ac)", "70%"], ["Boards", "3/10", "var(--pu)", "30%"], ["Done rate", "68%", "var(--gr)", "68%"]].map(([l, v, c, w]) => (
                 <div key={l} style={{ marginBottom: 7 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
                     <span style={{ fontSize: 9, color: "var(--tx3)" }}>{l}</span>
@@ -567,8 +825,8 @@ function Showcase() {
       <div className="lp-wrap">
         <div style={{ textAlign: "center", marginBottom: 48 }}>
           <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--ac-text)", marginBottom: 14 }}>Product</p>
-          <h2 style={{ fontSize: "clamp(26px,4vw,44px)", fontWeight: 700, letterSpacing: "-0.035em", color: "var(--tx)", marginBottom: 14 }}>Four views, one workflow</h2>
-          <p style={{ fontSize: 15, color: "var(--tx2)", maxWidth: 480, margin: "0 auto" }}>From raw notes to a planned day, without switching tools.</p>
+          <h2 style={{ fontSize: "clamp(30px,4vw,48px)", fontWeight: 700, letterSpacing: "-0.04em", color: "var(--tx)", marginBottom: 14 }}>Four views, one workflow</h2>
+          <p style={{ fontSize: 16, color: "var(--tx2)", maxWidth: 480, margin: "0 auto" }}>From raw notes to a planned day, without switching tools.</p>
         </div>
         <div className="tsc" style={{ display: "flex", gap: 4, marginBottom: 28, background: "var(--bg1)", border: "1px solid var(--br)", borderRadius: 12, padding: 4 }}>
           {TABS.map((t, i) => (
@@ -586,7 +844,7 @@ function Showcase() {
                 </li>
               ))}
             </ul>
-            <a href="/sign-up" style={{ display: "inline-flex", alignItems: "center", gap: 7, marginTop: 22, height: 40, padding: "0 18px", borderRadius: 9, background: "var(--ac-solid)", color: "#fff", fontSize: 13, fontWeight: 600, transition: "background .15s" }} onMouseOver={e => (e.currentTarget.style.background = "var(--ach)")} onMouseOut={e => (e.currentTarget.style.background = "var(--ac)")}>
+            <a href="/sign-up" style={{ display: "inline-flex", alignItems: "center", gap: 7, marginTop: 22, height: 40, padding: "0 18px", borderRadius: 9, background: "var(--ac)", color: "#fff", fontSize: 13, fontWeight: 600, transition: "background .15s" }} onMouseOver={e => (e.currentTarget.style.background = "var(--ach)")} onMouseOut={e => (e.currentTarget.style.background = "var(--ac)")}>
               Try it free <IC.Arrow size={13} />
             </a>
           </div>
@@ -599,9 +857,9 @@ function Showcase() {
 
 // ── FEATURES ────
 const FEATS = [
-  { I: IC.Spark, t: "AI task extraction", d: "Paste notes, emails, or PDF text. Groq reads the content and returns actionable tasks with priorities in seconds." },
+  { I: IC.Spark, t: "AI task extraction", d: "Paste notes, emails, or PDF text. The model reads the content and returns actionable tasks with priorities in seconds." },
   { I: IC.Shield, t: "Workload health score", d: "Kanbi flags overload before you commit to too much. See a simple score based on what's already on your board." },
-  { I: IC.Brain, t: "Board-aware AI chat", d: "Ask what to do next, add tasks in plain language, or reprioritize. The assistant sees your current board." },
+  { I: IC.Brain, t: "Board-aware assistant", d: "Ask what to do next, add tasks in plain language, or reprioritize. The assistant sees your current board." },
   { I: IC.Chart, t: "Completion tracking", d: "Track what you finish over time. Spot which priorities pile up and where your week actually goes." },
   { I: IC.Export, t: "DOCX and PDF export", d: "Hand off a board to a client as a formatted Word doc or PDF. No copy paste reformatting." },
   { I: IC.Board, t: "Text, PDF, and URL input", d: "Paste text, upload a PDF, or drop a URL. One extraction flow for the inputs you already have." },
@@ -616,8 +874,8 @@ function Features() {
       <div className="lp-wrap">
         <div style={{ textAlign: "center", marginBottom: 52 }}>
           <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--ac-text)", marginBottom: 14 }}>Features</p>
-          <h2 style={{ fontSize: "clamp(26px,4vw,44px)", fontWeight: 700, letterSpacing: "-0.035em", color: "var(--tx)", marginBottom: 14 }}>Built for solo operators</h2>
-          <p style={{ fontSize: 15, color: "var(--tx2)", maxWidth: 440, margin: "0 auto" }}>Everything you need to plan a week, nothing you do not need.</p>
+          <h2 style={{ fontSize: "clamp(30px,4vw,48px)", fontWeight: 700, letterSpacing: "-0.04em", color: "var(--tx)", marginBottom: 14 }}>Built for solo operators</h2>
+          <p style={{ fontSize: 16, color: "var(--tx2)", maxWidth: 440, margin: "0 auto" }}>Everything you need to plan a week, nothing you do not need.</p>
         </div>
         <div className="g3" style={{ border: "1px solid var(--br)", borderRadius: 16, overflow: "hidden" }}>
           {FEATS.map((f) => (
@@ -636,7 +894,7 @@ function Features() {
 function HowItWorks() {
   const steps = [
     { n: "01", t: "Paste raw input", d: "Meeting notes, email threads, or PDF exports. No templates or cleanup required.", tag: "Text, PDF, URL", I: IC.Export },
-    { n: "02", t: "AI reads and extracts", d: "Groq pulls out action items, assigns priority, and estimates time where it can.", tag: "Powered by Groq", I: IC.Spark },
+    { n: "02", t: "AI reads and extracts", d: "The model pulls out action items, assigns priority, and estimates time where it can.", tag: "Open-weight models", I: IC.Spark },
     { n: "03", t: "Plan and ship", d: "Tasks land on your board. Autopilot suggests a day. Export when a client needs a doc.", tag: "Board, Autopilot, Export", I: IC.Zap },
   ];
   return (
@@ -644,7 +902,7 @@ function HowItWorks() {
       <div className="lp-wrap">
         <div style={{ textAlign: "center", marginBottom: 52 }}>
           <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--ac-text)", marginBottom: 14 }}>How It Works</p>
-          <h2 style={{ fontSize: "clamp(26px,4vw,44px)", fontWeight: 700, letterSpacing: "-0.035em", color: "var(--tx)" }}>From chaos to clarity in 3 steps</h2>
+          <h2 style={{ fontSize: "clamp(30px,4vw,48px)", fontWeight: 700, letterSpacing: "-0.04em", color: "var(--tx)" }}>From chaos to clarity in 3 steps</h2>
         </div>
         <div className="g3 sg" style={{ gap: 16 }}>
           {steps.map(s => (
@@ -674,14 +932,14 @@ function Pricing() {
       else window.location.href = '/sign-up';
     } catch { window.location.href = '/sign-up'; }
   };
-  const freeF = [{ t: "10 AI requests per day", ok: true }, { t: "300 board saves per month", ok: true }, { t: "Full Kanban board", ok: true }, { t: "Priority levels & due dates", ok: true }, { t: "Text, PDF & URL import", ok: false }, { t: "AI Chat Coach", ok: false }, { t: "Burnout alerts", ok: false }];
-  const proF = ["100 AI requests per day", "1,500 board saves per month", "Text, PDF & URL import", "AI Chat Coach (board-aware)", "Burnout prevention & health scoring", "DOCX & PDF export", "Autopilot scheduling & briefings", "Priority email support (24h)"];
+  const freeF = [{ t: "10 AI requests per day", ok: true }, { t: "300 board saves per month", ok: true }, { t: "Full Kanban board", ok: true }, { t: "Priority levels & due dates", ok: true }, { t: "Text, PDF & URL import", ok: false }, { t: "Kanbi Assistant", ok: false }, { t: "Burnout alerts", ok: false }];
+  const proF = ["100 AI requests per day", "1,500 board saves per month", "Text, PDF & URL import", "Kanbi Assistant (board-aware)", "Burnout prevention & health scoring", "DOCX & PDF export", "Autopilot scheduling & briefings", "Priority email support (24h)"];
   return (
     <section id="pricing" className="lp-section" style={{ borderTop: "1px solid var(--br)" }}>
       <div className="lp-wrap">
         <div style={{ textAlign: "center", marginBottom: 52 }}>
           <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--ac-text)", marginBottom: 14 }}>Pricing</p>
-          <h2 style={{ fontSize: "clamp(26px,4vw,44px)", fontWeight: 700, letterSpacing: "-0.035em", color: "var(--tx)", marginBottom: 14 }}>Simple, honest pricing</h2>
+          <h2 style={{ fontSize: "clamp(30px,4vw,48px)", fontWeight: 700, letterSpacing: "-0.04em", color: "var(--tx)", marginBottom: 14 }}>Simple, honest pricing</h2>
           <p style={{ fontSize: 15, color: "var(--tx2)" }}>Start free. Upgrade when you&rsquo;re ready.</p>
         </div>
         <div className="g2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, maxWidth: 860, margin: "0 auto" }}>
@@ -712,12 +970,12 @@ function Pricing() {
               <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: 11, marginBottom: 26 }}>
                 {proF.map(f => <li key={f} style={{ display: "flex", alignItems: "flex-start", gap: 9, fontSize: 13, color: "var(--tx2)" }}><span style={{ color: "var(--ac-text)", flexShrink: 0, marginTop: 1 }}><IC.Check size={14} /></span>{f}</li>)}
               </ul>
-              <button onClick={handleProClick} style={{ display: "block", width: "100%", height: 38, borderRadius: 8, background: "var(--ac-solid)", fontSize: 13, fontWeight: 600, color: "#fff", textAlign: "center", lineHeight: "38px", boxShadow: "0 4px 20px var(--ag)", transition: "background .15s", border: "none" }} onMouseOver={e => (e.currentTarget.style.background = "var(--ach)")} onMouseOut={e => (e.currentTarget.style.background = "var(--ac)")}>Start Pro   $9/mo</button>
+              <button onClick={handleProClick} style={{ display: "block", width: "100%", height: 38, borderRadius: 8, background: "var(--ac)", fontSize: 13, fontWeight: 600, color: "#fff", textAlign: "center", lineHeight: "38px", boxShadow: "0 4px 20px var(--ag)", transition: "background .15s", border: "none" }} onMouseOver={e => (e.currentTarget.style.background = "var(--ach)")} onMouseOut={e => (e.currentTarget.style.background = "var(--ac)")}>Start Pro   $9/mo</button>
               <p style={{ textAlign: "center", fontSize: 11, color: "var(--tx3)", marginTop: 10 }}>Stripe billing. Cancel anytime.</p>
             </div>
           </div>
         </div>
-        <p style={{ textAlign: "center", fontSize: 12, color: "var(--tx3)", marginTop: 18 }}>No contracts. Questions? <a href="mailto:themvpguy.contact@gmail.com" style={{ color: "var(--ac-text)" }}>themvpguy.contact@gmail.com</a></p>
+        <p style={{ textAlign: "center", fontSize: 12, color: "var(--tx3)", marginTop: 18 }}>No contracts. Questions? <a href="https://muhammadtanveerabbas.vercel.app" target="_blank" rel="noreferrer noopener" style={{ color: "var(--ac-text)" }}>Contact us</a></p>
       </div>
     </section>
   );
@@ -726,7 +984,7 @@ function Pricing() {
 function FAQ() {
   const [open, setOpen] = useState<number | null>(null);
   const faqs = [
-    { q: "How accurate is the AI task extraction?", a: "Kanbi uses Groq's llama-3.3-70b model. It works best on structured notes and emails with clear action items. You can edit any task before saving. Nothing is locked in automatically." },
+    { q: "How accurate is the AI task extraction?", a: 'The model behind extraction is selected per request from whatever open-weight runtime this deployment runs, so the available model can change without the product changing. It works best on structured notes and emails with clear action items. You can edit any task before saving. Nothing is locked in automatically.' },
     { q: "Is my data private and secure?", a: "Boards and tasks are stored in Supabase with row-level security, so only your account can read them. We don't sell your data. You can delete your account and data from Settings." },
     { q: "How does task parsing work?", a: "Paste text or upload a PDF. The model reads the content, extracts action items, assigns a priority, and optionally estimates time. It handles casual phrasing like follow up on or due Friday without templates." },
     { q: "Does Kanbi integrate with other tools?", a: "You can export boards as DOCX or PDF for client handoffs and import tasks from URLs. More integrations are on the roadmap." },
@@ -738,7 +996,7 @@ function FAQ() {
       <div className="lp-wrap" style={{ maxWidth: 720 }}>
         <div style={{ textAlign: "center", marginBottom: 48 }}>
           <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--ac-text)", marginBottom: 14 }}>FAQ</p>
-          <h2 style={{ fontSize: "clamp(26px,4vw,44px)", fontWeight: 700, letterSpacing: "-0.035em", color: "var(--tx)" }}>Common questions</h2>
+          <h2 style={{ fontSize: "clamp(30px,4vw,48px)", fontWeight: 700, letterSpacing: "-0.04em", color: "var(--tx)" }}>Common questions</h2>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
           {faqs.map((f, i) => (
@@ -756,71 +1014,96 @@ function FAQ() {
   );
 }
 
+const FOOTER_COLUMNS: Array<{
+  heading: string
+  links: Array<{ label: string; href: string; external?: boolean }>
+}> = [
+  {
+    heading: 'Product',
+    links: [
+      { label: 'Features', href: '#features' },
+      { label: 'How it works', href: '#how-it-works' },
+      { label: 'Pricing', href: '/pricing' },
+      { label: 'Changelog', href: '/changelog' },
+    ],
+  },
+  {
+    heading: 'Account',
+    links: [
+      { label: 'Sign up', href: '/sign-up' },
+      { label: 'Sign in', href: '/sign-in' },
+      { label: 'Reset password', href: '/reset-password' },
+    ],
+  },
+  {
+    heading: 'Resources',
+    links: [
+      { label: 'FAQ', href: '#faq' },
+      { label: 'Source on GitHub', href: 'https://github.com/MuhammadTanveerAbbas/kanbi', external: true },
+      { label: 'Report an issue', href: 'https://github.com/MuhammadTanveerAbbas/kanbi/issues', external: true },
+    ],
+  },
+  {
+    heading: 'Legal',
+    links: [
+      { label: 'Privacy', href: '/privacy' },
+      { label: 'Terms', href: '/terms' },
+    ],
+  },
+]
+
 function Footer() {
   return (
-    <footer style={{ borderTop: "1px solid var(--br)", padding: "48px 0 32px" }}>
+    <footer className="lp-footer">
       <div className="lp-wrap">
-        <div className="fg" style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr", gap: 44, marginBottom: 40 }}>
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-              <div style={{ width: 30, height: 30, borderRadius: 9, background: "linear-gradient(135deg,var(--ac),var(--pu))", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", boxShadow: "0 0 16px var(--ag)" }}><IC.Zap size={13} /></div>
-              <span style={{ fontSize: 15, fontWeight: 700, color: "var(--tx)", letterSpacing: "-0.025em" }}>Kanbi</span>
+        <div className="footer-grid">
+          <div className="footer-brand">
+            <div className="footer-logo">
+              <span className="footer-logo-mark" aria-hidden="true">
+                <IC.Zap size={13} />
+              </span>
+              <span className="footer-logo-text">Kanbi</span>
             </div>
-            <p style={{ fontSize: 13, color: "var(--tx2)", lineHeight: 1.7, maxWidth: 280, marginBottom: 20 }}>AI task management for freelancers. Paste notes, get a board, plan your day.</p>
-            <a href="/sign-up" style={{ height: 40, padding: "0 16px", borderRadius: 10, background: "var(--ac-solid)", color: "#fff", fontSize: 13, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 8, boxShadow: "0 8px 24px var(--ag)" }}>Start free <IC.Arrow size={14} /></a>
-            <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginTop: 16 }}>
-              {SOCIAL_LINKS.map(({ name, href, Icon }) => (
-                <a
-                  key={name}
-                  href={href}
-                  target="_blank"
-                  rel="noreferrer noopener"
-                  aria-label={name}
-                  title={name}
-                  style={{ width: 34, height: 34, borderRadius: 9, border: "1px solid var(--br)", background: "var(--bg1)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--tx2)", transition: "all .15s" }}
-                  onMouseOver={e => { e.currentTarget.style.borderColor = "var(--brh)"; e.currentTarget.style.color = "var(--tx)" }}
-                  onMouseOut={e => { e.currentTarget.style.borderColor = "var(--br)"; e.currentTarget.style.color = "var(--tx2)" }}
-                >
-                  <Icon size={15}/>
-                </a>
-              ))}
-            </div>
-          </div>
-          <div style={{ marginTop: 34, paddingTop: 24, borderTop: "1px solid var(--br)" }}>
-            <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--tx3)", marginBottom: 14 }}>
-              Built with
+            <p className="footer-blurb">
+              Task management for people who work alone. Paste notes, get a
+              board, plan your day.
             </p>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              {TECH_STACK.map(({ name, Icon }) => (
-                <span
-                  key={name}
-                  title={name}
-                  style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "6px 11px", borderRadius: 9, border: "1px solid var(--br)", background: "var(--bg1)", color: "var(--tx3)", fontSize: 11.5, fontWeight: 600, cursor: "default", transition: "all .15s" }}
-                  onMouseOver={e => { e.currentTarget.style.color = "var(--tx2)"; e.currentTarget.style.borderColor = "var(--brh)"; }}
-                  onMouseOut={e => { e.currentTarget.style.color = "var(--tx3)"; e.currentTarget.style.borderColor = "var(--br)"; }}
-                >
-                  <Icon size={14}/>
-                  {name}
-                </span>
-              ))}
-            </div>
+            <Link href="/sign-up" className="footer-cta">
+              Start free
+              <IC.Arrow size={14} />
+            </Link>
+
           </div>
-          {[
-            { h: "Product", links: [["Features", "#features"], ["How It Works", "#how-it-works"], ["Pricing", "#pricing"], ["Sign Up", "/sign-up"]] },
-            { h: "Resources", links: [["Changelog", "/changelog"], ["Privacy", "/privacy"], ["Terms", "/terms"], ["Sign In", "/sign-in"], ["Support", "mailto:themvpguy.contact@gmail.com"]] },
-            { h: "Connect", links: [["Email", "mailto:themvpguy.contact@gmail.com"], ["GitHub", "https://github.com/MuhammadTanveerAbbas"], ["LinkedIn", "https://linkedin.com/in/MuhammadTanveerAbbas"], ["Twitter", "https://twitter.com/m_tanveerabbas"]] },
-          ].map(col => (
-            <div key={col.h}>
-              <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--tx3)", marginBottom: 14 }}>{col.h}</p>
-              <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
-                {col.links.map(([l, h]) => <a key={l} href={h} className="na" style={{ fontSize: 13, color: "var(--tx2)", transition: "color .15s" }}>{l}</a>)}
+
+          <nav className="footer-nav" aria-label="Footer">
+            {FOOTER_COLUMNS.map((col) => (
+              <div key={col.heading} className="footer-col">
+                <h2 className="footer-col-heading">{col.heading}</h2>
+                <ul className="footer-col-list">
+                  {col.links.map((link) => (
+                    <li key={link.label}>
+                      <a
+                        href={link.href}
+                        className="footer-link"
+                        {...(link.external ? { target: '_blank', rel: 'noreferrer noopener' } : {})}
+                      >
+                        {link.label}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
               </div>
-            </div>
-          ))}
+            ))}
+          </nav>
         </div>
-        <div className="footer-bottom" style={{ borderTop: "1px solid var(--br)", paddingTop: 20, display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
-          <span style={{ fontSize: 12, color: "var(--tx3)" }}>© 2026 Kanbi. All rights reserved.</span>
-          <a href="https://themvpguy.vercel.app" target="_blank" rel="noreferrer" style={{ fontSize: 12, color: "var(--tx3)", transition: "color .15s" }} onMouseOver={e => (e.currentTarget.style.color = "var(--ac)")} onMouseOut={e => (e.currentTarget.style.color = "var(--tx3)")}>Made by The MVP Guy</a>
+
+        <div className="footer-bottom">
+          <p>© {new Date().getFullYear()} Kanbi. All rights reserved.</p>
+          <ul className="footer-bottom-links">
+            <li><a href="/privacy">Privacy</a></li>
+            <li><a href="/terms">Terms</a></li>
+            <li><a href="https://muhammadtanveerabbas.vercel.app" target="_blank" rel="noreferrer noopener">Made by Tanveer</a></li>
+          </ul>
         </div>
       </div>
     </footer>
@@ -828,15 +1111,12 @@ function Footer() {
 }
 
 export default function LandingPage() {
-  // Read the persisted/system theme on first client render so there is no flash
-  // of the wrong theme and no cascading setState inside an effect.
+  // The store is the single source of truth. Painting is CSS driven from the
+  // document head, so this hook exists only to label the toggle correctly.
   const { theme, toggle } = useSiteTheme();
-  // One listener, owned by the shared store, covers the system preference and
-  // other open tabs. This page used to carry its own copy of that logic.
-  useEffect(() => startThemeWatch(), []);
   return (
     <ThemeCtx.Provider value={{ theme, toggle }}>
-      <Styles theme={theme} />
+      <Styles />
       <div className="lp" style={{ minHeight: "100vh", background: "var(--bg)", color: "var(--tx)" }}>
         <Navbar />
         <main><Hero /><Showcase /><Features /><HowItWorks /><Pricing /><FAQ /></main>

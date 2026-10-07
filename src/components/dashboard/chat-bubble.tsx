@@ -7,12 +7,26 @@ import { copyTextToClipboard } from "@/lib/clipboard";
 import { normalizeChatReply } from "@/lib/text/normalize";
 
 export interface ChatBubbleProps {
-  role: "user" | "ai";
+  /**
+   * `assistant` is the canonical value and matches the `role` column in
+   * `chat_messages`. `ai` is accepted because it is the wire value the database
+   * and the older client state still use, and silently rendering an assistant
+   * reply with the user bubble's colours would be a worse outcome than accepting
+   * both spellings here.
+   */
+  role: "user" | "assistant" | "ai";
   content: string;
   /** Short timestamp shown under the message. */
   timestamp?: string;
   /** Which quick action produced this reply, if any. */
   source?: string;
+  /**
+   * True while tokens are still arriving.
+   *
+   * Appends a caret and keeps the bubble from being announced repeatedly by a
+   * live region, which is the reason the list is not marked `aria-live` per row.
+   */
+  streaming?: boolean;
 }
 
 /**
@@ -28,7 +42,13 @@ export interface ChatBubbleProps {
  *   - The copy control is a real button with a label, so it is reachable by
  *     keyboard and announced by a screen reader.
  */
-export function ChatBubble({ role, content, timestamp, source }: ChatBubbleProps) {
+export function ChatBubble({
+  role,
+  content,
+  timestamp,
+  source,
+  streaming,
+}: ChatBubbleProps) {
   const [copied, setCopied] = useState(false);
   const isUser = role === "user";
 
@@ -46,6 +66,7 @@ export function ChatBubble({ role, content, timestamp, source }: ChatBubbleProps
   return (
     <div
       className="fade-up chat-row"
+      role="listitem"
       style={{
         display: "flex",
         gap: 10,
@@ -84,7 +105,7 @@ export function ChatBubble({ role, content, timestamp, source }: ChatBubbleProps
             {body}
           </p>
         ) : (
-          <AssistantBody content={body} />
+          <AssistantBody content={body} streaming={streaming} />
         )}
 
         <div
@@ -110,24 +131,47 @@ export function ChatBubble({ role, content, timestamp, source }: ChatBubbleProps
               {timestamp}
             </span>
           )}
-          {!isUser && (
+          {source && (
+            <span
+              style={{
+                fontSize: 9.5,
+                fontWeight: 600,
+                letterSpacing: "0.04em",
+                textTransform: "uppercase",
+                color: isUser ? "rgba(255,255,255,0.75)" : "var(--ac-text)",
+                background: isUser ? "rgba(255,255,255,0.14)" : "var(--as)",
+                padding: "2px 6px",
+                borderRadius: 4,
+              }}
+            >
+              {source}
+            </span>
+          )}
+          {!isUser && !streaming && (
+            // The copy control is hidden while a reply is still arriving: copying
+            // half an answer is never what anyone wants, and the row is already
+            // changing under the pointer.
             <button
               type="button"
               onClick={handleCopy}
-              aria-label={copied ? "Copied" : "Copy reply"}
+              aria-label={copied ? "Reply copied to clipboard" : "Copy reply"}
               style={{
                 display: "inline-flex",
                 alignItems: "center",
                 gap: 4,
-                padding: "2px 6px",
+                // Padded past the 9.5px label so the hit area clears 24px, the
+                // smallest target a pointer can reliably acquire.
+                padding: "4px 8px",
+                margin: "-2px -2px -2px 0",
                 borderRadius: 5,
                 border: "1px solid var(--br)",
                 background: "var(--bg2)",
-                color: copied ? "var(--gr)" : "var(--tx3)",
+                color: copied ? "var(--gr-text)" : "var(--tx3)",
                 fontSize: 9.5,
                 fontWeight: 600,
                 cursor: "pointer",
                 transition: "color .15s, border-color .15s",
+                minHeight: 24,
               }}
             >
               {copied ? <Icons.Check size={10} /> : <Icons.Copy size={10} />}
@@ -171,7 +215,13 @@ function ChatAvatar() {
  * rel="noreferrer" and an explicit target so a reply cannot navigate the user
  * away from their own board.
  */
-function AssistantBody({ content }: { content: string }) {
+function AssistantBody({
+  content,
+  streaming,
+}: {
+  content: string;
+  streaming?: boolean;
+}) {
   const isBulletList = /^\s*[-*]\s+/m.test(content);
 
   return (
@@ -183,6 +233,13 @@ function AssistantBody({ content }: { content: string }) {
         overflowWrap: "anywhere",
       }}
     >
+      {streaming && (
+        // Announced once when the reply begins rather than on every token, and
+        // hidden from the accessibility tree once it goes away.
+        <span role="status" className="sr-only">
+          The assistant is replying
+        </span>
+      )}
       <ReactMarkdown
         components={{
           p: ({ node: _node, ...props }) => (
@@ -233,10 +290,96 @@ function AssistantBody({ content }: { content: string }) {
               {...props}
             />
           ),
+          // The model is told to avoid headings, but a reply that contains one
+          // should not be able to inject an unstyled h1 into the thread and
+          // break the visual hierarchy of the page it sits in.
+          h1: ({ node: _node, ...props }) => (
+            <strong style={{ fontWeight: 700 }} {...props} />
+          ),
+          h2: ({ node: _node, ...props }) => (
+            <strong style={{ fontWeight: 700 }} {...props} />
+          ),
+          h3: ({ node: _node, ...props }) => (
+            <strong style={{ fontWeight: 700 }} {...props} />
+          ),
+          h4: ({ node: _node, ...props }) => (
+            <strong style={{ fontWeight: 700 }} {...props} />
+          ),
+          h5: ({ node: _node, ...props }) => (
+            <strong style={{ fontWeight: 700 }} {...props} />
+          ),
+          h6: ({ node: _node, ...props }) => (
+            <strong style={{ fontWeight: 700 }} {...props} />
+          ),
+          blockquote: ({ node: _node, ...props }) => (
+            <blockquote
+              style={{
+                margin: "4px 0",
+                paddingLeft: 10,
+                borderLeft: "2px solid var(--brh)",
+                color: "var(--tx2)",
+              }}
+              {...props}
+            />
+          ),
+          hr: () => <hr style={{ border: "none", borderTop: "1px solid var(--br)", margin: "8px 0" }} />,
+          pre: ({ node: _node, ...props }) => (
+            <pre
+              style={{
+                margin: "6px 0",
+                padding: 10,
+                borderRadius: "var(--radius-sm)",
+                background: "var(--bg2)",
+                border: "1px solid var(--br)",
+                overflowX: "auto",
+                fontSize: 12,
+                lineHeight: 1.55,
+              }}
+              {...props}
+            />
+          ),
+          table: ({ node: _node, ...props }) => (
+            <div style={{ overflowX: "auto", margin: "6px 0" }}>
+              <table
+                style={{ borderCollapse: "collapse", fontSize: 12.5, width: "100%" }}
+                {...props}
+              />
+            </div>
+          ),
+          th: ({ node: _node, ...props }) => (
+            <th
+              style={{
+                textAlign: "left",
+                padding: "4px 8px 4px 0",
+                borderBottom: "1px solid var(--brh)",
+                fontWeight: 600,
+                color: "var(--tx2)",
+                whiteSpace: "nowrap",
+              }}
+              {...props}
+            />
+          ),
+          td: ({ node: _node, ...props }) => (
+            <td style={{ padding: "4px 8px 4px 0", borderBottom: "1px solid var(--br)" }} {...props} />
+          ),
         }}
       >
         {content}
       </ReactMarkdown>
+      {streaming && (
+        <span
+          aria-hidden="true"
+          style={{
+            display: "inline-block",
+            width: 2,
+            height: "0.95em",
+            marginLeft: 2,
+            verticalAlign: "-0.12em",
+            background: "var(--ac)",
+            animation: "chatCaret 1s steps(2, start) infinite",
+          }}
+        />
+      )}
     </div>
   );
 }

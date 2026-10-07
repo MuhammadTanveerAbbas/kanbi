@@ -1,7 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/logging/logger'
-import { extractJsonArray } from '@/lib/ai-service'
-import { createChatCompletion } from '@/lib/ai/groq-client'
+import { extractJsonArray, InferenceUnavailableError } from '@/lib/ai-service'
+import { complete, isInferenceConfigured } from '@/lib/ai/service'
+import { AiProviderError } from '@/lib/ai/provider'
 import { usageService } from '@/lib/services/usage-service'
 import { rateLimit, rateLimitResponse } from '@/lib/rate-limiter'
 import { AuthError, RateLimitError, ExternalServiceError, ValidationError } from '@/lib/errors/AppError'
@@ -47,8 +48,22 @@ export async function POST(request: NextRequest): Promise<Response> {
       return NextResponse.json({ error: 'No usable text provided' }, { status: 400 })
     }
 
-    const completion = await createChatCompletion({
-      max_tokens: 1200,
+    // Reported as a configuration problem rather than a 502, because the
+    // difference decides whether the fix is in the environment or on the vendor.
+    if (!isInferenceConfigured()) {
+      return NextResponse.json(
+        {
+          error: 'AI extraction is not configured for this deployment',
+          code: 'AI_NOT_CONFIGURED',
+          statusCode: 503,
+          timestamp: new Date().toISOString(),
+        },
+        { status: 503 },
+      )
+    }
+
+    const completion = await complete({
+      maxTokens: 1200,
       temperature: 0.2,
       messages: [
         {
@@ -73,7 +88,7 @@ Example output:
       ],
     })
 
-    const raw = completion.choices[0]?.message?.content ?? ''
+    const raw = completion.content
     let tasks: unknown[] = extractJsonArray(raw)
     if (tasks.length === 0) {
       const obj = raw.match(/\{[\s\S]*\}/)
@@ -126,6 +141,33 @@ Example output:
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Internal server error'
     logger.error('Extract error:', { error: message })
+
+    // A missing runtime is a 503 with an actionable message. A rate limit
+    // upstream is a 429 so the client can back off rather than treat it as a
+    // server fault. Everything else is genuinely upstream.
+    if (error instanceof InferenceUnavailableError) {
+      return NextResponse.json(
+        {
+          error: 'AI extraction is not configured for this deployment',
+          code: 'AI_NOT_CONFIGURED',
+          statusCode: 503,
+          timestamp: new Date().toISOString(),
+        },
+        { status: 503 },
+      )
+    }
+    if (error instanceof AiProviderError && error.kind === 'rate_limited') {
+      return NextResponse.json(
+        {
+          error: 'The model is busy. Please try again shortly.',
+          code: 'AI_RATE_LIMITED',
+          statusCode: 429,
+          timestamp: new Date().toISOString(),
+        },
+        { status: 429, headers: error.retryAfterMs ? { 'Retry-After': String(Math.ceil(error.retryAfterMs / 1000)) } : undefined },
+      )
+    }
+
     const serviceError = new ExternalServiceError(message)
     return NextResponse.json(serviceError.toJSON(), { status: 502 })
   }

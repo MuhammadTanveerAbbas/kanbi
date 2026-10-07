@@ -1,18 +1,92 @@
 "use client";
-import { startThemeWatch, themeVars, useTheme as useSiteTheme } from '@/lib/theme';
+import { useTheme as useSiteTheme } from '@/lib/theme';
 import { useState, useEffect, useRef, createContext, useContext } from "react";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { TECH_STACK } from "./brand-icons";
 
 type Theme = "dark" | "light";
-const ThemeCtx = createContext<{ theme: Theme; toggle: () => void }>({ theme: "dark", toggle: () => {} });
+const ThemeCtx = createContext<{ theme: Theme; toggle: () => void }>({ theme: "light", toggle: () => {} });
 const useTheme = () => useContext(ThemeCtx);
 
-function Styles({ theme }: { theme: Theme }) {
-  return <style suppressHydrationWarning>{`
+/**
+ * Page level styles only. The palette comes from the document head, so this
+ * element no longer carries a copy of it. Before this, the server emitted the
+ * light palette here and the client corrected it after hydration.
+ */
+function Styles() {
+  return <style>{`
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-    :root{${themeVars(theme)}
+
+    /* ── The plan comparison table ──
+       It used to be a three column CSS grid with a fixed 2fr/1fr/1fr split and
+       a wrapping feature label. At 375px the label column collapsed to about
+       100px, so every feature name broke across four or five lines while the
+       two "Yes" cells sat next to it, and the table ended up taller than the
+       rest of the page combined.
+
+       A real <table> with a scrollable wrapper is the right structure here: the
+       browser already knows how to align a row of cells, and the wrapper keeps
+       the horizontal overflow inside the table instead of letting it push the
+       page sideways. The min-width is what stops the columns crushing; below
+       560px the table scrolls within its own card. */
+    .cmp-scroll{
+      overflow-x:auto;
+      -webkit-overflow-scrolling:touch;
+      /* A visible edge when there is more to see, so the scroll is discoverable
+         rather than looking like a clipped layout. */
+      background:
+        linear-gradient(to right, var(--bg1) 30%, transparent),
+        linear-gradient(to left, var(--bg1) 30%, transparent) 100% 0,
+        radial-gradient(farthest-side at 0 50%, var(--brh), transparent),
+        radial-gradient(farthest-side at 100% 50%, var(--brh), transparent) 100% 0;
+      background-repeat:no-repeat;
+      background-size:40px 100%,40px 100%,14px 100%,14px 100%;
+      background-attachment:local,local,scroll,scroll;
+    }
+    .cmp-table{
+      width:100%;
+      min-width:520px;
+      border-collapse:collapse;
+      font-size:13px;
+    }
+    .cmp-table th,.cmp-table td{
+      padding:14px 20px;
+      text-align:center;
+      border-bottom:1px solid var(--br);
+    }
+    .cmp-table thead th{
+      background:var(--bg2);
+      font-size:12px;
+      font-weight:700;
+      color:var(--tx3);
+      text-transform:uppercase;
+      letter-spacing:0.06em;
+      white-space:nowrap;
+    }
+    .cmp-table thead th:first-child,
+    .cmp-table tbody th{
+      text-align:left;
+      /* The left cell is the only one that wraps. Aligning the other two to the
+         top rather than the middle keeps a short "Yes" next to the first line
+         of its feature name instead of floating in the vertical centre. */
+      vertical-align:top;
+    }
+    .cmp-table tbody th{
+      font-weight:500;
+      color:var(--tx);
+    }
+    .cmp-table td{
+      color:var(--tx2);
+      border-left:1px solid var(--br);
+    }
+    .cmp-table thead th + th,
+    .cmp-table th + td,
+    .cmp-table td + td{ border-left:1px solid var(--br) }
+    .cmp-table .is-pro{ background:var(--as); color:var(--tx); font-weight:500 }
+    .cmp-table thead .is-pro{ color:var(--ac) }
+    .cmp-table tbody tr:last-child th,
+    .cmp-table tbody tr:last-child td{ border-bottom:none }
   `}</style>;
 }
 
@@ -87,11 +161,11 @@ function Navbar() {
       <div style={{ position: "absolute", bottom: -1, left: 0, height: 1, background: "linear-gradient(90deg,var(--ac),var(--pu))", width: `${prog * 100}%`, transition: "width .1s linear" }} />
       <div style={{ maxWidth: 1140, margin: "0 auto", padding: "0 24px", width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <Link href="/" style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{ width: 28, height: 28, borderRadius: 8, background: "var(--ac-solid)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", boxShadow: "0 0 18px var(--ag)" }}><IC.Zap size={13} /></div>
+          <div style={{ width: 28, height: 28, borderRadius: 8, background: "var(--ac)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", boxShadow: "0 0 18px var(--ag)" }}><IC.Zap size={13} /></div>
           <span style={{ fontSize: 15, fontWeight: 700, color: "var(--tx)", letterSpacing: "-0.025em" }}>Kanbi</span>
         </Link>
         <div className="nl" style={{ display: "flex", gap: 26, alignItems: "center" }}>
-          {links.map(([l, h]) => <a key={l} href={h} className="na" style={{ fontSize: 13, color: l === "Pricing" ? "var(--ac-text)" : "var(--tx2)", fontWeight: l === "Pricing" ? 600 : 400, transition: "color .15s" }}>{l}</a>)}
+          {links.map(([l, h]) => <a key={l} href={h} className="na" style={{ fontSize: 13, color: l === "Pricing" ? "var(--ac)" : "var(--tx2)", fontWeight: l === "Pricing" ? 600 : 400, transition: "color .15s" }}>{l}</a>)}
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <button onClick={toggle} style={{ width: 34, height: 34, borderRadius: 8, border: "1px solid var(--br)", background: "var(--bg1)", color: "var(--tx2)", display: "flex", alignItems: "center", justifyContent: "center", transition: "all .15s" }} onMouseOver={e => { e.currentTarget.style.borderColor = "var(--brh)"; e.currentTarget.style.color = "var(--tx)"; }} onMouseOut={e => { e.currentTarget.style.borderColor = "var(--br)"; e.currentTarget.style.color = "var(--tx2)"; }}>
@@ -108,8 +182,8 @@ function Navbar() {
     {mob && <div style={{ position: "fixed", top: 56, left: 0, right: 0, zIndex: 199, background: "var(--bg1)", borderBottom: "1px solid var(--br)", padding: "20px 24px", display: "flex", flexDirection: "column", gap: 16 }}>
       {links.map(([l, h]) => <a key={l} href={h} onClick={() => setMob(false)} style={{ fontSize: 14, color: "var(--tx2)" }}>{l}</a>)}
       {user
-        ? <a href="/dashboard" onClick={() => setMob(false)} style={{ height: 42, borderRadius: 9, background: "var(--ac-solid)", color: "#fff", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center" }}>Dashboard</a>
-        : <a href="/sign-up" onClick={() => setMob(false)} style={{ height: 42, borderRadius: 9, background: "var(--ac-solid)", color: "#fff", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center" }}>Get Started Free</a>
+        ? <a href="/dashboard" onClick={() => setMob(false)} style={{ height: 42, borderRadius: 9, background: "var(--ac)", color: "#fff", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center" }}>Dashboard</a>
+        : <a href="/sign-up" onClick={() => setMob(false)} style={{ height: 42, borderRadius: 9, background: "var(--ac)", color: "#fff", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center" }}>Get Started Free</a>
       }
     </div>}
   </>);
@@ -126,7 +200,7 @@ const FREE_FEATURES = [
   { t: "Priority levels & due dates", ok: true },
   { t: "Board templates (5 presets)", ok: true },
   { t: "Text, PDF & URL import", ok: true },
-  { t: "AI Chat Coach", ok: true },
+  { t: "Kanbi Assistant", ok: true },
   { t: "Burnout alerts & health score", ok: true },
   { t: "DOCX & PDF export", ok: true },
   { t: "Autopilot briefings", ok: true },
@@ -137,7 +211,7 @@ const PRO_FEATURES = [
   { t: "1,500 board saves / month", highlight: false },
   { t: "Everything in Free", highlight: false },
   { t: "Text, PDF & URL import", highlight: false },
-  { t: "AI Chat Coach (board-aware)", highlight: true },
+  { t: "Kanbi Assistant (board-aware)", highlight: true },
   { t: "Burnout prevention & health scoring", highlight: true },
   { t: "DOCX & PDF export", highlight: false },
   { t: "Autopilot scheduling & briefings", highlight: true },
@@ -210,7 +284,7 @@ function PricingCards({ billing }: { billing: "monthly" | "yearly" }) {
                   </li>
                 ))}
               </ul>
-              <button onClick={handleProClick} style={{ display: "block", width: "100%", height: 42, borderRadius: 9, background: "var(--ac-solid)", fontSize: 13, fontWeight: 600, color: "#fff", border: "none", boxShadow: "0 4px 24px var(--ag)", transition: "background .15s" }} onMouseOver={e => (e.currentTarget.style.background = "var(--ach)")} onMouseOut={e => (e.currentTarget.style.background = "var(--ac)")}>
+              <button onClick={handleProClick} style={{ display: "block", width: "100%", height: 42, borderRadius: 9, background: "var(--ac)", fontSize: 13, fontWeight: 600, color: "#fff", border: "none", boxShadow: "0 4px 24px var(--ag)", transition: "background .15s" }} onMouseOver={e => (e.currentTarget.style.background = "var(--ach)")} onMouseOut={e => (e.currentTarget.style.background = "var(--ac)")}>
                 Start Pro · ${billing === "yearly" ? yearlyPrice : monthlyPrice}/mo
               </button>
               <p style={{ textAlign: "center", fontSize: 11, color: "var(--tx3)", marginTop: 10 }}>Stripe billing · Cancel anytime</p>
@@ -233,7 +307,7 @@ const CMP_ROWS = [
   { f: "Text import", free: "Yes", pro: "Yes" },
   { f: "PDF import", free: "Yes", pro: "Yes" },
   { f: "URL extraction", free: "Yes", pro: "Yes" },
-  { f: "AI Chat Coach", free: "Yes", pro: "Yes" },
+  { f: "Kanbi Assistant", free: "Yes", pro: "Yes" },
   { f: "Burnout prevention", free: "Yes", pro: "Yes" },
   { f: "Health score", free: "Yes", pro: "Yes" },
   { f: "DOCX & PDF export", free: "Yes", pro: "Yes" },
@@ -252,19 +326,37 @@ function ComparisonTable() {
           <h2 style={{ fontSize: "clamp(24px,4vw,40px)", fontWeight: 700, letterSpacing: "-0.035em", color: "var(--tx)" }}>Free vs Pro, side by side</h2>
         </div>
         <div ref={ref} style={{ borderRadius: 14, border: "1px solid var(--br)", background: "var(--bg1)", overflow: "hidden", opacity: v ? 1 : 0, transform: v ? "translateY(0)" : "translateY(20px)", transition: "opacity .5s ease,transform .5s ease" }}>
-          {/* header */}
-          <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", background: "var(--bg2)", borderBottom: "1px solid var(--br)" }}>
-            <div style={{ padding: "14px 20px", fontSize: 12, fontWeight: 700, color: "var(--tx3)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Feature</div>
-            <div style={{ padding: "14px 20px", fontSize: 12, fontWeight: 700, color: "var(--tx3)", textTransform: "uppercase", letterSpacing: "0.06em", borderLeft: "1px solid var(--br)", textAlign: "center" }}>Free</div>
-            <div style={{ padding: "14px 20px", fontSize: 12, fontWeight: 700, color: "var(--ac-text)", textTransform: "uppercase", letterSpacing: "0.06em", borderLeft: "1px solid var(--br)", textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}><IC.Zap size={12} />Pro</div>
+          {/* A real table, inside its own scroll container. The caption names it
+              for a screen reader, since "Free vs Pro" as a visual heading is
+              not enough context for a reader who has lost the page layout. */}
+          <div className="cmp-scroll">
+            <table className="cmp-table">
+              <caption className="sr-only">
+                Feature comparison between the free and the Pro plan
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">Feature</th>
+                  <th scope="col">Free</th>
+                  <th scope="col" className="is-pro">
+                    <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                      <IC.Zap size={12} />
+                      Pro
+                    </span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {CMP_ROWS.map((row) => (
+                  <tr key={row.f}>
+                    <th scope="row">{row.f}</th>
+                    <td>{row.free}</td>
+                    <td className="is-pro">{row.pro}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-          {CMP_ROWS.map((row, i) => (
-            <div key={row.f} style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", borderBottom: i < CMP_ROWS.length - 1 ? "1px solid var(--br)" : "none" }}>
-              <div style={{ padding: "14px 20px", fontSize: 13, color: "var(--tx)", fontWeight: 500 }}>{row.f}</div>
-              <div style={{ padding: "14px 20px", fontSize: 13, color: "var(--tx2)", borderLeft: "1px solid var(--br)", textAlign: "center" }}>{row.free}</div>
-              <div style={{ padding: "14px 20px", fontSize: 13, color: "var(--tx)", fontWeight: 500, borderLeft: "1px solid var(--br)", textAlign: "center", background: "var(--as)" }}>{row.pro}</div>
-            </div>
-          ))}
         </div>
       </div>
     </section>
@@ -284,8 +376,8 @@ const CAPABILITIES = [
     body: "A language model reads your notes and decides which sentences are tasks. It never does the arithmetic, so the numbers on your board do not change between refreshes.",
   },
   {
-    title: "Works when the provider does not",
-    body: "If the AI provider is unreachable, extraction falls back to parsing bullet points and chat falls back to a rule-based reply, rather than showing an error page.",
+    title: "Works when the model does not",
+    body: "If the model runtime is unreachable, extraction falls back to parsing bullet points and the assistant falls back to a board-aware reply, rather than showing an error page. Workload scoring and the autopilot briefing need no model at all.",
   },
 ];
 
@@ -380,7 +472,7 @@ function Footer() {
     <footer style={{ borderTop: "1px solid var(--br)", padding: "40px 0 28px" }}>
       <div style={{ maxWidth: 1140, margin: "0 auto", padding: "0 24px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
         <Link href="/" style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{ width: 24, height: 24, borderRadius: 7, background: "var(--ac-solid)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}><IC.Zap size={11} /></div>
+          <div style={{ width: 24, height: 24, borderRadius: 7, background: "var(--ac)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}><IC.Zap size={11} /></div>
           <span style={{ fontSize: 14, fontWeight: 700, color: "var(--tx)", letterSpacing: "-0.025em" }}>Kanbi</span>
         </Link>
         <div style={{ display: "flex", gap: 20, alignItems: "center", flexWrap: "wrap" }}>
@@ -395,7 +487,7 @@ function Footer() {
           ].map(([l, h]) => (
             <Link key={l} href={h!} className="na" style={{ fontSize: 12, color: "var(--tx3)", transition: "color .15s" }}>{l}</Link>
           ))}
-          <a href="mailto:themvpguy.contact@gmail.com" className="na" style={{ fontSize: 12, color: "var(--tx3)", transition: "color .15s" }}>Contact</a>
+          <a href="mailto:support@kanbi.app" className="na" style={{ fontSize: 12, color: "var(--tx3)", transition: "color .15s" }}>Contact</a>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
           {TECH_STACK.slice(0, 6).map(({ name, Icon }) => (
@@ -423,12 +515,11 @@ export default function PricingPage() {
   // light system with no stored preference got light on the landing page and
   // dark here. The shared store applies one rule everywhere.
   const { theme, toggle } = useSiteTheme();
-  useEffect(() => startThemeWatch(), []);
   const [billing, setBilling] = useState<"monthly" | "yearly">("monthly");
 
   return (
     <ThemeCtx.Provider value={{ theme, toggle }}>
-      <Styles theme={theme} />
+      <Styles />
       <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
         <Navbar />
         {/* HERO with billing toggle */}

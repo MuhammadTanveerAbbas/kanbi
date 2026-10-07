@@ -75,9 +75,15 @@ export const FETCH_TIMEOUT = 15000; // ms
 // Pagination
 export const DEFAULT_PAGE_SIZE = 20;
 
-// AI Models
-export const GROQ_MODEL = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
-export const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
+/**
+ * AI model configuration lives in `src/lib/ai/config.ts`, not here.
+ *
+ * Vendor-specific key and model constants used to sit in this file, which meant
+ * the provider was named in a module that had nothing to do with model
+ * selection and had to be edited to repoint the product at a different
+ * open-weight runtime. `AI_BASE_URL`, `AI_API_KEY`, and `AI_DEFAULT_MODEL` now
+ * live beside the provider adapter that reads them.
+ */
 
 // Usage limits
 export const USAGE_LIMITS = {
@@ -101,7 +107,12 @@ export const USAGE_LIMITS = {
 
 // Feature flags
 export const FEATURES = {
-  AI_CHAT: true,
+  /**
+   * The assistant surface. Named for the product, not for the technology behind
+   * it, so the feature can be backed by a different model without renaming
+   * anything the user sees.
+   */
+  ASSISTANT: true,
   AUTOPILOT: true,
   BOARD_EXPORT: true,
 } as const;

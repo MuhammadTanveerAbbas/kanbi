@@ -21,14 +21,14 @@ const authFieldStyles = `
     color: var(--tx3);
   }
   .auth-input:focus {
-    border-color: var(--ac-text);
-    box-shadow: 0 0 0 3px var(--as);
+    border-color: var(--br);
+    box-shadow: none;
   }
   .auth-input.error {
-    border-color: var(--rd-text);
+    border-color: var(--rd);
   }
   .auth-input.error:focus {
-    border-color: var(--rd-text);
+    border-color: var(--rd);
     box-shadow: none;
   }
   .auth-eye-btn {
@@ -172,7 +172,7 @@ export function AuthButton({ children, loading, icon, onClick, type = "submit", 
       aria-busy={loading ? true : undefined}
       style={{
         width: "100%", height: 44, borderRadius: 10,
-        background: "var(--ac-solid)", border: "none", color: "#fff",
+        background: "var(--ac)", border: "none", color: "#fff",
         fontSize: 14, fontWeight: 600, cursor: loading ? "not-allowed" : "pointer",
         display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
         transition: "background .15s, box-shadow .15s",

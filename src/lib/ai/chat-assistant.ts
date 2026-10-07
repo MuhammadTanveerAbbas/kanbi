@@ -14,8 +14,7 @@
  */
 
 import { normalizeChatReply, normalizeLine } from '@/lib/text/normalize';
-import { GROQ_API_KEY } from '@/lib/constants';
-import { createChatCompletion } from '@/lib/ai/groq-client';
+import { complete, isInferenceConfigured } from '@/lib/ai/service';
 import { logger } from '@/lib/logging/logger';
 import { CHAT_SYSTEM_PROMPT, FALLBACK_RESPONSES, type QuickActionId } from '@/lib/ai/chat-copy';
 
@@ -110,7 +109,7 @@ export class ChatAssistant {
     if (direct) return direct;
 
     try {
-      if (!GROQ_API_KEY) throw new Error('Groq API key not configured');
+      if (!isInferenceConfigured()) throw new Error('Inference is not configured');
 
       const historyMessages = chatHistory
         .slice(-HISTORY_TURNS)
@@ -119,9 +118,9 @@ export class ChatAssistant {
           content: normalizeChatReply(msg.message, MAX_REPLY_CHARS),
         }));
 
-      const completion = await createChatCompletion({
+      const result = await complete({
         temperature: 0.4,
-        max_tokens: 220,
+        maxTokens: 220,
         messages: [
           { role: 'system', content: buildSystemPrompt(context) },
           ...historyMessages,
@@ -129,14 +128,20 @@ export class ChatAssistant {
         ],
       });
 
-      const raw = completion.choices[0]?.message?.content?.trim() ?? '';
-      if (!raw) throw new Error('Empty AI response');
+      const raw = result.content.trim();
+      if (!raw) throw new Error('Empty assistant response');
       return normalizeChatReply(raw, MAX_REPLY_CHARS);
     } catch (error) {
-      logger.error('Chat assistant error:', {
+      logger.error('Assistant error:', {
         error: error instanceof Error ? error.message : String(error),
       });
-      return FALLBACK_RESPONSES.errored;
+      // A missing runtime is a different situation from a runtime that failed,
+      // and the two need different words. "Try again in a moment" is a
+      // reasonable instruction when a server hiccuped and a misleading one when
+      // nothing is listening.
+      return isInferenceConfigured()
+        ? FALLBACK_RESPONSES.errored
+        : FALLBACK_RESPONSES.unconfigured;
     }
   }
 

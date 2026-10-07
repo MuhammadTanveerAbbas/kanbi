@@ -43,20 +43,6 @@ vi.mock('stripe', () => ({
   })),
 }))
 
-// Mock Groq SDK
-vi.mock('groq-sdk', () => ({
-  default: vi.fn(() => ({
-    chat: {
-      completions: {
-        create: vi.fn(),
-      },
-    },
-    models: {
-      list: vi.fn(),
-    },
-  })),
-}))
-
 // Mock logger
 vi.mock('@/lib/logging/logger', () => ({
   logger: {
@@ -73,4 +59,10 @@ process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key'
 process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-role-key'
 process.env.STRIPE_SECRET_KEY = 'sk_test_123'
 process.env.STRIPE_WEBHOOK_SECRET = 'whsec_test_123'
-process.env.GROQ_API_KEY = 'test-groq-key'
+// Inference points at a loopback OpenAI-compatible runtime that nothing in the
+// test process ever dials: tests that need a provider inject a fake through
+// `setProvider()`, and tests that need the wire format mock `fetch`. Setting a
+// base URL keeps `isInferenceConfigured()` true so routes take their configured
+// path rather than reporting "not configured".
+process.env.AI_BASE_URL = 'http://127.0.0.1:11434/v1'
+process.env.AI_API_KEY = 'test-ai-key'

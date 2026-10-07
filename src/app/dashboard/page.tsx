@@ -7,8 +7,7 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { appThemeVars, startThemeWatch, useTheme } from "@/lib/theme";
-import ReactMarkdown from "react-markdown";
+import { useTheme } from "@/lib/theme";
 import {
   AppCtx, useApp,
   type Page, type Priority, type TaskStatus, type Theme, type InputMode, type BoardView,
@@ -17,14 +16,13 @@ import {
 import {
   Icons, StarIcon, BoardStarIcon, SavedStarIcon, ChatStarIcon, ChatBotIcon, PilotStarIcon, SettingsStarIcon,
 } from "@/components/dashboard/icons";
-import { PriBadge, Avt, PBar, Toggle, Skeleton } from "@/components/dashboard/ui";
-import { BarChart, DonutChart, CompletionChart, HealthRing } from "@/components/dashboard/charts";
+import { PriBadge, Avt, PBar, Toggle, Skeleton, Spinner, EmptyState, Field, StatNote } from "@/components/dashboard/ui";
+import { HealthRing } from "@/components/dashboard/charts";
 import { useBoardExport } from "@/components/dashboard/use-board-export";
 import { normalizeBriefingResponse } from "@/lib/autopilot/normalize";
 import { BOARD_TEMPLATES } from "@/lib/templates";
-import { copyTextToClipboard } from "@/lib/clipboard";
 import { ChatBubble } from "@/components/dashboard/chat-bubble";
-import { QUICK_ACTIONS, CHAT_ERRORS, type QuickActionId } from "@/lib/ai/chat-copy";
+import { QUICK_ACTIONS, CHAT_ERRORS, CHAT_EMPTY_STATE, type QuickActionId } from "@/lib/ai/chat-copy";
 import { normalizeChatReply } from "@/lib/text/normalize";
 import {
   computeBoardHealthScore, healthBand, healthMessage, type HealthBand,
@@ -91,42 +89,51 @@ function formatChatTime(value?: string): string {
     : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
-function GlobalStyles({ theme }: { theme: "dark" | "light" }) {
+/**
+ * Dashboard-only styles.
+ *
+ * The palette is not repeated here. It is emitted once into the document head by
+ * the root layout, which is what lets the blocking theme script set the correct
+ * theme before the first paint. This element used to interpolate
+ * `appThemeVars(theme)` from React state, so the server always emitted the light
+ * palette, the browser painted it, and hydration corrected it a frame later.
+ */
+function GlobalStyles() {
   return (
-    <style suppressHydrationWarning>{`
+<style>{`
       *,*::before,*::after { box-sizing:border-box; margin:0; padding:0 }
-      html { font-size:16px }
 
+      /* ── Scales ──────────────────────────────────────────────────────────
+         One radius scale, one gap scale, one inset scale. Every card, panel
+         and grid in the dashboard reads from these instead of restating
+         11px or 13px, which is how four slightly different card paddings and
+         seven gap values ended up on the same screen. */
       :root {
-        ${appThemeVars(theme)}
-        --ac:#6366f1; --ach:#818cf8; --as:rgba(99,102,241,0.10); --ag:rgba(99,102,241,0.22);
-        --gr:#10b981; --am:#f59e0b; --rd:#ef4444; --pu:#a78bfa; --ur:#f97316;
         --radius-sm:8px; --radius-md:12px; --radius-lg:16px; --radius-xl:22px;
-        /* These must point at the variables next/font generates. The previous
-           values named a literal family called "Geist", which is not a loaded
-           font, so every heading silently fell back to the system sans serif. */
-        --font-display: var(--font-sora), var(--font-geist), sans-serif;
-        --font-body: var(--font-geist), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+        --ur:#f97316;
         --sidebar-w:236px;
         --content-max:1140px;
         --chat-max:960px;
+        --gap-1:8px; --gap-2:12px; --gap-3:16px; --gap-4:24px;
+        --pad-1:10px; --pad-2:14px; --pad-3:20px; --pad-4:26px;
+        /* The mobile nav sits on top of the page, so every page that scrolls
+           has to reserve its height plus the iOS home indicator inset. */
+        --bottom-nav-h:64px;
+        --bottom-nav-safe:calc(var(--bottom-nav-h) + env(safe-area-inset-bottom));
       }
 
       body {
-        font-family: var(--font-body);
         background:
-          radial-gradient(circle at top left, rgba(99,102,241,0.10), transparent 32%),
-          radial-gradient(circle at top right, rgba(168,85,247,0.08), transparent 28%),
+          radial-gradient(circle at top left, var(--dash-glow-a), transparent 32%),
+          radial-gradient(circle at top right, var(--dash-glow-b), transparent 28%),
           var(--bg);
         color: var(--tx);
-        -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
         overflow: hidden;
         height: 100vh;
-        transition: background .25s, color .25s;
-        letter-spacing: -0.01em;
       }
+      [data-theme='dark'] body { --dash-glow-a: rgba(99,102,241,0.10); --dash-glow-b: rgba(168,85,247,0.08); }
+      [data-theme='light'] body { --dash-glow-a: rgba(99,102,241,0.07); --dash-glow-b: rgba(168,85,247,0.05); }
 
       a { text-decoration:none; color:inherit }
       button { font-family:var(--font-body); cursor:pointer; letter-spacing:-0.01em }
@@ -140,18 +147,15 @@ function GlobalStyles({ theme }: { theme: "dark" | "light" }) {
       /* ── Keyframes ── */
       @keyframes fadeUp    { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
       @keyframes fadeIn    { from{opacity:0} to{opacity:1} }
-      @keyframes scaleIn   { from{opacity:0;transform:scale(.95)} to{opacity:1;transform:scale(1)} }
       @keyframes pulse     { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.3;transform:scale(.5)} }
       @keyframes spin      { from{transform:rotate(0)} to{transform:rotate(360deg)} }
       @keyframes slideR    { from{transform:translateX(-12px);opacity:0} to{transform:translateX(0);opacity:1} }
-      @keyframes modalIn   { from{opacity:0;transform:scale(.96) translateY(8px)} to{opacity:1;transform:scale(1) translateY(0)} }
       @keyframes shimmer   { from{background-position:-200% 0} to{background-position:200% 0} }
       @keyframes countUp   { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
 
       /* ── Utility classes ── */
       .fade-up   { animation: fadeUp .36s cubic-bezier(.22,1,.36,1) both }
       .fade-in   { animation: fadeIn .26s ease both }
-      .scale-in  { animation: scaleIn .3s cubic-bezier(.22,1,.36,1) both }
       .pulse     { animation: pulse 2.4s ease-in-out infinite }
       .spin      { animation: spin .7s linear infinite }
       .slide-r   { animation: slideR .28s cubic-bezier(.22,1,.36,1) both }
@@ -164,7 +168,61 @@ function GlobalStyles({ theme }: { theme: "dark" | "light" }) {
       .stagger > *:nth-child(5) { animation-delay:.24s }
       .stagger > *:nth-child(6) { animation-delay:.29s }
 
-      .mob-menu-btn { display:none; background:transparent; border:none; cursor:pointer; padding:0 }
+      /* ── Panels ──────────────────────────────────────────────────────────
+         The single card container. Anything that used to repeat
+         border + background + a hand picked radius and padding is one of
+         these now. */
+      .panel {
+        background: var(--bg1);
+        border: 1px solid var(--br);
+        border-radius: var(--radius-lg);
+        padding: var(--pad-2);
+        min-width: 0;
+      }
+      .panel-sm { padding: var(--pad-1); border-radius: var(--radius-md); }
+      .panel-lg { padding: var(--pad-3); }
+      .panel-xl { padding: var(--pad-4); }
+
+      .panel-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--gap-1);
+        margin-bottom: var(--gap-2);
+        min-width: 0;
+      }
+      .panel-title {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--tx);
+        font-family: var(--font-display);
+        letter-spacing: -0.02em;
+        min-width: 0;
+      }
+
+      /* Page shell. The inline padding each page used to carry is here once. */
+      .page-pad {
+        height: 100%;
+        overflow-y: auto;
+        overflow-x: hidden;
+        padding: var(--pad-2) var(--pad-3);
+        display: flex;
+        flex-direction: column;
+        gap: var(--gap-3);
+      }
+      .page-title {
+        font-size: 22px;
+        font-weight: 800;
+        letter-spacing: -0.035em;
+        color: var(--tx);
+        font-family: var(--font-display);
+        margin-bottom: 3px;
+      }
+      .page-sub { font-size: 13px; color: var(--tx2) }
+
+      /* The menu button only exists below 1024px, where the sidebar is a
+         drawer rather than a column. */
+      .mob-menu-btn { display:none !important; background:transparent; border:none; padding:0; cursor:pointer }
 
       /* ── Nav buttons ── */
       .nav-btn {
@@ -183,6 +241,7 @@ function GlobalStyles({ theme }: { theme: "dark" | "light" }) {
         transition: border-color .18s, transform .2s, box-shadow .2s;
         position: relative;
         overflow: hidden;
+        min-width: 0;
       }
       .card::after {
         content:'';
@@ -196,12 +255,59 @@ function GlobalStyles({ theme }: { theme: "dark" | "light" }) {
       }
       .card:hover { border-color:var(--brh) !important; transform:translateY(-1px); box-shadow:0 12px 36px var(--sh) }
       .card:hover::after { opacity:1 }
+      /* The glow layer needs overflow hidden, but clipping the card also clips
+         the focus ring of anything focusable inside it. */
+      .card:focus-within { overflow: visible }
 
       /* ── Task cards ── */
       .task-card { transition: border-color .15s, background .15s, transform .15s, box-shadow .15s }
       .task-card:hover { border-color:rgba(99,102,241,0.3) !important; background:var(--bg2) !important; transform:translateX(2px); box-shadow:0 2px 12px rgba(0,0,0,0.2) }
 
-      /* ── Ghost buttons ── */
+      /* ── Buttons ─────────────────────────────────────────────────────────
+         One primary, one ghost, one danger, one icon only. Height, radius,
+         padding, disabled state and focus treatment are defined once here
+         instead of on every inline style. */
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        height: 38px;
+        padding: 0 14px;
+        border-radius: var(--radius-sm);
+        border: 1px solid transparent;
+        font-size: 13px;
+        font-weight: 600;
+        white-space: nowrap;
+        flex-shrink: 0;
+        transition: background .15s, color .15s, border-color .15s, filter .15s,
+                    transform .1s, box-shadow .15s, opacity .15s;
+      }
+      .btn:disabled { opacity: .5; cursor: not-allowed; pointer-events: none }
+      .btn-sm { height: 30px; padding: 0 10px; font-size: 12px; gap: 5px }
+      .btn-icon { width: 32px; height: 32px; padding: 0; border-radius: var(--radius-sm) }
+
+      .btn-primary { background: var(--ac); color: #fff; box-shadow: 0 2px 12px rgba(99,102,241,0.28) }
+      .btn-primary:hover:not(:disabled) { filter: brightness(1.08); box-shadow: 0 14px 34px rgba(99,102,241,0.28); transform: translateY(-1px) }
+      .btn-primary:active:not(:disabled) { transform: scale(.97) }
+
+      .btn-ghost {
+        background: transparent;
+        border-color: var(--br);
+        color: var(--tx2);
+      }
+      .btn-ghost:hover:not(:disabled) {
+        background: rgba(99,102,241,0.07);
+        border-color: rgba(99,102,241,0.2);
+        color: var(--tx);
+      }
+      .btn-quiet { background: var(--bg2); border-color: var(--br); color: var(--tx) }
+      .btn-quiet:hover:not(:disabled) { background: var(--bg3); border-color: var(--brh) }
+      .btn-danger { background: transparent; border-color: rgba(239,68,68,0.28); color: var(--rd) }
+      .btn-danger:hover:not(:disabled) { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.45) }
+
+      /* Any element that was a one off ghost button before now uses these.
+         The hover rules live here so no inline onMouseOver is needed. */
       .ghost {
         transition: background .15s, color .15s, border-color .15s, transform .1s, box-shadow .15s;
       }
@@ -211,30 +317,18 @@ function GlobalStyles({ theme }: { theme: "dark" | "light" }) {
         box-shadow:0 8px 20px rgba(0,0,0,0.06);
       }
 
-      /* ── Primary buttons ── */
-      .btn-primary {
-        transition: filter .15s, transform .1s, box-shadow .15s, background .15s;
-      }
-      .btn-primary:hover {
-        filter:brightness(1.08);
-        box-shadow:0 14px 34px rgba(99,102,241,0.28);
-        transform:translateY(-1px);
-      }
-      .btn-primary:active { transform:scale(.97) }
-
       /* ── Inputs ── */
       .input-focus { transition: border-color .15s, box-shadow .15s; outline: none }
-      .input-focus:focus { border-color: var(--ac-text) !important; box-shadow: 0 0 0 3px rgba(99,102,241,0.14) }
+      .input-focus:focus { border-color: var(--ac) !important; box-shadow: 0 0 0 3px rgba(99,102,241,0.14) }
 
-      .chat-input {
+      /* The composer used to set outline none and box shadow none on focus,
+         which left the primary input on the page with no focus indicator at
+         all. It now uses the same ring as every other input. */
+      .chat-input { transition: border-color .15s, box-shadow .15s }
+      .chat-input:focus {
         outline: none !important;
-        transition: border-color .15s;
-      }
-      .chat-input:focus,
-      .chat-input:focus-visible {
-        outline: none !important;
+        border-color: var(--br) !important;
         box-shadow: none !important;
-        border-color: var(--brh) !important;
       }
 
       /* ── Skeleton ── */
@@ -245,84 +339,67 @@ function GlobalStyles({ theme }: { theme: "dark" | "light" }) {
         border-radius: var(--radius-sm);
       }
 
-      /* ── Responsive ── */
-      @media(max-width:1024px) {
-        .xl-hide { display:none !important }
-        .main-grid-3 { grid-template-columns:1fr 1fr !important }
-        .sidebar { display:none !important }
-        .mob-menu-btn { display:none !important }
-        .main-wrap { margin-left:0 !important; overflow:auto !important }
-        .bottom-nav { display:flex !important; height:64px; align-items:stretch }
-        .root-layout { height:auto !important; min-height:100vh; overflow:visible !important }
-        body { overflow:auto; height:auto }
-        .page-pad { padding-bottom:80px !important }
-        .chat-page { height:calc(100vh - 64px) !important; min-height:0 !important }
-        .chat-btn-label { display:none !important }
+      /* ── Empty state ───────────────────────────────────────────────────── */
+      .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        gap: 6px;
+        padding: var(--pad-4) var(--pad-2);
       }
-      @media(max-width:768px) {
-        .topbar-live { display:none !important }
-        .topbar-wrap { padding:0 14px !important }
-        .root-layout { height:auto !important; min-height:100vh; overflow:visible !important }
-        .bottom-nav-item { min-height:0; padding:6px 2px 8px; min-width:0 }
-        .bottom-nav-item span { font-size:8px; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
-        body { overflow:auto; height:auto }
-        .main-grid-2 { grid-template-columns:1fr !important }
-        .main-grid-3 { grid-template-columns:1fr !important }
-        .main-grid-4 { grid-template-columns:1fr 1fr !important }
-        .page-pad { padding:16px 14px 80px !important }
-        .kanban-grid { grid-template-columns:1fr !important; min-width:0 !important; overflow-x:visible !important; gap:20px !important }
-        .board-kanban-header { flex-direction:column !important; align-items:stretch !important; padding:12px 14px !important; gap:10px !important }
-        .board-kanban-title { flex-wrap:wrap !important }
-        .board-kanban-actions { width:100% !important; justify-content:space-between !important }
-        .board-kanban-pad { padding:14px 14px !important }
-        .chat-sidebar { display:none !important }
-        .chat-page { height:calc(100vh - 64px) !important; min-height:0 !important }
-        .chat-header { height:46px !important; padding:0 12px !important }
-        .chat-header-title { font-size:13px !important }
-        .chat-header-sub { display:none !important }
-        .chat-messages { padding:12px 14px !important }
-        .chat-input-bar { padding:10px 14px !important }
-        .chat-input-hint { display:none !important }
-        .settings-grid { gap:10px !important }
-        .settings-tabs { grid-template-columns:repeat(3,1fr) !important; gap:6px !important }
-        .settings-tabs button { font-size:10.5px !important; padding:10px 6px !important }
-        .settings-tabs button span:first-child { font-size:14px !important }
-        .settings-panel { padding:16px !important; border-radius:11px !important }
-        .settings-appearance-row { flex-direction:column !important; align-items:flex-start !important; gap:10px !important }
-        .settings-appearance-row button { width:100% !important; justify-content:center !important }
-        .settings-billing-row { flex-direction:column !important; align-items:flex-start !important; gap:10px !important }
-        .settings-billing-row button { width:100% !important; justify-content:center !important }
-        .integration-card { flex-direction:column !important; align-items:flex-start !important; gap:12px !important }
-        .integration-card > div:first-child { align-self:center }
-        .integration-card > div:nth-child(2) { text-align:center; width:100% }
-        .integration-card button { width:100% !important; justify-content:center !important }
-        .saved-grid { grid-template-columns:1fr 1fr !important }
-        .autopilot-grid { grid-template-columns:1fr !important }
-        .quick-ai-sub { display:none }
-        .quick-ai-badge { display:none }
-        .topbar-sub { display:none }
-        .stat-value { font-size:20px !important }
-        .modal-inner { padding:16px !important; margin:12px !important; max-height:calc(100vh - 24px) !important }
-        .board-input-grid { grid-template-columns:1fr !important }
+      .empty-state-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 46px;
+        height: 46px;
+        border-radius: var(--radius-md);
+        background: var(--bg2);
+        border: 1px solid var(--br);
+        color: var(--tx3);
+        margin-bottom: 6px;
+        flex-shrink: 0;
       }
-      @media(max-width:480px) {
-        .main-grid-4 { grid-template-columns:1fr !important }
-        .saved-grid { grid-template-columns:1fr !important }
-        .autopilot-grid { grid-template-columns:1fr !important }
-        .page-pad { padding:12px 12px 80px !important }
-        .quick-ai-row { flex-wrap:wrap }
-        .quick-ai-btn { width:100%; justify-content:center }
-        .topbar-title { font-size:13px !important }
-        .topbar-icon { width:28px !important; height:28px !important; border-radius:8px !important }
-        .chat-prompts { grid-template-columns:1fr !important }
-        .kanban-grid { grid-template-columns:1fr !important; gap:18px !important }
-        .settings-tabs { grid-template-columns:repeat(2,1fr) !important; gap:5px !important }
-        .settings-tabs button { font-size:10px !important; padding:8px 4px !important }
-        .settings-tabs button span:nth-child(2) { font-size:10px !important }
-        .settings-panel { padding:12px !important }
-        .integration-card { padding:12px 14px !important }
-        .integration-card p { font-size:12px !important }
-        .integration-card button { font-size:11px !important; height:30px !important }
+      .empty-state-title { font-size: 13.5px; font-weight: 600; color: var(--tx) }
+      .empty-state-body {
+        font-size: 12px;
+        line-height: 1.6;
+        color: var(--tx3);
+        max-width: 320px;
+      }
+      .empty-state-sm { padding: var(--pad-3) var(--pad-2) }
+      .empty-state-sm .empty-state-icon { width: 36px; height: 36px; border-radius: var(--radius-sm) }
+      .empty-state-sm .empty-state-title { font-size: 12.5px }
+      .empty-state-sm .empty-state-body { font-size: 11.5px }
+
+      /* ── Autopilot cards ───────────────────────────────────────────────
+         Small stat pill for the live-sync and burnout rows, and a timeline
+         row for the generated schedule. */
+      .autopilot-stat-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 5px 10px;
+        border-radius: 100px;
+        font-size: 10.5px;
+        font-weight: 700;
+        font-family: var(--font-mono);
+        background: var(--bg2);
+        border: 1px solid var(--br);
+        color: var(--tx2);
+        white-space: nowrap;
+      }
+
+      .autopilot-timeline-row {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        padding: 9px 12px;
+        border-radius: 9px;
+        background: var(--bg2);
+        border: 1px solid var(--br);
       }
 
       /* ── Focus visible ── */
@@ -370,7 +447,7 @@ function GlobalStyles({ theme }: { theme: "dark" | "light" }) {
       .quick-ai-badge {
         margin-left: auto;
         font-size: 10px;
-        color: var(--ac-text);
+        color: var(--ac);
         padding: 2px 9px;
         border-radius: 99px;
         background: var(--as);
@@ -391,12 +468,11 @@ function GlobalStyles({ theme }: { theme: "dark" | "light" }) {
         font-size: 13.5px;
         color: var(--tx);
         font-family: var(--font-body);
-        outline: none;
         transition: border-color .15s, box-shadow .15s;
         letter-spacing: -0.01em;
       }
       .quick-ai-input:focus {
-        border-color: var(--ac-text);
+        border-color: var(--ac);
         box-shadow: 0 0 0 3px rgba(99,102,241,0.14);
       }
       .quick-ai-input::placeholder { color: var(--tx3) }
@@ -419,7 +495,7 @@ function GlobalStyles({ theme }: { theme: "dark" | "light" }) {
         letter-spacing: -0.01em;
         box-shadow: 0 2px 12px rgba(99,102,241,0.3);
       }
-      .quick-ai-btn:hover { filter: brightness(1.1); box-shadow: 0 4px 18px rgba(99,102,241,0.42) }
+      .quick-ai-btn:hover:not(:disabled) { filter: brightness(1.1); box-shadow: 0 4px 18px rgba(99,102,241,0.42) }
       .quick-ai-btn:disabled { cursor: not-allowed; opacity: .5 }
 
       /* ── Section labels ── */
@@ -432,6 +508,109 @@ function GlobalStyles({ theme }: { theme: "dark" | "light" }) {
         padding: 0 12px;
         margin: 14px 0 5px;
         font-family: var(--font-mono);
+      }
+
+      /* ── Breakpoints ─────────────────────────────────────────────────────
+         Three, and only three: tablet, phone, narrow phone. */
+      @media(max-width:1024px) {
+        .xl-hide { display:none !important }
+        .main-grid-3 { grid-template-columns:1fr 1fr !important }
+        .main-wrap { margin-left:0 !important }
+        .bottom-nav { display:flex !important; height:var(--bottom-nav-h); align-items:stretch }
+        .sidebar { display:none !important }
+
+        /* dvh rather than vh: on a phone vh is the full screen height including
+           the area behind the browser chrome, so the page reserved more than it
+           could show and left a gap under the last row. */
+        .root-layout { height:auto !important; min-height:100dvh; overflow:visible !important }
+        body { overflow:auto; height:auto }
+        /* The page scrolls under a fixed nav, so the last row of every page
+           needs the nav height plus the home indicator, not a guess. */
+        .page-pad { padding-bottom:calc(var(--bottom-nav-safe) + var(--gap-2)) !important }
+        /* The chat page replaces the topbar with its own header, so it owns
+           everything below the nav. The old calc used vh and forgot the iOS
+           inset, which put the composer behind the home indicator. */
+        .chat-page { height:calc(100dvh - var(--bottom-nav-safe)) !important; min-height:0 !important }
+        .chat-btn-label { display:none !important }
+
+        /* ── Mobile navigation drawer ──
+           The menu button and the sidebar were both hidden below 1024px while
+           the bottom nav carried every page, so the theme toggle and sign out
+           had no reachable control on a tablet. The sidebar becomes a drawer
+           that the menu button opens instead of disappearing. */
+
+      }
+      @media(min-width:1025px) {
+        .sidebar-backdrop { display: none }
+        .bottom-nav { display:none !important }
+      }
+
+      /* Coarse pointers get a 44px target. Every icon only control in the
+         dashboard is 30 to 32px on a desktop sized grid, which is under the
+         minimum and impossible to hit with a thumb. */
+      @media(pointer:coarse) {
+        .btn-icon { width:44px; height:44px }
+        .btn-sm { height:38px; padding:0 12px; font-size:13px }
+        .bottom-nav-item { min-height:44px }
+      }
+
+      @media(max-width:768px) {
+        .topbar-wrap { padding:0 14px !important }
+        .topbar-live { display:none !important }
+        .main-grid-2 { grid-template-columns:1fr !important }
+        .main-grid-3 { grid-template-columns:1fr !important }
+        .main-grid-4 { grid-template-columns:1fr 1fr !important }
+        .page-pad { padding:var(--pad-2) 14px calc(var(--bottom-nav-safe) + var(--gap-2)) !important }
+        .kanban-grid { grid-template-columns:1fr !important; min-width:0 !important; gap:var(--gap-3) !important }
+        .board-kanban-header { flex-direction:column !important; align-items:stretch !important; padding:12px 14px !important; gap:10px !important }
+        .board-kanban-title { flex-wrap:wrap !important }
+        .board-kanban-actions { width:100% !important; justify-content:space-between !important }
+        .board-kanban-pad { padding:14px !important }
+        .chat-sidebar { display:none !important }
+        .chat-header { height:46px !important; padding:0 12px !important }
+        .chat-header-title { font-size:13px !important }
+        .chat-header-sub { display:none !important }
+        .chat-messages { padding:12px 14px !important }
+        .chat-quick-actions { padding:0 14px 10px !important }
+        .chat-input-bar { padding:10px 14px !important }
+        .chat-input-hint { display:none !important }
+        .settings-grid { gap:10px !important }
+        /* Six tabs in two rows of three, with a real touch target, rather
+           than four per row with a 10px label and a 4px inset. */
+        .settings-tabs { grid-template-columns:repeat(3,1fr) !important; gap:6px !important }
+        .settings-tabs button { font-size:11.5px !important; padding:12px 6px !important; min-height:44px !important }
+        .settings-tabs button span:first-child { font-size:14px !important }
+        .settings-panel { padding:var(--pad-3) !important; border-radius:var(--radius-md) !important }
+        .settings-appearance-row { flex-direction:column !important; align-items:flex-start !important; gap:10px !important }
+        .settings-appearance-row button { width:100% !important }
+        .settings-billing-row { flex-direction:column !important; align-items:flex-start !important; gap:10px !important }
+        .settings-billing-row button { width:100% !important }
+        .saved-grid { grid-template-columns:1fr 1fr !important }
+        .autopilot-grid { grid-template-columns:1fr !important }
+        .autopilot-sync-bar { flex-wrap:wrap !important; row-gap:8px !important }
+        .autopilot-sync-chips { flex-wrap:wrap !important }
+        .overview-quick-actions { grid-template-columns:1fr 1fr !important }
+        .quick-ai-sub { display:none }
+        .quick-ai-badge { display:none }
+        .topbar-sub { display:none }
+        .stat-value { font-size:20px !important }
+        /* The card action row cannot hold five controls across two columns at
+           375px, so it wraps and each button keeps a full target. */
+        .card-actions > .btn-icon { flex: 0 0 auto }
+        .board-input-grid { grid-template-columns:1fr !important }
+      }
+      @media(max-width:480px) {
+        .main-grid-4 { grid-template-columns:1fr !important }
+        .saved-grid { grid-template-columns:1fr !important }
+        .page-pad { padding:var(--pad-1) 12px calc(var(--bottom-nav-safe) + var(--gap-2)) !important }
+        .quick-ai-row { flex-wrap:wrap }
+        .quick-ai-input { flex:1 1 100% }
+        .quick-ai-btn { width:100%; justify-content:center }
+        .topbar-title { font-size:13px !important }
+        .topbar-icon { width:28px !important; height:28px !important; border-radius:8px !important }
+        .chat-prompts { grid-template-columns:1fr !important; max-width:100% !important }
+        .settings-tabs { grid-template-columns:repeat(2,1fr) !important; gap:5px !important }
+        .settings-tabs button { font-size:11px !important; padding:12px 6px !important }
       }
     `}</style>
   );
@@ -448,14 +627,14 @@ function TaskCard({
   compact?: boolean;
 }) {
   return (
-    <div className="task-card" style={{
-      borderRadius: 12, border: "1px solid var(--br)", background: "var(--bg1)",
-      padding: compact ? "8px 11px" : "13px 15px", marginBottom: 8, cursor: "pointer",
-    }}>
+    <article className="task-card panel panel-sm" style={{ marginBottom: 8 }}>
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:9,
         marginBottom: compact ? 0 : 9 }}>
+        {/* minWidth 0 keeps a long title from widening the kanban column
+            instead of wrapping inside it. */}
         <p style={{ fontSize: compact ? 11.5 : 13, color:"var(--tx)", fontWeight:500,
-          lineHeight:1.5, flex:1, letterSpacing:"-0.01em" }}>{task.title}</p>
+          lineHeight:1.5, flex:1, minWidth:0, letterSpacing:"-0.01em",
+          overflowWrap:"anywhere" }}>{task.title}</p>
         <PriBadge p={task.priority}/>
       </div>
       {!compact && (
@@ -474,20 +653,17 @@ function TaskCard({
           )}
         </div>
       )}
-      {!compact && (
+      {!compact && onStatusChange && task.status !== "done" && (
         <div style={{ display:"flex", alignItems:"center", gap:7 }}>
-          {onStatusChange && task.status !== "done" && (
-            <button
-              onClick={e => { e.stopPropagation(); onStatusChange(task.id, task.status === "todo" ? "wip" : "done"); }}
-              className="ghost"
-              style={{ fontSize:10.5, padding:"3px 10px", borderRadius:99, border:"1px solid var(--br)",
-                background:"transparent", color:"var(--tx3)", display:"flex", alignItems:"center", gap:4 }}>
-              <Icons.Check size={10}/> {task.status === "todo" ? "Start" : "Done"}
-            </button>
-          )}
+          <button
+            onClick={() => onStatusChange(task.id, task.status === "todo" ? "wip" : "done")}
+            className="btn btn-ghost btn-sm"
+          >
+            <Icons.Check size={10}/> {task.status === "todo" ? "Start" : "Done"}
+          </button>
         </div>
       )}
-    </div>
+    </article>
   );
 }
 
@@ -505,10 +681,9 @@ function PageOverview() {
   const [quickInput, setQuickInput] = useState("");
   const [addLoading, setAddLoading] = useState(false);
 
-  const greeting = (() => {
-    const h = new Date().getHours();
-    return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
-  })();
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+  const timeOfDay: "morning" | "afternoon" | "evening" = hour < 12 ? "morning" : hour < 17 ? "afternoon" : "evening";
 
   const displayName = user?.full_name?.split(" ")[0] ?? "there";
 
@@ -555,15 +730,21 @@ function PageOverview() {
   const aiLimit       = user?.ai_month_limit ?? 300;
 
   const statCards = [
-    { label:"Boards Today",  value:`${boardsToday}/${boardsLimit}`, sub:`${boardsLimit - boardsToday} remaining`, icon:<Icons.Board size={13}/>, prog: boardsToday / boardsLimit * 100 },
-    { label:"AI This Month", value:`${aiUsesMonth}/${aiLimit}`, sub:`${aiLimit - aiUsesMonth} remaining`, icon:<Icons.Autopilot size={13}/>, color:"var(--pu-text)" },
+    { label:"Boards Today",  value:`${boardsToday}/${boardsLimit}`, sub:`${Math.max(boardsLimit - boardsToday, 0)} remaining`, icon:<Icons.Board size={13}/>, prog: boardsToday / boardsLimit * 100 },
+    { label:"AI This Month", value:`${aiUsesMonth}/${aiLimit}`, sub:`${Math.max(aiLimit - aiUsesMonth, 0)} remaining`, icon:<Icons.Autopilot size={13}/>, color:"var(--pu-text)" },
     { label:"Tasks Total",   value:String(total), sub:`${done} done · ${wip} in progress`, icon:<Icons.Target size={13}/>, color: done === total && total > 0 ? "var(--gr)" : undefined },
-    { label:"Plan",          value: user?.plan === "pro" ? "Pro" : "Free", sub: user?.plan === "pro" ? "All features unlocked" : "$9/mo <Icons.ArrowRight size={13}/> Pro", icon:<Icons.Crown size={13}/>, color:"var(--am-text)" },
+    { label:"Plan",          value: user?.plan === "pro" ? "Pro" : "Free", icon:<Icons.Crown size={13}/>, color:"var(--am-text)" },
+  ];
+
+  const QUICK_NAV: { label: string; icon: ReactNode; page: Page; color: string }[] = [
+    { label:"New Task",    icon:<Icons.Plus size={15}/>,     page:"board",     color:"var(--ac-text)" },
+    { label:"View Board",  icon:<Icons.Layers size={15}/>,   page:"board",     color:"var(--pu-text)" },
+    { label:"Assistant",   icon:<Icons.Zap size={15}/>,      page:"chat",      color:"var(--am-text)" },
+    { label:"Settings",    icon:<Icons.Settings size={15}/>, page:"settings",  color:"var(--gr-text)" },
   ];
 
   return (
-    <div className="fade-up page-pad" style={{ padding:"14px 20px", overflowY:"auto", height:"100%",
-      display:"flex", flexDirection:"column", gap:12 }}>
+    <div className="fade-up page-pad">
 
       {/* Header */}
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", flexWrap:"wrap", gap:8 }}>
@@ -571,16 +752,19 @@ function PageOverview() {
           {isLoading
             ? <><Skeleton w={220} h={24} style={{ marginBottom:6 }}/><Skeleton w={160} h={14}/></>
             : <>
-                <h1 style={{ fontSize:20, fontWeight:800, letterSpacing:"-0.035em", color:"var(--tx)",
-                  marginBottom:2, fontFamily:"var(--font-display)" }}>
-                  {greeting}, {displayName}<Icons.Wave size={19} style={{ color: "var(--ac-text)", display: "inline-block", verticalAlign: "-3px", marginLeft:6 }}/>
-                </h1>
-                <p style={{ fontSize:13, color:"var(--tx2)" }}>Here&rsquo;s your workload snapshot</p>
+                {/* The topbar owns the page's h1. This greeting is the first
+                    thing under it, so it is an h2. */}
+                <h2 style={{ fontSize:20, fontWeight:800, letterSpacing:"-0.035em", color:"var(--tx)",
+                  marginBottom:2, fontFamily:"var(--font-display)", display:"flex", alignItems:"center", gap:8 }}>
+                  {greeting}, {displayName}
+                  <TimeOfDayIcon tod={timeOfDay} />
+                </h2>
+                <p className="page-sub">Here&rsquo;s your workload snapshot</p>
               </>
           }
         </div>
         <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-          <div className="pulse" style={{ width:6, height:6, borderRadius:"50%", background:"var(--gr)" }}/>
+          <span aria-hidden="true" className="pulse" style={{ width:6, height:6, borderRadius:"50%", background:"var(--gr)", flexShrink:0 }}/>
           <span style={{ fontSize:12, color:"var(--gr-text)", fontWeight:600 }}>All systems active</span>
         </div>
       </div>
@@ -591,7 +775,7 @@ function PageOverview() {
           <div className="quick-ai-icon"><Icons.Zap size={13}/></div>
           <span className="quick-ai-title">Quick AI Extract</span>
           <span className="quick-ai-sub">Paste any text and it becomes tasks on your board</span>
-          <span className="quick-ai-badge"><Icons.ArrowRight size={13}/> Board</span>
+
         </div>
         <div className="quick-ai-row">
           <input
@@ -599,62 +783,46 @@ function PageOverview() {
             onChange={e => setQuickInput(e.target.value)}
             onKeyDown={e => e.key === "Enter" && handleQuickInput()}
             placeholder="Paste a task, email, or note to turn into board items..."
+            aria-label="Text to turn into board tasks"
             className="quick-ai-input"
           />
           <button
             onClick={handleQuickInput}
             disabled={!quickInput.trim() || addLoading}
             className="quick-ai-btn"
-            style={{ opacity: !quickInput.trim() ? .45 : 1 }}
           >
-            {addLoading
-              ? <div className="spin" style={{ width:12, height:12, borderRadius:"50%", border:"2px solid rgba(255,255,255,.3)", borderTopColor:"#fff" }}/>
-              : <Icons.Zap size={12}/>
-            }
+            {addLoading ? <Spinner size={12}/> : <Icons.Zap size={12}/>}
             Extract
           </button>
         </div>
       </div>
 
       {/* Quick Actions */}
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:10 }}>
-        {[
-          { label:"New Task", icon:<Icons.Plus size={15}/>, action:"board", color:"var(--ac-text)" },
-          { label:"View Board", icon:<Icons.Layers size={15}/>, action:"board", color:"var(--pu-text)" },
-          { label:"AI Chat", icon:<Icons.Zap size={15}/>, action:"chat", color:"var(--am-text)" },
-          { label:"Settings", icon:<Icons.Settings size={15}/>, action:"settings", color:"var(--gr-text)" },
-        ].map(a => (
+      <nav aria-label="Quick navigation" className="overview-quick-actions"
+        style={{ display:"grid", gridTemplateColumns:"repeat(4,minmax(0,1fr))", gap:10 }}>
+        {QUICK_NAV.map(a => (
           <button key={a.label}
-            onClick={() => navigate(a.action as any)}
-            style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:7,
-              padding:"12px 10px", borderRadius:11, background:"var(--bg1)", border:"1px solid var(--br)",
-              color:"var(--tx2)", fontSize:12, fontWeight:600, cursor:"pointer",
-              transition:"all .2s ease" }}
-            onMouseOver={e => {
-              (e.currentTarget as HTMLButtonElement).style.borderColor = (a as any).color;
-              (e.currentTarget as HTMLButtonElement).style.background = "var(--bg2)";
-              (e.currentTarget as HTMLButtonElement).style.color = (a as any).color;
-            }}
-            onMouseOut={e => {
-              (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--br)";
-              (e.currentTarget as HTMLButtonElement).style.background = "var(--bg1)";
-              (e.currentTarget as HTMLButtonElement).style.color = "var(--tx2)";
+            onClick={() => navigate(a.page)}
+            className="ghost"
+            style={{
+              display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:7,
+              padding:"12px 10px", borderRadius:"var(--radius-md)", background:"var(--bg1)",
+              border:"1px solid var(--br)", color:"var(--tx2)", fontSize:12, fontWeight:600,
             }}>
-            <div style={{ color:(a as any).color, display:"flex", alignItems:"center", justifyContent:"center" }}>
+            <span aria-hidden="true" style={{ color:a.color, display:"flex", alignItems:"center", justifyContent:"center" }}>
               {a.icon}
-            </div>
+            </span>
             {a.label}
           </button>
         ))}
-      </div>
+      </nav>
 
-      <div className="main-grid-4 stagger" style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:10 }}>
-        {statCards.map((s, i) => (
-          <div key={s.label} className="card fade-up"
-            style={{ borderRadius:12, border:"1px solid var(--br)", background:"var(--bg1)", padding:"12px 14px" }}>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:7 }}>
+      <div className="main-grid-4 stagger" style={{ display:"grid", gridTemplateColumns:"repeat(4,minmax(0,1fr))", gap:12 }}>
+        {statCards.map(s => (
+          <div key={s.label} className="card panel fade-up">
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:6, marginBottom:7 }}>
               <span style={{ fontSize:11, color:"var(--tx2)", fontWeight:600, letterSpacing:"0.01em" }}>{s.label}</span>
-              <span style={{ color:"var(--tx3)" }}>{s.icon}</span>
+              <span aria-hidden="true" style={{ color:"var(--tx3)", flexShrink:0 }}>{s.icon}</span>
             </div>
             {isLoading
               ? <Skeleton w="60%" h={28} style={{ marginBottom:6 }}/>
@@ -664,24 +832,37 @@ function PageOverview() {
                   {s.value}
                 </div>
             }
-            <p style={{ fontSize:10.5, color:"var(--tx3)" }}>{s.sub}</p>
-            {(s as { trend?: string }).trend && <p style={{ fontSize:10.5, color:"var(--gr-text)", marginTop:3, fontWeight:600 }}>{(s as { trend?: string }).trend}</p>}
-            {s.prog !== undefined && (
+            <StatNote>
+              {/* The plan card is a link to billing, so its note is a real
+                  button. The previous version put an icon inside a plain text
+                  string, which React rendered as the literal markup. */}
+              {s.label === "Plan"
+                ? user?.plan === "pro"
+                  ? "All features unlocked"
+                  : <button onClick={() => navigate("settings")}
+                      className="ghost"
+                      style={{ color:"var(--ac-text)", fontSize:10.5, fontWeight:600, display:"inline-flex",
+                        alignItems:"center", gap:3, padding:0, background:"transparent", border:"none" }}>
+                      $9/mo for Pro <Icons.ArrowRight size={10}/>
+                    </button>
+                : s.sub}
+            </StatNote>
+            {"prog" in s && s.prog !== undefined && (
               <div style={{ marginTop:10 }}>
-                <PBar value={s.prog} h={3} color="var(--ac)"/>
+                <PBar value={s.prog} h={3} color="var(--ac)" label={`${s.label} usage`}/>
               </div>
             )}
           </div>
         ))}
       </div>
 
-      {/* Health + Goals + Quick Stats */}
-      <div className="main-grid-3" style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10, alignItems:"stretch" }}>
+      {/* Health + Goals + Priority */}
+      <div className="main-grid-3" style={{ display:"grid", gridTemplateColumns:"repeat(3,minmax(0,1fr))", gap:12, alignItems:"stretch" }}>
 
         {/* Workload Health */}
-        <div className="card" style={{ borderRadius:12, border:"1px solid var(--br)", background:"var(--bg1)", padding:14, display:"flex", flexDirection:"column", gap:10 }}>
-          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-            <span style={{ fontSize:12, fontWeight:700, color:"var(--tx)", fontFamily:"var(--font-display)" }}>Workload Health</span>
+        <section className="card panel" style={{ display:"flex", flexDirection:"column", gap:12 }}>
+          <div className="panel-head" style={{ marginBottom:0 }}>
+            <h3 className="panel-title">Workload Health</h3>
             <span style={{ fontSize:10, padding:"2px 8px", borderRadius:99, fontWeight:700, fontFamily:"var(--font-mono)",
               background: HEALTH_BAND_BG[band],
               color: HEALTH_BAND_FG[band],
@@ -711,14 +892,12 @@ function PageOverview() {
               {healthMessage(healthScore)}
             </p>
           </div>
-        </div>
+        </section>
 
         {/* Goals */}
-        <div className="card" style={{ borderRadius:12, border:"1px solid var(--br)", background:"var(--bg1)", padding:14, display:"flex", flexDirection:"column", gap:10 }}>
-          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-            <span style={{ fontSize:12, fontWeight:700, color:"var(--tx)", fontFamily:"var(--font-display)" }}>Your Goals</span>
-            <button className="ghost" style={{ fontSize:10.5, color:"var(--ac-text)", background:"var(--as)",
-              border:"1px solid var(--ag)", padding:"2px 9px", borderRadius:99, cursor:"pointer", fontWeight:600 }}>Edit</button>
+        <section className="card panel" style={{ display:"flex", flexDirection:"column", gap:12 }}>
+          <div className="panel-head" style={{ marginBottom:0 }}>
+            <h3 className="panel-title">Your Goals</h3>
           </div>
           <div style={{ display:"flex", flexDirection:"column", gap:8, flex:1 }}>
             {[
@@ -733,65 +912,61 @@ function PageOverview() {
                     {g.current}<span style={{ fontSize:10, fontWeight:500, color:"var(--tx3)" }}>/{g.goal}{(g as any).suffix ?? ""}</span>
                   </span>
                 </div>
-                <PBar value={(g.current / g.goal) * 100} color={g.color} h={5}/>
+                <PBar value={(g.current / g.goal) * 100} color={g.color} h={5} label={`${g.label} progress`}/>
               </div>
             ))}
           </div>
-        </div>
+        </section>
 
-        {/* Priority Breakdown */}
-        <div className="card" style={{ borderRadius:12, border:"1px solid var(--br)", background:"var(--bg1)", padding:14, display:"flex", flexDirection:"column", gap:10 }}>
-          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-            <span style={{ fontSize:12, fontWeight:700, color:"var(--tx)", fontFamily:"var(--font-display)" }}>Priority Breakdown</span>
-            <span style={{ fontSize:10, color:"var(--tx3)", fontFamily:"var(--font-mono)" }}>{total} total</span>
+        {/* Priority Breakdown. Each row names its priority in words as well as
+            carrying the colour, so the meaning survives without hue. */}
+        <section className="card panel" style={{ display:"flex", flexDirection:"column", gap:12 }}>
+          <div className="panel-head" style={{ marginBottom:0 }}>
+            <h3 className="panel-title">Priority Breakdown</h3>
+            <span style={{ fontSize:10, color:"var(--tx3)", fontFamily:"var(--font-mono)", flexShrink:0 }}>{total} total</span>
           </div>
           <div style={{ display:"flex", flexDirection:"column", gap:7, flex:1 }}>
             {[
-              { label:"Urgent", count:urgentCount, color:"var(--ur)", bg:"rgba(249,115,22,0.08)",  border:"rgba(249,115,22,0.2)"  },
+              { label:"Urgent", count:urgentCount, color:"var(--am-text)", bg:"rgba(249,115,22,0.08)",  border:"rgba(249,115,22,0.2)"  },
               { label:"High",   count:highCount,   color:"var(--rd-text)", bg:"rgba(239,68,68,0.08)",   border:"rgba(239,68,68,0.2)"   },
               { label:"Medium", count:mediumCount, color:"var(--am-text)", bg:"rgba(245,158,11,0.08)",  border:"rgba(245,158,11,0.2)"  },
               { label:"Low",    count:lowCount,    color:"var(--tx3)", bg:"var(--bg2)",            border:"var(--br)"             },
             ].map(p => (
               <div key={p.label} style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
                 padding:"9px 11px", borderRadius:9, background:p.bg, border:`1px solid ${p.border}` }}>
-                <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                  <div style={{ width:7, height:7, borderRadius:"50%", background:p.color, flexShrink:0,
+                <div style={{ display:"flex", alignItems:"center", gap:8, minWidth:0 }}>
+                  <span aria-hidden="true" style={{ width:7, height:7, borderRadius:"50%", background:p.color, flexShrink:0,
                     boxShadow:`0 0 6px ${p.color}` }}/>
                   <span style={{ fontSize:12, color:"var(--tx2)", fontWeight:500 }}>{p.label}</span>
                 </div>
-                <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                <div style={{ display:"flex", alignItems:"center", gap:6, flexShrink:0 }}>
                   <span style={{ fontSize:13, fontWeight:800, color:p.color, fontFamily:"var(--font-mono)" }}>{p.count}</span>
                   {total > 0 && <span style={{ fontSize:10, color:"var(--tx3)", fontFamily:"var(--font-mono)" }}>{Math.round((p.count/total)*100)}%</span>}
                 </div>
               </div>
             ))}
           </div>
-        </div>
+        </section>
       </div>
 
       {/* ── Recent Boards ── */}
-      {savedBoards.length > 0 && (
-        <div className="fade-up" style={{ animationDelay: ".25s" }}>
-          {/* Section header */}
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
+      {savedBoards.length > 0 ? (
+        <section className="fade-up" style={{ animationDelay: ".25s" }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center",
+            marginBottom:12, gap:10, flexWrap:"wrap" }}>
             <div>
-              <h2 style={{ fontSize:16, fontWeight:800, color:"var(--tx)", fontFamily:"var(--font-display)",
-                letterSpacing:"-0.03em", marginBottom:3 }}>Recent Boards</h2>
+              <h3 style={{ fontSize:16, fontWeight:800, color:"var(--tx)", fontFamily:"var(--font-display)",
+                letterSpacing:"-0.03em", marginBottom:3 }}>Recent Boards</h3>
               <p style={{ fontSize:11.5, color:"var(--tx3)" }}>Jump back into your latest work</p>
             </div>
-            <button onClick={() => navigate("saved")} className="ghost"
-              style={{ fontSize:12, color:"var(--ac-text)", background:"var(--as)", border:"1px solid var(--ag)",
-                padding:"6px 14px", borderRadius:8, display:"flex", alignItems:"center", gap:6,
-                fontWeight:600, transition:"all .2s" }}
-              onMouseOver={e => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(99,102,241,0.18)"; }}
-              onMouseOut={e  => { (e.currentTarget as HTMLButtonElement).style.background = "var(--as)"; }}>
+            <button onClick={() => navigate("saved")} className="btn btn-ghost btn-sm"
+              style={{ color:"var(--ac-text)" }}>
               View all <Icons.ChevronRight size={12}/>
             </button>
           </div>
 
-          {/* Board cards grid */}
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))", gap:10 }}
-            className="saved-grid">
+          <div className="saved-grid"
+            style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))", gap:12 }}>
             {savedBoards.slice(0, 4).map((b, idx) => {
               const ACCENTS = ["var(--ac)","var(--pu)","var(--gr)","var(--am)"] as const;
               const BGSOF  = ["rgba(99,102,241,0.08)","rgba(167,139,250,0.08)","rgba(16,185,129,0.08)","rgba(245,158,11,0.08)"] as const;
@@ -801,79 +976,70 @@ function PageOverview() {
                 ? Math.round((b.tasks.filter(t => t.status === "done").length / b.tasks.length) * 100)
                 : 0;
               return (
-                <div key={b.id}
+                /* A button, not a div with a click handler. The card is the
+                   primary action for the whole board, so it has to be
+                   reachable by keyboard and announce what it opens. */
+                <button key={b.id}
                   onClick={() => { setTasks(b.tasks); setBoardView("kanban"); navigate("board"); }}
-                  style={{
-                    borderRadius:14, border:"1px solid var(--br)", background:"var(--bg1)",
-                    padding:14, cursor:"pointer", position:"relative", overflow:"hidden",
-                    transition:"border-color .2s, transform .2s, box-shadow .2s",
-                  }}
-                  onMouseOver={e => {
-                    const el = e.currentTarget as HTMLDivElement;
-                    el.style.borderColor = BORDER[idx % 4] ?? '';
-                    el.style.transform = "translateY(-2px)";
-                    el.style.boxShadow = `0 8px 32px rgba(0,0,0,0.18)`;
-                  }}
-                  onMouseOut={e => {
-                    const el = e.currentTarget as HTMLDivElement;
-                    el.style.borderColor = "var(--br)";
-                    el.style.transform = "translateY(0)";
-                    el.style.boxShadow = "none";
-                  }}>
+                  className="card panel"
+                  style={{ textAlign:"left", position:"relative", display:"block" }}>
 
                   {/* Top accent bar */}
-                  <div style={{
+                  <span aria-hidden="true" style={{
                     position:"absolute", top:0, left:0, right:0, height:3,
                     background:`linear-gradient(90deg, ${accent}, transparent 80%)`,
-                    borderRadius:"16px 16px 0 0",
+                    borderRadius:"var(--radius-lg) var(--radius-lg) 0 0",
+                    pointerEvents:"none",
                   }}/>
 
                   {/* Icon + folder badge */}
-                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:10 }}>
-                    <div style={{
-                      width:42, height:42, borderRadius:11,
+                  <span style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start",
+                    marginBottom:12, gap:8 }}>
+                    <span aria-hidden="true" style={{
+                      width:42, height:42, borderRadius:"var(--radius-md)",
                       background:BGSOF[idx % 4], border:`1px solid ${BORDER[idx % 4]}`,
                       display:"flex", alignItems:"center", justifyContent:"center",
                       color:accent, flexShrink:0,
                     }}>
                       <Icons.Layers size={17}/>
-                    </div>
+                    </span>
                     <span style={{
                       fontSize:10, padding:"3px 9px", borderRadius:100,
                       background:"var(--bg2)", border:"1px solid var(--br)",
                       color:"var(--tx3)", fontFamily:"var(--font-mono)", fontWeight:600,
+                      minWidth:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap",
                     }}>{b.folder}</span>
-                  </div>
+                  </span>
 
                   {/* Board name */}
-                  <p style={{
-                    fontSize:14, fontWeight:700, color:"var(--tx)", marginBottom:6,
+                  <span style={{
+                    display:"block", fontSize:14, fontWeight:700, color:"var(--tx)", marginBottom:6,
                     fontFamily:"var(--font-display)", letterSpacing:"-0.02em",
                     overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap",
-                  }}>{b.name}</p>
+                  }}>{b.name}</span>
 
                   {/* Meta row */}
-                  <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:10 }}>
+                  <span style={{ display:"flex", alignItems:"center", gap:12, marginBottom:10, flexWrap:"wrap" }}>
                     <span style={{ display:"flex", alignItems:"center", gap:4, fontSize:11, color:"var(--tx3)" }}>
-                      <div style={{ width:5, height:5, borderRadius:"50%", background:accent }}/>
+                      <span aria-hidden="true" style={{ width:5, height:5, borderRadius:"50%", background:accent, flexShrink:0 }}/>
                       {b.taskCount} tasks
                     </span>
                     <span style={{ display:"flex", alignItems:"center", gap:4, fontSize:11, color:"var(--tx3)" }}>
                       <Icons.Clock size={10}/>{b.lastEdited}
                     </span>
-                  </div>
+                  </span>
 
                   {/* Progress */}
-                  <div style={{ marginBottom:10 }}>
-                    <div style={{ display:"flex", justifyContent:"space-between", marginBottom:5 }}>
+                  <span style={{ display:"block", marginBottom:10 }}>
+                    <span style={{ display:"flex", justifyContent:"space-between", marginBottom:5 }}>
                       <span style={{ fontSize:10.5, color:"var(--tx3)" }}>Completion</span>
                       <span style={{ fontSize:10.5, fontWeight:700, color:accent, fontFamily:"var(--font-mono)" }}>{donePct}%</span>
-                    </div>
-                    <PBar value={donePct} h={4} color={accent}/>
-                  </div>
+                    </span>
+                    <PBar value={donePct} h={4} color={accent} label={`${b.name} completion`}/>
+                  </span>
 
                   {/* CTA */}
-                  <div style={{
+                  <span style={{
                     display:"flex", alignItems:"center", justifyContent:"space-between",
                     paddingTop:12, borderTop:"1px solid var(--br)",
                   }}>
@@ -886,12 +1052,29 @@ function PageOverview() {
                     }}>
                       Open <Icons.ChevronRight size={11}/>
                     </span>
-                  </div>
-                </div>
+                  </span>
+                </button>
               );
             })}
           </div>
-        </div>
+        </section>
+      ) : (
+        /* An empty board list still needs somewhere to start, so the empty
+           state carries the action rather than a sentence telling the user to
+           go and find it elsewhere. */
+        <section className="fade-up panel" style={{ padding:0 }}>
+          <EmptyState
+            small
+            icon={<Icons.Saved size={20}/>}
+            title="No boards saved yet"
+            body="Save the board you are working on and it will show up here to reopen in one click."
+            action={
+              <button onClick={() => navigate("board")} className="btn btn-primary btn-sm">
+                <Icons.Plus size={12}/> Go to the board
+              </button>
+            }
+          />
+        </section>
       )}
     </div>
   );
@@ -1101,43 +1284,50 @@ function PageBoard() {
 
       {boardView === "input" ? (
         /* ── Input view ── */
-        <div className="page-pad" style={{ padding:"28px 30px", overflowY:"auto", flex:1 }}>
+        <div className="page-pad" style={{ flex:1 }}>
           <div style={{ maxWidth:"var(--content-max)", margin:"0 auto", width:"100%" }}>
             <div style={{ textAlign:"center", marginBottom:28 }}>
-              <div style={{ display:"inline-flex", alignItems:"center", gap:7, padding:"5px 14px",
+              <span style={{ display:"inline-flex", alignItems:"center", gap:7, padding:"5px 14px",
                 borderRadius:100, background:"var(--as)", border:"1px solid var(--ag)",
                 marginBottom:16, color:"var(--ac-text)", fontSize:11.5, fontWeight:600 }}>
                 <Icons.Sparkle size={11}/> AI-Powered Extraction
-              </div>
-              <h1 style={{ fontSize:26, fontWeight:800, letterSpacing:"-0.04em", color:"var(--tx)",
+              </span>
+              {/* h2, not h1: the topbar above already owns the page heading. */}
+              <h2 style={{ fontSize:26, fontWeight:800, letterSpacing:"-0.04em", color:"var(--tx)",
                 marginBottom:8, fontFamily:"var(--font-display)" }}>
                 Transform Notes Into Action
-              </h1>
+              </h2>
               <p style={{ fontSize:13.5, color:"var(--tx2)" }}>
                 Paste your messy notes and let Kanbi AI organize them into tasks
               </p>
             </div>
 
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 260px", gap:18 }} className="main-grid-2 board-input-grid">
+            <div style={{ display:"grid", gridTemplateColumns:"minmax(0,1fr) 260px", gap:18 }}
+              className="main-grid-2 board-input-grid">
               {/* Input card */}
-              <div style={{ borderRadius:14, border:"1px solid var(--br)", background:"var(--bg1)", padding:20 }}>
+              <div className="panel panel-lg">
                 {/* Mode tabs */}
-                <div style={{ display:"flex", gap:3, marginBottom:16, background:"var(--bg2)",
-                  borderRadius:10, padding:4 }}>
+                <div role="tablist" aria-label="Source of tasks to extract"
+                  style={{ display:"flex", gap:3, marginBottom:16, background:"var(--bg2)",
+                    borderRadius:"var(--radius-md)", padding:4 }}>
                   {inputModes.map(m => (
                     <button key={m.key} onClick={() => setInputMode(m.key)}
-                      style={{ flex:1, padding:"7px 6px", borderRadius:8, border:"none",
+                      role="tab"
+                      aria-selected={inputMode === m.key}
+                      aria-controls="extract-panel"
+                      style={{ flex:1, minWidth:0, padding:"8px 6px", borderRadius:"var(--radius-sm)", border:"none",
                         background: inputMode === m.key ? "var(--bg1)" : "transparent",
                         color: inputMode === m.key ? "var(--tx)" : "var(--tx3)",
                         fontSize:11.5, fontWeight:inputMode === m.key ? 600 : 400,
-                        cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center",
-                        gap:5, transition:"all .15s",
+                        display:"flex", alignItems:"center", justifyContent:"center",
+                        gap:5, transition:"all .15s", whiteSpace:"nowrap",
                         boxShadow: inputMode === m.key ? "0 1px 4px rgba(0,0,0,.2)" : "none" }}>
                       {m.icon}{m.label}
                     </button>
                   ))}
                 </div>
 
+                <div id="extract-panel" role="tabpanel" aria-label="Task source">
                 {inputMode === "paste" && (
                   <>
                     <p style={{ fontSize:11, color:"var(--tx3)", marginBottom:8 }}>
@@ -1146,9 +1336,10 @@ function PageBoard() {
                     <textarea
                       value={inputText} onChange={e => setInputText(e.target.value)} rows={9}
                       placeholder={"What's on your mind?\n\n- Fix login bug\n- Review copy\n- Call John\n- Send invoice to Acme"}
+                      aria-label="Notes to turn into tasks"
                       className="input-focus"
                       style={{ width:"100%", background:"var(--inp)", border:"1px solid var(--br)",
-                        borderRadius:10, padding:"12px 14px", fontSize:13, color:"var(--tx)",
+                        borderRadius:"var(--radius-md)", padding:"12px 14px", fontSize:13, color:"var(--tx)",
                         resize:"none", lineHeight:1.65, height:220, minHeight:220, maxHeight:220,
                         overflowY:"auto", boxSizing:"border-box" }}/>
                     <p style={{ fontSize:10, color:"var(--tx3)", marginTop:8 }}>
@@ -1161,7 +1352,10 @@ function PageBoard() {
                     <p style={{ fontSize:11, color:"var(--tx3)", marginBottom:8 }}>
                       Paste a public page link and Kanbi will pull out the action items.
                     </p>
-                    <div style={{ display:"flex", gap:8 }}>
+                    {/* Wraps below 480px. At 375px the input and a fixed width
+                        button in a single row left the input about 150px wide. */}
+                    <div className="url-extract-row"
+                      style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
                       <input
                         type="url"
                         value={urlInput}
@@ -1170,17 +1364,13 @@ function PageBoard() {
                         placeholder="https://example.com/meeting-notes"
                         aria-label="Page URL to extract tasks from"
                         className="input-focus"
-                        style={{ flex:1, background:"var(--inp)", border:"1px solid var(--br)",
-                          borderRadius:10, padding:"12px 14px", fontSize:13, color:"var(--tx)",
+                        style={{ flex:"1 1 220px", minWidth:0, background:"var(--inp)", border:"1px solid var(--br)",
+                          borderRadius:"var(--radius-md)", padding:"12px 14px", fontSize:13, color:"var(--tx)",
                           height:44, boxSizing:"border-box" }}/>
                       <button onClick={handleUrlExtract}
                         disabled={!urlInput.trim() || extracting}
-                        className="btn-primary"
-                        style={{ padding:"0 18px", borderRadius:10, background:"var(--ac-solid)",
-                          border:"none", color:"#fff", fontSize:13, fontWeight:700,
-                          display:"flex", alignItems:"center", gap:7, height:44,
-                          cursor: (!urlInput.trim() || extracting) ? "default" : "pointer",
-                          opacity: (!urlInput.trim() || extracting) ? 0.6 : 1 }}>
+                        className="btn btn-primary"
+                        style={{ flex:"0 1 auto", minWidth:100 }}>
                         {extracting ? "Reading…" : "Extract"}
                       </button>
                     </div>
@@ -1206,16 +1396,14 @@ function PageBoard() {
                   </div>
                 )}
                 {inputMode === "template" && (
-                  <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))", gap:9 }}>
+                  <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(min(200px,100%),1fr))", gap:9 }}>
                     {BOARD_TEMPLATES.map(t => (
                       <button key={t.id} type="button"
                         onClick={() => { setInputText(t.build()); setInputMode("paste"); }}
                         className="ghost"
-                        style={{ padding:"13px", borderRadius:9, border:"1px solid var(--br)",
+                        style={{ padding:"13px", borderRadius:"var(--radius-sm)", border:"1px solid var(--br)",
                           background:"var(--bg2)", color:"var(--tx2)", fontSize:12, fontWeight:600,
-                          textAlign:"left", cursor:"pointer", transition:"all .15s" }}
-                        onMouseOver={e => { (e.currentTarget).style.borderColor = "var(--ac)"; (e.currentTarget).style.color = "var(--tx)"; }}
-                        onMouseOut={e =>  { (e.currentTarget).style.borderColor = "var(--br)";  (e.currentTarget).style.color = "var(--tx2)"; }}>
+                          textAlign:"left", transition:"all .15s", minWidth:0 }}>
                         <span style={{ display:"block", marginBottom:3 }}>{t.label}</span>
                         <span style={{ display:"block", fontSize:10.5, fontWeight:400, color:"var(--tx3)",
                           lineHeight:1.45 }}>{t.blurb}</span>
@@ -1227,34 +1415,31 @@ function PageBoard() {
 
                 {(inputMode === "paste" || inputMode === "pdf") && (
                   <button onClick={handleExtract} disabled={!inputText.trim() || extracting}
-                    className="btn-primary"
-                    style={{ width:"100%", height:42, marginTop:14, borderRadius:10,
-                      background: inputText.trim() ? "var(--ac)" : "var(--bg3)",
-                      border: `1px solid ${inputText.trim() ? "var(--ac)" : "var(--br)"}`,
-                      color: inputText.trim() ? "#fff" : "var(--tx3)",
-                      fontSize:13, fontWeight:700, display:"flex", alignItems:"center",
-                      justifyContent:"center", gap:8,
-                      cursor: inputText.trim() ? "pointer" : "not-allowed" }}>
+                    className="btn btn-primary" style={{ width:"100%", marginTop:16 }}>
                     {extracting
-                      ? <><div className="spin" style={{ width:14, height:14, borderRadius:"50%",
-                          border:"2px solid rgba(255,255,255,.3)", borderTopColor:"#fff" }}/> Extracting tasks...</>
+                      ? <><Spinner size={14}/> Extracting tasks...</>
                       : <><Icons.Autopilot size={14}/> Turn This Into Tasks</>
                     }
                   </button>
                 )}
                 {extractError && (
-                  <p style={{ fontSize:12, color:"var(--rd-text)", marginTop:10, lineHeight:1.5 }}>
+                  <p role="alert" style={{ fontSize:12, color:"var(--rd-text)", marginTop:10, lineHeight:1.5 }}>
                     {extractError}
                   </p>
                 )}
-              </div>
+                </div>
+                </div>
 
               {/* Progress panel */}
-              <div style={{ display:"flex", flexDirection:"column", gap:11 }}>
-                <div style={{ borderRadius:12, border:"1px solid var(--br)", background:"var(--bg1)", padding:17 }}>
-                  <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:14 }}>
-                    <Icons.Target size={13} style={{ color:"var(--ac-text)" }}/>
-                    <span style={{ fontSize:13, fontWeight:700, color:"var(--tx)", fontFamily:"var(--font-display)" }}>Progress</span>
+              <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+                <div className="panel">
+                  <div className="panel-head">
+                    <h3 className="panel-title">
+                      <span aria-hidden="true" style={{ display:"inline-flex", verticalAlign:"-2px", marginRight:6 }}>
+                        <Icons.Target size={13} style={{ color:"var(--ac-text)" }}/>
+                      </span>
+                      Progress
+                    </h3>
                   </div>
                   <div style={{ marginBottom:13 }}>
                     <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}>
@@ -1263,32 +1448,28 @@ function PageBoard() {
                         {tasks.length > 0 ? Math.round((tasks.filter(t=>t.status==="done").length / tasks.length)*100) : 0}%
                       </span>
                     </div>
-                    <PBar value={tasks.length > 0 ? (tasks.filter(t=>t.status==="done").length/tasks.length)*100 : 0} h={5}/>
+                    <PBar value={tasks.length > 0 ? (tasks.filter(t=>t.status==="done").length/tasks.length)*100 : 0} h={5} label="Board completion"/>
                   </div>
-                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8 }}>
+                  <div style={{ display:"grid", gridTemplateColumns:"repeat(3,minmax(0,1fr))", gap:8 }}>
                     {[
                       { l:"To Do",   v:tasks.filter(t=>t.status==="todo").length  },
                       { l:"Working", v:tasks.filter(t=>t.status==="wip").length   },
                       { l:"Done",    v:tasks.filter(t=>t.status==="done").length  },
                     ].map(s => (
                       <div key={s.l} style={{ textAlign:"center", padding:"10px 5px", borderRadius:8,
-                        background:"var(--bg2)", border:"1px solid var(--br)" }}>
+                        background:"var(--bg2)", border:"1px solid var(--br)", minWidth:0 }}>
                         <p style={{ fontSize:18, fontWeight:800, color:"var(--tx)", fontFamily:"var(--font-display)" }}>{s.v}</p>
                         <p style={{ fontSize:9.5, color:"var(--tx3)", marginTop:2 }}>{s.l}</p>
                       </div>
                     ))}
                   </div>
                 </div>
-                <button className="ghost" onClick={() => setInputMode("pdf")}
-                  style={{ padding:"11px", borderRadius:10, border:"1px solid var(--br)",
-                    background:"transparent", color:"var(--tx2)", fontSize:12, fontWeight:500 }}>
-                  Import Tasks
+                <button className="btn btn-ghost" onClick={() => setInputMode("pdf")}>
+                  <Icons.Pdf size={14}/> Import Tasks
                 </button>
                 {tasks.length > 0 && (
-                  <button onClick={() => setBoardView("kanban")} className="btn-primary"
-                    style={{ padding:"11px", borderRadius:10, border:"1px solid var(--ac)",
-                      background:"var(--as)", color:"var(--ac-text)", fontSize:12, fontWeight:700 }}>
-                    View Board ({tasks.length} tasks)
+                  <button onClick={() => setBoardView("kanban")} className="btn btn-primary">
+                    <Icons.Board size={14}/> View Board ({tasks.length} tasks)
                   </button>
                 )}
               </div>
@@ -1300,47 +1481,50 @@ function PageBoard() {
         <div style={{ flex:1, overflow:"hidden", display:"flex", flexDirection:"column" }}>
           <div className="board-kanban-header" style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
             padding:"14px 26px", borderBottom:"1px solid var(--br)", flexWrap:"wrap", gap:9 }}>
-            <div className="board-kanban-title" style={{ display:"flex", alignItems:"center", gap:11 }}>
-              <button onClick={() => setBoardView("input")} className="ghost"
-                style={{ padding:"5px 11px", borderRadius:8, border:"1px solid var(--br)",
-                  background:"transparent", color:"var(--tx2)", fontSize:12, cursor:"pointer",
-                  display:"flex", alignItems:"center", gap:5 }}>
+            <div className="board-kanban-title" style={{ display:"flex", alignItems:"center", gap:11, minWidth:0 }}>
+              <button onClick={() => setBoardView("input")} className="btn btn-ghost btn-sm">
                 <Icons.ArrowLeft size={13}/> Back
               </button>
-              <span style={{ fontSize:13, fontWeight:700, color:"var(--tx)", fontFamily:"var(--font-display)" }}>My Board</span>
+              <h2 style={{ fontSize:13, fontWeight:700, color:"var(--tx)", fontFamily:"var(--font-display)",
+                minWidth:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>My Board</h2>
               <span style={{ fontSize:10, padding:"2px 8px", borderRadius:5, background:"var(--br)",
-                color:"var(--tx3)", fontFamily:"var(--font-mono)" }}>{tasks.length} tasks</span>
+                color:"var(--tx3)", fontFamily:"var(--font-mono)", flexShrink:0 }}>{tasks.length} tasks</span>
             </div>
             <div className="board-kanban-actions" style={{ display:"flex", alignItems:"center", gap:9, flexWrap:"wrap" }}>
               <div style={{ display:"flex", alignItems:"center", gap:5, padding:"4px 11px",
                 borderRadius:8, background:"var(--as)", border:"1px solid var(--ag)" }}>
-                <div className="pulse" style={{ width:5, height:5, borderRadius:"50%", background:"var(--ac-solid)" }}/>
+                <span aria-hidden="true" className="pulse" style={{ width:5, height:5, borderRadius:"50%", background:"var(--ac)", flexShrink:0 }}/>
                 <span style={{ fontSize:10.5, color:"var(--ac-text)", fontWeight:600 }}>
                   AI extracted {tasks.length} tasks
                 </span>
               </div>
-              <button onClick={handleSaveBoard} className="btn-primary"
-                style={{ height:33, padding:"0 13px", borderRadius:8, background:"var(--ac-solid)",
-                  border:"none", color:"#fff", fontSize:12, fontWeight:700 }}>
+              <button onClick={handleSaveBoard} className="btn btn-primary btn-sm">
                 Save Board
               </button>
             </div>
           </div>
 
           <div className="board-kanban-pad" style={{ flex:1, overflow:"auto", padding:"20px 26px" }}>
-            <div className="kanban-grid" style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:16 }}>
+            {/* minmax(0,1fr) on every track. The columns hold task cards whose
+                titles wrap, and a bare 1fr track sizes to its content, so one
+                long title widened the whole board past the viewport. */}
+            <div className="kanban-grid" style={{ display:"grid", gridTemplateColumns:"repeat(3,minmax(0,1fr))", gap:16 }}>
               {cols.map(([key, label, color]) => (
-                <div key={key}>
+                <section key={key} aria-label={`${label} column`} style={{ minWidth:0 }}>
                   <div style={{ display:"flex", alignItems:"center", gap:7, marginBottom:12, padding:"0 2px" }}>
-                    <div style={{ width:9, height:9, borderRadius:"50%", background:color,
-                      boxShadow:`0 0 8px ${color}` }}/>
-                    <span style={{ fontSize:10.5, fontWeight:700, letterSpacing:"0.07em",
-                      textTransform:"uppercase", color:"var(--tx3)", fontFamily:"var(--font-display)" }}>{label}</span>
+                    <span aria-hidden="true" style={{ width:9, height:9, borderRadius:"50%", background:color,
+                      boxShadow:`0 0 8px ${color}`, flexShrink:0 }}/>
+                    <h3 style={{ fontSize:10.5, fontWeight:700, letterSpacing:"0.07em",
+                      textTransform:"uppercase", color:"var(--tx3)", fontFamily:"var(--font-display)",
+                      minWidth:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{label}</h3>
                     <span style={{ fontSize:10, padding:"1px 6px", borderRadius:4, background:"var(--br)",
-                      color:"var(--tx3)", fontFamily:"var(--font-mono)" }}>
+                      color:"var(--tx3)", fontFamily:"var(--font-mono)", flexShrink:0 }}>
                       {kanbanTasks(key).length}
                     </span>
-                    <button className="ghost"
+                    <button className="btn btn-ghost btn-icon ghost"
+                      style={{ marginLeft:"auto" }}
+                      aria-label={`Add a task to ${label}`}
+                      title={`Add a task to ${label}`}
                       onClick={async () => {
                         const title = window.prompt(`Add task to ${label}:`);
                         if (!title?.trim()) return;
@@ -1358,18 +1542,25 @@ function PageBoard() {
                           status: key,
                         }]);
                         syncTaskStats();
-                      }}
-                      style={{ marginLeft:"auto", background:"transparent", border:"none",
-                        color:"var(--tx3)", padding:3, borderRadius:5, display:"flex" }}>
-                      <Icons.Plus size={11}/>
+                      }}>
+                      <Icons.Plus size={12}/>
                     </button>
                   </div>
                   <div>
-                    {kanbanTasks(key).map(t => (
-                      <TaskCard key={t.id} task={t} onStatusChange={updateTaskStatus}/>
-                    ))}
+                    {kanbanTasks(key).length === 0 ? (
+                      <EmptyState
+                        small
+                        icon={<Icons.Overview size={18}/>}
+                        title={`Nothing in ${label.toLowerCase()}`}
+                        body="Move a task here, or add one with the plus button."
+                      />
+                    ) : (
+                      kanbanTasks(key).map(t => (
+                        <TaskCard key={t.id} task={t} onStatusChange={updateTaskStatus}/>
+                      ))
+                    )}
                   </div>
-                </div>
+                </section>
               ))}
             </div>
           </div>
@@ -1475,28 +1666,22 @@ function PageChat() {
     }
   }, [tasks, loading, pushMessage]);
 
-  const chatPrompts = [
-    "What should I work on first?",
-    "Break down my top task",
-    "How should I plan today?",
-    "What can wait until tomorrow?",
-  ];
-
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior:"smooth" }); }, [chatMessages]);
 
   return (
     <div className="chat-page" style={{ height:"100%", display:"flex", overflow:"hidden" }}>
       {/* Main chat */}
-      <div style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
-        {/* Unified chat header (replaces global Topbar on this page) */}
+      <div style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden", minWidth:0 }}>
+        {/* Unified chat header (replaces global Topbar on this page, so it is
+            the page heading rather than a second level one) */}
         <div className="chat-header" style={{
           height:56, borderBottom:"1px solid var(--br)",
           background:"var(--bg1)", display:"flex", alignItems:"center",
-          justifyContent:"space-between", padding:"0 20px", flexShrink:0,
+          justifyContent:"space-between", padding:"0 20px", flexShrink:0, gap:10,
           boxShadow:"0 1px 12px rgba(0,0,0,0.12)",
         }}>
           <div style={{ display:"flex", alignItems:"center", gap:10, minWidth:0 }}>
-            <div style={{
+            <div aria-hidden="true" style={{
               width:34, height:34, borderRadius:10, flexShrink:0,
               background:"linear-gradient(135deg,#6366f1,#ec4899)",
               display:"flex", alignItems:"center", justifyContent:"center",
@@ -1505,78 +1690,82 @@ function PageChat() {
               <ChatBotIcon size={16} color="#fff"/>
             </div>
             <div style={{ minWidth:0 }}>
-              <h2 className="chat-header-title" style={{
+              <h1 className="chat-header-title" style={{
                 fontSize:15, fontWeight:700, color:"var(--tx)",
                 fontFamily:"var(--font-display)", lineHeight:1.2,
                 letterSpacing:"-0.03em", whiteSpace:"nowrap",
                 overflow:"hidden", textOverflow:"ellipsis",
-              }}>AI Chat</h2>
+              }}>Assistant</h1>
               <p className="chat-header-sub" style={{
                 fontSize:11, color:"var(--tx3)", lineHeight:1, marginTop:2,
                 whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis",
               }}>Has context from your board ({tasks.length} tasks)</p>
             </div>
           </div>
-          <div style={{ display:"flex", alignItems:"center", gap:10, flexShrink:0 }}>
+          <div style={{ display:"flex", alignItems:"center", gap:8, flexShrink:0 }}>
             <button type="button" onClick={startNewChat} disabled={loading || clearing}
-              className="ghost"
-              style={{ fontSize:11, padding:"5px 10px", borderRadius:7, border:"1px solid var(--br)",
-                background:"transparent", color:"var(--tx2)", cursor:"pointer",
-                display:"flex", alignItems:"center", gap:5 }}>
-              {clearing
-                ? <div className="spin" style={{ width:10, height:10, borderRadius:"50%", border:"2px solid var(--br)", borderTopColor:"var(--ac)" }}/>
-                : <Icons.Plus size={11}/>}
+              className="btn btn-ghost btn-sm"
+              aria-label="Start a new chat">
+              {clearing ? <Spinner size={10}/> : <Icons.Plus size={12}/>}
               <span className="chat-btn-label">New Chat</span>
             </button>
-            <button type="button" onClick={() => setShowMiniBoard(v => !v)} className="ghost"
-              style={{
-                fontSize:11, padding:"5px 10px", borderRadius:7, cursor:"pointer",
-                display:"flex", alignItems:"center", gap:5,
-                border: showMiniBoard ? "1px solid var(--ac)" : "1px solid var(--br)",
-                background: showMiniBoard ? "var(--as)" : "transparent",
-                color: showMiniBoard ? "var(--ac)" : "var(--tx2)",
-                fontWeight: showMiniBoard ? 600 : 500,
-              }}>
-              <Icons.Board size={11}/>
+            <button type="button" onClick={() => setShowMiniBoard(v => !v)}
+              className="btn btn-ghost btn-sm"
+              aria-expanded={showMiniBoard}
+              aria-controls="chat-board-panel"
+              aria-label={showMiniBoard ? "Hide the task board" : "Show the task board"}
+              style={showMiniBoard
+                ? { borderColor:"var(--ac)", background:"var(--as)", color:"var(--ac-text)" }
+                : undefined}>
+              <Icons.Board size={12}/>
               <span className="chat-btn-label">{showMiniBoard ? "Hide Board" : "Show Board"}</span>
             </button>
             <Avt name={user?.full_name ?? "User"} size={32} avatarUrl={user?.avatar_url}/>
           </div>
         </div>
 
-        {/* Messages area */}
-        <div className="chat-messages" style={{ flex:1, overflowY:"auto", padding:"20px 28px" }}>
+        {/* Messages. role="log" plus aria-live means a new reply is announced
+            without stealing focus from the composer. */}
+        <div className="chat-messages" role="log" aria-live="polite" aria-relevant="additions"
+          aria-label="Conversation with the Assistant"
+          style={{ flex:1, overflowY:"auto", padding:"20px 28px" }}>
           {chatMessages.length === 0 ? (
             <div className="fade-in" style={{ display:"flex", flexDirection:"column", alignItems:"center",
               justifyContent:"center", minHeight:"100%", padding:"24px", maxWidth:"var(--chat-max)", margin:"0 auto", width:"100%" }}>
-              <div style={{ width:64, height:64, borderRadius:18,
+              <div aria-hidden="true" style={{ width:64, height:64, borderRadius:18,
                 background:"linear-gradient(135deg, #6366f1, #a78bfa)",
                 display:"flex", alignItems:"center", justifyContent:"center",
                 boxShadow:"0 4px 24px rgba(99,102,241,0.45), 0 0 0 1px rgba(99,102,241,0.2)",
-                marginBottom:18, position:"relative" }}>
+                marginBottom:18, position:"relative", flexShrink:0 }}>
                 <div style={{ position:"absolute", inset:-4, borderRadius:22,
                   border:"1px solid rgba(99,102,241,0.25)", pointerEvents:"none" }}/>
                 <ChatBotIcon size={32} color="#fff"/>
               </div>
+              {/* Copy comes from the shared chat copy so the empty state and the
+                  model prompt cannot describe the assistant differently. */}
               <p style={{ fontSize:15, fontWeight:700, color:"var(--tx)", marginBottom:8,
-                fontFamily:"var(--font-display)", textAlign:"center" }}>What can I help you with?</p>
+                fontFamily:"var(--font-display)", textAlign:"center" }}>{CHAT_EMPTY_STATE.title}</p>
               <p style={{ fontSize:12.5, color:"var(--tx3)", lineHeight:1.65, textAlign:"center", marginBottom:18 }}>
-                I can prioritize tasks, create new items, plan your day, and more.
+                {CHAT_EMPTY_STATE.body}
               </p>
-              <div className="chat-prompts" style={{ display:"grid", gridTemplateColumns:"repeat(2, minmax(0, 1fr))", gap:10, width:"100%" }}>
-                {chatPrompts.map(prompt => (
+              <div className="chat-prompts" style={{ display:"grid", gridTemplateColumns:"repeat(2, minmax(0, 1fr))", gap:8, width:"100%", maxWidth:480 }}>
+                {CHAT_EMPTY_STATE.examples.map(prompt => (
                   <button key={prompt} type="button" onClick={() => send(prompt)} disabled={loading}
                     className="ghost"
-                    style={{ padding:"12px 14px", borderRadius:11, border:"1px solid var(--br)",
+                    style={{ padding:"12px 14px", borderRadius:"var(--radius-md)", border:"1px solid var(--br)",
                       background:"var(--bg1)", color:"var(--tx2)", fontSize:12.5, fontWeight:500,
-                      textAlign:"left", lineHeight:1.45, cursor:"pointer" }}>
+                      textAlign:"left", lineHeight:1.45 }}>
                     {prompt}
                   </button>
                 ))}
               </div>
             </div>
           ) : (
-            <div style={{ display:"flex", flexDirection:"column", gap:14, maxWidth:"var(--chat-max)", margin:"0 auto", width:"100%" }}>
+            /* role="list" pairs with the listitem on each bubble, so a screen
+               reader announces the thread as a conversation rather than as a
+               run of unlabelled divs. */
+            <div role="list" style={{ display:"flex", flexDirection:"column", gap:14,
+              maxWidth:"var(--chat-max)", margin:"0 auto", width:"100%" }}>
               {chatMessages.map((m) => (
                 <ChatBubble
                   key={m.id}
@@ -1599,7 +1788,7 @@ function PageChat() {
                     background:"var(--bg1)", border:"1px solid var(--br)", display:"flex", gap:5, alignItems:"center" }}>
                     {[0, 1, 2].map(i => (
                       <div key={i} className="pulse" style={{ width:6, height:6, borderRadius:"50%",
-                        background:"var(--ac-solid)", animationDelay:`${i * 0.15}s` }}/>
+                        background:"var(--ac)", animationDelay:`${i * 0.15}s` }}/>
                     ))}
                     <span style={{ fontSize:11, color:"var(--tx3)", marginLeft:6 }}>Thinking</span>
                   </div>
@@ -1612,8 +1801,10 @@ function PageChat() {
 
         {/* Quick actions. Each one is computed on the server from the board, so
             none of them waits on a model. */}
-        <div style={{ padding:"0 28px 10px", flexShrink:0, maxWidth:"var(--chat-max)", margin:"0 auto", width:"100%" }}>
-          <div style={{ display:"flex", gap:7, flexWrap:"wrap" }}>
+        <div className="chat-quick-actions"
+          style={{ padding:"0 28px 10px", flexShrink:0, maxWidth:"var(--chat-max)", margin:"0 auto", width:"100%" }}>
+          <div role="group" aria-label="Assistant shortcuts"
+            style={{ display:"flex", gap:7, flexWrap:"wrap" }}>
             {QUICK_ACTIONS.map(action => (
               <button
                 key={action.id}
@@ -1621,20 +1812,10 @@ function PageChat() {
                 onClick={() => runQuickAction(action.id)}
                 disabled={loading}
                 title={action.hint}
-                className="chat-quick-action"
-                style={{ padding:"5px 11px", borderRadius:999, border:"1px solid var(--br)",
+                className="ghost"
+                style={{ padding:"6px 11px", borderRadius:999, border:"1px solid var(--br)",
                   background:"var(--bg1)", color:"var(--tx2)", fontSize:11, fontWeight:600,
-                  cursor: loading ? "default" : "pointer", opacity: loading ? 0.55 : 1,
                   transition:"all .15s", whiteSpace:"nowrap" }}
-                onMouseOver={e => {
-                  if (loading) return;
-                  (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--ac)";
-                  (e.currentTarget as HTMLButtonElement).style.color = "var(--tx)";
-                }}
-                onMouseOut={e => {
-                  (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--br)";
-                  (e.currentTarget as HTMLButtonElement).style.color = "var(--tx2)";
-                }}
               >
                 {action.label}
               </button>
@@ -1648,46 +1829,51 @@ function PageChat() {
           <div style={{ display:"flex", gap:9, alignItems:"flex-end", maxWidth:"var(--chat-max)", margin:"0 auto", width:"100%" }}>
             <textarea
               value={input} onChange={e => setInput(e.target.value)} rows={1}
-              onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(input); } }}
+              onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); send(input); } }}
               placeholder="Ask me anything about your tasks..."
+              aria-label="Message the Assistant"
               className="chat-input"
-              style={{ flex:1, background:"var(--inp)", border:"1px solid var(--br)",
-                borderRadius:12, padding:"11px 14px", fontSize:13, color:"var(--tx)",
-                resize:"none", lineHeight:1.5, maxHeight:120, outline:"none" }}/>
-            <button onClick={() => send(input)} disabled={!input.trim() || loading} className="btn-primary"
-              style={{ width:42, height:42, borderRadius:12, background:"var(--ac-solid)", border:"none",
-                color:"#fff", display:"flex", alignItems:"center", justifyContent:"center",
-                opacity: !input.trim() ? .5 : 1, flexShrink:0 }}>
-              {loading ? <div className="spin" style={{ width:14, height:14, borderRadius:"50%",
-                border:"2px solid rgba(255,255,255,.3)", borderTopColor:"#fff" }}/> : <Icons.Send size={14}/>}
+              /* minWidth 0 so the composer keeps its 42px send button at 375px
+                 instead of being squeezed to nothing by a long placeholder. */
+              style={{ flex:1, minWidth:0, background:"var(--inp)", border:"1px solid var(--br)",
+                borderRadius:"var(--radius-md)", padding:"11px 14px", fontSize:13, color:"var(--tx)",
+                resize:"none", lineHeight:1.5, maxHeight:120 }}/>
+            <button onClick={() => send(input)} disabled={!input.trim() || loading}
+              className="btn btn-primary btn-icon"
+              aria-label="Send message"
+              style={{ width:42, height:42, borderRadius:"var(--radius-md)" }}>
+              {loading ? <Spinner size={14}/> : <Icons.Send size={15}/>}
             </button>
           </div>
-          <p className="chat-input-hint" style={{ fontSize:10, color:"var(--tx3)", marginTop:6, textAlign:"center" }}>
-            Shift+Enter for new line · Enter to send
-          </p>
+
         </div>
       </div>
 
       {/* Mini task board sidebar */}
       {showMiniBoard && (
-        <div className="chat-sidebar xl-hide" style={{ width:260, borderLeft:"1px solid var(--br)",
-          display:"flex", flexDirection:"column", overflow:"hidden" }}>
-          <div style={{ padding:"13px 16px", borderBottom:"1px solid var(--br)",
-            display:"flex", alignItems:"center", gap:10 }}>
-            <span style={{ fontSize:12, fontWeight:700, color:"var(--tx)", fontFamily:"var(--font-display)" }}>Task Board</span>
+        <aside id="chat-board-panel" aria-label="Task board"
+          className="chat-sidebar xl-hide" style={{ width:260, flexShrink:0,
+            borderLeft:"1px solid var(--br)",
+            display:"flex", flexDirection:"column", overflow:"hidden" }}>
+          <div className="panel-head" style={{ padding:"13px 16px", marginBottom:0,
+            borderBottom:"1px solid var(--br)" }}>
+            <h2 className="panel-title" style={{ fontSize:12 }}>Task Board</h2>
             <span style={{ fontSize:10, padding:"1px 6px", borderRadius:4, background:"var(--br)",
-              color:"var(--tx3)", fontFamily:"var(--font-mono)" }}>{tasks.length}</span>
-            <button onClick={() => setShowMiniBoard(false)} className="ghost"
-              style={{ marginLeft:"auto", background:"transparent", border:"none", color:"var(--tx3)",
-                padding:3, borderRadius:4, display:"flex" }}>
-              <Icons.X size={11}/>
+              color:"var(--tx3)", fontFamily:"var(--font-mono)", flexShrink:0 }}>{tasks.length}</span>
+            <button onClick={() => setShowMiniBoard(false)} className="btn btn-ghost btn-icon"
+              aria-label="Hide the task board"
+              style={{ marginLeft:"auto" }}>
+              <Icons.X size={12}/>
             </button>
           </div>
           <div style={{ flex:1, overflowY:"auto", padding:10 }}>
             {tasks.length === 0 ? (
-              <p style={{ fontSize:12, color:"var(--tx3)", textAlign:"center", paddingTop:20 }}>
-                No tasks yet. Add tasks on the Board page.
-              </p>
+              <EmptyState
+                small
+                icon={<Icons.Board size={18}/>}
+                title="No tasks yet"
+                body="Add tasks on the Board page and they will show up here beside the conversation."
+              />
             ) : (
               (["todo","wip","done"] as TaskStatus[]).map(s => {
                 const colTasks = tasks.filter(t => t.status === s);
@@ -1695,24 +1881,25 @@ function PageChat() {
                 const colors: Record<string,string> = { todo:"var(--ac)", wip:"var(--am)", done:"var(--gr)" };
                 const labels: Record<string,string> = { todo:"To Do", wip:"In Progress", done:"Done" };
                 return (
-                  <div key={s} style={{ marginBottom:13 }}>
+                  <section key={s} aria-label={labels[s] ?? s} style={{ marginBottom:13, minWidth:0 }}>
                     <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:7 }}>
-                      <div style={{ width:6, height:6, borderRadius:"50%", background:colors[s],
-                        boxShadow:`0 0 6px ${colors[s]}` }}/>
-                      <span style={{ fontSize:9.5, fontWeight:700, letterSpacing:"0.07em",
-                        textTransform:"uppercase", color:"var(--tx3)", fontFamily:"var(--font-display)" }}>
+                      <span aria-hidden="true" style={{ width:6, height:6, borderRadius:"50%", background:colors[s],
+                        boxShadow:`0 0 6px ${colors[s]}`, flexShrink:0 }}/>
+                      <h3 style={{ fontSize:9.5, fontWeight:700, letterSpacing:"0.07em",
+                        textTransform:"uppercase", color:"var(--tx3)", fontFamily:"var(--font-display)",
+                        minWidth:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
                         {labels[s]}
-                      </span>
+                      </h3>
                       <span style={{ fontSize:9, padding:"0 5px", borderRadius:3, background:"var(--br)",
-                        color:"var(--tx3)", fontFamily:"var(--font-mono)" }}>{colTasks.length}</span>
+                        color:"var(--tx3)", fontFamily:"var(--font-mono)", flexShrink:0 }}>{colTasks.length}</span>
                     </div>
                     {colTasks.map(t => <TaskCard key={t.id} task={t} compact/>)}
-                  </div>
+                  </section>
                 );
               })
             )}
           </div>
-        </div>
+        </aside>
       )}
     </div>
   );
@@ -1722,7 +1909,8 @@ function PageChat() {
    PAGE: AUTOPILOT
 ═══════════════════════════════════════════════════════════════════════════ */
 function PageAutopilot() {
-  const { tasks, setTasks, briefings, setBriefings, burnoutAlerts } = useApp();
+  const { tasks, setTasks, briefings, setBriefings, burnoutAlerts, user, navigate } = useApp();
+  const isPro = user?.plan === "pro";
   const [genLoading, setGenLoading] = useState(false);
   const [settings, setSettings] = useState({
     scheduling:true, burnout:true, learning:false, autoPrioritize:false,
@@ -1752,9 +1940,6 @@ function PageAutopilot() {
         return;
       }
 
-      // The response is normalised before it reaches state. Reading the raw
-      // payload put a task object where a title string was expected, which
-      // crashed the render and surfaced as a generic error boundary message.
       const view = normalizeBriefingResponse(data, {
         pendingCount: pendingTasks.length,
         healthNote:
@@ -1778,6 +1963,25 @@ function PageAutopilot() {
         warnings: view.warnings,
       };
       setBriefings(prev => [nb, ...prev]);
+
+      // Persist briefing as a saved board so it survives a page reload.
+      fetch('/api/boards/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: `Autopilot · ${nb.date}`,
+          tasks: view.schedule.map((s, i) => ({
+            id: `SCH-${nb.id}-${i}`,
+            title: s.task,
+            priority: 'medium',
+            label: 'Autopilot',
+            status: 'todo',
+            estimate: s.duration,
+          })),
+          category: 'autopilot',
+          icon: 'autopilot',
+        }),
+      }).catch(() => {});
     } catch {
       setBriefingError("Network error. Check your connection and try again.");
     } finally {
@@ -1795,102 +1999,107 @@ function PageAutopilot() {
   };
 
   return (
-    <div className="fade-up page-pad" style={{ padding:"28px 30px", height:"100%", overflowY:"auto",
-      display:"flex", flexDirection:"column", gap:18 }}>
+    <div className="fade-up page-pad">
 
       {/* Header */}
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", flexWrap:"wrap", gap:12 }}>
         <div>
-          <h1 style={{ fontSize:22, fontWeight:800, letterSpacing:"-0.035em", color:"var(--tx)",
-            marginBottom:4, fontFamily:"var(--font-display)" }}>AI Autopilot</h1>
-          <p style={{ fontSize:13, color:"var(--tx2)" }}>Autonomous workload management & morning briefings</p>
+          {/* h2, not h1: the topbar above already owns the page heading. */}
+          <h2 className="page-title">AI Autopilot</h2>
+          <p className="page-sub">Autonomous workload management and morning briefings</p>
         </div>
-        <button onClick={handleGenerate} disabled={genLoading} className="btn-primary"
-          style={{ height:40, padding:"0 18px", borderRadius:10, background:"var(--ac-solid)",
-            border:"none", color:"#fff", fontSize:13, fontWeight:700,
-            display:"flex", alignItems:"center", gap:8 }}>
+        <button onClick={handleGenerate} disabled={genLoading} className="btn btn-primary">
           {genLoading
-            ? <><div className="spin" style={{ width:14, height:14, borderRadius:"50%",
-                border:"2px solid rgba(255,255,255,.3)", borderTopColor:"#fff" }}/> Generating...</>
+            ? <><Spinner size={14}/> Generating...</>
             : <><Icons.Autopilot size={14}/> Generate Briefing</>
           }
         </button>
       </div>
 
       {briefingError && (
-        <div style={{ display:"flex", alignItems:"center", gap:9, padding:"10px 14px",
-          borderRadius:10, background:"rgba(239,68,68,0.07)", border:"1px solid rgba(239,68,68,0.2)" }}>
+        <div role="alert" style={{ display:"flex", alignItems:"center", gap:9, padding:"10px 14px",
+          borderRadius:"var(--radius-md)", background:"rgba(239,68,68,0.07)", border:"1px solid rgba(239,68,68,0.2)" }}>
           <Icons.AlertTri size={13} style={{ color:"var(--rd-text)", flexShrink:0 }}/>
-          <span style={{ fontSize:12, color:"var(--rd-text)", flex:1 }}>{briefingError}</span>
-          <button onClick={() => setBriefingError("")} style={{ background:"transparent",
-            border:"none", color:"var(--rd-text)", cursor:"pointer", padding:2, display:"flex" }}>
-            <Icons.X size={11}/>
+          <span style={{ fontSize:12, color:"var(--rd-text)", flex:1, minWidth:0 }}>{briefingError}</span>
+          <button onClick={() => setBriefingError("")} aria-label="Dismiss the error"
+            className="btn btn-ghost btn-icon"
+            style={{ borderColor:"rgba(239,68,68,0.3)", color:"var(--rd-text)" }}>
+            <Icons.X size={12}/>
           </button>
         </div>
       )}
 
       {/* Live sync status */}
-      <div style={{ display:"flex", alignItems:"center", gap:11, padding:"12px 16px",
-        borderRadius:11, background:"var(--as)", border:"1px solid var(--ag)" }}>
-        <div className="pulse" style={{ width:7, height:7, borderRadius:"50%", background:"var(--ac-solid)", flexShrink:0 }}/>
-        <span style={{ fontSize:12, color:"var(--ac-text)", fontWeight:600 }}>
-          Live sync with board: {pendingTasks.length} pending tasks · Health {healthScore}/100 · {pendingTasks.filter(t=>t.priority==="urgent").length} urgent
-        </span>
+      <div className="autopilot-sync-bar" style={{ display:"flex", alignItems:"center", gap:11, padding:"12px 16px",
+        borderRadius:"var(--radius-md)", background:"var(--as)", border:"1px solid var(--ag)" }}>
+        <span aria-hidden="true" className="pulse" style={{ width:7, height:7, borderRadius:"50%", background:"var(--ac)", flexShrink:0 }}/>
+        <span style={{ fontSize:12, color:"var(--ac-text)", fontWeight:600, flexShrink:0 }}>Live sync with board</span>
+        <div className="autopilot-sync-chips" style={{ display:"flex", gap:7, minWidth:0 }}>
+          <span className="autopilot-stat-chip">{pendingTasks.length} pending</span>
+          <span className="autopilot-stat-chip">Health {healthScore}/100</span>
+          <span className="autopilot-stat-chip">{pendingTasks.filter(t=>t.priority==="urgent").length} urgent</span>
+        </div>
       </div>
 
-      <div className="autopilot-grid" style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16 }}>
+      <div className="autopilot-grid" style={{ display:"grid", gridTemplateColumns:"repeat(2,minmax(0,1fr))", gap:16, alignItems:"stretch" }}>
         {/* Morning Briefing */}
-        <div style={{ borderRadius:13, border:"1px solid var(--br)", background:"var(--bg1)", padding:22 }}>
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:17 }}>
-            <h3 style={{ fontSize:13, fontWeight:700, color:"var(--tx)", fontFamily:"var(--font-display)" }}>Morning Briefing</h3>
+        <section className="panel panel-lg" style={{ display:"flex", flexDirection:"column" }}>
+          <div className="panel-head">
+            <h3 className="panel-title" style={{ fontSize:13 }}>Morning Briefing</h3>
             {briefings.length > 0 && (
-              <span style={{ fontSize:10, padding:"2px 9px", borderRadius:100,
-                background:"rgba(16,185,129,0.1)", color:"var(--gr-text)", border:"1px solid rgba(16,185,129,0.2)", fontWeight:700 }}>
-                Latest
+              <span style={{ display:"flex", alignItems:"center", gap:8, flexShrink:0 }}>
+                <span style={{ fontSize:10, color:"var(--tx3)", fontFamily:"var(--font-mono)", fontWeight:600 }}>
+                  {briefings[0]!.date}
+                </span>
+                <span style={{ fontSize:10, padding:"2px 9px", borderRadius:100,
+                  background:"rgba(16,185,129,0.1)", color:"var(--gr-text)", border:"1px solid rgba(16,185,129,0.2)", fontWeight:700 }}>
+                  Latest
+                </span>
               </span>
             )}
           </div>
           {briefings.length === 0 ? (
-            <div style={{ textAlign:"center", padding:"32px 18px" }}>
-              <div style={{ width:48, height:48, borderRadius:13, background:"var(--as)",
-                display:"flex", alignItems:"center", justifyContent:"center",
-                color:"var(--ac-text)", margin:"0 auto 14px" }}>
-                <Icons.Autopilot size={22}/>
-              </div>
-              <p style={{ fontSize:13.5, color:"var(--tx2)", marginBottom:8, fontWeight:500 }}>No briefing yet</p>
-              <p style={{ fontSize:11.5, color:"var(--tx3)", lineHeight:1.65 }}>
-                Generate your first AI briefing to see a smart summary of today&rsquo;s tasks.
-              </p>
-            </div>
+            <EmptyState
+              icon={<Icons.Autopilot size={22}/>}
+              title="No briefing yet"
+              body="Generate a briefing for a summary of today, your top priorities, and anything worth knowing."
+            />
           ) : (
             <div style={{ display:"flex", flexDirection:"column", gap:13 }}>
-              <p style={{ fontSize:11, color:"var(--tx3)", fontWeight:700, fontFamily:"var(--font-mono)" }}>{briefings[0]!.date}</p>
               <p style={{ fontSize:12.5, color:"var(--tx2)", lineHeight:1.7 }}>{briefings[0]!.summary}</p>
 
               {(briefings[0]!.priorities?.length ?? 0) > 0 && (
-                <div style={{ marginTop:13 }}>
+                <div style={{ marginTop:4 }}>
                   <p style={{ fontSize:10, color:"var(--tx3)", fontWeight:700, letterSpacing:"0.06em",
-                    textTransform:"uppercase", marginBottom:8 }}>Top priorities</p>
-                  <div style={{ display:"flex", flexDirection:"column", gap:7 }}>
-                    {briefings[0]!.priorities!.map((p, i) => (
-                      <div key={i} style={{ display:"flex", gap:9, alignItems:"flex-start" }}>
-                        <span style={{ fontSize:10, fontWeight:700, color:"var(--ac-text)", flexShrink:0,
-                          width:16, fontFamily:"var(--font-mono)" }}>{i + 1}</span>
-                        <div style={{ minWidth:0 }}>
-                          <p style={{ fontSize:12, color:"var(--tx)", fontWeight:500, marginBottom:1 }}>{p.task}</p>
-                          <p style={{ fontSize:10.5, color:"var(--tx3)", lineHeight:1.5 }}>{p.reason}</p>
+                    textTransform:"uppercase", marginBottom:9 }}>Top priorities</p>
+                  <div style={{ display:"flex", flexDirection:"column", gap:9 }}>
+                    {briefings[0]!.priorities!.map((p, i) => {
+                      const rankColor = i === 0 ? "var(--rd-text)" : i === 1 ? "var(--am-text)" : "var(--ac-text)";
+                      const rankBg = i === 0 ? "rgba(239,68,68,0.1)" : i === 1 ? "rgba(245,158,11,0.1)" : "var(--as)";
+                      return (
+                        <div key={i} style={{ display:"flex", gap:10, alignItems:"flex-start" }}>
+                          <span aria-hidden="true" style={{ fontSize:10.5, fontWeight:800, color:rankColor,
+                            background:rankBg, flexShrink:0, width:20, height:20, borderRadius:"50%",
+                            display:"flex", alignItems:"center", justifyContent:"center",
+                            fontFamily:"var(--font-mono)" }}>{i + 1}</span>
+                          <div style={{ minWidth:0, paddingTop:1 }}>
+                            <p style={{ fontSize:12, color:"var(--tx)", fontWeight:500, marginBottom:1 }}>{p.task}</p>
+                            <p style={{ fontSize:10.5, color:"var(--tx3)", lineHeight:1.5 }}>{p.reason}</p>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}
 
               {(briefings[0]!.warnings?.length ?? 0) > 0 && (
-                <div style={{ marginTop:13, padding:"10px 13px", borderRadius:9,
+                <div style={{ padding:"10px 13px", borderRadius:9,
                   background:"rgba(245,158,11,0.07)", border:"1px solid rgba(245,158,11,0.22)" }}>
-                  <p style={{ fontSize:10, color:"var(--am-text)", fontWeight:700, letterSpacing:"0.06em",
-                    textTransform:"uppercase", marginBottom:6 }}>Worth knowing</p>
+                  <p style={{ display:"flex", alignItems:"center", gap:6, fontSize:10, color:"var(--am-text)", fontWeight:700,
+                    letterSpacing:"0.06em", textTransform:"uppercase", marginBottom:6 }}>
+                    <Icons.AlertTri size={11}/> Worth knowing
+                  </p>
                   <ul style={{ margin:0, padding:0, listStyle:"none", display:"flex", flexDirection:"column", gap:5 }}>
                     {briefings[0]!.warnings!.map((w, i) => (
                       <li key={i} style={{ fontSize:11, color:"var(--tx2)", lineHeight:1.55 }}>{w}</li>
@@ -1900,135 +2109,176 @@ function PageAutopilot() {
               )}
 
               {briefings[0]!.quote && (
-                <p style={{ fontSize:11.5, color:"var(--tx3)", fontStyle:"italic", marginTop:13,
+                <p style={{ fontSize:11.5, color:"var(--tx3)", fontStyle:"italic", marginTop:2,
                   lineHeight:1.6, paddingTop:11, borderTop:"1px solid var(--br)" }}>
-                  {briefings[0]!.quote}
+                  "{briefings[0]!.quote}"
                 </p>
               )}
             </div>
           )}
-        </div>
+        </section>
 
         {/* AI Schedule */}
-        <div style={{ borderRadius:13, border:"1px solid var(--br)", background:"var(--bg1)", padding:22 }}>
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:17 }}>
-            <h3 style={{ fontSize:13, fontWeight:700, color:"var(--tx)", fontFamily:"var(--font-display)" }}>AI Daily Schedule</h3>
-            {briefings.length > 0 && (
-              <button onClick={createScheduleOnBoard} className="btn-primary"
-                style={{ fontSize:10.5, padding:"4px 10px", borderRadius:7, border:"1px solid var(--ac)",
-                  background:"var(--as)", color:"var(--ac-text)", cursor:"pointer", fontWeight:700 }}>
+        <section className="panel panel-lg" style={{ display:"flex", flexDirection:"column" }}>
+          <div className="panel-head">
+            <h3 className="panel-title" style={{ fontSize:13 }}>AI Daily Schedule</h3>
+            {briefings.length > 0 && briefings[0]!.schedule.length > 0 && (
+              <button onClick={createScheduleOnBoard} className="btn btn-primary btn-sm">
                 <Icons.ArrowRight size={13}/> Add to Board
               </button>
             )}
           </div>
           {briefings.length === 0 ? (
-            <div style={{ textAlign:"center", padding:"32px 18px" }}>
-              <Icons.Clock size={30} style={{ color:"var(--tx3)", display:"block", margin:"0 auto 13px" }}/>
-              <p style={{ fontSize:12, color:"var(--tx3)" }}>Generate a briefing first to see your AI schedule</p>
-            </div>
+            <EmptyState
+              icon={<Icons.Clock size={22}/>}
+              title="No schedule yet"
+              body="Generate a briefing and the day is broken into timeboxed blocks here."
+            />
           ) : briefings[0]!.schedule.length === 0 ? (
-            <div style={{ textAlign:"center", padding:"22px 18px" }}>
-              <p style={{ fontSize:12, color:"var(--tx3)", marginBottom:6 }}>Nothing fits into your working hours</p>
-              <p style={{ fontSize:11, color:"var(--tx3)" }}>
-                Add a shorter estimate to a task, or widen your working hours in autopilot settings.
-              </p>
-            </div>
+            <EmptyState
+              small
+              icon={<Icons.Clock size={18}/>}
+              title="Nothing fits into your working hours"
+              body="Add a shorter estimate to a task, or widen your working hours in autopilot settings."
+            />
           ) : (
             <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
               {briefings[0]!.schedule.map((s, i) => (
-                <div key={i} style={{ display:"flex", alignItems:"center", gap:11, padding:"9px 12px",
-                  borderRadius:9, background:"var(--bg2)", border:"1px solid var(--br)" }}>
+                <div key={i} className="autopilot-timeline-row">
                   <span style={{ fontSize:10, fontWeight:700, color:"var(--ac-text)", fontFamily:"var(--font-mono)",
-                    flexShrink:0, minWidth:78 }}>{s.time}</span>
-                  <span style={{ fontSize:12, color:"var(--tx)", flex:1, overflow:"hidden",
+                    flexShrink:0, minWidth:78, background:"var(--as)", padding:"3px 7px", borderRadius:6,
+                    textAlign:"center" }}>{s.time}</span>
+                  <span style={{ fontSize:12, color:"var(--tx)", flex:1, minWidth:0, overflow:"hidden",
                     textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{s.task}</span>
-                  <span style={{ fontSize:10, color:"var(--tx3)", flexShrink:0,
+                  <span style={{ fontSize:10, color:"var(--tx3)", fontWeight:600, flexShrink:0,
+                    background:"var(--bg3)", padding:"3px 8px", borderRadius:100,
                     fontFamily:"var(--font-mono)" }}>{s.duration}</span>
                 </div>
               ))}
             </div>
           )}
-        </div>
+        </section>
 
         {/* Burnout Panel */}
-        <div style={{ borderRadius:13, border:"1px solid var(--br)", background:"var(--bg1)", padding:22 }}>
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:17 }}>
-            <h3 style={{ fontSize:13, fontWeight:700, color:"var(--tx)", fontFamily:"var(--font-display)" }}>Burnout Alert Panel</h3>
-            <HealthRing score={healthScore}/>
+        <section className="panel panel-lg" style={{ display:"flex", flexDirection:"column" }}>
+          <div className="panel-head">
+            <h3 className="panel-title" style={{ fontSize:13 }}>Burnout Alert Panel</h3>
           </div>
-          <div style={{ display:"flex", flexDirection:"column", gap:11 }}>
-            <div style={{ padding:"11px 13px", borderRadius:9,
-              background: pilotBand === "healthy" ? "rgba(16,185,129,0.06)" : "rgba(239,68,68,0.06)",
-              border:`1px solid ${pilotBand === "healthy" ? "rgba(16,185,129,0.2)" : "rgba(239,68,68,0.2)"}` }}>
-              <p style={{ fontSize:12, fontWeight:700, color: pilotBand === "healthy" ? "var(--gr)" : "var(--rd)", marginBottom:3 }}>
-                {pilotBand === "healthy" ? "No burnout risk detected" : "Elevated burnout risk"}
-              </p>
-              <p style={{ fontSize:11.5, color:"var(--tx2)" }}>
-                {pendingTasks.length} pending · {pendingTasks.filter(t=>t.priority==="urgent"||t.priority==="high").length} high priority
-              </p>
-            </div>
+          <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:4, padding:"4px 0 14px" }}>
+            <HealthRing score={healthScore}/>
+            <span style={{ fontSize:11, fontWeight:700, letterSpacing:"0.04em", textTransform:"uppercase",
+              color: pilotBand === "healthy" ? "var(--gr)" : "var(--rd)" }}>
+              {pilotBand === "healthy" ? "Healthy" : pilotBand === "moderate" ? "At risk" : "Critical"}
+            </span>
+          </div>
+          <div style={{ display:"flex", gap:7, justifyContent:"center", flexWrap:"wrap", marginBottom:14 }}>
+            <span className="autopilot-stat-chip">{pendingTasks.length} pending</span>
+            <span className="autopilot-stat-chip">
+              {pendingTasks.filter(t=>t.priority==="urgent"||t.priority==="high").length} high priority
+            </span>
+            <span className="autopilot-stat-chip">{tasks.filter(t=>t.status==="done").length} done</span>
+          </div>
+          <div style={{ display:"flex", flexDirection:"column", gap:9 }}>
             {burnoutAlerts.length === 0 ? (
-              <p style={{ fontSize:11.5, color:"var(--tx3)", textAlign:"center", padding:"12px 0" }}>
-                No burnout alerts in history. Great work! <Icons.Party size={26}/>
-              </p>
+              <EmptyState
+                small
+                icon={<Icons.Party size={18}/>}
+                title="All clear"
+                body="Nothing has pushed your workload over the limit recently."
+              />
             ) : (
-              burnoutAlerts.map(a => (
-                <div key={a.id} style={{ padding:"9px 11px", borderRadius:9,
-                  background:"var(--bg2)", border:"1px solid var(--br)" }}>
-                  <div style={{ display:"flex", justifyContent:"space-between", marginBottom:3 }}>
-                    <span style={{ fontSize:11, color:"var(--rd-text)", fontWeight:700 }}>Score: {a.score}/100</span>
-                    <span style={{ fontSize:10, color:"var(--tx3)", fontFamily:"var(--font-mono)" }}>{a.date}</span>
+              burnoutAlerts.map(a => {
+                const severe = a.score < 40;
+                return (
+                  <div key={a.id} style={{ padding:"9px 11px", borderRadius:9,
+                    background: severe ? "rgba(239,68,68,0.06)" : "rgba(245,158,11,0.06)",
+                    border:`1px solid ${severe ? "rgba(239,68,68,0.2)" : "rgba(245,158,11,0.2)"}` }}>
+                    <div style={{ display:"flex", justifyContent:"space-between", marginBottom:3 }}>
+                      <span style={{ fontSize:11, color: severe ? "var(--rd-text)" : "var(--am-text)", fontWeight:700 }}>
+                        Score: {a.score}/100
+                      </span>
+                      <span style={{ fontSize:10, color:"var(--tx3)", fontFamily:"var(--font-mono)" }}>{a.date}</span>
+                    </div>
+                    <p style={{ fontSize:11.5, color:"var(--tx2)" }}>{a.message}</p>
                   </div>
-                  <p style={{ fontSize:11.5, color:"var(--tx2)" }}>{a.message}</p>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
-        </div>
+        </section>
 
         {/* Settings */}
-        <div style={{ borderRadius:13, border:"1px solid var(--br)", background:"var(--bg1)", padding:22 }}>
-          <h3 style={{ fontSize:13, fontWeight:700, color:"var(--tx)", marginBottom:18, fontFamily:"var(--font-display)" }}>
-            Autopilot Settings
-          </h3>
-          <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
-            {[
-              { key:"scheduling"     as const, label:"Smart Scheduling",    desc:"AI plans your day based on priorities" },
-              { key:"burnout"        as const, label:"Burnout Detection",   desc:"Monitor workload & alert on overload" },
-              { key:"learning"       as const, label:"Pattern Learning",    desc:"Learn your productivity habits (Pro)" },
-              { key:"autoPrioritize" as const, label:"Auto-Prioritization", desc:"Re-rank tasks when new ones arrive (Pro)" },
-            ].map(s => (
-              <div key={s.key} style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:14 }}>
-                <div style={{ flex:1 }}>
-                  <p style={{ fontSize:13, fontWeight:500, color:"var(--tx)", marginBottom:2 }}>{s.label}</p>
-                  <p style={{ fontSize:11.5, color:"var(--tx3)" }}>{s.desc}</p>
-                </div>
-                <Toggle on={settings[s.key]} onToggle={() => setSettings(prev => ({ ...prev, [s.key]:!prev[s.key] }))}/>
-              </div>
-            ))}
+        <section className="panel panel-lg" style={{ display:"flex", flexDirection:"column" }}>
+          <div className="panel-head">
+            <h3 className="panel-title" style={{ fontSize:13 }}>Autopilot Settings</h3>
           </div>
-        </div>
+          <div style={{ display:"flex", flexDirection:"column" }}>
+            {[
+              { key:"scheduling"     as const, label:"Smart Scheduling",    desc:"AI plans your day based on priorities", icon:<Icons.Zap size={14}/>, pro:false },
+              { key:"burnout"        as const, label:"Burnout Detection",   desc:"Monitor workload & alert on overload",  icon:<Icons.Shield size={14}/>, pro:false },
+              { key:"learning"       as const, label:"Pattern Learning",    desc:"Learn your productivity habits",        icon:<Icons.Brain size={14}/>, pro:true },
+              { key:"autoPrioritize" as const, label:"Auto-Prioritization", desc:"Re-rank tasks when new ones arrive",    icon:<Icons.Target size={14}/>, pro:true },
+            ].map((s, i) => {
+              const locked = s.pro && !isPro;
+              return (
+                <div key={s.key} style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:14,
+                  padding:"13px 0", borderTop: i === 0 ? "none" : "1px solid var(--br)" }}>
+                  <span aria-hidden="true" style={{ width:30, height:30, borderRadius:9, flexShrink:0,
+                    display:"flex", alignItems:"center", justifyContent:"center",
+                    background:"var(--bg2)", border:"1px solid var(--br)", color:"var(--ac-text)" }}>{s.icon}</span>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <p style={{ display:"flex", alignItems:"center", gap:7, fontSize:13, fontWeight:500, color:"var(--tx)", marginBottom:2 }}>
+                      {s.label}
+                      {s.pro && (
+                        <span style={{ display:"flex", alignItems:"center", gap:3, fontSize:9, fontWeight:700,
+                          padding:"1px 6px", borderRadius:100, background:"rgba(245,158,11,0.12)",
+                          color:"var(--am-text)", border:"1px solid rgba(245,158,11,0.25)" }}>
+                          <Icons.Lock size={8}/> PRO
+                        </span>
+                      )}
+                    </p>
+                    <p style={{ fontSize:11.5, color:"var(--tx3)" }}>{s.desc}</p>
+                  </div>
+                  {locked ? (
+                    <button onClick={() => navigate("settings")} className="btn btn-ghost btn-sm" style={{ flexShrink:0 }}>
+                      <Icons.Lock size={11}/> Upgrade
+                    </button>
+                  ) : (
+                    <Toggle
+                      on={settings[s.key]}
+                      onToggle={() => setSettings(prev => ({ ...prev, [s.key]:!prev[s.key] }))}
+                      label={s.label}
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </section>
       </div>
 
       {/* Briefing history */}
       {briefings.length > 1 && (
-        <div style={{ borderRadius:13, border:"1px solid var(--br)", background:"var(--bg1)", padding:22 }}>
-          <h3 style={{ fontSize:13, fontWeight:700, color:"var(--tx)", marginBottom:15, fontFamily:"var(--font-display)" }}>
-            Briefing History
-          </h3>
-          <div style={{ display:"flex", flexDirection:"column", gap:9 }}>
-            {briefings.slice(1).map(b => (
-              <div key={b.id} style={{ display:"flex", alignItems:"center", gap:13, padding:"10px 13px",
-                borderRadius:9, background:"var(--bg2)", border:"1px solid var(--br)" }}>
-                <Icons.Calendar size={13} style={{ color:"var(--tx3)", flexShrink:0 }}/>
-                <div style={{ flex:1 }}>
+        <section className="panel panel-lg">
+          <div className="panel-head">
+            <h3 className="panel-title" style={{ fontSize:13 }}>Briefing History</h3>
+          </div>
+          <div style={{ display:"flex", flexDirection:"column", gap:0, maxHeight:260, overflowY:"auto" }}>
+            {briefings.slice(1).map((b, i) => (
+              <div key={b.id} style={{ display:"flex", gap:12, padding:"9px 2px" }}>
+                <div style={{ display:"flex", flexDirection:"column", alignItems:"center", flexShrink:0, width:13 }}>
+                  <span aria-hidden="true" style={{ width:7, height:7, borderRadius:"50%", background:"var(--ac)", flexShrink:0, marginTop:4 }}/>
+                  {i < briefings.length - 2 && <span aria-hidden="true" style={{ width:1, flex:1, background:"var(--br)", marginTop:4 }}/>}
+                </div>
+                <div style={{ flex:1, minWidth:0, paddingBottom:4 }}>
                   <p style={{ fontSize:12, fontWeight:600, color:"var(--tx)" }}>{b.date}</p>
-                  <p style={{ fontSize:11, color:"var(--tx3)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{b.summary}</p>
+                  <p style={{ fontSize:11, color:"var(--tx3)", overflow:"hidden", textOverflow:"ellipsis",
+                    whiteSpace:"nowrap" }}>{b.summary}</p>
                 </div>
               </div>
             ))}
           </div>
-        </div>
+        </section>
       )}
     </div>
   );
@@ -2077,39 +2327,40 @@ function PageSaved() {
 
 
   return (
-    <div className="fade-up page-pad" style={{ padding:"28px 30px", height:"100%", overflowY:"auto" }}>
-      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:24, flexWrap:"wrap", gap:12 }}>
+    <div className="fade-up page-pad">
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:12 }}>
         <div>
-          <h1 style={{ fontSize:22, fontWeight:800, letterSpacing:"-0.035em", color:"var(--tx)",
-            marginBottom:4, fontFamily:"var(--font-display)" }}>Saved Boards</h1>
-          <p style={{ fontSize:13, color:"var(--tx2)" }}>{savedBoards.length} boards · {folders.length-1} folders</p>
+          {/* h2: the topbar above owns the h1. */}
+          <h2 className="page-title">Saved Boards</h2>
+          <p className="page-sub">{savedBoards.length} boards · {folders.length-1} folders</p>
         </div>
-        <button onClick={() => navigate("board")} className="btn-primary"
-          style={{ height:38, padding:"0 16px", borderRadius:10, background:"var(--ac-solid)",
-            border:"none", color:"#fff", fontSize:13, fontWeight:700, display:"flex", alignItems:"center", gap:7 }}>
+        <button onClick={() => navigate("board")} className="btn btn-primary">
           <Icons.Plus size={13}/> New Board
         </button>
       </div>
 
       {/* Toolbar */}
-      <div style={{ display:"flex", gap:10, marginBottom:18, flexWrap:"wrap" }}>
-        <div style={{ flex:1, minWidth:200, position:"relative" }}>
+      <div style={{ display:"flex", gap:10, flexWrap:"wrap" }}>
+        <div style={{ flex:"1 1 200px", minWidth:0, position:"relative" }}>
           <Icons.Search size={13} style={{ position:"absolute", left:12, top:"50%",
-            transform:"translateY(-50%)", color:"var(--tx3)" }}/>
+            transform:"translateY(-50%)", color:"var(--tx3)", pointerEvents:"none" }}/>
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search boards..."
+            aria-label="Search saved boards"
             className="input-focus"
-            style={{ width:"100%", background:"var(--bg1)", border:"1px solid var(--br)", borderRadius:9,
+            style={{ width:"100%", background:"var(--bg1)", border:"1px solid var(--br)", borderRadius:"var(--radius-sm)",
               padding:"8px 12px 8px 34px", fontSize:13, color:"var(--tx)" }}/>
         </div>
-        <div style={{ display:"flex", gap:3, background:"var(--bg1)", border:"1px solid var(--br)",
-          borderRadius:9, padding:4 }}>
+        <div role="group" aria-label="Layout"
+          style={{ display:"flex", gap:3, background:"var(--bg1)", border:"1px solid var(--br)",
+            borderRadius:"var(--radius-sm)", padding:4 }}>
           {(["grid","list"] as const).map(v => (
             <button key={v} onClick={() => setView(v)}
-              style={{ width:32, height:32, borderRadius:7, border:"none",
+              aria-pressed={view === v}
+              aria-label={v === "grid" ? "Grid layout" : "List layout"}
+              className="btn btn-icon btn-sm"
+              style={{ borderColor:"transparent",
                 background: view === v ? "var(--bg2)" : "transparent",
-                color: view === v ? "var(--tx)" : "var(--tx3)",
-                cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center",
-                transition:"all .15s" }}>
+                color: view === v ? "var(--tx)" : "var(--tx3)" }}>
               {v === "grid" ? <Icons.Overview size={13}/> : <Icons.Board size={13}/>}
             </button>
           ))}
@@ -2117,15 +2368,18 @@ function PageSaved() {
       </div>
 
       {/* Folder tabs */}
-      <div style={{ display:"flex", gap:6, marginBottom:22, flexWrap:"wrap" }}>
+      <div role="group" aria-label="Filter by folder"
+        style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
         {folders.map(f => (
           <button key={f} onClick={() => setActiveFolder(f)}
-            style={{ padding:"5px 14px", borderRadius:8,
-              border:`1px solid ${activeFolder === f ? "var(--ac)" : "var(--br)"}`,
+            aria-pressed={activeFolder === f}
+            className="btn btn-sm"
+            style={{
+              borderColor: activeFolder === f ? "var(--ac)" : "var(--br)",
               background: activeFolder === f ? "var(--as)" : "transparent",
               color: activeFolder === f ? "var(--ac)" : "var(--tx2)",
-              fontSize:12, fontWeight: activeFolder === f ? 700 : 400,
-              cursor:"pointer", display:"flex", alignItems:"center", gap:6, transition:"all .15s" }}>
+              fontWeight: activeFolder === f ? 700 : 400,
+            }}>
             {f !== "All" && <Icons.Folder size={11}/>}{f}
             <span style={{ fontSize:10, color: activeFolder === f ? "var(--ac)" : "var(--tx3)",
               fontFamily:"var(--font-mono)" }}>
@@ -2136,121 +2390,123 @@ function PageSaved() {
       </div>
 
       {filtered.length === 0 && (
-        <div style={{ textAlign:"center", padding:"60px 24px" }}>
-          <Icons.Saved size={30} style={{ color:"var(--tx3)", display:"block", margin:"0 auto 14px" }}/>
-          <p style={{ fontSize:14, color:"var(--tx2)", marginBottom:6, fontWeight:600 }}>No boards found</p>
-          <p style={{ fontSize:12, color:"var(--tx3)" }}>Save a board from the Board page, or create a new one.</p>
+        /* One empty state, and it names which of the two ways the list came
+           out empty so the guidance is actionable either way. */
+        <div className="panel" style={{ padding:0 }}>
+          <EmptyState
+            icon={<Icons.Saved size={22}/>}
+            title={savedBoards.length === 0 ? "No saved boards yet" : "No boards match that"}
+            body={savedBoards.length === 0
+              ? "Save the board you are working on and it will appear here to reopen in one click."
+              : "Clear the search or pick a different folder to see your other boards."}
+            action={savedBoards.length === 0
+              ? <button onClick={() => navigate("board")} className="btn btn-primary btn-sm">
+                  <Icons.Plus size={12}/> New Board
+                </button>
+              : <button onClick={() => { setSearch(""); setActiveFolder("All"); }}
+                  className="btn btn-ghost btn-sm">
+                  Clear filters
+                </button>}
+          />
         </div>
       )}
 
       {exportError && (
         <div role="alert"
-          style={{ marginBottom:16, padding:"10px 13px", borderRadius:10, display:"flex",
+          style={{ padding:"10px 13px", borderRadius:"var(--radius-md)", display:"flex",
             alignItems:"center", gap:9, fontSize:12.5,
             background:"rgba(239,68,68,0.08)", border:"1px solid rgba(239,68,68,0.25)", color:"var(--rd-text)" }}>
-          <Icons.Alert size={13}/>
-          <span style={{ flex:1 }}>{exportError}</span>
+          <Icons.Alert size={13} style={{ flexShrink:0 }}/>
+          <span style={{ flex:1, minWidth:0 }}>{exportError}</span>
           <button onClick={() => setExportError(null)} aria-label="Dismiss export error"
-            style={{ border:"none", background:"transparent", color:"var(--rd-text)", cursor:"pointer",
-              display:"flex", alignItems:"center" }}>
+            className="btn btn-ghost btn-icon"
+            style={{ borderColor:"rgba(239,68,68,0.3)", color:"var(--rd-text)" }}>
             <Icons.X size={13}/>
           </button>
         </div>
       )}
 
       {view === "grid" ? (
-        <div className="saved-grid" style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(235px,1fr))", gap:13 }}>
+        <div className="saved-grid" style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(min(235px,100%),1fr))", gap:13 }}>
           {filtered.map(b => (
-            <div key={b.id} className="card"
-              style={{ borderRadius:14, border:"1px solid var(--br)", background:"var(--bg1)", padding:20 }}>
-              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:13 }}>
-                <div style={{ width:36, height:36, borderRadius:9, background:"var(--as)",
-                  display:"flex", alignItems:"center", justifyContent:"center", color:"var(--ac-text)" }}>
+            <div key={b.id} className="card panel panel-lg">
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:13, gap:8 }}>
+                <span aria-hidden="true" style={{ width:36, height:36, borderRadius:"var(--radius-sm)", background:"var(--as)",
+                  display:"flex", alignItems:"center", justifyContent:"center", color:"var(--ac-text)", flexShrink:0 }}>
                   <Icons.Layers size={15}/>
-                </div>
+                </span>
                 <span style={{ fontSize:10, padding:"2px 9px", borderRadius:100,
-                  background:"var(--bg2)", border:"1px solid var(--br)", color:"var(--tx3)" }}>{b.folder}</span>
+                  background:"var(--bg2)", border:"1px solid var(--br)", color:"var(--tx3)",
+                  minWidth:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{b.folder}</span>
               </div>
               {renamingId === b.id ? (
                 <input value={renameVal} onChange={e => setRenameVal(e.target.value)} autoFocus
+                  aria-label={`Rename ${b.name}`}
                   onKeyDown={e => { if(e.key==="Enter") renameBoard(b.id); if(e.key==="Escape"){setRenamingId(null);setRenameVal("");} }}
                   onBlur={() => renameBoard(b.id)}
                   className="input-focus"
                   style={{ width:"100%", background:"var(--inp)", border:"1px solid var(--ac)",
-                    borderRadius:7, padding:"6px 9px", fontSize:13, color:"var(--tx)", marginBottom:4 }}/>
+                    borderRadius:"var(--radius-sm)", padding:"6px 9px", fontSize:13, color:"var(--tx)", marginBottom:4 }}/>
               ) : (
                 <p style={{ fontSize:13.5, fontWeight:700, color:"var(--tx)", marginBottom:4,
-                  lineHeight:1.35, fontFamily:"var(--font-display)" }}>{b.name}</p>
+                  lineHeight:1.35, fontFamily:"var(--font-display)", overflowWrap:"anywhere" }}>{b.name}</p>
               )}
               <p style={{ fontSize:11, color:"var(--tx3)", marginBottom:16, fontFamily:"var(--font-mono)" }}>
                 {b.taskCount} tasks · {b.lastEdited}
               </p>
               {movingId === b.id && (
-                <div style={{ marginBottom:11, padding:"9px", borderRadius:9,
+                <div style={{ marginBottom:11, padding:"9px", borderRadius:"var(--radius-sm)",
                   background:"var(--bg2)", border:"1px solid var(--br)" }}>
-                  <p style={{ fontSize:10.5, color:"var(--tx3)", marginBottom:7, fontWeight:600 }}>Move to folder:</p>
+                  <p id={`move-label-${b.id}`} style={{ fontSize:10.5, color:"var(--tx3)", marginBottom:7, fontWeight:600 }}>Move to folder:</p>
                   {folders.filter(f => f !== "All" && f !== b.folder).map(f => (
                     <button key={f} onClick={() => moveBoard(b.id, f)}
-                      style={{ display:"block", width:"100%", padding:"5px 9px", borderRadius:6,
-                        border:"none", background:"transparent", color:"var(--tx2)", fontSize:12,
-                        textAlign:"left", cursor:"pointer", marginBottom:2, transition:"all .12s" }}
-                      onMouseOver={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--bg3)"; }}
-                      onMouseOut={e =>  { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}>
+                      className="btn btn-quiet btn-sm"
+                      style={{ display:"flex", width:"100%", marginBottom:2, justifyContent:"flex-start" }}>
                       {f}
                     </button>
                   ))}
                 </div>
               )}
-              <div style={{ display:"flex", gap:7 }}>
-                <button onClick={() => openBoard(b)}
-                  style={{ flex:1, padding:"8px", borderRadius:8, border:"1px solid var(--br)",
-                    background:"transparent", color:"var(--tx2)", fontSize:11.5, cursor:"pointer",
-                    fontWeight:500, transition:"all .15s" }}
-                  onMouseOver={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--ac)"; (e.currentTarget as HTMLButtonElement).style.color = "var(--ac)"; }}
-                  onMouseOut={e  => { (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--br)"; (e.currentTarget as HTMLButtonElement).style.color = "var(--tx2)"; }}>
+              {/* Five controls in one row. On a 375px screen the Open button
+                  was left with about 40px, so the row wraps and each control
+                  keeps a full target. */}
+              <div className="card-actions" style={{ display:"flex", gap:7, flexWrap:"wrap" }}>
+                <button onClick={() => openBoard(b)} className="btn btn-ghost btn-sm" style={{ flex:"1 1 90px" }}>
                   Open
                 </button>
                 <button
                   onClick={() => setExportMenuId(exportMenuId === b.id ? null : b.id)}
                   disabled={exportingId === b.id}
-                  title="Export board"
-                  aria-label={`Export ${b.name}`}
-                  style={{ width:32, borderRadius:8, border:"1px solid var(--br)",
-                    background:"transparent", color:"var(--tx3)", cursor:"pointer",
-                    display:"flex", alignItems:"center", justifyContent:"center",
-                    opacity: exportingId === b.id ? 0.5 : 1, transition:"all .15s" }}>
-                  {exportingId === b.id
-                    ? <span className="spin" style={{ width:11, height:11, borderRadius:"50%",
-                        border:"2px solid rgba(99,102,241,0.3)", borderTopColor:"var(--ac)" }}/>
-                    : <Icons.Download size={12}/>}
+                  aria-expanded={exportMenuId === b.id}
+                  aria-haspopup="menu"
+                  className="btn btn-ghost btn-icon btn-sm"
+                  aria-label={`Export ${b.name}`}>
+                  {exportingId === b.id ? <Spinner size={11}/> : <Icons.Download size={12}/>}
                 </button>
                 {[
-                  { icon:<Icons.Edit size={12}/>, onClick:()=>{setRenamingId(b.id);setRenameVal(b.name);} },
-                  { icon:<Icons.MoveFolder size={12}/>, onClick:()=>setMovingId(movingId===b.id?null:b.id) },
-                  { icon:<Icons.Trash size={12}/>, onClick:()=>deleteBoard(b.id), danger:true },
+                  { icon:<Icons.Edit size={12}/>, label:`Rename ${b.name}`,
+                    onClick:()=>{setRenamingId(b.id);setRenameVal(b.name);} },
+                  { icon:<Icons.MoveFolder size={12}/>, label:`Move ${b.name} to another folder`,
+                    onClick:()=>setMovingId(movingId===b.id?null:b.id) },
+                  { icon:<Icons.Trash size={12}/>, label:`Delete ${b.name}`, danger:true,
+                    onClick:()=>deleteBoard(b.id) },
                 ].map((btn, i) => (
                   <button key={i} onClick={btn.onClick}
-                    style={{ width:32, borderRadius:8,
-                      border:`1px solid ${btn.danger ? "rgba(239,68,68,0.2)" : "var(--br)"}`,
-                      background:"transparent", color: btn.danger ? "var(--rd)" : "var(--tx3)",
-                      cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center",
-                      transition:"all .15s" }}>
+                    aria-label={btn.label}
+                    className={`btn btn-icon btn-sm ${btn.danger ? "btn-danger" : "btn-ghost"}`}>
                     {btn.icon}
                   </button>
                 ))}
               </div>
               {exportMenuId === b.id && (
-                <div role="menu" aria-label="Export format"
-                  style={{ marginTop:9, padding:"5px", borderRadius:9,
+                <div role="menu" aria-label={`Export format for ${b.name}`}
+                  style={{ marginTop:9, padding:"5px", borderRadius:"var(--radius-sm)",
                     background:"var(--bg2)", border:"1px solid var(--br)" }}>
                   {(["docx","pdf"] as const).map(f => (
                     <button key={f} role="menuitem"
                       onClick={() => { setExportMenuId(null); exportBoard(b.id, f); }}
-                      style={{ display:"block", width:"100%", padding:"6px 10px", borderRadius:6,
-                        border:"none", background:"transparent", color:"var(--tx2)", fontSize:12,
-                        textAlign:"left", cursor:"pointer", transition:"all .12s" }}
-                      onMouseOver={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--bg3)"; }}
-                      onMouseOut={e =>  { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}>
+                      className="btn btn-quiet btn-sm"
+                      style={{ display:"flex", width:"100%", justifyContent:"flex-start" }}>
                       {f === "docx" ? "Word document (.docx)" : "PDF document (.pdf)"}
                     </button>
                   ))}
@@ -2262,20 +2518,19 @@ function PageSaved() {
       ) : (
         <div style={{ display:"flex", flexDirection:"column", gap:3 }}>
           {filtered.map(b => (
-            <div key={b.id} style={{ display:"flex", alignItems:"center", gap:13, padding:"12px 14px",
-              borderRadius:10, border:"1px solid transparent", cursor:"pointer", transition:"all .15s" }}
-              onMouseOver={e => { (e.currentTarget as HTMLDivElement).style.background = "var(--bg1)"; (e.currentTarget as HTMLDivElement).style.borderColor = "var(--br)"; }}
-              onMouseOut={e =>  { (e.currentTarget as HTMLDivElement).style.background = "transparent"; (e.currentTarget as HTMLDivElement).style.borderColor = "transparent"; }}>
-              <div style={{ width:32, height:32, borderRadius:8, background:"var(--as)",
+            <div key={b.id} className="saved-row" style={{ display:"flex", alignItems:"center", gap:13,
+              padding:"12px 14px", minWidth:0 }}>
+              <span aria-hidden="true" style={{ width:32, height:32, borderRadius:"var(--radius-sm)", background:"var(--as)",
                 display:"flex", alignItems:"center", justifyContent:"center", color:"var(--ac-text)", flexShrink:0 }}>
                 <Icons.Layers size={13}/>
-              </div>
+              </span>
               {renamingId === b.id ? (
                 <input value={renameVal} onChange={e => setRenameVal(e.target.value)} autoFocus
+                  aria-label={`Rename ${b.name}`}
                   onKeyDown={e => { if(e.key==="Enter") renameBoard(b.id); if(e.key==="Escape"){setRenamingId(null);setRenameVal("");} }}
                   onBlur={() => renameBoard(b.id)} className="input-focus"
-                  style={{ flex:1, background:"var(--inp)", border:"1px solid var(--ac)",
-                    borderRadius:6, padding:"5px 9px", fontSize:13, color:"var(--tx)" }}/>
+                  style={{ flex:1, minWidth:0, background:"var(--inp)", border:"1px solid var(--ac)",
+                    borderRadius:"var(--radius-sm)", padding:"5px 9px", fontSize:13, color:"var(--tx)" }}/>
               ) : (
                 <div style={{ flex:1, minWidth:0 }}>
                   <p style={{ fontSize:13, fontWeight:600, color:"var(--tx)", overflow:"hidden",
@@ -2286,23 +2541,17 @@ function PageSaved() {
                 </div>
               )}
               <div style={{ display:"flex", gap:6, flexShrink:0 }}>
-                <button onClick={() => openBoard(b)}
-                  style={{ fontSize:11.5, padding:"4px 10px", borderRadius:7, border:"1px solid var(--br)",
-                    background:"transparent", color:"var(--tx2)", cursor:"pointer", transition:"all .15s" }}
-                  onMouseOver={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--ac)"; (e.currentTarget as HTMLButtonElement).style.color = "var(--ac)"; }}
-                  onMouseOut={e  => { (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--br)"; (e.currentTarget as HTMLButtonElement).style.color = "var(--tx2)"; }}>
+                <button onClick={() => openBoard(b)} className="btn btn-ghost btn-sm">
                   Open
                 </button>
                 <button onClick={() => { setRenamingId(b.id); setRenameVal(b.name); }}
-                  style={{ width:30, height:30, borderRadius:7, border:"1px solid var(--br)",
-                    background:"transparent", color:"var(--tx3)", cursor:"pointer",
-                    display:"flex", alignItems:"center", justifyContent:"center" }}>
+                  aria-label={`Rename ${b.name}`}
+                  className="btn btn-ghost btn-icon btn-sm">
                   <Icons.Edit size={12}/>
                 </button>
                 <button onClick={() => deleteBoard(b.id)}
-                  style={{ width:30, height:30, borderRadius:7, border:"1px solid rgba(239,68,68,0.2)",
-                    background:"transparent", color:"var(--rd-text)", cursor:"pointer",
-                    display:"flex", alignItems:"center", justifyContent:"center" }}>
+                  aria-label={`Delete ${b.name}`}
+                  className="btn btn-danger btn-icon btn-sm">
                   <Icons.Trash size={12}/>
                 </button>
               </div>
@@ -2389,23 +2638,33 @@ function PageSettings({ theme, toggleTheme }: { theme: Theme; toggleTheme: () =>
       </div>
 
       <div className="settings-grid" style={{ display:"grid", gridTemplateColumns:"1fr", gap:12 }}>
-        {/* Tabs */}
-        <div className="settings-tabs" style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:8 }}>
+        {/* Tabs. A real tablist, so the active tab is announced and the arrow
+            keys mean what they say. The previous grid had four columns for six
+            tabs, which overflowed below 768px and dropped the last tab out of
+            the row entirely. */}
+        <div className="settings-tabs" role="tablist" aria-label="Settings sections"
+          style={{ display:"grid", gridTemplateColumns:"repeat(6,minmax(0,1fr))", gap:8 }}>
           {tabs.map(t => (
             <button key={t.key} onClick={() => setTab(t.key)} className="nav-btn"
-              data-active={tab === t.key ? "true" : "false"}
-              style={{ padding:"12px 10px", borderRadius:12, border: tab === t.key ? "2px solid var(--ac)" : "1.5px solid var(--br)",
+              role="tab"
+              id={`settings-tab-${t.key}`}
+              aria-selected={tab === t.key}
+              aria-controls="settings-panel"
+              tabIndex={tab === t.key ? 0 : -1}
+              style={{ padding:"12px 8px", borderRadius:"var(--radius-md)", minWidth:0,
+                border: `1.5px solid ${tab === t.key ? "var(--ac)" : "var(--br)"}`,
                 background: tab === t.key ? "rgba(99,102,241,0.08)" : "var(--bg2)",
                 color: tab === t.key ? "var(--ac)" : "var(--tx2)",
                 fontSize:12, fontWeight: tab === t.key ? 700 : 500,
-                cursor:"pointer", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:6,
+                display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:6,
                 whiteSpace:"nowrap", transition:"all 0.2s ease", position:"relative" }}>
-              <span style={{ color: tab === t.key ? "var(--ac)" : "var(--tx3)", display:"flex", alignItems:"center", justifyContent:"center" }}>{t.icon}</span>
-              <span style={{ fontSize:11, lineHeight:1.2, textAlign:"center" }}>{t.label}</span>
+              <span aria-hidden="true" style={{ color: tab === t.key ? "var(--ac)" : "var(--tx3)", display:"flex", alignItems:"center", justifyContent:"center" }}>{t.icon}</span>
+              <span style={{ fontSize:11, lineHeight:1.2, textAlign:"center", overflow:"hidden",
+                textOverflow:"ellipsis", maxWidth:"100%" }}>{t.label}</span>
               {(t.key === "data") && (
                 <span style={{
-                  fontSize:8, fontWeight:700, color:"var(--am-text)", background:"rgba(245,158,11,0.15)",
-                  border:"0.5px solid rgba(245,158,11,0.3)", padding:"1px 5px", borderRadius:99,
+                  fontSize:9, fontWeight:700, color:"var(--am-text)", background:"rgba(245,158,11,0.15)",
+                  border:"1px solid rgba(245,158,11,0.3)", padding:"1px 5px", borderRadius:99,
                   letterSpacing:"0.05em", textTransform:"uppercase", marginTop:2
                 }}>Soon</span>
               )}
@@ -2414,7 +2673,9 @@ function PageSettings({ theme, toggleTheme }: { theme: Theme; toggleTheme: () =>
         </div>
 
         {/* Panel */}
-        <div className="settings-panel" style={{ borderRadius:14, border:"1px solid var(--br)", background:"var(--bg1)", padding:26 }}>
+        <div className="settings-panel" id="settings-panel" role="tabpanel"
+          aria-labelledby={`settings-tab-${tab}`} tabIndex={-1}
+          style={{ borderRadius:"var(--radius-lg)", border:"1px solid var(--br)", background:"var(--bg1)", padding:26 }}>
           {tab === "profile" && (
             <div>
               <h3 style={{ fontSize:15, fontWeight:800, color:"var(--tx)", marginBottom:4, fontFamily:"var(--font-display)" }}>Profile</h3>
@@ -2434,38 +2695,26 @@ function PageSettings({ theme, toggleTheme }: { theme: Theme; toggleTheme: () =>
                 </div>
               </div>
               <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
-                <div>
-                  <label style={{ fontSize:12, fontWeight:600, color:"var(--tx2)", display:"block", marginBottom:7 }}>Full Name</label>
-                  <input value={profileName} onChange={e => setProfileName(e.target.value)}
+                <Field id="profile-name" label="Full Name">
+                  <input id="profile-name" value={profileName} onChange={e => setProfileName(e.target.value)}
                     className="input-focus"
                     style={{ width:"100%", background:"var(--inp)", border:"1px solid var(--br)",
-                      borderRadius:9, padding:"10px 13px", fontSize:13, color:"var(--tx)" }}/>
-                </div>
-                <div>
-                  <label style={{ fontSize:12, fontWeight:600, color:"var(--tx2)", display:"block", marginBottom:7 }}>Email</label>
-                  <input defaultValue={user?.email} type="email" readOnly
+                      borderRadius:"var(--radius-sm)", padding:"10px 13px", fontSize:13, color:"var(--tx)" }}/>
+                </Field>
+                <Field id="profile-email" label="Email" hint="Email cannot be changed">
+                  <input id="profile-email" defaultValue={user?.email} type="email" readOnly
+                    aria-describedby="profile-email-hint"
+                    className="input-focus"
                     style={{ width:"100%", background:"var(--inp)", border:"1px solid var(--br)",
-                      borderRadius:9, padding:"10px 13px", fontSize:13, color:"var(--tx2)", opacity:.7 }}/>
-                  <p style={{ fontSize:11, color:"var(--tx3)", marginTop:4 }}>Email cannot be changed</p>
-                </div>
+                      borderRadius:"var(--radius-sm)", padding:"10px 13px", fontSize:13, color:"var(--tx2)", opacity:.7 }}/>
+                </Field>
                 <div style={{ display:"flex", gap:10, flexWrap:"wrap" }}>
-                  <button onClick={handleSaveProfile} disabled={saving} className="btn-primary"
-                    style={{ flex:"1 1 auto", minWidth:"140px", height:38, padding:"0 18px", borderRadius:9,
-                      background:"var(--ac-solid)", border:"none", color:"#fff", fontSize:13, fontWeight:700,
-                      display:"flex", alignItems:"center", justifyContent:"center", gap:8 }}>
-                    {saving
-                      ? <><div className="spin" style={{ width:12, height:12, borderRadius:"50%",
-                          border:"2px solid rgba(255,255,255,.3)", borderTopColor:"#fff" }}/> Saving...</>
-                      : "Save Changes"
-                    }
+                  <button onClick={handleSaveProfile} disabled={saving} className="btn btn-primary"
+                    style={{ flex:"1 1 140px" }}>
+                    {saving ? <><Spinner size={12}/> Saving...</> : "Save Changes"}
                   </button>
-                  <button onClick={handleSignOut}
-                    style={{ flex:"1 1 auto", minWidth:"140px", height:38, padding:"0 18px", borderRadius:9,
-                      border:"1px solid var(--br)", background:"transparent",
-                      color:"var(--tx2)", fontSize:13, fontWeight:600, cursor:"pointer",
-                      display:"flex", alignItems:"center", justifyContent:"center", gap:8, transition:"background .15s, color .15s" }}
-                    onMouseOver={e => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(239,68,68,0.07)"; (e.currentTarget as HTMLButtonElement).style.color = "var(--rd)"; }}
-                    onMouseOut={e =>  { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; (e.currentTarget as HTMLButtonElement).style.color = "var(--tx2)"; }}>
+                  <button onClick={handleSignOut} className="btn btn-danger"
+                    style={{ flex:"1 1 140px" }}>
                     <Icons.Logout size={13}/> Sign Out
                   </button>
                 </div>
@@ -2479,27 +2728,24 @@ function PageSettings({ theme, toggleTheme }: { theme: Theme; toggleTheme: () =>
               <p style={{ fontSize:12.5, color:"var(--tx2)", marginBottom:22 }}>Update your password</p>
               <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
                 {[
-                  { label:"New Password", value:newPassword, onChange:(v:string)=>setNewPassword(v) },
-                  { label:"Confirm Password", value:confirmPassword, onChange:(v:string)=>setConfirmPassword(v) },
+                  { id:"new-password", label:"New Password", value:newPassword, onChange:setNewPassword },
+                  { id:"confirm-password", label:"Confirm Password", value:confirmPassword, onChange:setConfirmPassword },
                 ].map(f => (
-                  <div key={f.label}>
-                    <label style={{ fontSize:12, fontWeight:600, color:"var(--tx2)", display:"block", marginBottom:7 }}>{f.label}</label>
-                    <input type="password" value={f.value} onChange={e => f.onChange(e.target.value)}
-                      placeholder={`Enter ${f.label.toLowerCase()}`} className="input-focus"
+                  <Field key={f.id} id={f.id} label={f.label}>
+                    <input id={f.id} type="password" value={f.value} onChange={e => f.onChange(e.target.value)}
+                      autoComplete={f.id === "new-password" ? "new-password" : "new-password"}
+                      className="input-focus"
                       style={{ width:"100%", background:"var(--inp)", border:"1px solid var(--br)",
-                        borderRadius:9, padding:"10px 13px", fontSize:13, color:"var(--tx)" }}/>
-                  </div>
+                        borderRadius:"var(--radius-sm)", padding:"10px 13px", fontSize:13, color:"var(--tx)" }}/>
+                  </Field>
                 ))}
-                {pwError && <p style={{ fontSize:12, color:"var(--rd-text)" }}>{pwError}</p>}
-                {pwSuccess && <p style={{ fontSize:12, color:"var(--gr-text)" }}>Password updated successfully.</p>}
-                <button onClick={handleChangePassword} disabled={pwSaving} className="btn-primary"
-                  style={{ alignSelf:"flex-start", height:38, padding:"0 18px", borderRadius:9,
-                    background:"var(--ac-solid)", border:"none", color:"#fff", fontSize:13, fontWeight:700,
-                    display:"flex", alignItems:"center", gap:8 }}>
-                  {pwSaving
-                    ? <><div className="spin" style={{ width:12, height:12, borderRadius:"50%", border:"2px solid rgba(255,255,255,.3)", borderTopColor:"#fff" }}/> Saving...</>
-                    : "Change Password"
-                  }
+                {/* Announced on change, so the result of the submit is not a
+                    silent colour change in the corner of the panel. */}
+                {pwError && <p role="alert" style={{ fontSize:12, color:"var(--rd-text)" }}>{pwError}</p>}
+                {pwSuccess && <p role="status" style={{ fontSize:12, color:"var(--gr-text)" }}>Password updated successfully.</p>}
+                <button onClick={handleChangePassword} disabled={pwSaving} className="btn btn-primary"
+                  style={{ alignSelf:"flex-start" }}>
+                  {pwSaving ? <><Spinner size={12}/> Saving...</> : "Change Password"}
                 </button>
               </div>
             </div>
@@ -2509,7 +2755,7 @@ function PageSettings({ theme, toggleTheme }: { theme: Theme; toggleTheme: () =>
             <div>
               <h3 style={{ fontSize:15, fontWeight:800, color:"var(--tx)", marginBottom:4, fontFamily:"var(--font-display)" }}>Billing</h3>
               <p style={{ fontSize:12.5, color:"var(--tx2)", marginBottom:22 }}>Manage your subscription</p>
-              <div className="settings-billing-row" style={{ borderRadius:12, border:"1px solid var(--br)", padding:"18px", marginBottom:16,
+              <div className="settings-billing-row" style={{ borderRadius:"var(--radius-md)", border:"1px solid var(--br)", padding:"18px",
                 display:"flex", alignItems:"center", gap:16, flexWrap:"wrap" }}>
                 <div style={{ flex:1, minWidth:0 }}>
                   <p style={{ fontSize:14, fontWeight:700, color:"var(--tx)", fontFamily:"var(--font-display)" }}>
@@ -2520,13 +2766,11 @@ function PageSettings({ theme, toggleTheme }: { theme: Theme; toggleTheme: () =>
                   </p>
                 </div>
                 {user?.plan !== "pro" && (
-                  <button className="btn-primary" onClick={async () => {
+                  <button className="btn btn-primary btn-sm" onClick={async () => {
                     const res = await fetch('/api/stripe/checkout', { method: 'POST' });
                     const data = await res.json();
                     if (data.url) window.location.href = data.url;
-                  }}
-                    style={{ height:36, padding:"0 16px", borderRadius:9, background:"var(--ac-solid)",
-                      border:"none", color:"#fff", fontSize:12, fontWeight:700, flexShrink:0, whiteSpace:"nowrap" }}>
+                  }}>
                     Upgrade to Pro · $9/mo
                   </button>
                 )}
@@ -2539,15 +2783,16 @@ function PageSettings({ theme, toggleTheme }: { theme: Theme; toggleTheme: () =>
               <h3 style={{ fontSize:15, fontWeight:800, color:"var(--tx)", marginBottom:4, fontFamily:"var(--font-display)" }}>Appearance</h3>
               <p style={{ fontSize:12.5, color:"var(--tx2)", marginBottom:22 }}>Customize how Kanbi looks</p>
               <div className="settings-appearance-row" style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"16px 18px",
-                borderRadius:11, border:"1px solid var(--br)", background:"var(--bg2)" }}>
+                borderRadius:"var(--radius-md)", border:"1px solid var(--br)", background:"var(--bg2)", gap:12 }}>
                 <div>
                   <p style={{ fontSize:13.5, fontWeight:500, color:"var(--tx)", marginBottom:3 }}>Theme</p>
+                  {/* theme is read from the store only to label this control.
+                      The colours themselves come from CSS, which is what keeps
+                      the toggle from repainting the page on the first render. */}
                   <p style={{ fontSize:11.5, color:"var(--tx3)" }}>{theme === "dark" ? "Dark mode" : "Light mode"} · auto-detects system</p>
                 </div>
-                <button onClick={toggleTheme} className="ghost"
-                  style={{ height:36, padding:"0 16px", borderRadius:9, border:"1px solid var(--br)",
-                    background:"var(--bg3)", color:"var(--tx)", fontSize:13, cursor:"pointer",
-                    display:"flex", alignItems:"center", gap:8 }}>
+                <button onClick={toggleTheme} className="btn btn-quiet"
+                  aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}>
                   {theme === "dark" ? <><Icons.Sun size={14}/> Light</> : <><Icons.Moon size={14}/> Dark</>}
                 </button>
               </div>
@@ -2558,25 +2803,23 @@ function PageSettings({ theme, toggleTheme }: { theme: Theme; toggleTheme: () =>
             <div>
               <h3 style={{ fontSize:15, fontWeight:800, color:"var(--rd-text)", marginBottom:4, fontFamily:"var(--font-display)" }}>Danger Zone</h3>
               <p style={{ fontSize:12.5, color:"var(--tx2)", marginBottom:22 }}>These actions are permanent and cannot be undone.</p>
-              <div style={{ borderRadius:11, border:"1px solid rgba(239,68,68,0.22)",
+              <div style={{ borderRadius:"var(--radius-md)", border:"1px solid rgba(239,68,68,0.22)",
                 background:"rgba(239,68,68,0.04)", padding:"20px 22px" }}>
                 <p style={{ fontSize:13.5, fontWeight:700, color:"var(--rd-text)", marginBottom:6 }}>Delete Account</p>
                 <p style={{ fontSize:12.5, color:"var(--tx2)", marginBottom:16, lineHeight:1.65 }}>
                   Permanently deletes your account, all boards, and all data. Type <strong>DELETE</strong> to confirm.
                 </p>
-                <input value={deleteConfirm} onChange={e => setDeleteConfirm(e.target.value)}
-                  placeholder='Type DELETE to confirm' className="input-focus"
-                  style={{ width:"100%", background:"var(--inp)", border:"1px solid rgba(239,68,68,0.3)",
-                    borderRadius:9, padding:"10px 13px", fontSize:13, color:"var(--tx)", marginBottom:14 }}/>
+                <Field id="delete-confirm" label="Type DELETE to confirm">
+                  <input id="delete-confirm" value={deleteConfirm} onChange={e => setDeleteConfirm(e.target.value)}
+                    className="input-focus"
+                    style={{ width:"100%", background:"var(--inp)", border:"1px solid rgba(239,68,68,0.3)",
+                      borderRadius:"var(--radius-sm)", padding:"10px 13px", fontSize:13, color:"var(--tx)", marginBottom:14 }}/>
+                </Field>
                 <button onClick={handleDeleteAccount}
                   disabled={deleteConfirm !== "DELETE" || deleting}
-                  style={{ height:36, padding:"0 16px", borderRadius:9,
-                    border:"1px solid var(--rd)", background: deleteConfirm === "DELETE" ? "rgba(239,68,68,0.12)" : "transparent",
-                    color:"var(--rd-text)", fontSize:13, fontWeight:700, cursor: deleteConfirm === "DELETE" ? "pointer" : "not-allowed",
-                    opacity: deleteConfirm === "DELETE" ? 1 : 0.5, transition:"all .15s",
-                    display:"flex", alignItems:"center", gap:8 }}>
+                  className="btn btn-danger">
                   {deleting
-                    ? <><div className="spin" style={{ width:12, height:12, borderRadius:"50%", border:"2px solid rgba(239,68,68,.3)", borderTopColor:"var(--rd)" }}/> Deleting...</>
+                    ? <><Spinner size={12} tone="onFill"/> Deleting...</>
                     : "Delete My Account"
                   }
                 </button>
@@ -2590,48 +2833,44 @@ function PageSettings({ theme, toggleTheme }: { theme: Theme; toggleTheme: () =>
               <p style={{ fontSize:12.5, color:"var(--tx2)", marginBottom:22 }}>Export and manage your data</p>
 
               {savedBoards.length === 0 ? (
-                <div style={{ borderRadius:12, border:"1px solid var(--br)", background:"var(--bg2)", padding:"24px", textAlign:"center" }}>
-                  <div style={{ marginBottom:12, display:"flex", justifyContent:"center" }}><Icons.Download size={30} style={{ color:"var(--tx3)" }}/></div>
-                  <p style={{ fontSize:13.5, fontWeight:600, color:"var(--tx)", marginBottom:6 }}>No saved boards yet</p>
-                  <p style={{ fontSize:12, color:"var(--tx3)" }}>Save a board from the Board page, then export it here as DOCX or PDF.</p>
+                <div style={{ borderRadius:"var(--radius-md)", border:"1px solid var(--br)", background:"var(--bg2)", padding:0 }}>
+                  <EmptyState
+                    icon={<Icons.Download size={22}/>}
+                    title="No saved boards yet"
+                    body="Save a board from the Board page, then export it here as DOCX or PDF."
+                  />
                 </div>
               ) : (
                 <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
                   {settingsExportError && (
                     <div role="alert"
-                      style={{ padding:"9px 12px", borderRadius:9, display:"flex", alignItems:"center", gap:8,
+                      style={{ padding:"9px 12px", borderRadius:"var(--radius-sm)", display:"flex", alignItems:"center", gap:8,
                         fontSize:12, background:"rgba(239,68,68,0.08)",
                         border:"1px solid rgba(239,68,68,0.25)", color:"var(--rd-text)" }}>
-                      <Icons.Alert size={12}/>
-                      <span style={{ flex:1 }}>{settingsExportError}</span>
+                      <Icons.Alert size={12} style={{ flexShrink:0 }}/>
+                      <span style={{ flex:1, minWidth:0 }}>{settingsExportError}</span>
                     </div>
                   )}
                   {savedBoards.map(b => (
                     <div key={b.id}
                       style={{ display:"flex", alignItems:"center", gap:12, padding:"11px 13px",
-                        borderRadius:10, border:"1px solid var(--br)", background:"var(--bg2)" }}>
-                      <div style={{ flex:1, minWidth:0 }}>
+                        borderRadius:"var(--radius-sm)", border:"1px solid var(--br)", background:"var(--bg2)", flexWrap:"wrap" }}>
+                      <div style={{ flex:"1 1 140px", minWidth:0 }}>
                         <p style={{ fontSize:13, fontWeight:600, color:"var(--tx)", marginBottom:2,
                           overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{b.name}</p>
                         <p style={{ fontSize:11, color:"var(--tx3)", fontFamily:"var(--font-mono)" }}>{b.taskCount} tasks</p>
                       </div>
                       <button onClick={() => exportFromSettings(b.id, "docx")}
                         disabled={exportingId === b.id}
-                        className="btn-primary"
-                        style={{ padding:"6px 12px", borderRadius:8, border:"1px solid var(--br)",
-                          background:"transparent", color:"var(--tx2)", fontSize:11.5, fontWeight:600,
-                          cursor: exportingId === b.id ? "default" : "pointer",
-                          opacity: exportingId === b.id ? 0.5 : 1 }}>
-                        DOCX
+                        className="btn btn-ghost btn-sm"
+                        aria-label={`Export ${b.name} as a Word document`}>
+                        {exportingId === b.id ? <Spinner size={11}/> : "DOCX"}
                       </button>
                       <button onClick={() => exportFromSettings(b.id, "pdf")}
                         disabled={exportingId === b.id}
-                        className="btn-primary"
-                        style={{ padding:"6px 12px", borderRadius:8, border:"1px solid var(--br)",
-                          background:"transparent", color:"var(--tx2)", fontSize:11.5, fontWeight:600,
-                          cursor: exportingId === b.id ? "default" : "pointer",
-                          opacity: exportingId === b.id ? 0.5 : 1 }}>
-                        PDF
+                        className="btn btn-ghost btn-sm"
+                        aria-label={`Export ${b.name} as a PDF`}>
+                        {exportingId === b.id ? <Spinner size={11}/> : "PDF"}
                       </button>
                     </div>
                   ))}
@@ -2664,8 +2903,9 @@ function NavBtn({ page, k, label, icon, badge, setPage, onNavigate }: {
   const active = page === k;
   return (
     <button onClick={() => { setPage(k); onNavigate?.(); }} className="nav-btn"
+      aria-current={active ? "page" : undefined}
       style={{
-        width:"100%", padding:"7px 10px 7px 8px", borderRadius:10, border:"none",
+        width:"100%", padding:"7px 10px 7px 8px", borderRadius:"var(--radius-md)", border:"none",
         background: active ? "rgba(99,102,241,0.1)" : "transparent",
         color: active ? "var(--ac)" : "var(--tx2)",
         fontSize:13, fontWeight: active ? 600 : 400,
@@ -2680,10 +2920,10 @@ function NavBtn({ page, k, label, icon, badge, setPage, onNavigate }: {
         display:"flex", alignItems:"center", justifyContent:"center",
         transition:"all .18s",
       }}>{icon}</span>
-      <span style={{ flex:1 }}>{label}</span>
+      <span style={{ flex:1, minWidth:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{label}</span>
       {badge && (
         <span style={{
-          fontSize:9, padding:"2px 7px", borderRadius:99,
+          fontSize:9, padding:"2px 7px", borderRadius:99, flexShrink:0,
           background: badge === "AI" ? "var(--as)" : "rgba(167,139,250,0.12)",
           color: badge === "AI" ? "var(--ac)" : "var(--pu)",
           fontWeight:700, fontFamily:"var(--font-mono)", letterSpacing:"0.04em",
@@ -2694,8 +2934,8 @@ function NavBtn({ page, k, label, icon, badge, setPage, onNavigate }: {
   );
 }
 
-function Sidebar({ page, setPage, theme, toggleTheme, onNavigate }: {
-  page: Page; setPage: (p: Page) => void; theme: Theme; toggleTheme: () => void; onNavigate?: () => void;
+function Sidebar({ page, setPage, theme, toggleTheme }: {
+  page: Page; setPage: (p: Page) => void; theme: Theme; toggleTheme: () => void;
 }) {
   const { user } = useApp();
 
@@ -2705,7 +2945,7 @@ function Sidebar({ page, setPage, theme, toggleTheme, onNavigate }: {
     ["saved",     "Saved Boards", <SavedStarIcon key="saved" size={26}/>   ],
   ];
   const aiNav: [Page, string, ReactNode, string?][] = [
-    ["chat",      "AI Chat",      <ChatStarIcon key="chat" size={26}/>,    "AI"   ],
+    ["chat",      "Assistant",      <ChatStarIcon key="chat" size={26}/>,    "AI"   ],
     ["autopilot", "Autopilot",    <PilotStarIcon key="autopilot" size={26}/>,   "AUTO" ],
   ];
 
@@ -2715,8 +2955,12 @@ function Sidebar({ page, setPage, theme, toggleTheme, onNavigate }: {
   const usageColor  = usagePct >= 90 ? "var(--rd)" : usagePct >= 70 ? "var(--am)" : "var(--ac)";
 
   return (
-    <aside className="sidebar" style={{
-      width: "var(--sidebar-w)", height:"100vh", position:"fixed", left:0, top:0, zIndex:50,
+    <aside id="dash-sidebar" aria-label="Navigation" className="sidebar"
+      tabIndex={-1}
+      style={{
+      /* dvh, not vh: 100vh on iOS is taller than the visible area, which cut
+         the sign out control off the bottom of the drawer. */
+      width: "var(--sidebar-w)", height:"100dvh", position:"fixed", left:0, top:0, zIndex:50,
       background:"var(--sb)", borderRight:"1px solid var(--sidebar-border)",
       display:"flex", flexDirection:"column",
     }}>
@@ -2744,15 +2988,15 @@ function Sidebar({ page, setPage, theme, toggleTheme, onNavigate }: {
       </div>
 
       {/* Nav */}
-      <nav style={{ flex:1, padding:"10px 10px 0", overflowY:"auto" }}>
+      <nav aria-label="Main" style={{ flex:1, padding:"10px 10px 0", overflowY:"auto" }}>
         <div className="nav-section-label">Workspace</div>
-        {mainNav.map(([k, l, i]) => <NavBtn key={k} page={page} k={k} label={l} icon={i} setPage={setPage} onNavigate={onNavigate}/>)}
+        {mainNav.map(([k, l, i]) => <NavBtn key={k} page={page} k={k} label={l} icon={i} setPage={setPage}/>)}
 
         <div className="nav-section-label" style={{ marginTop:18 }}>AI Features</div>
-        {aiNav.map(([k, l, i, b]) => <NavBtn key={k} page={page} k={k} label={l} icon={i} badge={b} setPage={setPage} onNavigate={onNavigate}/>)}
+        {aiNav.map(([k, l, i, b]) => <NavBtn key={k} page={page} k={k} label={l} icon={i} badge={b} setPage={setPage}/>)}
 
         <div className="nav-section-label" style={{ marginTop:18 }}>Account</div>
-        <NavBtn page={page} k="settings" label="Settings" icon={<SettingsStarIcon size={26}/>} setPage={setPage} onNavigate={onNavigate}/>
+        <NavBtn page={page} k="settings" label="Settings" icon={<SettingsStarIcon size={26}/>} setPage={setPage}/>
       </nav>
 
       {/* Bottom */}
@@ -2765,7 +3009,7 @@ function Sidebar({ page, setPage, theme, toggleTheme, onNavigate }: {
               {boardsUsed}<span style={{ color:"var(--tx3)", fontWeight:400 }}>/{boardsLimit}</span>
             </span>
           </div>
-          <PBar value={usagePct} h={3} color={usagePct >= 90 ? "var(--rd)" : usagePct >= 70 ? "var(--am)" : "var(--ac)"}/>
+          <PBar value={usagePct} h={3} color={usageColor} label="Daily board usage"/>
         </div>
 
 
@@ -2779,16 +3023,12 @@ function Sidebar({ page, setPage, theme, toggleTheme, onNavigate }: {
               {(user?.full_name ?? "User").split(" ")[0]}
             </p>
           </div>
-          <button onClick={toggleTheme} className="ghost"
-            style={{ width:30, height:30, borderRadius:8, border:"1px solid var(--br)",
-              background:"transparent", color:"var(--tx3)", cursor:"pointer",
-              display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-            {theme === "dark" ? <Icons.Sun size={13}/> : <Icons.Moon size={13}/>}
+          <button onClick={toggleTheme} className="btn btn-ghost btn-icon"
+            aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}>
+            <span aria-hidden="true">{theme === "dark" ? <Icons.Sun size={13}/> : <Icons.Moon size={13}/>}</span>
           </button>
-          <button className="ghost" onClick={async () => { const s = createClient(); await s.auth.signOut(); window.location.href = "/"; }}
-            style={{ width:30, height:30, borderRadius:8, border:"1px solid var(--br)",
-              background:"transparent", color:"var(--tx3)", cursor:"pointer",
-              display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+          <button className="btn btn-ghost btn-icon" aria-label="Sign out"
+            onClick={async () => { const s = createClient(); await s.auth.signOut(); window.location.href = "/"; }}>
             <Icons.Logout size={13}/>
           </button>
         </div>
@@ -2810,7 +3050,7 @@ function BottomNav({ page, setPage, onNavigate }: { page: Page; setPage: (p: Pag
     ["settings",  "Settings", <SettingsStarIcon key="settings" size={19}/>],
   ];
   return (
-    <div className="bottom-nav" style={{
+    <nav className="bottom-nav" aria-label="Main" style={{
       position:"fixed", bottom:0, left:0, right:0, zIndex:100,
       background:"var(--sb)", borderTop:"1px solid var(--br)",
       display:"none", alignItems:"center",
@@ -2820,15 +3060,17 @@ function BottomNav({ page, setPage, onNavigate }: { page: Page; setPage: (p: Pag
       {items.map(([k, l, icon]) => (
         <button key={k} onClick={() => { setPage(k); onNavigate?.(); }}
           className="bottom-nav-item"
-          style={{ flex:1, padding:"8px 4px", background:"transparent", border:"none",
+          aria-current={page === k ? "page" : undefined}
+          style={{ flex:1, minWidth:0, padding:"8px 2px", background:"transparent", border:"none",
             color: page === k ? "var(--ac)" : "var(--tx3)",
-            cursor:"pointer", display:"flex", flexDirection:"column", alignItems:"center", gap:2,
+            display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:2,
             transition:"color .15s" }}>
-          {icon}
-          <span style={{ fontSize:9, fontWeight: page === k ? 700 : 400 }}>{l}</span>
+          <span aria-hidden="true">{icon}</span>
+          <span style={{ fontSize:9, fontWeight: page === k ? 700 : 400, maxWidth:"100%",
+            overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{l}</span>
         </button>
       ))}
-    </div>
+    </nav>
   );
 }
 
@@ -2863,7 +3105,7 @@ const PAGE_META: Record<Page, { title: string; sub: string; icon: React.ReactNod
     ),
   },
   chat:      {
-    title:"AI Chat", sub:"Your productivity coach",
+    title:"Assistant", sub:"Your board-aware coach",
     gradient:"linear-gradient(135deg,#6366f1,#ec4899)",
     icon:(
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
@@ -2901,11 +3143,13 @@ const PAGE_META: Record<Page, { title: string; sub: string; icon: React.ReactNod
   },
 };
 
-function Topbar({ page, onMenuOpen }: { page: Page; onMenuOpen?: () => void }) {
+function Topbar({ page }: {
+  page: Page;
+}) {
   const { user } = useApp();
   const meta = PAGE_META[page];
   return (
-    <div className="topbar-wrap" style={{
+    <header className="topbar-wrap" style={{
       height:56, borderBottom:"1px solid var(--br)",
       background:"var(--bg1)", display:"flex", alignItems:"center",
       justifyContent:"space-between", padding:"0 20px", flexShrink:0,
@@ -2913,11 +3157,7 @@ function Topbar({ page, onMenuOpen }: { page: Page; onMenuOpen?: () => void }) {
     }}>
       {/* Left: menu + icon + title */}
       <div style={{ display:"flex", alignItems:"center", gap:10, minWidth:0 }}>
-        <button type="button" className="mob-menu-btn" onClick={onMenuOpen} aria-label="Open navigation menu">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-            <path d="M4 6h16M4 12h16M4 18h16"/>
-          </svg>
-        </button>
+
         <div className="topbar-icon" style={{
           width:34, height:34, borderRadius:10, flexShrink:0,
           background:meta.gradient,
@@ -2927,14 +3167,16 @@ function Topbar({ page, onMenuOpen }: { page: Page; onMenuOpen?: () => void }) {
           {meta.icon}
         </div>
         <div style={{ minWidth:0 }}>
-          <h2 className="topbar-title" style={{
+          {/* The one h1 for this page. Every page below the topbar is an h2
+              or lower, so the outline runs top to bottom in one chain. */}
+          <h1 className="topbar-title" style={{
             fontSize:15, fontWeight:700, color:"var(--tx)",
             fontFamily:"var(--font-display)", lineHeight:1.2,
             letterSpacing:"-0.03em", whiteSpace:"nowrap",
             overflow:"hidden", textOverflow:"ellipsis",
           }}>
             {meta.title}
-          </h2>
+          </h1>
           <p className="topbar-sub" style={{
             fontSize:11, color:"var(--tx3)", lineHeight:1, marginTop:2,
             whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis",
@@ -2948,7 +3190,103 @@ function Topbar({ page, onMenuOpen }: { page: Page; onMenuOpen?: () => void }) {
       <div style={{ display:"flex", alignItems:"center", gap:10, flexShrink:0 }}>
         <Avt name={user?.full_name ?? "User"} size={32} avatarUrl={user?.avatar_url}/>
       </div>
-    </div>
+    </header>
+  );
+}
+
+/* ─── 3-D time-of-day greeting icon ──────────────────────────────────────── */
+function TimeOfDayIcon({ tod }: { tod: "morning" | "afternoon" | "evening" }) {
+  if (tod === "morning") {
+    return (
+      <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style={{ flexShrink: 0 }}>
+        <defs>
+          <radialGradient id="sun-core" cx="50%" cy="38%" r="52%">
+            <stop offset="0%" stopColor="#fff7a1"/>
+            <stop offset="45%" stopColor="#ffd93d"/>
+            <stop offset="100%" stopColor="#ff9500"/>
+          </radialGradient>
+          <radialGradient id="sun-glow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="#ffe066" stopOpacity="0.55"/>
+            <stop offset="100%" stopColor="#ff9500" stopOpacity="0"/>
+          </radialGradient>
+          <filter id="sun-shadow" x="-30%" y="-30%" width="160%" height="160%">
+            <feDropShadow dx="0" dy="2" stdDeviation="2.5" floodColor="#ff9500" floodOpacity="0.45"/>
+          </filter>
+        </defs>
+        {/* glow halo */}
+        <circle cx="14" cy="14" r="13" fill="url(#sun-glow)"/>
+        {/* rays */}
+        {[0,45,90,135,180,225,270,315].map((deg, i) => {
+          const r = Math.PI * deg / 180;
+          const x1 = 14 + Math.cos(r) * 9.5, y1 = 14 + Math.sin(r) * 9.5;
+          const x2 = 14 + Math.cos(r) * 12.8, y2 = 14 + Math.sin(r) * 12.8;
+          return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke="#ffb800" strokeWidth={deg % 90 === 0 ? "1.8" : "1.2"} strokeLinecap="round" opacity={deg % 90 === 0 ? 1 : 0.7}/>
+        })}
+        {/* core sphere */}
+        <circle cx="14" cy="14" r="7.2" fill="url(#sun-core)" filter="url(#sun-shadow)"/>
+        {/* specular highlight */}
+        <ellipse cx="11.8" cy="11.4" rx="2.2" ry="1.4" fill="white" opacity="0.45" transform="rotate(-20 11.8 11.4)"/>
+      </svg>
+    );
+  }
+  if (tod === "afternoon") {
+    return (
+      <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style={{ flexShrink: 0 }}>
+        <defs>
+          <radialGradient id="sun2-core" cx="50%" cy="35%" r="52%">
+            <stop offset="0%" stopColor="#fff3c4"/>
+            <stop offset="40%" stopColor="#ffcc00"/>
+            <stop offset="100%" stopColor="#ff6a00"/>
+          </radialGradient>
+          <radialGradient id="sun2-glow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="#ffdd57" stopOpacity="0.5"/>
+            <stop offset="100%" stopColor="#ff6a00" stopOpacity="0"/>
+          </radialGradient>
+          <filter id="sun2-shadow" x="-30%" y="-30%" width="160%" height="160%">
+            <feDropShadow dx="0" dy="3" stdDeviation="3" floodColor="#ff6a00" floodOpacity="0.5"/>
+          </filter>
+        </defs>
+        <circle cx="14" cy="14" r="13" fill="url(#sun2-glow)"/>
+        {[0,30,60,90,120,150,180,210,240,270,300,330].map((deg, i) => {
+          const r = Math.PI * deg / 180;
+          const x1 = 14 + Math.cos(r) * 9.8, y1 = 14 + Math.sin(r) * 9.8;
+          const x2 = 14 + Math.cos(r) * 13, y2 = 14 + Math.sin(r) * 13;
+          return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke="#ffa500" strokeWidth={deg % 90 === 0 ? "2" : "1.1"} strokeLinecap="round" opacity={deg % 90 === 0 ? 1 : 0.6}/>
+        })}
+        <circle cx="14" cy="14" r="7.8" fill="url(#sun2-core)" filter="url(#sun2-shadow)"/>
+        <ellipse cx="11.5" cy="11" rx="2.5" ry="1.5" fill="white" opacity="0.4" transform="rotate(-25 11.5 11)"/>
+      </svg>
+    );
+  }
+  // evening
+  return (
+    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style={{ flexShrink: 0 }}>
+      <defs>
+        <radialGradient id="moon-body" cx="38%" cy="32%" r="60%">
+          <stop offset="0%" stopColor="#e8eaff"/>
+          <stop offset="50%" stopColor="#b8bfff"/>
+          <stop offset="100%" stopColor="#7c85e0"/>
+        </radialGradient>
+        <radialGradient id="moon-glow" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#a78bfa" stopOpacity="0.4"/>
+          <stop offset="100%" stopColor="#7c85e0" stopOpacity="0"/>
+        </radialGradient>
+        <filter id="moon-shadow" x="-30%" y="-30%" width="160%" height="160%">
+          <feDropShadow dx="0" dy="2" stdDeviation="2.5" floodColor="#7c3aed" floodOpacity="0.4"/>
+        </filter>
+      </defs>
+      {/* glow */}
+      <circle cx="13" cy="15" r="12" fill="url(#moon-glow)"/>
+      {/* stars */}
+      <circle cx="22" cy="5" r="1.1" fill="#e0e7ff" opacity="0.9"/>
+      <circle cx="25" cy="11" r="0.7" fill="#c7d2fe" opacity="0.8"/>
+      <circle cx="20" cy="3" r="0.6" fill="#e0e7ff" opacity="0.7"/>
+      <circle cx="24" cy="7" r="0.5" fill="#a5b4fc" opacity="0.6"/>
+      {/* crescent moon */}
+      <path d="M13.5 5.5 A8.5 8.5 0 1 0 13.5 24.5 A6 6 0 1 1 13.5 5.5 Z" fill="url(#moon-body)" filter="url(#moon-shadow)"/>
+      {/* specular */}
+      <ellipse cx="11" cy="9" rx="2" ry="1.2" fill="white" opacity="0.35" transform="rotate(-30 11 9)"/>
+    </svg>
   );
 }
 
@@ -2958,17 +3296,6 @@ function Topbar({ page, onMenuOpen }: { page: Page; onMenuOpen?: () => void }) {
 export default function Dashboard() {
   const [page, setPage]   = useState<Page>("overview");
   const { theme, toggle: toggleTheme } = useTheme();
-  const [mobSidebar, setMobSidebar] = useState(false);
-
-  useEffect(() => {
-    if (!mobSidebar) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setMobSidebar(false); };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [mobSidebar]);
-
-  /* ── System preference and other tabs, both owned by the shared theme store ── */
-  useEffect(() => startThemeWatch(), []);
 
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -3051,13 +3378,14 @@ export default function Dashboard() {
 
   return (
     <AppCtx.Provider value={appState}>
-      <GlobalStyles theme={theme}/>
-      <div className={`root-layout${mobSidebar ? " sidebar-open" : ""}${page === "chat" ? " chat-open" : ""}`} style={{ display:"flex", height:"100vh", background:"var(--bg)", overflow:"hidden" }}>
-        {mobSidebar && <div className="sidebar-backdrop" onClick={() => setMobSidebar(false)} aria-hidden="true"/>}
-        <Sidebar page={page} setPage={setPage} theme={theme} toggleTheme={toggleTheme} onNavigate={() => setMobSidebar(false)}/>
-        <div className="main-wrap" style={{ marginLeft:"var(--sidebar-w)", flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
-          {page !== "chat" && <Topbar page={page} onMenuOpen={() => setMobSidebar(true)}/>}
-          <div style={{ flex:1, overflow:"hidden" }}>
+      <GlobalStyles />
+      <div className="root-layout" style={{ display:"flex", height:"100vh", background:"var(--bg)", overflow:"hidden" }}>
+        <Sidebar
+          page={page} setPage={setPage} theme={theme} toggleTheme={toggleTheme}
+        />
+        <div className="main-wrap" style={{ marginLeft:"var(--sidebar-w)", flex:1, display:"flex", flexDirection:"column", overflow:"hidden", minWidth:0 }}>
+          {page !== "chat" && <Topbar page={page}/>}
+          <div style={{ flex:1, overflow:"hidden", minWidth:0 }}>
             {page === "overview"  && <PageOverview/>}
             {page === "board"     && <PageBoard/>}
             {page === "chat"      && <PageChat/>}
@@ -3066,7 +3394,7 @@ export default function Dashboard() {
             {page === "settings"  && <PageSettings theme={theme} toggleTheme={toggleTheme}/>}
           </div>
         </div>
-        <BottomNav page={page} setPage={setPage} onNavigate={() => setMobSidebar(false)}/>
+        <BottomNav page={page} setPage={setPage}/>
       </div>
     </AppCtx.Provider>
   );
