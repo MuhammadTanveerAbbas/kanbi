@@ -755,9 +755,8 @@ function PageOverview() {
                 {/* The topbar owns the page's h1. This greeting is the first
                     thing under it, so it is an h2. */}
                 <h2 style={{ fontSize:20, fontWeight:800, letterSpacing:"-0.035em", color:"var(--tx)",
-                  marginBottom:2, fontFamily:"var(--font-display)", display:"flex", alignItems:"center", gap:8 }}>
+                  marginBottom:2, fontFamily:"var(--font-display)" }}>
                   {greeting}, {displayName}
-                  <TimeOfDayIcon tod={timeOfDay} />
                 </h2>
                 <p className="page-sub">Here&rsquo;s your workload snapshot</p>
               </>
