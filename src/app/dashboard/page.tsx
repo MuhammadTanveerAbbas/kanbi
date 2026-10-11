@@ -510,6 +510,12 @@ function GlobalStyles() {
         font-family: var(--font-mono);
       }
 
+      /* ── Grid defaults (desktop) ── */
+      .main-grid-2 { grid-template-columns: repeat(2,minmax(0,1fr)) }
+      .main-grid-3 { grid-template-columns: repeat(3,minmax(0,1fr)) }
+      .main-grid-4 { grid-template-columns: repeat(4,minmax(0,1fr)) }
+      .overview-quick-actions { grid-template-columns: repeat(4,minmax(0,1fr)) }
+
       /* ── Breakpoints ─────────────────────────────────────────────────────
          Three, and only three: tablet, phone, narrow phone. */
       @media(max-width:1024px) {
@@ -798,7 +804,7 @@ function PageOverview() {
 
       {/* Quick Actions */}
       <nav aria-label="Quick navigation" className="overview-quick-actions"
-        style={{ display:"grid", gridTemplateColumns:"repeat(4,minmax(0,1fr))", gap:10 }}>
+        style={{ display:"grid", gap:10 }}>
         {QUICK_NAV.map(a => (
           <button key={a.label}
             onClick={() => navigate(a.page)}
@@ -816,7 +822,7 @@ function PageOverview() {
         ))}
       </nav>
 
-      <div className="main-grid-4 stagger" style={{ display:"grid", gridTemplateColumns:"repeat(4,minmax(0,1fr))", gap:12 }}>
+      <div className="main-grid-4 stagger" style={{ display:"grid", gap:12 }}>
         {statCards.map(s => (
           <div key={s.label} className="card panel fade-up">
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:6, marginBottom:7 }}>
@@ -856,7 +862,7 @@ function PageOverview() {
       </div>
 
       {/* Health + Goals + Priority */}
-      <div className="main-grid-3" style={{ display:"grid", gridTemplateColumns:"repeat(3,minmax(0,1fr))", gap:12, alignItems:"stretch" }}>
+      <div className="main-grid-3" style={{ display:"grid", gap:12, alignItems:"stretch" }}>
 
         {/* Workload Health */}
         <section className="card panel" style={{ display:"flex", flexDirection:"column", gap:12 }}>
@@ -3054,7 +3060,6 @@ function BottomNav({ page, setPage, onNavigate }: { page: Page; setPage: (p: Pag
       background:"var(--sb)", borderTop:"1px solid var(--br)",
       display:"none", alignItems:"center",
       paddingBottom:"env(safe-area-inset-bottom)",
-      backdropFilter:"blur(12px)",
     }}>
       {items.map(([k, l, icon]) => (
         <button key={k} onClick={() => { setPage(k); onNavigate?.(); }}
@@ -3153,6 +3158,7 @@ function Topbar({ page }: {
       background:"var(--bg1)", display:"flex", alignItems:"center",
       justifyContent:"space-between", padding:"0 20px", flexShrink:0,
       boxShadow:"0 1px 12px rgba(0,0,0,0.12)",
+      position:"sticky", top:0, zIndex:50,
     }}>
       {/* Left: menu + icon + title */}
       <div style={{ display:"flex", alignItems:"center", gap:10, minWidth:0 }}>

@@ -140,7 +140,17 @@ function Styles() {
     .hero-section{padding:112px 0 48px!important}
     .msb-nav-item .msb-nav-label{display:none}
     .msb-nav-item{padding:8px 10px!important;gap:0!important}
-    .hero-kanban{grid-template-columns:1fr!important}
+    /* On narrow screens the 3-col kanban stacks to 2 cols so cards are readable
+       without being tiny; below 480 it becomes 1 col. */
+    .hero-kanban{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important;padding:10px!important}
+    .hero-kanban > div{padding:9px!important}
+    .hero-kanban .task-title{font-size:10.5px!important}
+    .hero-kanban .task-tag{font-size:8px!important}
+    .hero-kanban .task-prog{height:3px!important}
+    .hero-charts{grid-template-columns:1fr!important;gap:8px!important}
+    .hero-charts > div{padding:10px!important}
+    .hero-charts .bar-chart-wrap{height:60px!important}
+    .hero-charts .bar-item{font-size:7px!important}
     .hero-mock-head{align-items:flex-start!important}
     .cr{flex-direction:column!important;align-items:stretch!important}
     .cr a,.cr button{justify-content:center!important}
@@ -158,14 +168,29 @@ function Styles() {
     .badge-text{font-size:10px!important;white-space:normal!important;text-align:center!important;line-height:1.3!important}
     .cmp-desktop{display:none!important}
     .cmp-mobile{display:flex!important}
-    .hero-mock-wrap{margin-top:40px!important;border-radius:18px!important}
-    .hero-mock-head{padding:12px 14px!important}
-    .hero-kanban{padding:12px 14px!important}
+    .hero-mock-wrap{display:none!important}
+    .hero-mock-head{padding:10px 12px!important}
+    .hero-kanban{padding:10px!important}
     .hero-sub{font-size:15px!important;padding:0 4px!important}
+    .hero-workload-bar{gap:8px!important;padding:8px 10px!important;font-size:10px!important}
+    .hero-workload-bar > div:first-child{min-width:76px!important}
+    .hero-workload-bar span{font-size:10px!important}
     .cta-banner-inner{padding:24px 18px!important;border-radius:18px!important}
     .cta-stats{gap:14px!important}
     .cmp-testimonial{padding:20px 18px!important;margin-top:28px!important}
     .faq-btn{font-size:13px!important;padding:14px 15px!important}
+  }
+  @media(max-width:480px){
+    /* Single column kanban, smaller padding, tighter text on very narrow screens */
+    .hero-kanban{grid-template-columns:1fr!important;gap:7px!important;padding:8px!important}
+    .hero-kanban > div{padding:8px!important;border-radius:10px!important}
+    .hero-charts{gap:7px!important;padding:0 8px 8px!important}
+    .hero-charts > div{padding:9px!important;border-radius:10px!important}
+    /* Workload bar: condense the label so it fits in one line */
+    .hero-workload-bar{flex-wrap:nowrap!important;font-size:9.5px!important;padding:6px 8px!important}
+    .hero-mock-head{padding:9px 10px!important}
+    /* Shrink the whole mock's internal font baseline */
+    .hero-mock-grid{font-size:10px}
   }
 
   /* ── Footer ──
@@ -219,11 +244,13 @@ function Styles() {
   }
   .footer-link:hover{color:var(--tx)}
 
-  .footer-bottom{margin-top:clamp(32px,4vw,48px);padding-top:20px;border-top:1px solid var(--br);display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+  .footer-bottom{margin-top:clamp(32px,4vw,48px);padding-top:20px;border-top:1px solid var(--br);display:flex;align-items:center;justify-content:center;gap:16px;flex-wrap:wrap;text-align:center}
   .footer-bottom p{margin:0;font-size:12px;color:var(--tx3)}
-  .footer-bottom-links{list-style:none;display:flex;gap:18px;margin:0;padding:0}
-  .footer-bottom-links a{font-size:12px;color:var(--tx3);transition:color .15s}
+  .footer-bottom-links{list-style:none;display:flex;gap:18px;margin:0;padding:0;align-items:center}
+  .footer-bottom-links a{font-size:12px;color:var(--tx3);transition:color .15s;display:inline-flex;align-items:center;gap:5px}
   .footer-bottom-links a:hover{color:var(--tx)}
+  .footer-made-by{display:inline-flex;align-items:center;gap:5px}
+  @media(max-width:640px){.footer-made-by{display:none!important}.footer-bottom{flex-direction:column;gap:10px}}
 
   /* One focus treatment for every footer control. Without this, keyboard users
      get the browser default on a dark surface and it is easy to lose. */
@@ -247,10 +274,11 @@ function Styles() {
     .tb{font-size:11px!important;padding:9px 6px!important}
     .cmp-card-row{grid-template-columns:64px 1fr;padding:10px 14px}
     .board-kanban-pad{padding:14px 12px!important}
-    /* A single column of links at 375px leaves short lines and a very tall
-       footer. Two columns is the point where the labels stop wrapping. */
     .footer-nav{gap:24px 16px}
     .footer-cta{width:100%;justify-content:center}
+    .cr{flex-direction:column!important;width:100%!important}
+    .cr button,.cr a{width:100%!important;justify-content:center!important;height:44px!important;font-size:13px!important}
+    .hero-sub{font-size:16px!important;padding:0 8px!important}
   }
 `}</style>;
 }
@@ -449,7 +477,7 @@ function Navbar() {
 
 function HeroWorkloadBar({ active, score = 82 }: { active: boolean; score?: number }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 12, border: "1px solid var(--br)", background: "var(--bg2)", flexWrap: "wrap" }}>
+    <div className="hero-workload-bar" style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 12, border: "1px solid var(--br)", background: "var(--bg2)", flexWrap: "wrap" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 88 }}>
         <ShieldCheck size={14} style={{ color: "var(--gr-text)", flexShrink: 0 }} />
         <span style={{ fontSize: 11, fontWeight: 600, color: "var(--tx)" }}>Workload</span>
@@ -582,15 +610,15 @@ function Hero() {
                       <div key={i} style={{ borderRadius: 12, border: "1px solid var(--br)", background: "rgba(255,255,255,0.02)", padding: 10, marginBottom: 8 }}>
                         <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginBottom: "prog" in t && t.prog !== undefined ? 8 : 4 }}>
                           <div style={{ flex: 1 }}>
-                            <p style={{ fontSize: 11.5, color: col.col === "Done" ? "var(--tx3)" : "var(--tx)", fontWeight: 600, lineHeight: 1.45, textDecoration: col.col === "Done" ? "line-through" : "none" }}>{t.t}</p>
-                            <div style={{ display: "inline-flex", alignItems: "center", gap: 5, marginTop: 6, padding: "2px 7px", borderRadius: 999, background: "var(--bg2)", fontSize: 9, color: "var(--tx3)" }}>
+                            <p className="task-title" style={{ fontSize: 11.5, color: col.col === "Done" ? "var(--tx3)" : "var(--tx)", fontWeight: 600, lineHeight: 1.45, textDecoration: col.col === "Done" ? "line-through" : "none" }}>{t.t}</p>
+                            <div className="task-tag" style={{ display: "inline-flex", alignItems: "center", gap: 5, marginTop: 6, padding: "2px 7px", borderRadius: 999, background: "var(--bg2)", fontSize: 9, color: "var(--tx3)" }}>
                               <BadgeInfo size={10} />{t.tag}
                             </div>
                           </div>
                           <span style={{ fontSize: 9, fontWeight: 700, color: t.p === "high" ? "var(--rd)" : "var(--am)", flexShrink: 0, marginTop: 3, textTransform: "uppercase" }}>{t.p}</span>
                         </div>
                         {"prog" in t && t.prog !== undefined && (
-                          <div style={{ height: 4, borderRadius: 999, background: "var(--bg2)", overflow: "hidden" }}>
+                          <div className="task-prog" style={{ height: 4, borderRadius: 999, background: "var(--bg2)", overflow: "hidden" }}>
                             <div style={{ height: "100%", width: v ? `${t.prog}%` : "0%", transition: "width .8s ease .6s", borderRadius: 999, background: "linear-gradient(90deg,var(--ac),var(--pu))" }} />
                           </div>
                         )}
@@ -609,9 +637,9 @@ function Hero() {
                       </div>
                       <span style={{ fontSize: 10, color: "var(--tx3)" }}>Last 7 days</span>
                     </div>
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 6, alignItems: "end", height: 84 }}>
+                    <div className="bar-chart-wrap" style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 6, alignItems: "end", height: 84 }}>
                       {[3, 5, 2, 6, 4, 7, 5].map((n, i) => (
-                        <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+                        <div key={i} className="bar-item" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
                           <div style={{ width: "100%", height: 84, display: "flex", alignItems: "end" }}>
                             <div style={{ width: "100%", height: v ? `${Math.min(n * 12, 84)}%` : "0%", borderRadius: "8px 8px 4px 4px", background: i === 6 ? "linear-gradient(180deg,var(--ac),var(--pu))" : "linear-gradient(180deg,var(--bg3),var(--brh))", transition: `height .8s ease ${0.15 + i * 0.08}s` }} />
                           </div>
@@ -1016,38 +1044,43 @@ function FAQ() {
 
 const FOOTER_COLUMNS: Array<{
   heading: string
-  links: Array<{ label: string; href: string; external?: boolean }>
+  icon: React.ReactNode
+  links: Array<{ label: string; href: string; external?: boolean; icon?: React.ReactNode }>
 }> = [
   {
     heading: 'Product',
+    icon: <IC.Board size={12} />,
     links: [
-      { label: 'Features', href: '#features' },
-      { label: 'How it works', href: '#how-it-works' },
-      { label: 'Pricing', href: '/pricing' },
-      { label: 'Changelog', href: '/changelog' },
+      { label: 'Features', href: '#features', icon: <IC.Spark size={11} /> },
+      { label: 'How it works', href: '#how-it-works', icon: <IC.Chart size={11} /> },
+      { label: 'Pricing', href: '/pricing', icon: <IC.Shield size={11} /> },
+      { label: 'Changelog', href: '/changelog', icon: <IC.Cal size={11} /> },
     ],
   },
   {
     heading: 'Account',
+    icon: <IC.Shield size={12} />,
     links: [
-      { label: 'Sign up', href: '/sign-up' },
-      { label: 'Sign in', href: '/sign-in' },
-      { label: 'Reset password', href: '/reset-password' },
+      { label: 'Sign up', href: '/sign-up', icon: <IC.Arrow size={11} /> },
+      { label: 'Sign in', href: '/sign-in', icon: <IC.Check size={11} /> },
+      { label: 'Reset password', href: '/reset-password', icon: <IC.Moon size={11} /> },
     ],
   },
   {
     heading: 'Resources',
+    icon: <IC.Chat size={12} />,
     links: [
-      { label: 'FAQ', href: '#faq' },
-      { label: 'Source on GitHub', href: 'https://github.com/MuhammadTanveerAbbas/kanbi', external: true },
-      { label: 'Report an issue', href: 'https://github.com/MuhammadTanveerAbbas/kanbi/issues', external: true },
+      { label: 'FAQ', href: '#faq', icon: <IC.Brain size={11} /> },
+      { label: 'Source on GitHub', href: 'https://github.com/MuhammadTanveerAbbas/kanbi', external: true, icon: <IC.Export size={11} /> },
+      { label: 'Report an issue', href: 'https://github.com/MuhammadTanveerAbbas/kanbi/issues', external: true, icon: <IC.Spark size={11} /> },
     ],
   },
   {
     heading: 'Legal',
+    icon: <IC.Shield size={12} />,
     links: [
-      { label: 'Privacy', href: '/privacy' },
-      { label: 'Terms', href: '/terms' },
+      { label: 'Privacy', href: '/privacy', icon: <IC.Shield size={11} /> },
+      { label: 'Terms', href: '/terms', icon: <IC.Check size={11} /> },
     ],
   },
 ]
@@ -1078,15 +1111,20 @@ function Footer() {
           <nav className="footer-nav" aria-label="Footer">
             {FOOTER_COLUMNS.map((col) => (
               <div key={col.heading} className="footer-col">
-                <h2 className="footer-col-heading">{col.heading}</h2>
+                <h2 className="footer-col-heading" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <span aria-hidden="true" style={{ opacity: 0.7 }}>{col.icon}</span>
+                  {col.heading}
+                </h2>
                 <ul className="footer-col-list">
                   {col.links.map((link) => (
                     <li key={link.label}>
                       <a
                         href={link.href}
                         className="footer-link"
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
                         {...(link.external ? { target: '_blank', rel: 'noreferrer noopener' } : {})}
                       >
+                        {link.icon && <span aria-hidden="true" style={{ opacity: 0.55, flexShrink: 0 }}>{link.icon}</span>}
                         {link.label}
                       </a>
                     </li>
@@ -1099,11 +1137,11 @@ function Footer() {
 
         <div className="footer-bottom">
           <p>© {new Date().getFullYear()} Kanbi. All rights reserved.</p>
-          <ul className="footer-bottom-links">
-            <li><a href="/privacy">Privacy</a></li>
-            <li><a href="/terms">Terms</a></li>
-            <li><a href="https://muhammadtanveerabbas.vercel.app" target="_blank" rel="noreferrer noopener">Made by Tanveer</a></li>
-          </ul>
+          <a href="https://muhammadtanveerabbas.vercel.app" target="_blank" rel="noreferrer noopener"
+            className="footer-made-by footer-link" style={{ fontSize: 12, color: "var(--tx3)" }}>
+            <IC.Spark size={12} />
+            Made by Tanveer
+          </a>
         </div>
       </div>
     </footer>

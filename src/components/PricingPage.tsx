@@ -470,37 +470,43 @@ function Footer() {
   const { theme, toggle } = useTheme();
   return (
     <footer style={{ borderTop: "1px solid var(--br)", padding: "40px 0 28px" }}>
-      <div style={{ maxWidth: 1140, margin: "0 auto", padding: "0 24px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
-        <Link href="/" style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{ width: 24, height: 24, borderRadius: 7, background: "var(--ac)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}><IC.Zap size={11} /></div>
-          <span style={{ fontSize: 14, fontWeight: 700, color: "var(--tx)", letterSpacing: "-0.025em" }}>Kanbi</span>
-        </Link>
-        <div style={{ display: "flex", gap: 20, alignItems: "center", flexWrap: "wrap" }}>
-          {[
-            ["Home", "/"],
-            ["Pricing", "/pricing"],
-            ["Changelog", "/changelog"],
-            ["Sign In", "/sign-in"],
-            ["Sign Up", "/sign-up"],
-            ["Privacy", "/privacy"],
-            ["Terms", "/terms"],
-          ].map(([l, h]) => (
-            <Link key={l} href={h!} className="na" style={{ fontSize: 12, color: "var(--tx3)", transition: "color .15s" }}>{l}</Link>
-          ))}
-          <a href="mailto:support@kanbi.app" className="na" style={{ fontSize: 12, color: "var(--tx3)", transition: "color .15s" }}>Contact</a>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-          {TECH_STACK.slice(0, 6).map(({ name, Icon }) => (
-            <span key={name} title={name} aria-label={name}
-              style={{ display: "inline-flex", alignItems: "center", color: "var(--tx3)" }}>
-              <Icon size={14}/>
-            </span>
-          ))}
-          {/* Rendered from the current year so it cannot go stale. */}
-          <span style={{ fontSize: 12, color: "var(--tx3)" }}>© {new Date().getFullYear()} Kanbi</span>
-          <button onClick={toggle} style={{ width: 30, height: 30, borderRadius: 7, border: "1px solid var(--br)", background: "var(--bg1)", color: "var(--tx3)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ maxWidth: 1140, margin: "0 auto", padding: "0 24px", display: "flex", flexDirection: "column", alignItems: "center", gap: 20 }}>
+        {/* Top row: logo + nav links + theme toggle */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", flexWrap: "wrap", gap: "16px 28px", width: "100%" }}>
+          <Link href="/" style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+            <div style={{ width: 24, height: 24, borderRadius: 7, background: "var(--ac)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", boxShadow: "0 0 12px var(--ag)" }}><IC.Zap size={11} /></div>
+            <span style={{ fontSize: 14, fontWeight: 700, color: "var(--tx)", letterSpacing: "-0.025em" }}>Kanbi</span>
+          </Link>
+          <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap", justifyContent: "center" }}>
+            {[
+              ["Home", "/", "🏠"],
+              ["Pricing", "/pricing", null],
+              ["Changelog", "/changelog", null],
+              ["Sign In", "/sign-in", null],
+              ["Sign Up", "/sign-up", null],
+            ].map(([l, h]) => (
+              <Link key={l as string} href={h as string} className="na" style={{ fontSize: 12, color: "var(--tx3)", transition: "color .15s", padding: "4px 8px", borderRadius: 6 }}>{l}</Link>
+            ))}
+            <a href="mailto:support@kanbi.app" className="na" style={{ fontSize: 12, color: "var(--tx3)", transition: "color .15s", padding: "4px 8px", borderRadius: 6 }}>Contact</a>
+          </div>
+          <button onClick={toggle} style={{ width: 30, height: 30, borderRadius: 7, border: "1px solid var(--br)", background: "var(--bg1)", color: "var(--tx3)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "border-color .15s, color .15s" }}>
             {theme === "dark" ? <IC.Sun size={13} /> : <IC.Moon size={13} />}
           </button>
+        </div>
+
+        {/* Divider */}
+        <div style={{ width: "100%", height: 1, background: "var(--br)" }} />
+
+        {/* Bottom row: copyright + tech stack */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", flexWrap: "wrap", gap: "10px 20px", textAlign: "center" }}>
+          <span style={{ fontSize: 12, color: "var(--tx3)" }}>© {new Date().getFullYear()} Kanbi. All rights reserved.</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {TECH_STACK.slice(0, 6).map(({ name, Icon }) => (
+              <span key={name} title={name} aria-label={name} style={{ display: "inline-flex", alignItems: "center", color: "var(--tx3)", opacity: 0.6 }}>
+                <Icon size={13}/>
+              </span>
+            ))}
+          </div>
         </div>
       </div>
     </footer>
