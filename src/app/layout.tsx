@@ -4,6 +4,7 @@ import { Providers } from "@/components/providers";
 import { cn } from "@/lib/utils";
 import { SITE_URL } from "@/app/sitemap";
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Sora, PT_Sans } from "next/font/google";
 import {
   FONT_TOKENS,
@@ -126,15 +127,14 @@ export default function RootLayout({
           this the browser paints the default, then React corrects it a frame
           later, and that gap is the flash.
 
-          The element id deliberately does not spell out the storage key. The
-          fitness suite asserts that the key appears in exactly one file, which
-          is what stops a second surface from reading the preference a
-          different way, and an id that happened to contain the same string
-          would trip that check while being entirely harmless.
+          The body of the script is a string built in `design-tokens.ts` rather
+          than markup written here, which keeps the storage key in exactly one
+          file. A second surface spelling the key out itself is how two
+          surfaces end up reading the preference two different ways.
         */}
-        <script
+        <Script
           id="resolve-appearance-before-paint"
-          data-purpose="resolve-theme-before-paint"
+          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{ __html: themeInitScript }}
         />
       </head>

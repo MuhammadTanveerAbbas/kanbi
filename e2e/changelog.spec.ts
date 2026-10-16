@@ -68,23 +68,19 @@ test.describe('changelog layout', () => {
     expect(box!.height).toBeGreaterThan(50)
   })
 
-  test('the data table is readable on a phone and scrolls rather than overflowing', async ({
+  test('charts carry their numbers on the drawing itself, with no data table', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 390, height: 844 })
     await page.goto('/changelog')
 
-    await page.getByRole('button', { name: /show the numbers/i }).click()
-    const table = page.locator('table.data-table')
-    await expect(table).toBeVisible()
-
-    // The wrapper scrolls, so the table itself is allowed to be wider.
-    const wrapper = page.locator('.table-wrap')
-    const clipped = await wrapper.evaluate((el) => {
-      const style = getComputedStyle(el)
-      return style.overflowX
-    })
-    expect(clipped).toBe('auto')
+    // The numbers toggle was removed. Each bar prints its value, and the
+    // screen reader version is the table below each section in the source.
+    await expect(
+      page.getByRole('button', { name: /show the numbers/i })
+    ).toHaveCount(0)
+    await expect(page.locator('table.data-table')).toHaveCount(0)
+    await expect(page.locator('.chart .value').first()).toBeVisible()
   })
 })
 
@@ -101,14 +97,25 @@ test.describe('changelog charts', () => {
     }
   })
 
-  test('the tooltip appears on hover and reports real numbers', async ({ page }) => {
+  test('clicking or tapping a chart paints no box over it', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
     await page.goto('/changelog')
-    const firstBar = page.locator('svg.chart g rect.hit').first()
-    await firstBar.hover()
 
-    const tip = page.locator('.chart-tip').first()
-    await expect(tip).toBeVisible()
-    await expect(tip).toContainText('commits')
+    const chart = page.locator('svg.chart').first()
+    await chart.click({ position: { x: 40, y: 60 } })
+    await page.mouse.click(200, 400)
+
+    // The charts are static drawings. Nothing opens on hover or on tap, so
+    // there is no readout and no focus ring to get stuck to the graph.
+    await expect(page.locator('.chart-tip')).toHaveCount(0)
+    await expect(page.locator('svg.chart rect.hit')).toHaveCount(0)
+    const outlined = await chart.evaluate((el) =>
+      Array.from(el.querySelectorAll('*')).filter((node) => {
+        const style = getComputedStyle(node)
+        return style.outlineStyle !== 'none' && parseFloat(style.outlineWidth) > 0
+      }).length
+    )
+    expect(outlined).toBe(0)
   })
 
   test('the change mix totals match the release notes', async ({ page }) => {

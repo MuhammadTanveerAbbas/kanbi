@@ -1,11 +1,11 @@
 "use client";
 // KANBI LANDING PAGE v3
 // Updates: (1) Hero mock matches new dashboard (sidebar+health ring+progress bars)
-//          (2) NEW tabbed Product Showcase   Dashboard, Board, Assistant, Autopilot
+//          (2) NEW tabbed Product Showcase   Dashboard, Board, Assistant
 import { useTheme as useSiteTheme } from '@/lib/theme';
 import { useState, useEffect, useRef, createContext, useContext, useCallback, type ComponentType } from "react";
 import { createClient } from '@/lib/supabase/client';
-import { BarChart3, CalendarDays, CircleGauge, ClipboardList, Layers3, MessageSquareText, Workflow, ShieldCheck, Eye, ArrowRight, CheckCircle2, TimerReset, PanelTop, FileDown, BrainCircuit, Boxes, Target, ListTodo, TrendingUp, BadgeCheck, Flame, Orbit, LaptopMinimal, PanelRightOpen, Stars, GitBranch, Gauge, Clock3, Route, BadgeInfo, SquareKanban, SplitSquareVertical, ArrowUpRight, BookOpenText, Sparkles, MoveRight } from "lucide-react";
+import { BarChart3, CalendarDays, CircleGauge, ClipboardList, Layers3, MessageSquareText, Workflow, ShieldCheck, Eye, ArrowRight, CheckCircle2, TimerReset, PanelTop, FileDown, BrainCircuit, Boxes, Target, ListTodo, TrendingUp, BadgeCheck, Flame, Orbit, LaptopMinimal, PanelRightOpen, Stars, GitBranch, Gauge, Clock3, Route, BadgeInfo, SquareKanban, SplitSquareVertical, ArrowUpRight, BookOpenText, Sparkles, MoveRight, Info, FileText, Tag, CalendarClock, Trash2, Lock, CreditCard } from "lucide-react";
 import Link from "next/link";
 
 type Theme = "dark" | "light";
@@ -47,7 +47,132 @@ function Styles() {
   .cmp-card-val{font-size:12.5px;color:var(--tx2);line-height:1.45}
   .cmp-card-row.kanbi .cmp-card-val{color:var(--tx);font-weight:500}
   .lp-wrap{max-width:1140px;margin:0 auto;padding:0 clamp(16px,4vw,24px);width:100%}
-  .lp-section{padding:clamp(56px,8vw,96px) 0}
+  .lp-section{padding:clamp(56px,8vw,96px) 0;scroll-margin-top:64px}
+  /* One heading shape for every section, so the page reads as a single system
+     rather than as ten separately styled blocks. */
+  .lp-kicker{font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--ac-text);margin:0 0 14px}
+  .lp-h2{font-family:var(--font-display);font-size:clamp(28px,4vw,44px);font-weight:700;letter-spacing:-0.04em;line-height:1.1;color:var(--tx);margin:0 0 14px}
+  .lp-lede{font-size:16px;line-height:1.65;color:var(--tx2);margin:0}
+
+  /* Proof band. Four figures on a hairline row, then three plain-language
+     promises, then one honest paragraph about what the model does. */
+  .proof-stats{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--br);border-radius:16px;overflow:hidden;background:var(--bg1)}
+  /* min-width:0 lets a long sub line wrap inside its cell instead of
+     stretching the grid track. */
+  .proof-stat{padding:26px 24px;border-right:1px solid var(--br);min-width:0}
+  .proof-stat:last-child{border-right:none}
+  .proof-num{font-family:var(--font-display);font-size:clamp(26px,3.2vw,42px);font-weight:700;letter-spacing:-0.045em;line-height:1;color:var(--tx);font-variant-numeric:tabular-nums}
+  .proof-label{font-size:13px;color:var(--tx);font-weight:600;margin-top:10px;text-wrap:balance}
+  .proof-sub{font-size:12px;color:var(--tx3);margin-top:4px;line-height:1.5}
+  .proof-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:14px}
+  .proof-card{border:1px solid var(--br);border-radius:14px;background:var(--bg1);padding:20px;min-width:0}
+  .proof-card-ico{width:32px;height:32px;border-radius:9px;background:var(--as);border:1px solid var(--ag);color:var(--ac-text);display:flex;align-items:center;justify-content:center;margin-bottom:12px}
+  .proof-card-t{font-size:13.5px;font-weight:600;color:var(--tx);margin-bottom:6px}
+  .proof-card-d{font-size:12.5px;line-height:1.65;color:var(--tx2)}
+  .proof-note{display:flex;gap:14px;align-items:flex-start;margin-top:14px;padding:20px 22px;border-radius:14px;border:1px solid var(--br);background:var(--bg2)}
+  .proof-note-b{font-size:13px;line-height:1.7;color:var(--tx2);margin:0}
+  .proof-note-b b{color:var(--tx);font-weight:600}
+
+  /* Compare. Three layouts, one dataset, so no copy is duplicated between
+     them. Desktop is a real table so the browser owns column alignment. A
+     tablet gets one panel per feature, which reads better than six columns
+     squeezed to 700px. A phone gets one card per product. */
+  .vs-shell{border:1px solid var(--br);border-radius:16px;background:var(--bg1);overflow:hidden}
+  .vs-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .vs-table{width:100%;min-width:680px;border-collapse:collapse;font-size:13px}
+  .vs-table th,.vs-table td{padding:14px 18px;border-bottom:1px solid var(--br);vertical-align:middle}
+  .vs-table thead th{font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--tx3);background:var(--bg2);white-space:nowrap;text-align:left}
+  .vs-table thead th:first-child,.vs-table tbody th{text-align:left;vertical-align:middle}
+  /* Large screens: row header left, every competitor value left aligned too, and
+     every row vertically centered so a row reads as one line across products. */
+  .vs-table td{text-align:left}
+  /* Brand icon next to each top-row column name, icon left, text centered vertically */
+  .vs-col-head{display:inline-flex;align-items:center;gap:7px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--tx3);white-space:nowrap}
+  .vs-col-head-ico{width:20px;height:20px;flex-shrink:0;border-radius:6px;background:var(--bg2);border:1px solid var(--br);color:var(--ac-text);display:flex;align-items:center;justify-content:center}
+  /* The row header is the only cell that wraps, so it carries the icon that
+     says what the row is about before the words do. */
+  .vs-rowhead{display:flex;align-items:center;gap:9px;font-weight:500;color:var(--tx);text-align:left;white-space:normal}
+  .vs-rowhead-ico{width:28px;height:28px;flex-shrink:0;border-radius:8px;background:var(--bg2);border:1px solid var(--br);color:var(--ac-text);display:flex;align-items:center;justify-content:center}
+  .vs-table td{color:var(--tx2)}
+  .vs-table .is-kanbi{background:var(--as);color:var(--tx);font-weight:500}
+  .vs-table thead th.is-kanbi{color:var(--ac-text)}
+  .vs-table tbody tr:last-child th,.vs-table tbody tr:last-child td{border-bottom:none}
+  .vs-yes{display:inline-flex;align-items:center;justify-content:center;gap:7px}
+  .vs-yes svg{color:var(--gr-text);flex-shrink:0}
+  /* Non-Kanbi competitor cell: small dash icon left of the value */
+  .vs-no{display:inline-flex;align-items:center;gap:7px;justify-content:center}
+  .vs-no-ico{width:13px;height:13px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:var(--tx3);font-size:10px;font-weight:700}
+
+  /* Tablet: one panel per feature. The panel lists all four products, with the
+     Kanbi row filled in so the eye lands on it first. */
+  .vs-tablet{display:none;grid-template-columns:1fr 1fr;gap:14px}
+  .vs-panel{border:1px solid var(--br);border-radius:14px;background:var(--bg1);padding:20px;min-width:0}
+  .vs-panel-head{display:flex;align-items:center;gap:10px;padding-bottom:14px;margin-bottom:6px;border-bottom:1px solid var(--br)}
+  .vs-panel-t{font-size:14px;font-weight:600;color:var(--tx);letter-spacing:-0.02em}
+  .vs-panel-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--br);font-size:12.5px}
+  .vs-panel-row:last-child{border-bottom:none}
+  .vs-panel-row.is-kanbi{margin:0 -20px;padding:10px 20px;background:var(--as)}
+  .vs-panel-name{display:inline-flex;align-items:center;gap:7px;color:var(--tx3);font-weight:600;white-space:nowrap}
+  .vs-panel-row.is-kanbi .vs-panel-name{color:var(--ac-text)}
+  .vs-panel-val{color:var(--tx2);text-align:right;line-height:1.45}
+  .vs-panel-row.is-kanbi .vs-panel-val{color:var(--tx);font-weight:500}
+
+  /* Phone: one card per product. Four columns at 360px is four unreadable
+     columns, so the rows become label and value pairs instead. The row is
+     space-between, and the label column is narrow enough that a long answer
+     still reaches the right edge, so labels sit left and values sit right
+     instead of the whole block drifting left. */
+  .vs-mobile{display:none;flex-direction:column;gap:20px}
+  .vs-card{border:1px solid var(--br);border-radius:14px;background:var(--bg1);overflow:hidden}
+  .vs-card.is-kanbi{border-color:var(--ag);box-shadow:0 0 0 1px var(--ag)}
+  .vs-card-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 16px;border-bottom:1px solid var(--br);font-size:13.5px;font-weight:600;color:var(--tx)}
+  .vs-card-head-label{display:inline-flex;align-items:center;gap:7px;color:var(--tx);font-weight:600;white-space:nowrap}
+  .vs-card-head-ico{width:16px;height:16px;flex-shrink:0;border-radius:6px;background:var(--bg2);border:1px solid var(--br);color:var(--ac-text);display:flex;align-items:center;justify-content:center}
+  .vs-card-row{display:grid;grid-template-columns:minmax(0,140px) minmax(0,1fr);gap:10px;padding:12px 16px;border-bottom:1px solid var(--br);align-items:center;font-size:12.5px;line-height:1.5}
+  .vs-card-row:last-child{border-bottom:none}
+  .vs-card-row.is-kanbi{background:var(--as)}
+  .vs-card-k{display:inline-flex;align-items:center;gap:6px;color:var(--tx3);font-size:11.5px;white-space:nowrap}
+  .vs-card-k svg{flex-shrink:0;color:var(--ac-text)}
+  .vs-card-row.is-kanbi .vs-card-k{color:var(--ac-text)}
+  /* Keep every answer on one line, flush right to the card edge, so values
+     read as a column and never break mid-phrase. The label column is kept
+     narrow so long answers (like Trello's) have room and are never cut off. */
+  .vs-card-v{color:var(--tx2);text-align:right;justify-self:end;max-width:100%;white-space:nowrap;overflow:visible}
+  .vs-card-row.is-kanbi .vs-card-v{color:var(--tx);font-weight:500}
+
+  /* Who it is for. Three roles, one shape, no invented customer quotes. */
+  .who-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .who-card{border:1px solid var(--br);border-radius:14px;background:var(--bg1);padding:24px;min-width:0;transition:border-color .18s,transform .18s}
+  .who-card:hover{border-color:var(--brh);transform:translateY(-2px)}
+  .who-card-t{font-size:15px;font-weight:600;color:var(--tx);margin-bottom:8px;letter-spacing:-0.02em}
+  .who-card-d{font-size:13px;line-height:1.65;color:var(--tx2);margin-bottom:16px}
+  .who-card-tag{display:inline-flex;padding:4px 10px;border-radius:6px;background:var(--bg2);border:1px solid var(--br);font-size:11px;color:var(--tx3)}
+
+  /* Closing CTA. The only full bleed block on the page, so it reads as an end
+     marker rather than as another section with a heading. The accent is a wash
+     and a soft radial, never a hard rule: a line under the buttons would read
+     as a divider between the ask and the reassurance that supports it. */
+  .cta-banner{position:relative;border-radius:22px;border:1px solid var(--br);background:linear-gradient(180deg,rgba(94,111,232,0.08),rgba(94,111,232,0.015));padding:clamp(30px,5vw,56px) clamp(18px,4vw,40px);overflow:hidden;text-align:center}
+  .cta-banner-grid{position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(var(--br) 1px,transparent 1px),linear-gradient(90deg,var(--br) 1px,transparent 1px);background-size:64px 64px;opacity:.5}
+  .cta-banner-glow{position:absolute;top:-45%;left:50%;transform:translateX(-50%);width:130%;height:95%;background:radial-gradient(ellipse,var(--ag) 0%,transparent 64%);pointer-events:none}
+  .cta-banner-inner{position:relative;z-index:1;max-width:640px;margin:0 auto}
+  .cta-actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:30px}
+  .cta-stats{display:flex;justify-content:center;align-items:stretch;flex-wrap:wrap;gap:10px;margin-top:28px}
+  /* Each reassurance is a chip with an icon in its own accent tinted square, so
+     the three read as one row of equal claims instead of a sentence with icons
+     dropped into it. The tint follows the same accent wash the rest of the page
+     uses, which keeps the closing panel quiet instead of introducing a second
+     accent colour at the moment of asking for the click. */
+  .cta-stat{display:inline-flex;align-items:center;gap:9px;padding:9px 14px;border-radius:11px;border:1px solid var(--br);background:var(--bg1);font-size:12.5px;color:var(--tx2);text-align:left;transition:border-color .18s}
+  .cta-stat:hover{border-color:var(--brh)}
+  .cta-stat-ico{width:26px;height:26px;flex-shrink:0;border-radius:8px;background:var(--as);border:1px solid var(--ag);color:var(--ac-text);display:flex;align-items:center;justify-content:center}
+  /* Both plan cards end on the same shaped block, so the two columns stay
+     aligned whether the block is a link, a button, or a quiet label. The
+     .lp prefix beats the .lp a colour reset for the same reason the footer
+     rules do. */
+  .plan-cta{display:flex;align-items:center;justify-content:center;width:100%;min-height:42px;padding:0 16px;margin-top:auto;border-radius:9px;font-size:13px;font-weight:600;text-align:center;line-height:1.4;transition:background .15s,border-color .15s,color .15s}
+  .lp .plan-cta{text-decoration:none}
+  .lp a.plan-cta:hover{filter:brightness(1.08)}
   .lp-nav{position:fixed;top:0;left:0;right:0;z-index:200;height:64px;display:flex;align-items:center;transition:background .3s,border-color .3s}
   .nav-inner{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px;max-width:none;padding:0 clamp(20px,3vw,48px);width:100%}
   .nav-actions{display:flex;gap:8px;align-items:center;flex-shrink:0;justify-content:flex-end}
@@ -66,7 +191,9 @@ function Styles() {
   .g3{display:grid;grid-template-columns:repeat(3,1fr)}
   .fc-item{border-right:1px solid var(--br);border-bottom:1px solid var(--br)}
   .g3 .fc-item:nth-child(3n){border-right:none}
-  .g3 .fc-item:nth-child(n+7){border-bottom:none}
+  /* Six items sit on two rows of three, so the second row is the one that ends
+     the grid. It used to be a nine item grid, hence the old n+7 rule. */
+  .g3 .fc-item:nth-child(n+4){border-bottom:none}
   @media(max-width:1024px){
     .hero-section{padding:128px 0 64px!important}
     .hero-mock-grid{grid-template-columns:1fr!important;min-height:auto!important}
@@ -74,11 +201,24 @@ function Styles() {
     .cta-grid{grid-template-columns:1fr!important}
     .g2{grid-template-columns:1fr!important}
     .g3{grid-template-columns:repeat(2,1fr)!important}
+    .proof-stats{grid-template-columns:1fr 1fr!important}
+    .proof-stat{padding:20px 18px!important;border-bottom:1px solid var(--br)!important}
+    .proof-stat:nth-child(2n){border-right:none!important}
+    /* Two rows of two, so the bottom row is the one that ends the grid. Without
+       this the last pair keeps a bottom edge inside the rounded container and
+       the border looks doubled against the container's own border. */
+    .proof-stat:nth-child(n+3){border-bottom:none!important}
+    .proof-cards{grid-template-columns:1fr!important}
+    .who-cards{grid-template-columns:1fr!important}
+    /* A six column table at 1024px is where the cells start wrapping mid word,
+       which is the width where the per feature panels take over. */
+    .vs-desktop{display:none!important}
+    .vs-tablet{display:grid!important}
     .g3 .fc-item{border-right:1px solid var(--br)!important;border-bottom:1px solid var(--br)!important}
     .g3 .fc-item:nth-child(3n){border-right:1px solid var(--br)!important}
     .g3 .fc-item:nth-child(2n){border-right:none!important}
-    .g3 .fc-item:nth-child(n+7){border-bottom:1px solid var(--br)!important}
-    .g3 .fc-item:nth-child(n+8){border-bottom:none!important}
+    .g3 .fc-item:nth-child(n+4){border-bottom:1px solid var(--br)!important}
+    .g3 .fc-item:nth-child(n+5){border-bottom:none!important}
     .fg{grid-template-columns:1fr 1fr!important;gap:32px!important}
     .hero-kanban{grid-template-columns:1fr!important}
     .nl{gap:2px!important}
@@ -138,6 +278,15 @@ function Styles() {
   @media(max-width:768px){
     .hh{font-size:clamp(36px,8vw,56px)!important}
     .hero-section{padding:112px 0 48px!important}
+    /* The stat numbers used to hold a 30px floor from clamp, so on a phone
+       they stayed desktop sized inside a cell a third of the width and pushed
+       the labels to three lines. Fixed sizes per tier so they actually shrink. */
+    .proof-stat{padding:16px 14px!important}
+    .proof-num{font-size:26px!important}
+    .proof-label{font-size:12px!important;margin-top:7px!important}
+    .proof-sub{font-size:11px!important;margin-top:3px!important}
+    .proof-card{padding:16px!important}
+    .proof-card-d{font-size:12px!important}
     .msb-nav-item .msb-nav-label{display:none}
     .msb-nav-item{padding:8px 10px!important;gap:0!important}
     /* On narrow screens the 3-col kanban stacks to 2 cols so cards are readable
@@ -168,6 +317,18 @@ function Styles() {
     .badge-text{font-size:10px!important;white-space:normal!important;text-align:center!important;line-height:1.3!important}
     .cmp-desktop{display:none!important}
     .cmp-mobile{display:flex!important}
+    .vs-tablet{grid-template-columns:1fr!important}
+    .vs-desktop{display:none!important}
+    /* The mobile layout owns everything below 768px. Sharing the 768px
+       breakpoint with the tablet query meant both layouts matched at exactly
+       768px, so the section rendered twice on tablets in portrait. */
+    .vs-mobile{display:none!important}
+    /* The chips go full width and stack, so each claim gets a full line instead
+       of three cramped columns. */
+    .cta-actions{flex-direction:column!important;align-items:stretch!important}
+    .cta-actions a{justify-content:center!important;width:100%!important}
+    .cta-stats{flex-direction:column!important;align-items:stretch!important}
+    .cta-stat{width:100%!important}
     .hero-mock-wrap{display:none!important}
     .hero-mock-head{padding:10px 12px!important}
     .hero-kanban{padding:10px!important}
@@ -180,9 +341,23 @@ function Styles() {
     .cmp-testimonial{padding:20px 18px!important;margin-top:28px!important}
     .faq-btn{font-size:13px!important;padding:14px 15px!important}
   }
+  @media(max-width:767px){
+    /* Below 768px the per product cards take over from the per feature
+       panels. This query sits under the 768px one on purpose: at exactly
+       768px the tablet layout is the one that should be on screen. */
+    .vs-tablet{display:none!important}
+    .vs-mobile{display:flex!important}
+  }
   @media(max-width:480px){
     /* Single column kanban, smaller padding, tighter text on very narrow screens */
     .hero-kanban{grid-template-columns:1fr!important;gap:7px!important;padding:8px!important}
+    /* The stat row stays two columns on a phone because four full width tiles
+       would push the section taller than the hero it sits under. Sizes come
+       down instead so each tile stays two lines. */
+    .proof-stat{padding:13px 12px!important}
+    .proof-num{font-size:22px!important}
+    .proof-label{font-size:11px!important;margin-top:6px!important}
+    .proof-sub{font-size:10.5px!important;line-height:1.45!important}
     .hero-kanban > div{padding:8px!important;border-radius:10px!important}
     .hero-charts{gap:7px!important;padding:0 8px 8px!important}
     .hero-charts > div{padding:9px!important;border-radius:10px!important}
@@ -204,6 +379,10 @@ function Styles() {
      viewport on a phone. That is the classic cause of a footer that scrolls the
      whole page sideways. */
   .lp-footer{border-top:1px solid var(--br);padding:clamp(40px,6vw,64px) 0 28px;margin-top:auto}
+  /* Footer icons sit at 13 to 15px, where the 1.8 default stroke reads thin
+     against small text. One rule lifts every icon inside the footer so they
+     stay visually consistent with each other. */
+  .lp-footer svg{stroke-width:2.2}
   /* Two grid items live here: .footer-brand and the <nav> that itself lays
      out the 4 link columns. A 5-track definition (1 brand + 4 link tracks)
      was being applied to those 2 items, so the extra tracks went unused and
@@ -215,13 +394,17 @@ function Styles() {
   .footer-logo-mark{width:30px;height:30px;border-radius:9px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff;background:linear-gradient(135deg,var(--ac),var(--pu));box-shadow:0 0 16px var(--ag)}
   .footer-logo-text{font-family:var(--font-display);font-size:15px;font-weight:700;letter-spacing:-0.025em;color:var(--tx)}
   .footer-blurb{font-size:13px;line-height:1.65;color:var(--tx2);max-width:34ch;margin:0 0 20px;text-wrap:pretty}
-  .footer-cta{
+  /* These two are prefixed with .lp on purpose. The rule .lp a{color:inherit}
+     has one class plus one type, which outranks a bare class, so the button
+     text and the link colour were both being reset to the inherited near
+     black instead of the values set here. */
+  .lp .footer-cta{
     display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 18px;
     border-radius:10px;background:var(--ac-solid);color:#fff;font-size:13px;font-weight:600;
     text-decoration:none;box-shadow:0 8px 24px var(--ag);
     transition:background .15s,transform .15s,box-shadow .15s;
   }
-  .footer-cta:hover{background:var(--ac-solid-h);transform:translateY(-1px);box-shadow:0 12px 30px var(--ag)}
+  .lp .footer-cta:hover{background:var(--ac-solid-h);color:#fff;transform:translateY(-1px);box-shadow:0 12px 30px var(--ag)}
   .footer-social{list-style:none;display:flex;gap:8px;flex-wrap:wrap;margin:18px 0 0;padding:0}
   .footer-social-link{
     display:flex;align-items:center;justify-content:center;width:40px;height:40px;
@@ -237,31 +420,70 @@ function Styles() {
      one column and 11px in the others. */
   .footer-col-heading{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--tx3);margin:0 0 14px}
   .footer-col-list{list-style:none;display:flex;flex-direction:column;gap:10px;margin:0;padding:0}
-  .footer-link{
+  /* Same reason as the CTA above: .lp a outranks a bare class. */
+  .lp .footer-link{
     display:inline-block;/* the padding would otherwise not be part of the target */
     font-size:13px;color:var(--tx2);text-decoration:none;
     padding:2px 0;transition:color .15s;
   }
-  .footer-link:hover{color:var(--tx)}
+  .lp .footer-link:hover{color:var(--tx)}
 
-  .footer-bottom{margin-top:clamp(32px,4vw,48px);padding-top:20px;border-top:1px solid var(--br);display:flex;align-items:center;justify-content:center;gap:16px;flex-wrap:wrap;text-align:center}
+  /* Copyright hard left, credit hard right, on any screen with room for it.
+     Below that they centre in a stack, which reads better than two items
+     fighting over one narrow row. */
+  .footer-bottom{margin-top:clamp(32px,4vw,48px);padding-top:20px;border-top:1px solid var(--br);display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;text-align:left}
   .footer-bottom p{margin:0;font-size:12px;color:var(--tx3)}
+  .footer-made-by{margin-left:auto}
+  /* On wide screens give the credit link some horizontal padding so it is not
+     pinned hard against the edge. */
+  @media(min-width:761px){
+    .footer-made-by{padding:4px 16px}
+  }
+  @media(max-width:760px){
+    .footer-bottom{justify-content:center;text-align:center}
+  }
   .footer-bottom-links{list-style:none;display:flex;gap:18px;margin:0;padding:0;align-items:center}
   .footer-bottom-links a{font-size:12px;color:var(--tx3);transition:color .15s;display:inline-flex;align-items:center;gap:5px}
   .footer-bottom-links a:hover{color:var(--tx)}
-  .footer-made-by{display:inline-flex;align-items:center;gap:5px}
-  @media(max-width:640px){.footer-made-by{display:none!important}.footer-bottom{flex-direction:column;gap:10px}}
+  /* nowrap matters here: right aligned in a row, the anchor had just enough
+     width for the icon on one line and the words on the next. flex-shrink:0
+     keeps the whole credit from being squeezed onto a second line on any
+     screen width. */
+  .footer-made-by{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;flex-shrink:0}
+  /* Stacked and centred once the row runs out of width. The credit used to be
+     hidden outright below 640px, which dropped the attribution from the page
+     entirely rather than just reflowing it. */
+  @media(max-width:760px){.footer-bottom{flex-direction:column;gap:10px}}
+  /* Hide the credit on a phone. This has to sit here, after the base
+     .footer-made-by rule above, because a bare class in a media query still
+     loses to a bare class that comes later in the sheet. The .lp prefix is
+     required as well: the markup puts footer-made-by and footer-link on the
+     same anchor, and .lp .footer-link sets display too, so a single class
+     would never win. */
+  @media(max-width:760px){
+    .lp .footer-made-by{display:none}
+  }
 
   /* One focus treatment for every footer control. Without this, keyboard users
      get the browser default on a dark surface and it is easy to lose. */
   .lp-footer a:focus-visible{outline:2px solid var(--ac);outline-offset:3px;border-radius:4px}
 
   @media(max-width:1024px){
-    /* Two rows of two rather than one long column: four columns at this width
-       leaves each link column about 120px, which wraps "How it works" onto two
-       lines and makes the footer twice as tall as its content needs. */
+    /* Tablet keeps the desktop shape: the brand column stays on the left and the
+       link columns stay on the right. Only the link columns reflow, into two rows
+       of two. Four link columns beside a 220px brand track leave about 120px per
+       column, which wraps "How it works" onto two lines and makes the footer
+       twice as tall as its content needs. */
+    .footer-grid{gap:clamp(24px,3.5vw,36px)}
+    /* No max-width here: two link columns fill the whole nav track, so the links
+       reach the right edge of the footer on a tablet the same way the four
+       columns do on a desktop. A cap here left a dead strip on the right. */
+    .footer-nav{grid-template-columns:repeat(2,1fr);gap:28px 24px}
+  }
+  @media(max-width:760px){
+    /* Phone is the width where the brand column and the link columns cannot sit
+       side by side at all, so only here does the grid stack. */
     .footer-grid{grid-template-columns:1fr;gap:36px}
-    .footer-nav{grid-template-columns:repeat(2,1fr);gap:28px 24px;max-width:32rem}
   }
   @media(max-width:640px){
     .lp-footer{padding-top:36px}
@@ -270,6 +492,10 @@ function Styles() {
   @media(max-width:480px){
     .fg,.sg{grid-template-columns:1fr!important}
     .hero-section{padding:100px 0 40px!important}
+    /* Two panels side by side leaves each one narrow enough for the product
+       names to wrap, so a phone gets one panel per row. */
+    .vs-tablet{grid-template-columns:1fr!important}
+    .vs-card-row{grid-template-columns:88px 1fr;padding:10px 14px}
     .tsc{grid-template-columns:1fr 1fr;gap:5px}
     .tb{font-size:11px!important;padding:9px 6px!important}
     .cmp-card-row{grid-template-columns:64px 1fr;padding:10px 14px}
@@ -396,7 +622,10 @@ function Navbar() {
     window.addEventListener("keydown", onKey);
     return () => { document.body.style.overflow = ""; window.removeEventListener("keydown", onKey); };
   }, [mob, closeMob]);
-  const links = [["Features", "#features"], ["How It Works", "#how-it-works"], ["Product", "#showcase"], ["Pricing", "/pricing"], ["FAQ", "#faq"]];
+  // Same order as the sections themselves. The old list ran Features, How It
+  // Works, Product while the page ran Product, Features, How It Works, so every
+  // jump landed out of order.
+  const links = [["Product", "#showcase"], ["How It Works", "#how-it-works"], ["Features", "#features"], ["Compare", "#compare"], ["Pricing", "#pricing"], ["FAQ", "#faq"]];
   return (<>
     <nav className={`lp-nav${mob ? " lp-nav-open" : ""}`} style={{ borderBottom: `1px solid ${scrolled || mob ? "var(--br)" : "transparent"}`, background: scrolled || mob ? "var(--nb)" : "transparent", backdropFilter: scrolled || mob ? "blur(24px)" : "none", WebkitBackdropFilter: scrolled || mob ? "blur(24px)" : "none" }}>
       <div style={{ position: "absolute", bottom: -1, left: 0, height: 1, background: "linear-gradient(90deg,var(--ac),var(--pu))", width: `${prog * 100}%`, transition: "width .1s linear", opacity: mob ? 0 : 1 }} />
@@ -686,6 +915,58 @@ function Hero() {
 
 
 // ── PRODUCT SHOWCASE (new section with 4 tabs) ──────────────────────────
+/* ── Proof: the numbers, the promises, and one honest paragraph ─────────────
+   The figures come from src/lib/constants.ts (USAGE_LIMITS) so the page cannot
+   drift away from the limits the API actually enforces. */
+const PROOF_STATS = [
+  { n: 10, label: "AI extractions a day", sub: "Free plan daily limit" },
+  { n: 300, label: "Board saves a month", sub: "Free plan monthly limit" },
+  { n: 4, label: "Views in one workspace", sub: "Dashboard, Board, Assistant" },
+  { n: 0, pre: "$", label: "To start", sub: "No card, no trial period" },
+];
+
+const PROOF_CARDS = [
+  { I: IC.Shield, t: "Your rows are yours", d: "Every table sits behind row level security, so only your account can read your boards. Nobody else sees them." },
+  { I: IC.Brain, t: "The model is optional", d: "If the model runtime is unreachable, extraction falls back to parsing bullet points and the assistant falls back to a board aware reply." },
+  { I: IC.Check, t: "Delete and go", d: "Remove your account and every board from Settings, without emailing anyone." },
+];
+
+function ProofStat({ n, pre, label, sub, active }: { n: number; pre?: string; label: string; sub: string; active: boolean }) {
+  const v = useCountUp(n, active, 1400);
+  return (
+    <div className="proof-stat">
+      {/* The prefix sits outside the animated figure so the count up never
+          produces "$" on its own for a frame while it climbs to zero. */}
+      <p className="proof-num">{pre}{v}</p>
+      <p className="proof-label">{label}</p>
+      <p className="proof-sub">{sub}</p>
+    </div>
+  );
+}
+
+function Proof() {
+  const ref = useRef<HTMLDivElement>(null);
+  const v = useInView(ref as React.RefObject<HTMLElement>);
+  return (
+    <section id="proof" className="lp-section" style={{ paddingTop: 0 }}>
+      <div className="lp-wrap" ref={ref}>
+        <div className="proof-stats">
+          {PROOF_STATS.map(s => <ProofStat key={s.label} {...s} active={v} />)}
+        </div>
+        <div className="proof-cards">
+          {PROOF_CARDS.map(c => (
+            <div key={c.t} className="proof-card">
+              <div className="proof-card-ico"><c.I size={15} /></div>
+              <p className="proof-card-t">{c.t}</p>
+              <p className="proof-card-d">{c.d}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 const TABS = [
   { key: "overview", label: "Dashboard", desc: "See workload health, usage limits, and recent activity in one place. Know when you're overloaded before the week runs away.", features: ["Health score from your active tasks", "Weekly completion chart", "Usage counters for AI and boards", "Quick jump to any workspace"] },
   { key: "board", label: "Kanban Board", desc: "Drag tasks across To Do, In Progress, and Done. Each card shows priority, label, and progress where it matters.", features: ["Three-column Kanban layout", "Priority tags on every card", "Progress bars on active work", "Save and export when you're ready"] },
@@ -830,7 +1111,7 @@ function MockPreview({ tab }: { tab: typeof TABS[0] }) {
           <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
             {[["9:00 AM", "Meridian quote review", "45m"], ["10:00 AM", "Webhook retry logic", "2h"], ["1:30 PM", "Portfolio copy edits", "1h"]].map((s, i) => (
               <div key={i} style={{ display: "flex", gap: 8, padding: "8px 10px", borderRadius: 12, background: "linear-gradient(180deg,var(--bg2),var(--bg1))", border: "1px solid var(--br)", alignItems: "center" }}>
-                <span style={{ fontSize: 9, fontWeight: 800, color: "var(--ac-text)", fontFamily: "var(--font-geist-mono)", flexShrink: 0 }}>{s[0]}</span>
+                <span style={{ fontSize: 9, fontWeight: 800, color: "var(--ac-text)", fontFamily: "var(--font-mono)", flexShrink: 0 }}>{s[0]}</span>
                 <span style={{ fontSize: 9.5, color: "var(--tx)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s[1]}</span>
                 <span style={{ fontSize: 9, color: "var(--tx3)", flexShrink: 0 }}>{s[2]}</span>
               </div>
@@ -885,15 +1166,12 @@ function Showcase() {
 
 // ── FEATURES ────
 const FEATS = [
-  { I: IC.Spark, t: "AI task extraction", d: "Paste notes, emails, or PDF text. The model reads the content and returns actionable tasks with priorities in seconds." },
-  { I: IC.Shield, t: "Workload health score", d: "Kanbi flags overload before you commit to too much. See a simple score based on what's already on your board." },
-  { I: IC.Brain, t: "Board-aware assistant", d: "Ask what to do next, add tasks in plain language, or reprioritize. The assistant sees your current board." },
-  { I: IC.Chart, t: "Completion tracking", d: "Track what you finish over time. Spot which priorities pile up and where your week actually goes." },
-  { I: IC.Export, t: "DOCX and PDF export", d: "Hand off a board to a client as a formatted Word doc or PDF. No copy paste reformatting." },
-  { I: IC.Board, t: "Text, PDF, and URL input", d: "Paste text, upload a PDF, or drop a URL. One extraction flow for the inputs you already have." },
-  { I: IC.Cal, t: "Autopilot scheduling", d: "Get a morning briefing and suggested time blocks from your tasks. Push the plan onto your board when it looks right." },
-  { I: IC.Zap, t: "Board templates", d: "Start from Daily, Sprint, Meeting, or Project templates instead of an empty board." },
-  { I: IC.Chart, t: "Saved boards library", d: "Save boards, search by title, and reload past work without rebuilding from scratch." },
+  { I: IC.Spark, t: "AI task extraction", d: "Paste notes, drop a PDF, or give a URL. The model reads the content and returns tasks with priorities in seconds." },
+  { I: IC.Shield, t: "Workload health score", d: "Kanbi flags overload before you commit to too much. One score, computed from what is already on your board." },
+  { I: IC.Brain, t: "Board-aware assistant", d: "Ask what to do next, add tasks in plain language, or reprioritize. The assistant reads your current board." },
+  { I: IC.Cal, t: "Autopilot scheduling", d: "A morning briefing and suggested time blocks built from your tasks. Push the plan onto the board when it looks right." },
+  { I: IC.Export, t: "DOCX and PDF export", d: "Hand a board to a client as a formatted Word document or PDF. No copy paste reformatting." },
+  { I: IC.Zap, t: "Templates and saved boards", d: "Start from Daily, Sprint, Meeting, or Project templates. Save finished boards and reload them later." },
 ];
 
 function Features() {
@@ -901,9 +1179,9 @@ function Features() {
     <section id="features" className="lp-section" style={{ borderTop: "1px solid var(--br)" }}>
       <div className="lp-wrap">
         <div style={{ textAlign: "center", marginBottom: 52 }}>
-          <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--ac-text)", marginBottom: 14 }}>Features</p>
-          <h2 style={{ fontSize: "clamp(30px,4vw,48px)", fontWeight: 700, letterSpacing: "-0.04em", color: "var(--tx)", marginBottom: 14 }}>Built for solo operators</h2>
-          <p style={{ fontSize: 16, color: "var(--tx2)", maxWidth: 440, margin: "0 auto" }}>Everything you need to plan a week, nothing you do not need.</p>
+          <p className="lp-kicker">Features</p>
+          <h2 className="lp-h2">Built for solo operators</h2>
+          <p className="lp-lede" style={{ maxWidth: 440, margin: "0 auto" }}>Everything you need to plan a week, nothing you do not need.</p>
         </div>
         <div className="g3" style={{ border: "1px solid var(--br)", borderRadius: 16, overflow: "hidden" }}>
           {FEATS.map((f) => (
@@ -937,7 +1215,7 @@ function HowItWorks() {
             <div key={s.n} className="sh" style={{ borderRadius: 12, border: "1px solid var(--br)", background: "var(--bg1)", padding: 24, transition: "border-color .18s" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 18 }}>
                 <div style={{ width: 40, height: 40, borderRadius: 10, background: "var(--as)", border: "1px solid var(--ag)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--ac-text)" }}><s.I size={17} /></div>
-                <span style={{ fontFamily: "var(--font-geist-mono)", fontSize: 11, fontWeight: 700, color: "var(--tx3)" }}>{s.n}</span>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 700, color: "var(--tx3)" }}>{s.n}</span>
               </div>
               <div style={{ fontSize: 14, fontWeight: 600, color: "var(--tx)", marginBottom: 8 }}>{s.t}</div>
               <div style={{ fontSize: 12.5, color: "var(--tx2)", lineHeight: 1.65, marginBottom: 16 }}>{s.d}</div>
@@ -951,59 +1229,267 @@ function HowItWorks() {
 }
 
 
+/* The free column and the Pro column list the same features on purpose. The
+   paid plan does not unlock anything, it raises the ceilings, so the tables
+   must not imply a feature wall that does not exist. The two lists are also
+   kept in the same order, so a reader can scan down them side by side. */
+const PLAN_FREE = ["10 AI extractions a day", "300 board saves a month", "Full Kanban board", "Priority levels and due dates", "Board templates", "Text, PDF and URL import", "Kanbi assistant", "Workload health score and burnout warnings", "DOCX and PDF export", "Autopilot briefings and time blocks"];
+const PLAN_PRO = ["100 AI extractions a day", "1,500 board saves a month", "Full Kanban board", "Priority levels and due dates", "Board templates", "Text, PDF and URL import", "Kanbi assistant", "Workload health score and burnout warnings", "DOCX and PDF export", "Autopilot briefings and time blocks"];
+
 function Pricing() {
-  const handleProClick = async () => {
-    try {
-      const res = await fetch('/api/stripe/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) });
-      const data = await res.json();
-      if (data.url) window.location.href = data.url;
-      else window.location.href = '/sign-up';
-    } catch { window.location.href = '/sign-up'; }
-  };
-  const freeF = [{ t: "10 AI requests per day", ok: true }, { t: "300 board saves per month", ok: true }, { t: "Full Kanban board", ok: true }, { t: "Priority levels & due dates", ok: true }, { t: "Text, PDF & URL import", ok: false }, { t: "Kanbi Assistant", ok: false }, { t: "Burnout alerts", ok: false }];
-  const proF = ["100 AI requests per day", "1,500 board saves per month", "Text, PDF & URL import", "Kanbi Assistant (board-aware)", "Burnout prevention & health scoring", "DOCX & PDF export", "Autopilot scheduling & briefings", "Priority email support (24h)"];
   return (
     <section id="pricing" className="lp-section" style={{ borderTop: "1px solid var(--br)" }}>
       <div className="lp-wrap">
         <div style={{ textAlign: "center", marginBottom: 52 }}>
-          <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--ac-text)", marginBottom: 14 }}>Pricing</p>
-          <h2 style={{ fontSize: "clamp(30px,4vw,48px)", fontWeight: 700, letterSpacing: "-0.04em", color: "var(--tx)", marginBottom: 14 }}>Simple, honest pricing</h2>
-          <p style={{ fontSize: 15, color: "var(--tx2)" }}>Start free. Upgrade when you&rsquo;re ready.</p>
+          <p className="lp-kicker">Pricing</p>
+          <h2 className="lp-h2">One feature list, two limits</h2>
+          <p className="lp-lede" style={{ maxWidth: 460, margin: "0 auto" }}>Every capability is on the free plan. Pro raises the daily and monthly ceilings and nothing else.</p>
         </div>
         <div className="g2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, maxWidth: 860, margin: "0 auto" }}>
-          <div style={{ borderRadius: 14, border: "1px solid var(--br)", background: "var(--bg1)", padding: 28 }}>
-            <p style={{ fontSize: 13, color: "var(--tx2)", fontWeight: 500, marginBottom: 6 }}>Free</p>
-            <div style={{ display: "flex", alignItems: "flex-end", gap: 4, marginBottom: 6 }}>
-              <span style={{ fontSize: 46, fontWeight: 700, letterSpacing: "-0.04em", color: "var(--tx)", lineHeight: 1 }}>$0</span>
+          <div style={{ borderRadius: 16, border: "1px solid var(--ag)", background: "var(--bg1)", padding: 28, position: "relative", overflow: "hidden" }}>
+            <div style={{ position: "relative" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                <p style={{ fontSize: 13, color: "var(--tx)", fontWeight: 600 }}>Free</p>
+                <span style={{ fontSize: 11, padding: "3px 9px", borderRadius: 100, background: "var(--as)", border: "1px solid var(--ag)", color: "var(--ac-text)", fontWeight: 600 }}>Start here</span>
+              </div>
+              <div style={{ display: "flex", alignItems: "flex-end", gap: 4, marginBottom: 8 }}>
+                <span style={{ fontFamily: "var(--font-display)", fontSize: 46, fontWeight: 700, letterSpacing: "-0.045em", color: "var(--tx)", lineHeight: 1 }}>$0</span>
+                <span style={{ fontSize: 13, color: "var(--tx3)", marginBottom: 7 }}>forever</span>
+              </div>
+              <p style={{ fontSize: 12.5, color: "var(--tx3)", marginBottom: 24, lineHeight: 1.6 }}>No card, no trial, no expiry. Delete your account whenever you like.</p>
+              <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: 11, marginBottom: 28 }}>
+                {PLAN_FREE.map(f => <li key={f} style={{ display: "flex", alignItems: "flex-start", gap: 9, fontSize: 13, color: "var(--tx2)" }}><span style={{ color: "var(--ac-text)", flexShrink: 0, marginTop: 1 }}><IC.Check size={14} /></span>{f}</li>)}
+              </ul>
+              <a href="/sign-up" className="plan-cta plan-cta-primary" style={{ background: "var(--ac-solid)", color: "#fff", border: "1px solid transparent" }}>Create a free account</a>
+            </div>
+          </div>
+
+          <div style={{ borderRadius: 16, border: "1px solid var(--br)", background: "var(--bg1)", padding: 28, display: "flex", flexDirection: "column" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+              <p style={{ fontSize: 13, color: "var(--tx2)", fontWeight: 600 }}>Pro</p>
+              <span style={{ fontSize: 11, padding: "3px 9px", borderRadius: 100, background: "var(--bg2)", border: "1px solid var(--br)", color: "var(--tx3)", fontWeight: 600 }}>Coming soon</span>
+            </div>
+            <div style={{ display: "flex", alignItems: "flex-end", gap: 4, marginBottom: 8 }}>
+              <span style={{ fontFamily: "var(--font-display)", fontSize: 46, fontWeight: 700, letterSpacing: "-0.045em", color: "var(--tx)", lineHeight: 1 }}>$9</span>
               <span style={{ fontSize: 13, color: "var(--tx3)", marginBottom: 7 }}>/month</span>
             </div>
-            <p style={{ fontSize: 12.5, color: "var(--tx3)", marginBottom: 24 }}>Perfect for getting started.</p>
-            <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: 11, marginBottom: 26 }}>
-              {freeF.map(f => <li key={f.t} style={{ display: "flex", alignItems: "flex-start", gap: 9, fontSize: 13, color: f.ok ? "var(--tx2)" : "var(--tx3)" }}><span style={{ color: f.ok ? "var(--ac)" : "var(--tx3)", flexShrink: 0, marginTop: 1 }}><IC.Check size={14} /></span>{f.t}</li>)}
+            <p style={{ fontSize: 12.5, color: "var(--tx3)", marginBottom: 24, lineHeight: 1.6 }}>
+              Checkout opens when Pro launches. Until then your free account already covers everything above, so there is nothing to wait for.
+            </p>
+            <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: 11, marginBottom: 28 }}>
+              {PLAN_PRO.map(f => <li key={f} style={{ display: "flex", alignItems: "flex-start", gap: 9, fontSize: 13, color: "var(--tx2)" }}><span style={{ color: "var(--tx3)", flexShrink: 0, marginTop: 1 }}><IC.Check size={14} /></span>{f}</li>)}
             </ul>
-            <a href="/sign-up" style={{ display: "block", height: 38, borderRadius: 8, border: "1px solid var(--br)", fontSize: 13, fontWeight: 500, color: "var(--tx)", textAlign: "center", lineHeight: "38px", transition: "background .15s" }} onMouseOver={e => (e.currentTarget.style.background = "var(--bg2)")} onMouseOut={e => (e.currentTarget.style.background = "transparent")}>Get Started Free</a>
-          </div>
-          <div style={{ borderRadius: 14, border: "1px solid var(--ag)", background: "var(--bg1)", padding: 28, position: "relative", overflow: "hidden" }}>
-            <div style={{ position: "absolute", top: 0, left: "50%", transform: "translateX(-50%)", width: 340, height: 130, background: "radial-gradient(ellipse at top,var(--ag) 0%,transparent 70%)", pointerEvents: "none" }} />
-            <div style={{ position: "relative" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                <p style={{ fontSize: 13, color: "var(--tx2)", fontWeight: 500 }}>Pro</p>
-                <span style={{ fontSize: 11, padding: "3px 9px", borderRadius: 100, background: "var(--as)", border: "1px solid var(--ag)", color: "var(--ac-text)", fontWeight: 600 }}>Most Popular</span>
-              </div>
-              <div style={{ display: "flex", alignItems: "flex-end", gap: 4, marginBottom: 6 }}>
-                <span style={{ fontSize: 46, fontWeight: 700, letterSpacing: "-0.04em", color: "var(--tx)", lineHeight: 1 }}>$9</span>
-                <span style={{ fontSize: 13, color: "var(--tx3)", marginBottom: 7 }}>/month</span>
-              </div>
-              <p style={{ fontSize: 12.5, color: "var(--tx3)", marginBottom: 24 }}>For serious freelancers.</p>
-              <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: 11, marginBottom: 26 }}>
-                {proF.map(f => <li key={f} style={{ display: "flex", alignItems: "flex-start", gap: 9, fontSize: 13, color: "var(--tx2)" }}><span style={{ color: "var(--ac-text)", flexShrink: 0, marginTop: 1 }}><IC.Check size={14} /></span>{f}</li>)}
-              </ul>
-              <button onClick={handleProClick} style={{ display: "block", width: "100%", height: 38, borderRadius: 8, background: "var(--ac)", fontSize: 13, fontWeight: 600, color: "#fff", textAlign: "center", lineHeight: "38px", boxShadow: "0 4px 20px var(--ag)", transition: "background .15s", border: "none" }} onMouseOver={e => (e.currentTarget.style.background = "var(--ach)")} onMouseOut={e => (e.currentTarget.style.background = "var(--ac)")}>Start Pro   $9/mo</button>
-              <p style={{ textAlign: "center", fontSize: 11, color: "var(--tx3)", marginTop: 10 }}>Stripe billing. Cancel anytime.</p>
-            </div>
+            <p className="plan-cta" style={{ border: "1px dashed var(--brh)", color: "var(--tx3)", background: "transparent" }}>Billing is not switched on yet</p>
           </div>
         </div>
         <p style={{ textAlign: "center", fontSize: 12, color: "var(--tx3)", marginTop: 18 }}>No contracts. Questions? <a href="https://muhammadtanveerabbas.vercel.app" target="_blank" rel="noreferrer noopener" style={{ color: "var(--ac-text)" }}>Contact us</a></p>
+      </div>
+    </section>
+  );
+}
+
+/* ── Compare ───────────────────────────────────────────────────────────────
+   The rows are chosen so every cell is checkable by the reader in one glance:
+   each competitor column says how you get the result, not a verdict. */
+const VS_COLS = [
+  { name: "What matters", I: ListTodo },
+  { name: "Kanbi", I: CheckCircle2 },
+  { name: "A notes app", I: FileText },
+  { name: "Notion", I: BookOpenText },
+  { name: "Trello", I: SquareKanban },
+];
+/* The four products, without the row label. VS_ROWS.v is indexed by this list,
+   so anything that reads a cell by column has to use this and not VS_COLS.
+   Indexing VS_COLS instead shifts every value one column left and leaves the
+   last product with no value at all. */
+const VS_PRODUCTS = VS_COLS.slice(1);
+/* One icon per row, chosen for the thing being compared rather than for the
+   product, so the same icon means the same thing in all three layouts. */
+const VS_ROWS = [
+  { I: ClipboardList, f: "Notes to a board", v: ["From any paste, PDF or URL", "You retype every task", "You retype every task", "You retype every task"] },
+  { I: Gauge, f: "Workload health score", v: ["Built in", "None", "Extra setup", "Extra setup"] },
+  { I: CalendarClock, f: "Daily autopilot plan", v: ["Built in", "None", "None", "None"] },
+  { I: FileDown, f: "Client handoff", v: ["DOCX and PDF export", "Copy and paste", "Export by hand", "Export by hand"] },
+  { I: IC.Zap, f: "Setup for one person", v: ["Under a minute", "None", "Build a template", "Build a board"] },
+  { I: Tag, f: "Cost to try", v: ["Free, no card", "Free", "Free tier", "Free tier"] },
+];
+
+function Compare() {
+  return (
+    <section id="compare" className="lp-section" style={{ borderTop: "1px solid var(--br)" }}>
+      <div className="lp-wrap">
+        <div style={{ textAlign: "center", marginBottom: 44 }}>
+          <p className="lp-kicker">Compare</p>
+          <h2 className="lp-h2">What you do instead</h2>
+          <p className="lp-lede" style={{ maxWidth: 480, margin: "0 auto" }}>
+            Every tool below can hold a task. These are the six differences that matter when nobody else is on the board with you.
+          </p>
+        </div>
+
+        {/* Desktop: a real table, so column widths are the browser's problem and
+            not ours. A caption names it for a reader who has lost the layout. */}
+        <div className="vs-desktop vs-shell">
+          <div className="vs-scroll">
+            <table className="vs-table">
+              <caption className="sr-only">Kanbi compared with a notes app, Notion, and Trello</caption>
+              <thead>
+                <tr>
+                  {VS_COLS.map(c => (
+                    <th key={c.name} scope="col" className={c.name === "Kanbi" ? "is-kanbi" : undefined}>
+                      <span className="vs-col-head">
+                        <span className="vs-col-head-ico"><c.I size={11} /></span>
+                        {c.name}
+                      </span>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {VS_ROWS.map(r => (
+                  <tr key={r.f}>
+                    <th scope="row">
+                      <span className="vs-rowhead">
+                        <span className="vs-rowhead-ico"><r.I size={14} /></span>
+                        {r.f}
+                      </span>
+                    </th>
+                    {r.v.map((cell, i) => (
+                      <td key={i} className={i === 0 ? "is-kanbi" : undefined}>
+                        {i === 0
+                          ? <span className="vs-yes"><IC.Check size={13} />{cell}</span>
+                          : <span className="vs-no"><span className="vs-no-ico" aria-hidden="true">-</span>{cell}</span>}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Tablet: one panel per feature. Each panel lists all four products, with
+            the Kanbi row filled in so the eye lands on it first. */}
+        <div className="vs-tablet">
+          {VS_ROWS.map(r => (
+            <div key={r.f} className="vs-panel">
+              <div className="vs-panel-head">
+                <span className="vs-rowhead-ico"><r.I size={14} /></span>
+                <span className="vs-panel-t">{r.f}</span>
+              </div>
+              {VS_PRODUCTS.map((c, ci) => (
+                <div key={c.name} className={`vs-panel-row${ci === 0 ? " is-kanbi" : ""}`}>
+                  <span className="vs-panel-name">{c.name}</span>
+                  <span className="vs-panel-val">{r.v[ci]}</span>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+
+        {/* Phone: one card per product. Four columns at 360px is four unreadable
+            columns, so the rows become label and value pairs. */}
+        <div className="vs-mobile">
+          {VS_PRODUCTS.map((c, ci) => (
+            <div key={c.name} className={`vs-card${ci === 0 ? " is-kanbi" : ""}`}>
+              <div className="vs-card-head">
+                <span className="vs-card-head-label">
+                  <span className="vs-card-head-ico"><c.I size={11} /></span>
+                  {c.name}
+                </span>
+                {ci === 0 ? (
+                  <span style={{ fontSize: 10.5, fontWeight: 700, padding: "3px 9px", borderRadius: 100, background: "var(--as)", border: "1px solid var(--ag)", color: "var(--ac-text)" }}>This one</span>
+                ) : (
+                  <span className="vs-card-head-ico"><c.I size={11} /></span>
+                )}
+              </div>
+              {VS_ROWS.map(r => (
+                <div key={r.f} className={`vs-card-row${ci === 0 ? " is-kanbi" : ""}`}>
+                  <span className="vs-card-k"><r.I size={12} />{r.f}</span>
+                  <span className="vs-card-v">{r.v[ci]}</span>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ── Who it is for ──────────────────────────────────────────────────────────
+   Roles rather than testimonials. A made up quote from a made up person is
+   the one thing on a landing page that cannot be earned back later. */
+const WHO = [
+  { I: IC.Board, t: "Freelance developers", d: "Client tickets, standup notes, and a spec you were emailed. All three land on one board without a template.", tag: "Board, export" },
+  { I: IC.Spark, t: "Designers and studios", d: "Feedback threads and revision lists become prioritised tasks, and the finished board goes to the client as a PDF.", tag: "PDF export" },
+  { I: IC.Cal, t: "Consultants and coaches", d: "A week of sessions becomes a planned week with a capacity you can actually keep, not one you promise on Monday.", tag: "Autopilot, health" },
+];
+
+function WhoFor() {
+  return (
+    <section id="who" className="lp-section" style={{ borderTop: "1px solid var(--br)" }}>
+      <div className="lp-wrap">
+        {/* Centred like the other section headers on the page. The 520px cap
+            keeps the lede to a readable measure, so it is centred rather than
+            stretched across the wrap. */}
+        <div style={{ marginBottom: 44, maxWidth: 520, marginInline: "auto", textAlign: "center" }}>
+          <p className="lp-kicker">Who it is for</p>
+          <h2 className="lp-h2">Made for one person, not a team</h2>
+          <p className="lp-lede">Kanbi assumes you are the whole company. That is why there is no invite flow and no seat count.</p>
+        </div>
+        <div className="who-cards">
+          {WHO.map(w => (
+            <div key={w.t} className="who-card">
+              <div className="proof-card-ico"><w.I size={15} /></div>
+              <p className="who-card-t">{w.t}</p>
+              <p className="who-card-d">{w.d}</p>
+              <span className="who-card-tag">{w.tag}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ── Final CTA ─────────────────────────────────────────────────────────────
+   The only full bleed block on the page. Everything above it is a heading with
+   content under it, so a closing panel with no heading of its own reads as the
+   end of the page rather than as one more section to skim past. */
+function CTABanner() {
+  return (
+    <section className="lp-section" style={{ paddingTop: 0 }}>
+      <div className="lp-wrap">
+        <div className="cta-banner">
+          <div className="cta-banner-grid" aria-hidden="true" />
+          <div className="cta-banner-glow" aria-hidden="true" />
+          <div className="cta-banner-inner">
+            <h2 className="lp-h2" style={{ marginBottom: 12 }}>Start with the notes you already have</h2>
+            <p className="lp-lede" style={{ maxWidth: 460, margin: "0 auto" }}>
+              Paste a standup transcript or upload a PDF. You will have a board with priorities before you finish reading this sentence.
+            </p>
+            <div className="cta-actions">
+              <a href="/sign-up" style={{ height: 48, padding: "0 26px", borderRadius: 10, background: "var(--ac-solid)", color: "#fff", fontSize: 14, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 9, boxShadow: "0 10px 38px var(--ag)", transition: "background .15s" }}>
+                Create your free board <IC.Arrow size={15} />
+              </a>
+              <a href="#showcase" style={{ height: 48, padding: "0 22px", borderRadius: 10, fontSize: 14, fontWeight: 500, display: "inline-flex", alignItems: "center", gap: 8, background: "var(--bg2)", border: "1px solid var(--brh)", color: "var(--tx2)", transition: "color .15s,border-color .15s" }}>
+                <Eye size={15} />Look inside first
+              </a>
+            </div>
+            <div className="cta-stats">
+              {[
+                { I: CreditCard, t: "No card required" },
+                { I: Lock, t: "Row level security" },
+                { I: Trash2, t: "Delete your data" },
+              ].map(s => (
+                <span key={s.t} className="cta-stat">
+                  <span className="cta-stat-ico"><s.I size={13} /></span>
+                  {s.t}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     </section>
   );
@@ -1016,24 +1502,25 @@ function FAQ() {
     { q: "Is my data private and secure?", a: "Boards and tasks are stored in Supabase with row-level security, so only your account can read them. We don't sell your data. You can delete your account and data from Settings." },
     { q: "How does task parsing work?", a: "Paste text or upload a PDF. The model reads the content, extracts action items, assigns a priority, and optionally estimates time. It handles casual phrasing like follow up on or due Friday without templates." },
     { q: "Does Kanbi integrate with other tools?", a: "You can export boards as DOCX or PDF for client handoffs and import tasks from URLs. More integrations are on the roadmap." },
-    { q: "Is there a free plan?", a: "Yes. Free includes 10 AI requests per day and 300 board saves per month, no credit card. Pro ($9/month) raises those limits to 100 a day and 1,500 a month. Every feature is available on both plans today; the paid plan raises limits rather than unlocking features." },
+    { q: "Is there a free plan?", a: "Yes. Free includes 10 AI extractions a day and 300 board saves a month, with no credit card. Pro is planned at $9 a month and raises those ceilings to 100 a day and 1,500 a month. Every capability is on the free plan already, so the paid plan raises limits rather than unlocking features." },
+    { q: "Can I pay for Pro today?", a: "Not yet. The price shown on this page is what Pro will cost when checkout opens. Nothing sits behind it in the meantime, so a free account gives you the full product." },
     { q: "How is Kanbi different from Asana or Notion?", a: "Team tools assume you will create every task by hand. Kanbi starts from messy input like notes, emails, and PDFs, and builds the board for you. Health scoring and autopilot are built in for solo planning." },
   ];
   return (
     <section id="faq" className="lp-section" style={{ borderTop: "1px solid var(--br)" }}>
       <div className="lp-wrap" style={{ maxWidth: 720 }}>
         <div style={{ textAlign: "center", marginBottom: 48 }}>
-          <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--ac-text)", marginBottom: 14 }}>FAQ</p>
-          <h2 style={{ fontSize: "clamp(30px,4vw,48px)", fontWeight: 700, letterSpacing: "-0.04em", color: "var(--tx)" }}>Common questions</h2>
+          <p className="lp-kicker">FAQ</p>
+          <h2 className="lp-h2" style={{ marginBottom: 0 }}>Common questions</h2>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
           {faqs.map((f, i) => (
             <div key={f.q} className="fi" style={{ border: `1px solid ${open === i ? "var(--ag)" : "var(--br)"}`, borderRadius: 10, overflow: "hidden" }}>
-              <button className="faq-btn" onClick={() => setOpen(open === i ? null : i)} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "15px 17px", background: "transparent", border: "none", color: "var(--tx)", fontSize: 13.5, fontWeight: 500, textAlign: "left", gap: 12, cursor: "pointer" }}>
+              <button className="faq-btn" id={`faq-btn-${i}`} aria-expanded={open === i} aria-controls={`faq-panel-${i}`} onClick={() => setOpen(open === i ? null : i)} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "15px 17px", background: "transparent", border: "none", color: "var(--tx)", fontSize: 13.5, fontWeight: 500, textAlign: "left", gap: 12, cursor: "pointer" }}>
                 <span>{f.q}</span>
                 <span style={{ color: "var(--tx3)", flexShrink: 0, transform: open === i ? "rotate(180deg)" : "none", transition: "transform .2s" }}><IC.ChevD size={14} /></span>
               </button>
-              {open === i && <div style={{ padding: "0 17px 15px", fontSize: 13, color: "var(--tx2)", lineHeight: 1.7 }}>{f.a}</div>}
+              {open === i && <div id={`faq-panel-${i}`} role="region" aria-labelledby={`faq-btn-${i}`} style={{ padding: "0 17px 15px", fontSize: 13, color: "var(--tx2)", lineHeight: 1.7 }}>{f.a}</div>}
             </div>
           ))}
         </div>
@@ -1053,6 +1540,7 @@ const FOOTER_COLUMNS: Array<{
     links: [
       { label: 'Features', href: '#features', icon: <IC.Spark size={11} /> },
       { label: 'How it works', href: '#how-it-works', icon: <IC.Chart size={11} /> },
+      { label: 'Compare', href: '#compare', icon: <IC.Board size={11} /> },
       { label: 'Pricing', href: '/pricing', icon: <IC.Shield size={11} /> },
       { label: 'Changelog', href: '/changelog', icon: <IC.Cal size={11} /> },
     ],
@@ -1071,6 +1559,7 @@ const FOOTER_COLUMNS: Array<{
     icon: <IC.Chat size={12} />,
     links: [
       { label: 'FAQ', href: '#faq', icon: <IC.Brain size={11} /> },
+      { label: 'Who it is for', href: '#who', icon: <IC.Cal size={11} /> },
       { label: 'Source on GitHub', href: 'https://github.com/MuhammadTanveerAbbas/kanbi', external: true, icon: <IC.Export size={11} /> },
       { label: 'Report an issue', href: 'https://github.com/MuhammadTanveerAbbas/kanbi/issues', external: true, icon: <IC.Spark size={11} /> },
     ],
@@ -1139,7 +1628,6 @@ function Footer() {
           <p>© {new Date().getFullYear()} Kanbi. All rights reserved.</p>
           <a href="https://muhammadtanveerabbas.vercel.app" target="_blank" rel="noreferrer noopener"
             className="footer-made-by footer-link" style={{ fontSize: 12, color: "var(--tx3)" }}>
-            <IC.Spark size={12} />
             Made by Tanveer
           </a>
         </div>
@@ -1157,7 +1645,10 @@ export default function LandingPage() {
       <Styles />
       <div className="lp" style={{ minHeight: "100vh", background: "var(--bg)", color: "var(--tx)" }}>
         <Navbar />
-        <main><Hero /><Showcase /><Features /><HowItWorks /><Pricing /><FAQ /></main>
+        {/* Ten sections. The order is the argument: what it is, what it costs to
+            trust, what it does, how it does it, who it is for, what you do
+            instead, what it charges, what people ask, then the ask itself. */}
+        <main><Hero /><Proof /><Showcase /><HowItWorks /><Features /><WhoFor /><Compare /><Pricing /><FAQ /><CTABanner /></main>
         <Footer />
       </div>
     </ThemeCtx.Provider>

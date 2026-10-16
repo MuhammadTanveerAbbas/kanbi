@@ -222,15 +222,6 @@ function PricingCards({ billing }: { billing: "monthly" | "yearly" }) {
   const monthlyPrice = 9;
   const yearlyPrice = Math.round(monthlyPrice * 12 * 0.67 / 12);
 
-  const handleProClick = async () => {
-    try {
-      const res = await fetch("/api/stripe/checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ billing }) });
-      const data = await res.json();
-      if (data.url) window.location.href = data.url;
-      else window.location.href = "/sign-up";
-    } catch { window.location.href = "/sign-up"; }
-  };
-
   return (
     <section style={{ padding: "0 0 96px" }}>
       <div style={{ maxWidth: 900, margin: "0 auto", padding: "0 24px" }}>
@@ -261,11 +252,10 @@ function PricingCards({ billing }: { billing: "monthly" | "yearly" }) {
 
           {/* PRO */}
           <div style={{ borderRadius: 16, border: "1px solid var(--ag)", background: "var(--bg1)", padding: 32, position: "relative", overflow: "hidden", display: "flex", flexDirection: "column" }}>
-            <div style={{ position: "absolute", top: 0, left: "50%", transform: "translateX(-50%)", width: 380, height: 160, background: "radial-gradient(ellipse at top,var(--ag) 0%,transparent 70%)", pointerEvents: "none" }} />
             <div style={{ position: "relative", display: "flex", flexDirection: "column", flex: 1 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
                 <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--ac-text)" }}>Pro</p>
-                <span style={{ fontSize: 11, padding: "3px 10px", borderRadius: 100, background: "var(--as)", border: "1px solid var(--ag)", color: "var(--ac-text)", fontWeight: 600 }}>Most Popular</span>
+                <span style={{ fontSize: 11, padding: "3px 10px", borderRadius: 100, background: "var(--as)", border: "1px solid var(--ag)", color: "var(--ac-text)", fontWeight: 600 }}>Coming soon</span>
               </div>
               <div style={{ display: "flex", alignItems: "flex-end", gap: 4, marginBottom: 4 }}>
                 <span style={{ fontSize: 52, fontWeight: 800, letterSpacing: "-0.05em", color: "var(--tx)", lineHeight: 1 }}>${billing === "yearly" ? yearlyPrice : monthlyPrice}</span>
@@ -273,7 +263,7 @@ function PricingCards({ billing }: { billing: "monthly" | "yearly" }) {
                 {billing === "yearly" && <span style={{ fontSize: 11, color: "var(--tx3)", marginBottom: 9, marginLeft: 4, textDecoration: "line-through" }}>${monthlyPrice}</span>}
               </div>
               {billing === "yearly"
-                ? <p style={{ fontSize: 13, color: "var(--gr-text)", marginBottom: 28, fontWeight: 500 }}>Billed ${yearlyPrice * 12}/year · Save ${(monthlyPrice - yearlyPrice) * 12}/year</p>
+                ? <p style={{ fontSize: 13, color: "var(--gr-text)", marginBottom: 28, fontWeight: 500 }}>Billed ${yearlyPrice * 12} a year, saving ${(monthlyPrice - yearlyPrice) * 12} against monthly</p>
                 : <p style={{ fontSize: 13, color: "var(--tx3)", marginBottom: 28 }}>For serious freelancers. Cancel anytime.</p>
               }
               <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: 12, marginBottom: 32, flex: 1 }}>
@@ -284,10 +274,13 @@ function PricingCards({ billing }: { billing: "monthly" | "yearly" }) {
                   </li>
                 ))}
               </ul>
-              <button onClick={handleProClick} style={{ display: "block", width: "100%", height: 42, borderRadius: 9, background: "var(--ac)", fontSize: 13, fontWeight: 600, color: "#fff", border: "none", boxShadow: "0 4px 24px var(--ag)", transition: "background .15s" }} onMouseOver={e => (e.currentTarget.style.background = "var(--ach)")} onMouseOut={e => (e.currentTarget.style.background = "var(--ac)")}>
-                Start Pro · ${billing === "yearly" ? yearlyPrice : monthlyPrice}/mo
-              </button>
-              <p style={{ textAlign: "center", fontSize: 11, color: "var(--tx3)", marginTop: 10 }}>Stripe billing · Cancel anytime</p>
+              {/* Checkout is not open yet, so this is a label rather than a
+                  button. A button here would promise a payment the page cannot
+                  take, which is the fastest way to lose a signup. */}
+              <p style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100%", minHeight: 42, padding: "0 16px", borderRadius: 9, border: "1px dashed var(--brh)", fontSize: 13, fontWeight: 600, color: "var(--tx3)" }}>
+                Checkout opens with the Pro launch
+              </p>
+              <p style={{ textAlign: "center", fontSize: 11, color: "var(--tx3)", marginTop: 10 }}>Every feature listed is already on the free plan</p>
             </div>
           </div>
 
@@ -406,12 +399,12 @@ function SocialProof() {
 
 // ── FAQ ───────────────────────────────────────────────────────────────────
 const FAQS = [
-  { q: "Is the free plan really free forever?", a: "Yes. No credit card required, no trial period. The free plan is yours to keep with 10 AI extractions/day and 300 board uses/month kanbi enough for real daily use." },
+  { q: "Is the free plan really free forever?", a: "Yes. No credit card required, no trial period. The free plan is yours to keep, with 10 AI extractions a day and 300 board saves a month." },
   { q: "What happens if I hit the free plan limits?", a: "You will see a prompt to upgrade. Your existing boards and tasks are never deleted. Upgrading raises your limits straight away." },
-  { q: "Can I cancel Pro anytime?", a: "Absolutely. Cancel from your dashboard settings in one click. You keep Pro access until the end of your billing period, then drop back to the free plan kanbi no data loss." },
-  { q: "Is there a yearly discount?", a: "Yes kanbi pay yearly and get 4 months free (33% off). That's $72/year instead of $108. You can switch between monthly and yearly from your billing settings." },
-  { q: "What payment methods do you accept?", a: "All major credit and debit cards via Stripe. Stripe is PCI-DSS compliant kanbi we never store your card details." },
-  { q: "Do you offer refunds?", a: "If you're not happy in the first 7 days, email us and we'll refund you, no questions asked." },
+  { q: "Can I cancel Pro anytime?", a: "Absolutely. Cancel from your dashboard settings in one click. You keep Pro access until the end of your billing period, then drop back to the free plan with no data loss." },
+  { q: "Is there a yearly discount?", a: "Yes. Pro yearly is planned at 33% off, which works out at $72 a year instead of $108. The toggle above shows both figures so you can see the saving before anything is switched on." },
+  { q: "What payment methods will you accept?", a: "Cards and debit cards through Stripe. Stripe is PCI-DSS compliant and your card details never touch Kanbi's servers. Checkout is not open yet, so nothing is charged today." },
+  { q: "What happens to my data if I do not upgrade?", a: "Nothing. Every feature is on the free plan today, including the assistant, health scoring, export, and autopilot. Pro raises the daily and monthly ceilings and nothing else." },
 ];
 
 function FAQ() {
@@ -451,13 +444,13 @@ function CTABanner() {
             <p style={{ fontSize: 15, color: "var(--tx2)", maxWidth: 440, margin: "0 auto 34px", lineHeight: 1.65 }}>Start free. Every feature is on both plans. Upgrade when you need higher limits.</p>
             <div className="cr" style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
               <a href="/sign-up" style={{ height: 48, padding: "0 28px", borderRadius: 10, background: "var(--inv)", color: "var(--inv2)", fontSize: 14, fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 9, transition: "opacity .15s" }} onMouseOver={e => (e.currentTarget.style.opacity = ".88")} onMouseOut={e => (e.currentTarget.style.opacity = "1")}>
-                Start Free · No Card Needed <IC.Arrow size={15} />
+                Start free, no card needed <IC.Arrow size={15} />
               </a>
               <a href="#faq" style={{ height: 48, padding: "0 22px", borderRadius: 10, border: "1px solid var(--brh)", fontSize: 14, color: "var(--tx2)", display: "inline-flex", alignItems: "center", transition: "all .15s" }} onMouseOver={e => { e.currentTarget.style.borderColor = "var(--ag)"; e.currentTarget.style.color = "var(--tx)"; }} onMouseOut={e => { e.currentTarget.style.borderColor = "var(--brh)"; e.currentTarget.style.color = "var(--tx2)"; }}>
                 See FAQ <IC.ArrowRight size={13} style={{ display: "inline-block", verticalAlign: "-2px", marginLeft: 4 }}/>
               </a>
             </div>
-            <p style={{ marginTop: 18, fontSize: 12, color: "var(--tx3)" }}>No contracts · Free plan forever · Cancel Pro anytime</p>
+            <p style={{ marginTop: 18, fontSize: 12, color: "var(--tx3)" }}>No contracts. Free plan forever. Cancel Pro any time.</p>
           </div>
         </div>
       </div>
@@ -487,7 +480,7 @@ function Footer() {
             ].map(([l, h]) => (
               <Link key={l as string} href={h as string} className="na" style={{ fontSize: 12, color: "var(--tx3)", transition: "color .15s", padding: "4px 8px", borderRadius: 6 }}>{l}</Link>
             ))}
-            <a href="mailto:support@kanbi.app" className="na" style={{ fontSize: 12, color: "var(--tx3)", transition: "color .15s", padding: "4px 8px", borderRadius: 6 }}>Contact</a>
+            <a href="mailto:muhammadtanveerabbas.contact@gmail.com" className="na" style={{ fontSize: 12, color: "var(--tx3)", transition: "color .15s", padding: "4px 8px", borderRadius: 6 }}>Contact</a>
           </div>
           <button onClick={toggle} style={{ width: 30, height: 30, borderRadius: 7, border: "1px solid var(--br)", background: "var(--bg1)", color: "var(--tx3)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "border-color .15s, color .15s" }}>
             {theme === "dark" ? <IC.Sun size={13} /> : <IC.Moon size={13} />}
@@ -535,13 +528,13 @@ export default function PricingPage() {
           <div style={{ maxWidth: 1140, margin: "0 auto", padding: "0 24px", textAlign: "center", position: "relative" }}>
             <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "5px 14px 5px 10px", borderRadius: 100, border: "1px solid var(--ag)", background: "var(--as)", marginBottom: 28 }}>
               <div style={{ width: 20, height: 20, borderRadius: 6, background: "var(--as)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--ac-text)" }}><IC.Spark size={13} /></div>
-              <span style={{ fontSize: 12, color: "var(--ac-text)", fontWeight: 500 }}>Simple, honest pricing kanbi no hidden fees</span>
+              <span style={{ fontSize: 12, color: "var(--ac-text)", fontWeight: 500 }}>Simple, honest pricing, no hidden fees</span>
             </div>
             <h1 style={{ fontSize: "clamp(40px,6.5vw,76px)", fontWeight: 800, letterSpacing: "-0.048em", lineHeight: 1.06, color: "var(--tx)", marginBottom: 20 }}>
               Start free.{" "}<span className="shimmer">Upgrade when ready.</span>
             </h1>
             <p style={{ fontSize: 17, color: "var(--tx2)", maxWidth: 480, margin: "0 auto 36px", lineHeight: 1.7 }}>
-              Every plan includes the full Kanban board. Pro unlocks AI superpowers kanbi and pays for itself in the first hour you save.
+              Every plan includes the full Kanban board. Pro raises the limits and nothing else, so it pays for itself the first time you stop rebuilding a board by hand.
             </p>
             {/* billing toggle */}
             <div style={{ display: "inline-flex", alignItems: "center", borderRadius: 10, border: "1px solid var(--br)", background: "var(--bg1)", padding: 4, marginBottom: 8 }}>
@@ -552,7 +545,7 @@ export default function PricingPage() {
                 </button>
               ))}
             </div>
-            {billing === "yearly" && <p style={{ fontSize: 12, color: "var(--gr-text)" }}>Billed annually · 4 months free</p>}
+            {billing === "yearly" && <p style={{ fontSize: 12, color: "var(--gr-text)" }}>Billed annually, 4 months free</p>}
           </div>
         </section>
 
