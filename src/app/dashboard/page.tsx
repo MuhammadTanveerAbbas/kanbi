@@ -14,7 +14,7 @@ import {
   type Task, type SavedBoard, type ChatMsg, type Briefing, type BurnoutAlert, type AuthUser, type AppState,
 } from "@/components/dashboard/types";
 import {
-  Icons, StarIcon, BoardStarIcon, SavedStarIcon, ChatStarIcon, ChatBotIcon, PilotStarIcon, SettingsStarIcon,
+  Icons, StarIcon, BoardStarIcon, ViewBoardIcon, SavedStarIcon, ChatStarIcon, ChatBotIcon, PilotStarIcon, SettingsStarIcon,
 } from "@/components/dashboard/icons";
 import { PriBadge, Avt, PBar, Toggle, Skeleton, Spinner, EmptyState, Field, StatNote } from "@/components/dashboard/ui";
 import { HealthRing } from "@/components/dashboard/charts";
@@ -677,7 +677,7 @@ function TaskCard({
    PAGE: OVERVIEW
 ═══════════════════════════════════════════════════════════════════════════ */
 function PageOverview() {
-  const { tasks, setTasks, savedBoards, navigate, dailyGoal, weeklyGoal, user, isLoading, setBoardView } = useApp();
+  const { tasks, setTasks, savedBoards, navigate, dailyGoal, weeklyGoal, user, isLoading, setActiveBoardId } = useApp();
   const done  = tasks.filter(t => t.status === "done").length;
   const total = tasks.length;
   const wip   = tasks.filter(t => t.status === "wip").length;
@@ -707,8 +707,7 @@ function PageOverview() {
       if (loaded.length > 0) setTasks(loaded);
       fetch('/api/sync-task-stats', { method: 'POST' }).catch(() => {});
       setQuickInput('');
-      setBoardView('kanban');
-      navigate('board');
+      navigate('kanban');
     } catch {
       /* allow retry */
     } finally {
@@ -985,7 +984,7 @@ function PageOverview() {
                    primary action for the whole board, so it has to be
                    reachable by keyboard and announce what it opens. */
                 <button key={b.id}
-                  onClick={() => { setTasks(b.tasks); setBoardView("kanban"); navigate("board"); }}
+                  onClick={() => { setTasks(b.tasks); setActiveBoardId(b.id); navigate("kanban"); }}
                   className="card panel"
                   style={{ textAlign:"left", position:"relative", display:"block" }}>
 
@@ -1089,7 +1088,10 @@ function PageOverview() {
    PAGE: BOARD
 ═══════════════════════════════════════════════════════════════════════════ */
 function PageBoard() {
-  const { tasks, setTasks, savedBoards, setSavedBoards, boardView, setBoardView } = useApp();
+  const { tasks, setTasks, savedBoards, setSavedBoards, page, navigate } = useApp();
+  // One state, not two. The capture screen and the board are separate pages
+  // now, so the page itself says which of the two is on screen.
+  const boardView: BoardView = page === "kanban" ? "kanban" : "input";
   const [inputMode, setInputMode] = useState<InputMode>("paste");
   const [urlInput, setUrlInput] = useState("");
   const [inputText, setInputText] = useState("");
@@ -1138,7 +1140,7 @@ function PageBoard() {
       const loaded = await loadTasksFromApi();
       if (loaded.length > 0) setTasks(loaded);
       syncTaskStats();
-      setBoardView('kanban');
+      navigate('kanban');
     } catch {
       setExtractError('Network error while processing PDF.');
     } finally {
@@ -1191,7 +1193,7 @@ function PageBoard() {
       }));
       setTasks(loaded);
       setUrlInput("");
-      setBoardView('kanban');
+      navigate('kanban');
     } catch {
       setExtractError('Network error. Check your connection and try again.');
     } finally {
@@ -1218,7 +1220,7 @@ function PageBoard() {
       if (loaded.length > 0) setTasks(loaded);
       syncTaskStats();
       setInputText('');
-      setBoardView('kanban');
+      navigate('kanban');
     } catch {
       setExtractError('Network error. Check your connection and try again.');
     } finally {
@@ -1473,7 +1475,7 @@ function PageBoard() {
                   <Icons.Pdf size={14}/> Import Tasks
                 </button>
                 {tasks.length > 0 && (
-                  <button onClick={() => setBoardView("kanban")} className="btn btn-primary">
+                  <button onClick={() => navigate("kanban")} className="btn btn-primary">
                     <Icons.Board size={14}/> View Board ({tasks.length} tasks)
                   </button>
                 )}
@@ -1487,7 +1489,7 @@ function PageBoard() {
           <div className="board-kanban-header" style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
             padding:"14px 26px", borderBottom:"1px solid var(--br)", flexWrap:"wrap", gap:9 }}>
             <div className="board-kanban-title" style={{ display:"flex", alignItems:"center", gap:11, minWidth:0 }}>
-              <button onClick={() => setBoardView("input")} className="btn btn-ghost btn-sm">
+              <button onClick={() => navigate("board")} className="btn btn-ghost btn-sm">
                 <Icons.ArrowLeft size={13}/> Back
               </button>
               <h2 style={{ fontSize:13, fontWeight:700, color:"var(--tx)", fontFamily:"var(--font-display)",
@@ -2293,7 +2295,7 @@ function PageAutopilot() {
    PAGE: SAVED BOARDS
 ═══════════════════════════════════════════════════════════════════════════ */
 function PageSaved() {
-  const { savedBoards, setSavedBoards, setTasks, setBoardView, navigate } = useApp();
+  const { savedBoards, setSavedBoards, setTasks, navigate, activeBoardId, setActiveBoardId } = useApp();
   const [view, setView] = useState<"grid"|"list">("grid");
   const [search, setSearch] = useState("");
   const [activeFolder, setActiveFolder] = useState("All");
@@ -2309,9 +2311,16 @@ function PageSaved() {
     b.name.toLowerCase().includes(search.toLowerCase())
   );
 
-  const openBoard   = (b: SavedBoard) => { setTasks(b.tasks); setBoardView("kanban"); navigate("board"); };
+  const openBoard   = (b: SavedBoard) => {
+    setTasks(b.tasks);
+    setActiveBoardId(b.id);
+    navigate("kanban");
+  };
   const deleteBoard = (id: string) => {
     setSavedBoards(prev => prev.filter(b => b.id !== id));
+    // The board page shows a Delete control for the board it has open, so it
+    // must stop pointing at a board that no longer exists.
+    if (activeBoardId === id) setActiveBoardId(null);
     fetch(`/api/saved/${id}`, { method: 'DELETE' }).catch(() => {});
   };
   const renameBoard = (id: string) => {
@@ -2947,6 +2956,7 @@ function Sidebar({ page, setPage, theme, toggleTheme }: {
   const mainNav: [Page, string, ReactNode][] = [
     ["overview",  "Overview",     <StarIcon key="overview" size={26}/>        ],
     ["board",     "Board",        <BoardStarIcon key="board" size={26}/>   ],
+    ["kanban",    "View Board",   <ViewBoardIcon key="kanban" size={26}/>  ],
     ["saved",     "Saved Boards", <SavedStarIcon key="saved" size={26}/>   ],
   ];
   const aiNav: [Page, string, ReactNode, string?][] = [
@@ -3049,6 +3059,7 @@ function BottomNav({ page, setPage, onNavigate }: { page: Page; setPage: (p: Pag
   const items: [Page, string, ReactNode][] = [
     ["overview",  "Home",     <StarIcon key="overview" size={19}/>        ],
     ["board",     "Board",    <BoardStarIcon key="board" size={19}/>   ],
+    ["kanban",    "View",     <ViewBoardIcon key="kanban" size={19}/>  ],
     ["chat",      "Chat",     <ChatStarIcon key="chat" size={19}/>    ],
     ["autopilot", "Pilot",    <PilotStarIcon key="autopilot" size={19}/>   ],
     ["saved",     "Saved",    <SavedStarIcon key="saved" size={19}/>   ],
@@ -3093,8 +3104,18 @@ const PAGE_META: Record<Page, { title: string; sub: string; icon: React.ReactNod
     ),
   },
   board:     {
-    title:"Kanban Board", sub:"Extract and manage tasks",
+    title:"Board", sub:"Paste, import, or extract tasks",
     gradient:"linear-gradient(135deg,#6366f1,#06b6d4)",
+    icon:(
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="4" width="18" height="16" rx="2.5"/>
+        <path d="M12 9v6M9 12h6"/>
+      </svg>
+    ),
+  },
+  kanban:    {
+    title:"View Board", sub:"Your columns, drag and drop",
+    gradient:"linear-gradient(135deg,#14b8a6,#6366f1)",
     icon:(
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <rect x="2" y="3" width="6" height="18" rx="1.5"/>
@@ -3150,8 +3171,47 @@ const PAGE_META: Record<Page, { title: string; sub: string; icon: React.ReactNod
 function Topbar({ page }: {
   page: Page;
 }) {
-  const { user } = useApp();
+  const { user, savedBoards, setSavedBoards, activeBoardId, setActiveBoardId, navigate } = useApp();
   const meta = PAGE_META[page];
+
+  const openBoard = activeBoardId ? savedBoards.find(b => b.id === activeBoardId) : undefined;
+  const [askingDelete, setAskingDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+
+  // The dialog is a decision, not a navigation, so Escape always closes it and
+  // nothing happens until the user picks Delete board.
+  useEffect(() => {
+    if (!askingDelete) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape" && !deleting) setAskingDelete(false); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [askingDelete, deleting]);
+
+  const confirmDeleteBoard = async () => {
+    if (!openBoard) return;
+    setDeleting(true);
+    setDeleteError("");
+    const { id } = openBoard;
+    // The row disappears straight away so the click feels immediate. If the
+    // server refuses, it comes back and the reason is shown, because a board
+    // that looks deleted but is still in the database is worse than a delay.
+    setSavedBoards(prev => prev.filter(b => b.id !== id));
+    setActiveBoardId(null);
+    try {
+      const res = await fetch(`/api/saved/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("The server did not accept the delete.");
+      setAskingDelete(false);
+      navigate("saved");
+    } catch {
+      setSavedBoards(prev => prev.some(b => b.id === id) ? prev : [{ ...openBoard }, ...prev]);
+      setActiveBoardId(id);
+      setDeleteError("That board could not be deleted. Try again.");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   return (
     <header className="topbar-wrap" style={{
       height:56, borderBottom:"1px solid var(--br)",
@@ -3191,10 +3251,69 @@ function Topbar({ page }: {
         </div>
       </div>
 
-      {/* Right: avatar */}
+      {/* Right: delete, then avatar */}
       <div style={{ display:"flex", alignItems:"center", gap:10, flexShrink:0 }}>
+        {openBoard && page === "kanban" && (
+          <button onClick={() => { setDeleteError(""); setAskingDelete(true); }}
+            className="btn btn-danger btn-sm"
+            aria-label={`Delete board ${openBoard.name}`}>
+            <Icons.Trash size={12}/> Delete board
+          </button>
+        )}
         <Avt name={user?.full_name ?? "User"} size={32} avatarUrl={user?.avatar_url}/>
       </div>
+
+      {askingDelete && openBoard && (
+        <div onClick={() => { if (!deleting) setAskingDelete(false); }}
+          style={{ position:"fixed", inset:0, zIndex:200, display:"flex",
+            alignItems:"center", justifyContent:"center", padding:20,
+            background:"rgba(0,0,0,0.5)", backdropFilter:"blur(2px)" }}>
+          <div role="dialog" aria-modal="true"
+            aria-labelledby="confirm-delete-title" aria-describedby="confirm-delete-body"
+            onClick={e => e.stopPropagation()}
+            style={{ width:"100%", maxWidth:400, borderRadius:"var(--radius-lg)",
+              background:"var(--bg1)", border:"1px solid var(--br)", padding:22,
+              boxShadow:"0 20px 50px rgba(0,0,0,0.4)" }}>
+
+            <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:12 }}>
+              <span aria-hidden="true" style={{ width:32, height:32, borderRadius:8,
+                display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0,
+                background:"rgba(239,68,68,0.12)", color:"var(--rd-text)" }}>
+                <Icons.Trash size={15}/>
+              </span>
+              <h2 id="confirm-delete-title" style={{ fontSize:15.5, fontWeight:800,
+                color:"var(--tx)", fontFamily:"var(--font-display)", margin:0 }}>
+                Delete this board?
+              </h2>
+            </div>
+
+            <p id="confirm-delete-body" style={{ fontSize:13, color:"var(--tx2)",
+              lineHeight:1.65, margin:"0 0 6px" }}>
+              <strong style={{ color:"var(--tx)" }}>{openBoard.name}</strong> will be removed
+              for good, together with its {openBoard.taskCount} tasks. This cannot be undone.
+            </p>
+
+            {deleteError && (
+              <p role="alert" style={{ fontSize:12.5, color:"var(--rd-text)", margin:"6px 0 0" }}>
+                {deleteError}
+              </p>
+            )}
+
+            <div style={{ display:"flex", justifyContent:"flex-end", gap:8, marginTop:20 }}>
+              <button onClick={() => setAskingDelete(false)} disabled={deleting}
+                autoFocus className="btn btn-ghost btn-sm">
+                Cancel
+              </button>
+              <button onClick={confirmDeleteBoard} disabled={deleting}
+                className="btn btn-danger btn-sm">
+                {deleting
+                  ? <><Spinner size={12} tone="onFill"/> Deleting...</>
+                  : "Delete board"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </header>
   );
 }
@@ -3369,15 +3488,16 @@ export default function Dashboard() {
   }, [user?.id]);
   const [briefings, setBriefings]       = useState<Briefing[]>([]);
   const [burnoutAlerts]                 = useState<BurnoutAlert[]>([]);
-  const [boardView, setBoardView]       = useState<BoardView>("input");
+  const [activeBoardId, setActiveBoardId] = useState<string | null>(null);
   const navigate = useCallback((p: Page) => setPage(p), []);
 
   const appState: AppState = {
     tasks, setTasks, savedBoards, setSavedBoards,
+    activeBoardId, setActiveBoardId,
     chatMessages, setChatMessages, briefings, setBriefings,
     burnoutAlerts,
     dailyGoal: 5, weeklyGoal: 30,
-    boardView, setBoardView, navigate,
+    page, navigate,
     user, isLoading,
   };
 
@@ -3393,6 +3513,7 @@ export default function Dashboard() {
           <div style={{ flex:1, overflow:"hidden", minWidth:0 }}>
             {page === "overview"  && <PageOverview/>}
             {page === "board"     && <PageBoard/>}
+            {page === "kanban"    && <PageBoard/>}
             {page === "chat"      && <PageChat/>}
             {page === "autopilot" && <PageAutopilot/>}
             {page === "saved"     && <PageSaved/>}

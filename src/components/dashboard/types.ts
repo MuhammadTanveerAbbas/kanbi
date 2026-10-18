@@ -2,7 +2,7 @@
 
 import { createContext, useContext, type ReactNode } from "react";
 
-export type Page = "overview" | "board" | "chat" | "autopilot" | "saved" | "settings";
+export type Page = "overview" | "board" | "kanban" | "chat" | "autopilot" | "saved" | "settings";
 export type Priority = "urgent" | "high" | "medium" | "low";
 export type TaskStatus = "todo" | "wip" | "done";
 export type Theme = "dark" | "light";
@@ -58,13 +58,24 @@ export interface AppState {
   setTasks: (t: Task[] | ((p: Task[]) => Task[])) => void;
   savedBoards: SavedBoard[];
   setSavedBoards: (b: SavedBoard[] | ((p: SavedBoard[]) => SavedBoard[])) => void;
+  /**
+   * The saved board the user opened, or null when the board page is showing
+   * the live board from the database. The board page uses this to decide
+   * whether a Delete control has a board to delete.
+   */
+  activeBoardId: string | null;
+  setActiveBoardId: (id: string | null) => void;
   chatMessages: ChatMsg[];
   setChatMessages: (m: ChatMsg[] | ((p: ChatMsg[]) => ChatMsg[])) => void;
   briefings: Briefing[];
   setBriefings: (b: Briefing[] | ((p: Briefing[]) => Briefing[])) => void;
   burnoutAlerts: BurnoutAlert[];
   dailyGoal: number; weeklyGoal: number;
-  boardView: BoardView; setBoardView: (v: BoardView) => void;
+  /**
+   * Which page is on screen. `board` is the capture screen and `kanban` is the
+   * board itself, so both live here rather than as a second piece of state.
+   */
+  page: Page;
   navigate: (p: Page) => void;
   user: AuthUser | null;
   isLoading: boolean;

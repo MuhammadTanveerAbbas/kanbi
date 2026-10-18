@@ -118,9 +118,13 @@ export class ChatAssistant {
           content: normalizeChatReply(msg.message, MAX_REPLY_CHARS),
         }));
 
+      // No output cap is sent. A reasoning model spends its budget on hidden
+      // reasoning before it writes anything, so a small `max_tokens` returns an
+      // empty answer and the user sees an error. Length is bounded in the
+      // system prompt instead, and the reply is trimmed to MAX_REPLY_CHARS
+      // before it is stored or shown.
       const result = await complete({
         temperature: 0.4,
-        maxTokens: 220,
         messages: [
           { role: 'system', content: buildSystemPrompt(context) },
           ...historyMessages,

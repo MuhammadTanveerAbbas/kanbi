@@ -109,10 +109,12 @@ export async function POST(request: NextRequest) {
     const abort = new AbortController()
     request.signal.addEventListener('abort', () => abort.abort(), { once: true })
 
+    // No output cap, for the same reason as the buffered route: a reasoning
+    // model can spend a small budget entirely on hidden reasoning and return an
+    // empty answer. The system prompt keeps replies short.
     const stream_ = stream({
       messages,
       temperature: 0.4,
-      maxTokens: 220,
       signal: abort.signal,
     })
 

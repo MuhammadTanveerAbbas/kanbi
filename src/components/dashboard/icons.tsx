@@ -279,6 +279,7 @@ export const Icons = {
 const NAV_ICONS = {
   overview:  { bg: "linear-gradient(145deg,#818cf8 0%,#6366f1 50%,#4f46e5 100%)", sh: "#3730a3", hi: "rgba(255,255,255,0.22)" },
   board:     { bg: "linear-gradient(145deg,#34d399 0%,#10b981 50%,#059669 100%)", sh: "#047857", hi: "rgba(255,255,255,0.2)"  },
+  kanban:    { bg: "linear-gradient(145deg,#2dd4bf 0%,#14b8a6 50%,#0d9488 100%)", sh: "#0f766e", hi: "rgba(255,255,255,0.2)"  },
   saved:     { bg: "linear-gradient(145deg,#60a5fa 0%,#3b82f6 50%,#2563eb 100%)", sh: "#1d4ed8", hi: "rgba(255,255,255,0.2)"  },
   chat:      { bg: "linear-gradient(145deg,#f472b6 0%,#ec4899 50%,#db2777 100%)", sh: "#be185d", hi: "rgba(255,255,255,0.2)"  },
   autopilot: { bg: "linear-gradient(145deg,#fbbf24 0%,#f59e0b 50%,#d97706 100%)", sh: "#b45309", hi: "rgba(255,255,255,0.22)" },
@@ -299,6 +300,7 @@ function NavIcon3D({ type, size = 26 }: { type: keyof typeof NAV_ICONS; size?: n
     }}>
       {type === "overview"  && <Icons.Overview  size={iconSize} style={{ color:"#fff", strokeWidth:2.2 }}/>}
       {type === "board"     && <Icons.Board     size={iconSize} style={{ color:"#fff", strokeWidth:2.2 }}/>}
+      {type === "kanban"    && <Icons.LayoutGrid size={iconSize} style={{ color:"#fff", strokeWidth:2.2 }}/>}
       {type === "saved"     && <Icons.Saved     size={iconSize} style={{ color:"#fff", strokeWidth:2.2 }}/>}
       {type === "chat"      && <Icons.Chat      size={iconSize} style={{ color:"#fff", strokeWidth:2.2 }}/>}
       {type === "autopilot" && <Icons.Autopilot size={iconSize} style={{ color:"#fff", strokeWidth:2.2 }}/>}
@@ -309,6 +311,7 @@ function NavIcon3D({ type, size = 26 }: { type: keyof typeof NAV_ICONS; size?: n
 
 export function StarIcon({ size = 16 }: IC)         { return <NavIcon3D type="overview"  size={size}/>; }
 export function BoardStarIcon({ size = 16 }: IC)    { return <NavIcon3D type="board"     size={size}/>; }
+export function ViewBoardIcon({ size = 16 }: IC)     { return <NavIcon3D type="kanban"    size={size}/>; }
 export function SavedStarIcon({ size = 16 }: IC)    { return <NavIcon3D type="saved"     size={size}/>; }
 export function ChatStarIcon({ size = 16 }: IC)     { return <NavIcon3D type="chat"      size={size}/>; }
 export function PilotStarIcon({ size = 16 }: IC)    { return <NavIcon3D type="autopilot" size={size}/>; }
