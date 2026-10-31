@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
 
     let query = supabase
       .from('saved_generations')
-      .select('id, title, content, created_at, updated_at, is_favorite, category, icon')
+      .select('id, title, content, created_at, updated_at, is_favorite, category, icon, folder')
       .eq('user_id', user.id);
 
     if (search) {

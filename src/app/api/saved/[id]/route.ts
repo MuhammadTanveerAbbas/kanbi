@@ -9,8 +9,11 @@ const UpdateBoardSchema = z.object({
   title: z.string().min(1).max(200).optional(),
   content: z.string().max(50000).optional(),
   is_favorite: z.boolean().optional(),
-  category: z.enum(['other', 'meeting', 'project', 'daily', 'sprint', 'quick']).optional(),
+  // Accept all app-level category values — no constraint enforcement here,
+  // the DB column is now VARCHAR(50) with no CHECK constraint.
+  category: z.string().max(50).optional(),
   icon: z.string().max(50).optional(),
+  folder: z.string().max(100).optional(),
   input_text: z.string().max(50000).optional(),
   output_text: z.string().max(50000).optional(),
 });

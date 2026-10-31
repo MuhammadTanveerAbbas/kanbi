@@ -76,8 +76,10 @@ CREATE TABLE IF NOT EXISTS saved_generations (
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
   content TEXT,
+  -- 'personal' and 'autopilot' are used by the app; keep all values here
   category VARCHAR(50) DEFAULT 'other',
   icon VARCHAR(50) DEFAULT 'file',
+  folder VARCHAR(100) DEFAULT 'Personal',
   is_favorite BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -655,6 +657,17 @@ WHERE t.board_id IS NULL
 
 -- Whatever is still unattached has nowhere to live and is removed
 DELETE FROM public.tasks WHERE board_id IS NULL;
+
+-- ================================================
+-- MIGRATIONS  (safe to re-run — all use IF NOT EXISTS / IF EXISTS)
+-- ================================================
+
+-- Add folder column to saved_generations (boards can now be organised into folders)
+ALTER TABLE public.saved_generations ADD COLUMN IF NOT EXISTS folder VARCHAR(100) DEFAULT 'Personal';
+
+-- Drop the old category CHECK constraint if it exists (the column is now a free
+-- VARCHAR(50) so app categories like 'personal' and 'autopilot' are accepted)
+ALTER TABLE public.saved_generations DROP CONSTRAINT IF EXISTS saved_generations_category_check;
 
 -- ================================================
 -- STORAGE

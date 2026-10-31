@@ -66,7 +66,9 @@ function failure(
 
 export async function POST(request: NextRequest) {
   const requestId = crypto.randomUUID()
-  const limitResult = await rateLimit(request, { maxRequests: 30, windowMs: 60_000 })
+  // High limit: Groq itself enforces its own rate limits server-side.
+  // App-level limiting is kept only to prevent abuse, not to restrict normal use.
+  const limitResult = await rateLimit(request, { maxRequests: 200, windowMs: 60_000 })
   if (!limitResult.success) {
     return rateLimitResponse(limitResult.limit, limitResult.remaining, limitResult.reset)
   }

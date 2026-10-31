@@ -29,15 +29,22 @@ export async function POST(request: NextRequest) {
         const body = await request.json();
         const validated = saveBoardSchema.parse(body);
 
-        // Save board to saved_generations table
+        // Save board to saved_generations table.
+        // Map app-level category names to DB-valid values.
+        const rawCategory = (validated.category || 'other') as string;
+        const dbCategory = ['other','meeting','project','daily','sprint','quick','personal','autopilot'].includes(rawCategory)
+          ? rawCategory
+          : 'other';
+
         const { data, error } = await supabase
             .from('saved_generations')
             .insert({
                 user_id: user.id,
                 title: validated.title,
                 content: JSON.stringify(validated.tasks),
-                category: validated.category || 'other',
+                category: dbCategory,
                 icon: validated.icon || 'file',
+                folder: 'Personal',
                 is_favorite: false,
             })
             .select()

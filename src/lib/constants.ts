@@ -86,22 +86,23 @@ export const DEFAULT_PAGE_SIZE = 20;
  */
 
 // Usage limits
+// Usage limits — raised so normal use is never blocked
 export const USAGE_LIMITS = {
   FREE: {
-    DAILY_EXTRACTIONS: 10,
-    MONTHLY_EXTRACTIONS: 300,
-    DAILY_BOARDS: 10,
-    MONTHLY_BOARDS: 300,
-    DAILY_AI: 10,
-    MONTHLY_AI: 300,
-  },
-  PREMIUM: {
-    DAILY_EXTRACTIONS: 100,
+    DAILY_EXTRACTIONS: 50,
     MONTHLY_EXTRACTIONS: 1500,
     DAILY_BOARDS: 100,
-    MONTHLY_BOARDS: 1500,
-    DAILY_AI: 100,
+    MONTHLY_BOARDS: 3000,
+    DAILY_AI: 50,
     MONTHLY_AI: 1500,
+  },
+  PREMIUM: {
+    DAILY_EXTRACTIONS: 500,
+    MONTHLY_EXTRACTIONS: 15000,
+    DAILY_BOARDS: 500,
+    MONTHLY_BOARDS: 15000,
+    DAILY_AI: 500,
+    MONTHLY_AI: 15000,
   },
 } as const;
 

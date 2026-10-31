@@ -54,66 +54,94 @@ export interface ModelProfile {
 /**
  * Order matters: the first profile whose `match` list hits a given model id wins.
  * Later entries act as progressively weaker fallbacks for the same family.
+ *
+ * Groq production models (2025): openai/gpt-oss-120b (best), openai/gpt-oss-20b (fastest),
+ * llama-3.3-70b-versatile, llama-3.1-8b-instant.
+ * The registry auto-discovers what is live; these profiles rank them when several are available.
  */
 export const MODEL_PROFILES: readonly ModelProfile[] = [
   {
-    priority: 10,
-    match: ['gpt-oss-120b', 'gpt-oss-20b'],
-    label: 'OpenAI gpt-oss',
+    // Groq's current flagship — largest, highest quality
+    priority: 5,
+    match: ['gpt-oss-120b'],
+    label: 'OpenAI GPT-OSS 120B (Groq)',
     contextWindow: 131072,
-    maxOutputTokens: 32768,
+    maxOutputTokens: 65536,
+  },
+  {
+    // Groq's fastest production model
+    priority: 8,
+    match: ['gpt-oss-20b'],
+    label: 'OpenAI GPT-OSS 20B (Groq)',
+    contextWindow: 131072,
+    maxOutputTokens: 65536,
+  },
+  {
+    // Qwen3 family — strong reasoning
+    priority: 15,
+    match: ['qwen3', 'qwen-3', 'qwen3.8'],
+    label: 'Qwen 3',
+    contextWindow: 131072,
+    maxOutputTokens: 16384,
   },
   {
     priority: 20,
-    match: ['qwen3', 'qwen-3'],
-    label: 'Qwen 3',
+    match: ['llama-3.3-70b'],
+    label: 'Llama 3.3 70B',
     contextWindow: 131072,
     maxOutputTokens: 32768,
   },
   {
-    priority: 30,
+    priority: 25,
     match: ['llama-4', 'llama4'],
     label: 'Llama 4',
     contextWindow: 131072,
     maxOutputTokens: 16384,
   },
   {
-    priority: 40,
-    match: ['llama-3.3-70b', 'llama-3.3-8b', 'llama-3.1-70b', 'llama-3.1-8b'],
-    label: 'Llama 3.x',
+    priority: 30,
+    match: ['llama-3.1-70b'],
+    label: 'Llama 3.1 70B',
     contextWindow: 131072,
     maxOutputTokens: 8192,
   },
   {
-    priority: 50,
+    priority: 35,
+    match: ['llama-3.1-8b', 'llama-3.3-8b'],
+    label: 'Llama 3.x 8B',
+    contextWindow: 131072,
+    maxOutputTokens: 8192,
+  },
+  {
+    priority: 40,
     match: ['deepseek-v3', 'deepseek-r1', 'deepseek'],
     label: 'DeepSeek',
     contextWindow: 65536,
     maxOutputTokens: 8192,
   },
   {
-    priority: 60,
+    priority: 50,
     match: ['mistral-nemo', 'mixtral', 'ministral'],
     label: 'Mistral',
     contextWindow: 32768,
     maxOutputTokens: 8192,
   },
   {
-    priority: 70,
+    priority: 60,
     match: ['gemma-3', 'gemma3', 'gemma-2', 'gemma2'],
     label: 'Gemma',
     contextWindow: 8192,
     maxOutputTokens: 4096,
   },
   {
-    priority: 80,
+    priority: 70,
     match: ['phi-4', 'phi-3', 'phi4', 'phi3'],
     label: 'Phi',
     contextWindow: 16384,
     maxOutputTokens: 4096,
   },
   {
-    priority: 90,
+    priority: 80,
     match: ['llama', 'nemotron', 'olmo', 'smol', 'granite', 'exaone', 'internlm'],
     label: 'General open weight',
     contextWindow: 8192,
@@ -134,6 +162,10 @@ export const NON_CHAT_PATTERNS: readonly RegExp[] = [
   /embed|embedding|bge-|e5-|gte-|retriev/i,
   /guard|safeguard|moderation|classifier/i,
   /rerank|reranker/i,
+  // Groq-specific safety/prompt-guard models
+  /prompt-guard/i,
+  // Groq MiniMax and Muse are multimodal / enterprise — may not serve plain chat
+  /muse-spark/i,
 ] as const
 
 /**
@@ -144,15 +176,41 @@ export const NON_CHAT_PATTERNS: readonly RegExp[] = [
  * skip instead of a runtime error. This is a denylist of the past, not a
  * prediction about the future, which is the difference between this and
  * `MODEL_PROFILES`.
+ *
+ * Groq retirements (2024-2025):
+ *   llama3-70b-8192, llama3-8b-8192 — old Llama 3 style IDs
+ *   llama-3.1-70b-versatile — retired Aug 2025; use llama-3.3-70b-versatile
+ *   llama-3.2-1b-preview — preview, decommissioned
+ *   mixtral-8x7b-32768 — retired
+ *   gemma2-9b-it, gemma-7b-it — retired
+ *   mistral-saba-24b — retired
+ *   qwen-qwq-32b — retired (use qwen3 family)
+ *   llama-guard-3-8b — safety/guard model, not a chat model
+ *   gpt-oss-safeguard-20b — safety model, not for chat
+ *   llama-prompt-guard-* — safety classifier, not chat
  */
 export const RETIRED_MODEL_PATTERNS: readonly RegExp[] = [
+  // Old Llama 3 IDs (decommissioned)
+  /^llama3-(70b|8b)-8192$/i,
+  // Llama 3.1 versatile (retired Aug 2025 on Groq)
+  /llama-3\.1-70b-versatile/i,
+  // Preview / deprecated
+  /llama-3\.2-1b-preview/i,
+  // Mixtral retired
+  /mixtral-8x7b-32768$/i,
+  // Gemma retired
   /gemma2-9b-it$/i,
   /gemma-7b-it$/i,
-  /mixtral-8x7b-32768$/i,
-  /llama3-(70b|8b)-8192$/i,
-  /llama-3\.1-70b-versatile$/i,
-  /llama-3\.2-1b-preview$/i,
-  /mistral-saba-24b$/i,
-  /qwen-qwq-32b$/i,
-  /llama-guard-3-8b$/i,
+  // Mistral retired
+  /mistral-saba-24b/i,
+  // QwQ retired (use qwen3 instead)
+  /qwen-qwq-32b/i,
+  // Safety/guard models — cannot serve chat
+  /llama-guard/i,
+  /llama-prompt-guard/i,
+  /gpt-oss-safeguard/i,
+  // TTS / Orpheus — audio, not text chat
+  /orpheus/i,
+  // Muse Spark — image/multimodal, not chat text
+  /muse-spark/i,
 ] as const

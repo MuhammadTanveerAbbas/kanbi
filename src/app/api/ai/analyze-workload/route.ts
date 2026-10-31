@@ -8,7 +8,7 @@ import { rateLimit, rateLimitResponse, addRateLimitHeaders } from '@/lib/rate-li
 
 export async function POST(request: NextRequest) {
   const requestId = crypto.randomUUID();
-  const limitResult = await rateLimit(request, { maxRequests: 20, windowMs: 60000 });
+  const limitResult = await rateLimit(request, { maxRequests: 100, windowMs: 60000 });
   if (!limitResult.success) return rateLimitResponse(limitResult.limit, limitResult.remaining, limitResult.reset);
 
   try {

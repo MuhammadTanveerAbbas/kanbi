@@ -617,6 +617,7 @@ function GlobalStyles() {
         .chat-prompts { grid-template-columns:1fr !important; max-width:100% !important }
         .settings-tabs { grid-template-columns:repeat(2,1fr) !important; gap:5px !important }
         .settings-tabs button { font-size:11px !important; padding:12px 6px !important }
+        .board-source-picker { grid-template-columns:1fr 1fr !important }
       }
     `}</style>
   );
@@ -624,27 +625,125 @@ function GlobalStyles() {
 
 /* ═══════════════════════════════════════════════════════════════════════════
    TASK CARD
+   The three-dot button opens a fixed-position popup menu — status, priority,
+   delete. The popup is portal-rendered via position:fixed so it is never
+   clipped by a kanban column's overflow:hidden.
 ═══════════════════════════════════════════════════════════════════════════ */
 function TaskCard({
-  task, onStatusChange, compact = false,
+  task, onStatusChange, onDelete, onPriorityChange, compact = false,
 }: {
   task: Task;
   onStatusChange?: (id: string, s: TaskStatus) => void;
+  onDelete?: (id: string) => void;
+  onPriorityChange?: (id: string, p: Priority) => void;
   compact?: boolean;
 }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuPos, setMenuPos] = useState({ top: 0, left: 0, width: 0 });
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Close on outside click or Escape
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onMouse = (e: MouseEvent) => {
+      if (
+        menuRef.current && !menuRef.current.contains(e.target as Node) &&
+        btnRef.current  && !btnRef.current.contains(e.target as Node)
+      ) setMenuOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setMenuOpen(false); };
+    document.addEventListener("mousedown", onMouse);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onMouse);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [menuOpen]);
+
+  const openMenu = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const rect = btnRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    // On phones use full available width minus margin; on desktop 230px
+    const menuWidth = vw < 480 ? Math.min(vw - 16, 300) : 230;
+    // Right-align to button, clamp to viewport
+    let left = rect.right - menuWidth;
+    if (left < 8) left = 8;
+    if (left + menuWidth > vw - 8) left = vw - menuWidth - 8;
+    // Estimate menu height (~220px), flip upward if not enough room below
+    const estimatedH = 240;
+    const top = rect.bottom + 6 + estimatedH > vh
+      ? Math.max(8, rect.top - estimatedH - 6)
+      : rect.bottom + 6;
+    setMenuPos({ top, left, width: menuWidth });
+    setMenuOpen(v => !v);
+  };
+
+  const statusOptions: { s: TaskStatus; label: string; color: string }[] = [
+    { s:"todo",  label:"To Do",       color:"var(--ac)"  },
+    { s:"wip",   label:"In Progress", color:"var(--am)"  },
+    { s:"done",  label:"Done",        color:"var(--gr)"  },
+  ];
+  const priorityOptions: { p: Priority; label: string; color: string }[] = [
+    { p:"urgent", label:"Urgent", color:"var(--rd-text)" },
+    { p:"high",   label:"High",   color:"var(--am-text)" },
+    { p:"medium", label:"Medium", color:"var(--ac-text)" },
+    { p:"low",    label:"Low",    color:"var(--tx3)"     },
+  ];
+
+  if (compact) {
+    return (
+      <article className="task-card panel panel-sm" style={{ marginBottom: 6 }}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:8 }}>
+          <p style={{ fontSize:11.5, color:"var(--tx)", fontWeight:500, lineHeight:1.5,
+            flex:1, minWidth:0, letterSpacing:"-0.01em", overflowWrap:"anywhere" }}>{task.title}</p>
+          <PriBadge p={task.priority}/>
+        </div>
+      </article>
+    );
+  }
+
   return (
-    <article className="task-card panel panel-sm" style={{ marginBottom: 8 }}>
-      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:9,
-        marginBottom: compact ? 0 : 9 }}>
-        {/* minWidth 0 keeps a long title from widening the kanban column
-            instead of wrapping inside it. */}
-        <p style={{ fontSize: compact ? 11.5 : 13, color:"var(--tx)", fontWeight:500,
-          lineHeight:1.5, flex:1, minWidth:0, letterSpacing:"-0.01em",
-          overflowWrap:"anywhere" }}>{task.title}</p>
-        <PriBadge p={task.priority}/>
-      </div>
-      {!compact && (
-        <div style={{ display:"flex", alignItems:"center", gap:5, flexWrap:"wrap", marginBottom:10 }}>
+    <>
+      <article className="task-card panel panel-sm" style={{ marginBottom: 8, position:"relative" }}>
+        {/* Card header row */}
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:9, marginBottom:9 }}>
+          <p style={{ fontSize:13, color:"var(--tx)", fontWeight:500, lineHeight:1.5,
+            flex:1, minWidth:0, letterSpacing:"-0.01em", overflowWrap:"anywhere" }}>{task.title}</p>
+          <div style={{ display:"flex", alignItems:"center", gap:4, flexShrink:0 }}>
+            <PriBadge p={task.priority}/>
+            {/* Three-dot button — only this triggers the menu */}
+            <button
+              ref={btnRef}
+              onClick={openMenu}
+              aria-label="Task options"
+              aria-haspopup="menu"
+              aria-expanded={menuOpen}
+              className="btn-icon"
+              style={{
+                width:28, height:28, minWidth:28, borderRadius:6, padding:0,
+                display:"flex", flexDirection:"column", alignItems:"center",
+                justifyContent:"center", gap:2.5, border:"none",
+                background: menuOpen ? "var(--bg2)" : "transparent",
+                color:"var(--tx3)", flexShrink:0, cursor:"pointer",
+                transition:"background .12s, color .12s",
+              }}
+              onMouseOver={e => (e.currentTarget.style.background = "var(--bg2)")}
+              onMouseOut={e => { if (!menuOpen) e.currentTarget.style.background = "transparent"; }}
+            >
+              {[0,1,2].map(i => (
+                <span key={i} style={{ width:3, height:3, borderRadius:"50%",
+                  background:"currentColor", display:"block", flexShrink:0 }}/>
+              ))}
+            </button>
+          </div>
+        </div>
+
+        {/* Meta row */}
+        <div style={{ display:"flex", alignItems:"center", gap:5, flexWrap:"wrap", marginBottom: onStatusChange ? 10 : 0 }}>
           <span style={{ fontSize:10, padding:"2px 8px", borderRadius:99, background:"var(--as)",
             color:"var(--ac-text)", fontWeight:600, fontFamily:"var(--font-mono)", border:"1px solid var(--ag)" }}>{task.label}</span>
           {task.dueDate && (
@@ -658,18 +757,112 @@ function TaskCard({
             </span>
           )}
         </div>
-      )}
-      {!compact && onStatusChange && task.status !== "done" && (
-        <div style={{ display:"flex", alignItems:"center", gap:7 }}>
-          <button
-            onClick={() => onStatusChange(task.id, task.status === "todo" ? "wip" : "done")}
-            className="btn btn-ghost btn-sm"
-          >
-            <Icons.Check size={10}/> {task.status === "todo" ? "Start" : "Done"}
-          </button>
+
+        {/* Quick-advance button */}
+        {onStatusChange && task.status !== "done" && (
+          <div style={{ display:"flex", alignItems:"center", gap:7 }}>
+            <button
+              onClick={e => { e.stopPropagation(); onStatusChange(task.id, task.status === "todo" ? "wip" : "done"); }}
+              className="btn btn-ghost btn-sm"
+            >
+              <Icons.Check size={10}/> {task.status === "todo" ? "Start" : "Done"}
+            </button>
+          </div>
+        )}
+      </article>
+
+      {/* Fixed-position popup — never clipped by kanban overflow */}
+      {menuOpen && (
+        <div
+          ref={menuRef}
+          role="menu"
+          aria-label={`Options for ${task.title}`}
+          style={{
+            position:"fixed",
+            top: menuPos.top,
+            left: menuPos.left,
+            width: menuPos.width,
+            zIndex: 9999,
+            borderRadius:"var(--radius-md)",
+            background:"var(--bg1)",
+            border:"1px solid var(--brh)",
+            boxShadow:"0 16px 48px rgba(0,0,0,0.32), 0 2px 8px rgba(0,0,0,0.16)",
+            padding:8,
+            display:"flex", flexDirection:"column", gap:3,
+            animation:"fadeUp .15s cubic-bezier(.22,1,.36,1) both",
+          }}>
+
+          {/* Task title preview */}
+          <p style={{ fontSize:11, fontWeight:600, color:"var(--tx2)", padding:"2px 8px 6px",
+            borderBottom:"1px solid var(--br)", marginBottom:2,
+            overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+            {task.title}
+          </p>
+
+          {/* Status */}
+          <p style={{ fontSize:9.5, fontWeight:700, letterSpacing:"0.07em", textTransform:"uppercase",
+            color:"var(--tx3)", padding:"2px 8px", fontFamily:"var(--font-mono)" }}>Status</p>
+          <div style={{ display:"flex", gap:5, padding:"0 4px 4px" }}>
+            {statusOptions.map(o => (
+              <button key={o.s} role="menuitem"
+                onClick={() => { onStatusChange?.(task.id, o.s); setMenuOpen(false); }}
+                style={{
+                  flex:"1 1 0", padding:"6px 4px", borderRadius:"var(--radius-sm)",
+                  border:`1.5px solid ${task.status === o.s ? o.color : "var(--br)"}`,
+                  background: task.status === o.s ? `color-mix(in srgb, ${o.color} 15%, transparent)` : "var(--bg2)",
+                  color: task.status === o.s ? o.color : "var(--tx2)",
+                  fontSize:10.5, fontWeight: task.status === o.s ? 700 : 400,
+                  display:"flex", flexDirection:"column", alignItems:"center", gap:4,
+                  cursor:"pointer", transition:"all .12s",
+                }}>
+                <span style={{ width:7, height:7, borderRadius:"50%", background:o.color, flexShrink:0 }}/>
+                {o.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Priority */}
+          <p style={{ fontSize:9.5, fontWeight:700, letterSpacing:"0.07em", textTransform:"uppercase",
+            color:"var(--tx3)", padding:"2px 8px", fontFamily:"var(--font-mono)" }}>Priority</p>
+          <div style={{ display:"flex", gap:5, padding:"0 4px 4px" }}>
+            {priorityOptions.map(o => (
+              <button key={o.p} role="menuitem"
+                onClick={() => { onPriorityChange?.(task.id, o.p); setMenuOpen(false); }}
+                style={{
+                  flex:"1 1 0", padding:"6px 4px", borderRadius:"var(--radius-sm)",
+                  border:`1.5px solid ${task.priority === o.p ? o.color : "var(--br)"}`,
+                  background: task.priority === o.p ? `color-mix(in srgb, ${o.color} 15%, transparent)` : "var(--bg2)",
+                  color: task.priority === o.p ? o.color : "var(--tx2)",
+                  fontSize:10.5, fontWeight: task.priority === o.p ? 700 : 400,
+                  display:"flex", alignItems:"center", justifyContent:"center",
+                  cursor:"pointer", transition:"all .12s",
+                }}>
+                {o.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Delete */}
+          {onDelete && (
+            <>
+              <div style={{ height:1, background:"var(--br)", margin:"2px 4px" }}/>
+              <button role="menuitem"
+                onClick={() => { onDelete(task.id); setMenuOpen(false); }}
+                style={{
+                  display:"flex", alignItems:"center", gap:8, padding:"8px 10px",
+                  borderRadius:"var(--radius-sm)", border:"none", background:"transparent",
+                  color:"var(--rd-text)", fontSize:12, fontWeight:500, cursor:"pointer",
+                  transition:"background .12s", width:"100%", textAlign:"left",
+                }}
+                onMouseOver={e => (e.currentTarget.style.background = "rgba(239,68,68,0.08)")}
+                onMouseOut={e => (e.currentTarget.style.background = "transparent")}>
+                <Icons.Trash size={12}/> Delete task
+              </button>
+            </>
+          )}
         </div>
       )}
-    </article>
+    </>
   );
 }
 
@@ -1088,7 +1281,7 @@ function PageOverview() {
    PAGE: BOARD
 ═══════════════════════════════════════════════════════════════════════════ */
 function PageBoard() {
-  const { tasks, setTasks, savedBoards, setSavedBoards, page, navigate } = useApp();
+  const { tasks, setTasks, savedBoards, setSavedBoards, page, navigate, activeBoardId, setActiveBoardId } = useApp();
   // One state, not two. The capture screen and the board are separate pages
   // now, so the page itself says which of the two is on screen.
   const boardView: BoardView = page === "kanban" ? "kanban" : "input";
@@ -1097,8 +1290,16 @@ function PageBoard() {
   const [inputText, setInputText] = useState("");
   const [extracting, setExtracting] = useState(false);
   const [extractError, setExtractError] = useState("");
+  const [boardMenuOpen, setBoardMenuOpen] = useState(false);
+  const [renamingBoard, setRenamingBoard] = useState(false);
+  const [renameVal, setRenameVal] = useState("");
+  const [askDelete, setAskDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
   const pdfInputRef = useRef<HTMLInputElement>(null);
   const overloaded = tasks.filter(t => t.status !== "done" && (t.priority === "urgent" || t.priority === "high")).length >= 5;
+
+  const openBoard = activeBoardId ? savedBoards.find(b => b.id === activeBoardId) : undefined;
 
   const syncTaskStats = async () => {
     try {
@@ -1106,6 +1307,41 @@ function PageBoard() {
     } catch {
       // Fire-and-forget: sync errors don't block UI
     }
+  };
+
+  const confirmDeleteBoard = async () => {
+    if (!openBoard) return;
+    setDeleting(true);
+    setDeleteError("");
+    const { id } = openBoard;
+    setSavedBoards(prev => prev.filter(b => b.id !== id));
+    setActiveBoardId(null);
+    try {
+      const res = await fetch(`/api/saved/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Server refused the delete.");
+      setAskDelete(false);
+      navigate("saved");
+    } catch {
+      setSavedBoards(prev => prev.some(b => b.id === id) ? prev : [{ ...openBoard }, ...prev]);
+      setActiveBoardId(id);
+      setDeleteError("Could not delete. Try again.");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const confirmRenameBoard = () => {
+    if (!openBoard || !renameVal.trim()) { setRenamingBoard(false); return; }
+    const trimmed = renameVal.trim();
+    setSavedBoards(prev => prev.map(b => b.id === openBoard.id ? { ...b, name: trimmed } : b));
+    fetch(`/api/saved/${openBoard.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: trimmed }),
+    }).catch(() => {});
+    setRenamingBoard(false);
+    setRenameVal("");
+    setBoardMenuOpen(false);
   };
 
   const handlePdfUpload = async (file: File) => {
@@ -1240,6 +1476,25 @@ function PageBoard() {
     syncTaskStats();
   };
 
+  const updateTaskPriority = async (id: string, p: Priority) => {
+    setTasks(prev => prev.map(t => t.id === id ? { ...t, priority: p } : t));
+    try {
+      await fetch(`/api/boards/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ priority: p }),
+      });
+    } catch { /* non-blocking */ }
+  };
+
+  const deleteTask = async (id: string) => {
+    setTasks(prev => prev.filter(t => t.id !== id));
+    try {
+      await fetch(`/api/boards/${id}`, { method: 'DELETE' });
+    } catch { /* non-blocking */ }
+    syncTaskStats();
+  };
+
   const handleSaveBoard = async () => {
     if (tasks.length === 0) return;
     const name = `Board · ${new Date().toLocaleDateString()}`;
@@ -1276,18 +1531,16 @@ function PageBoard() {
   ];
   const kanbanTasks = (s: TaskStatus) => tasks.filter(t => t.status === s);
 
+  // Close the board options menu when clicking outside of it
+  useEffect(() => {
+    if (!boardMenuOpen) return;
+    const close = () => setBoardMenuOpen(false);
+    document.addEventListener("click", close, { once: true });
+    return () => document.removeEventListener("click", close);
+  }, [boardMenuOpen]);
+
   return (
     <div style={{ display:"flex", flexDirection:"column", height:"100%", overflow:"hidden" }}>
-      {/* Overload warning bar */}
-      {overloaded && boardView === "kanban" && (
-        <div className="slide-r" style={{ display:"flex", alignItems:"center", gap:9, padding:"9px 26px",
-          background:"rgba(239,68,68,0.07)", borderBottom:"1px solid rgba(239,68,68,0.18)" }}>
-          <Icons.AlertTri size={13} style={{ color:"var(--rd-text)", flexShrink:0 }}/>
-          <span style={{ fontSize:12, color:"var(--rd-text)", fontWeight:500 }}>
-            Autopilot warning: High task load detected. Consider completing or deferring tasks before adding more.
-          </span>
-        </div>
-      )}
 
       {boardView === "input" ? (
         /* ── Input view ── */
@@ -1313,25 +1566,49 @@ function PageBoard() {
               className="main-grid-2 board-input-grid">
               {/* Input card */}
               <div className="panel panel-lg">
-                {/* Mode tabs */}
-                <div role="tablist" aria-label="Source of tasks to extract"
-                  style={{ display:"flex", gap:3, marginBottom:16, background:"var(--bg2)",
-                    borderRadius:"var(--radius-md)", padding:4 }}>
-                  {inputModes.map(m => (
-                    <button key={m.key} onClick={() => setInputMode(m.key)}
-                      role="tab"
-                      aria-selected={inputMode === m.key}
-                      aria-controls="extract-panel"
-                      style={{ flex:1, minWidth:0, padding:"8px 6px", borderRadius:"var(--radius-sm)", border:"none",
-                        background: inputMode === m.key ? "var(--bg1)" : "transparent",
-                        color: inputMode === m.key ? "var(--tx)" : "var(--tx3)",
-                        fontSize:11.5, fontWeight:inputMode === m.key ? 600 : 400,
-                        display:"flex", alignItems:"center", justifyContent:"center",
-                        gap:5, transition:"all .15s", whiteSpace:"nowrap",
-                        boxShadow: inputMode === m.key ? "0 1px 4px rgba(0,0,0,.2)" : "none" }}>
-                      {m.icon}{m.label}
-                    </button>
-                  ))}
+                {/* Styled source-type picker */}
+                <div style={{ marginBottom:18 }}>
+                  <p style={{ fontSize:10.5, fontWeight:700, letterSpacing:"0.08em",
+                    textTransform:"uppercase", color:"var(--tx3)", marginBottom:10,
+                    fontFamily:"var(--font-mono)" }}>Choose input type</p>
+                  <div role="tablist" aria-label="Source of tasks to extract"
+                    className="board-source-picker"
+                    style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:8 }}>
+                    {inputModes.map(m => (
+                      <button key={m.key} onClick={() => setInputMode(m.key)}
+                        role="tab"
+                        aria-selected={inputMode === m.key}
+                        aria-controls="extract-panel"
+                        style={{
+                          padding:"12px 8px", borderRadius:"var(--radius-md)",
+                          border: inputMode === m.key
+                            ? "1.5px solid var(--ac)"
+                            : "1.5px solid var(--br)",
+                          background: inputMode === m.key
+                            ? "linear-gradient(135deg,rgba(99,102,241,0.10),rgba(167,139,250,0.07))"
+                            : "var(--bg2)",
+                          color: inputMode === m.key ? "var(--ac)" : "var(--tx3)",
+                          fontSize:11.5, fontWeight: inputMode === m.key ? 700 : 500,
+                          display:"flex", flexDirection:"column", alignItems:"center",
+                          justifyContent:"center", gap:7, transition:"all .15s",
+                          boxShadow: inputMode === m.key
+                            ? "0 0 0 3px rgba(99,102,241,0.10), 0 4px 14px rgba(99,102,241,0.12)"
+                            : "none",
+                          cursor:"pointer",
+                        }}>
+                        <span style={{
+                          width:30, height:30, borderRadius:"var(--radius-sm)",
+                          display:"flex", alignItems:"center", justifyContent:"center",
+                          background: inputMode === m.key ? "rgba(99,102,241,0.13)" : "var(--bg3)",
+                          color: inputMode === m.key ? "var(--ac)" : "var(--tx3)",
+                          transition:"all .15s",
+                        }}>
+                          {m.icon}
+                        </span>
+                        {m.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 <div id="extract-panel" role="tabpanel" aria-label="Task source">
@@ -1489,11 +1766,25 @@ function PageBoard() {
           <div className="board-kanban-header" style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
             padding:"14px 26px", borderBottom:"1px solid var(--br)", flexWrap:"wrap", gap:9 }}>
             <div className="board-kanban-title" style={{ display:"flex", alignItems:"center", gap:11, minWidth:0 }}>
-              <button onClick={() => navigate("board")} className="btn btn-ghost btn-sm">
-                <Icons.ArrowLeft size={13}/> Back
-              </button>
-              <h2 style={{ fontSize:13, fontWeight:700, color:"var(--tx)", fontFamily:"var(--font-display)",
-                minWidth:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>My Board</h2>
+              {renamingBoard && openBoard ? (
+                <input
+                  autoFocus
+                  value={renameVal}
+                  onChange={e => setRenameVal(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter") confirmRenameBoard(); if (e.key === "Escape") { setRenamingBoard(false); setRenameVal(""); } }}
+                  onBlur={confirmRenameBoard}
+                  className="input-focus"
+                  style={{ fontSize:13, fontWeight:700, color:"var(--tx)", background:"var(--inp)",
+                    border:"1px solid var(--ac)", borderRadius:"var(--radius-sm)", padding:"4px 9px",
+                    height:28, minWidth:0, maxWidth:220 }}
+                  aria-label="Rename this board"
+                />
+              ) : (
+                <h2 style={{ fontSize:13, fontWeight:700, color:"var(--tx)", fontFamily:"var(--font-display)",
+                  minWidth:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                  {openBoard ? openBoard.name : "My Board"}
+                </h2>
+              )}
               <span style={{ fontSize:10, padding:"2px 8px", borderRadius:5, background:"var(--br)",
                 color:"var(--tx3)", fontFamily:"var(--font-mono)", flexShrink:0 }}>{tasks.length} tasks</span>
             </div>
@@ -1502,14 +1793,84 @@ function PageBoard() {
                 borderRadius:8, background:"var(--as)", border:"1px solid var(--ag)" }}>
                 <span aria-hidden="true" className="pulse" style={{ width:5, height:5, borderRadius:"50%", background:"var(--ac)", flexShrink:0 }}/>
                 <span style={{ fontSize:10.5, color:"var(--ac-text)", fontWeight:600 }}>
-                  AI extracted {tasks.length} tasks
+                  {openBoard ? `${tasks.length} tasks` : `AI extracted ${tasks.length} tasks`}
                 </span>
               </div>
-              <button onClick={handleSaveBoard} className="btn btn-primary btn-sm">
-                Save Board
-              </button>
+              {!openBoard && (
+                <button onClick={handleSaveBoard} className="btn btn-primary btn-sm">
+                  Save Board
+                </button>
+              )}
+              {openBoard && (
+                <div style={{ position:"relative" }}>
+                  <button
+                    onClick={() => setBoardMenuOpen(v => !v)}
+                    className="btn btn-ghost btn-sm"
+                    aria-haspopup="menu"
+                    aria-expanded={boardMenuOpen}
+                    aria-label="Board options">
+                    <Icons.Settings size={12}/> Options
+                  </button>
+                  {boardMenuOpen && (
+                    <div
+                      role="menu"
+                      onClick={e => e.stopPropagation()}
+                      style={{ position:"absolute", top:"calc(100% + 6px)", right:0, zIndex:100,
+                        minWidth:170, borderRadius:"var(--radius-md)", background:"var(--bg1)",
+                        border:"1px solid var(--br)", boxShadow:"0 8px 28px rgba(0,0,0,0.22)", padding:5 }}>
+                      <button role="menuitem" className="btn btn-quiet btn-sm"
+                        style={{ width:"100%", justifyContent:"flex-start", gap:8, marginBottom:2 }}
+                        onClick={() => { setBoardMenuOpen(false); setRenameVal(openBoard.name); setRenamingBoard(true); }}>
+                        <Icons.Edit size={12}/> Rename board
+                      </button>
+                      <button role="menuitem" className="btn btn-danger btn-sm"
+                        style={{ width:"100%", justifyContent:"flex-start", gap:8 }}
+                        onClick={() => { setBoardMenuOpen(false); setDeleteError(""); setAskDelete(true); }}>
+                        <Icons.Trash size={12}/> Delete board
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
+
+          {/* Delete confirmation dialog */}
+          {askDelete && openBoard && (
+            <div onClick={() => { if (!deleting) setAskDelete(false); }}
+              style={{ position:"fixed", inset:0, zIndex:200, display:"flex",
+                alignItems:"center", justifyContent:"center", padding:20,
+                background:"rgba(0,0,0,0.5)", backdropFilter:"blur(2px)" }}>
+              <div role="dialog" aria-modal="true"
+                aria-labelledby="kb-delete-title" aria-describedby="kb-delete-body"
+                onClick={e => e.stopPropagation()}
+                style={{ width:"100%", maxWidth:400, borderRadius:"var(--radius-lg)",
+                  background:"var(--bg1)", border:"1px solid var(--br)", padding:22,
+                  boxShadow:"0 20px 50px rgba(0,0,0,0.4)" }}>
+                <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:12 }}>
+                  <span aria-hidden="true" style={{ width:32, height:32, borderRadius:8,
+                    display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0,
+                    background:"rgba(239,68,68,0.12)", color:"var(--rd-text)" }}>
+                    <Icons.Trash size={15}/>
+                  </span>
+                  <h2 id="kb-delete-title" style={{ fontSize:15.5, fontWeight:800,
+                    color:"var(--tx)", fontFamily:"var(--font-display)", margin:0 }}>
+                    Delete this board?
+                  </h2>
+                </div>
+                <p id="kb-delete-body" style={{ fontSize:13, color:"var(--tx2)", lineHeight:1.65, margin:"0 0 6px" }}>
+                  <strong style={{ color:"var(--tx)" }}>{openBoard.name}</strong> and its {openBoard.taskCount} tasks will be removed permanently.
+                </p>
+                {deleteError && <p role="alert" style={{ fontSize:12.5, color:"var(--rd-text)", margin:"6px 0 0" }}>{deleteError}</p>}
+                <div style={{ display:"flex", justifyContent:"flex-end", gap:8, marginTop:20 }}>
+                  <button onClick={() => setAskDelete(false)} disabled={deleting} autoFocus className="btn btn-ghost btn-sm">Cancel</button>
+                  <button onClick={confirmDeleteBoard} disabled={deleting} className="btn btn-danger btn-sm">
+                    {deleting ? <><Spinner size={12} tone="onFill"/> Deleting...</> : "Delete board"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="board-kanban-pad" style={{ flex:1, overflow:"auto", padding:"20px 26px" }}>
             {/* minmax(0,1fr) on every track. The columns hold task cards whose
@@ -1563,7 +1924,7 @@ function PageBoard() {
                       />
                     ) : (
                       kanbanTasks(key).map(t => (
-                        <TaskCard key={t.id} task={t} onStatusChange={updateTaskStatus}/>
+                        <TaskCard key={t.id} task={t} onStatusChange={updateTaskStatus} onPriorityChange={updateTaskPriority} onDelete={deleteTask}/>
                       ))
                     )}
                   </div>
@@ -1917,10 +2278,10 @@ function PageChat() {
 ═══════════════════════════════════════════════════════════════════════════ */
 function PageAutopilot() {
   const { tasks, setTasks, briefings, setBriefings, burnoutAlerts, user, navigate } = useApp();
-  const isPro = user?.plan === "pro";
+  // All autopilot features are enabled for everyone — no plan check needed.
   const [genLoading, setGenLoading] = useState(false);
   const [settings, setSettings] = useState({
-    scheduling:true, burnout:true, learning:false, autoPrioritize:false,
+    scheduling:true, burnout:true, learning:true, autoPrioritize:true,
   });
 
   const pendingTasks = tasks.filter(t => t.status !== "done");
@@ -2221,45 +2582,27 @@ function PageAutopilot() {
           </div>
           <div style={{ display:"flex", flexDirection:"column" }}>
             {[
-              { key:"scheduling"     as const, label:"Smart Scheduling",    desc:"AI plans your day based on priorities", icon:<Icons.Zap size={14}/>, pro:false },
-              { key:"burnout"        as const, label:"Burnout Detection",   desc:"Monitor workload & alert on overload",  icon:<Icons.Shield size={14}/>, pro:false },
-              { key:"learning"       as const, label:"Pattern Learning",    desc:"Learn your productivity habits",        icon:<Icons.Brain size={14}/>, pro:true },
-              { key:"autoPrioritize" as const, label:"Auto-Prioritization", desc:"Re-rank tasks when new ones arrive",    icon:<Icons.Target size={14}/>, pro:true },
-            ].map((s, i) => {
-              const locked = s.pro && !isPro;
-              return (
-                <div key={s.key} style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:14,
-                  padding:"13px 0", borderTop: i === 0 ? "none" : "1px solid var(--br)" }}>
-                  <span aria-hidden="true" style={{ width:30, height:30, borderRadius:9, flexShrink:0,
-                    display:"flex", alignItems:"center", justifyContent:"center",
-                    background:"var(--bg2)", border:"1px solid var(--br)", color:"var(--ac-text)" }}>{s.icon}</span>
-                  <div style={{ flex:1, minWidth:0 }}>
-                    <p style={{ display:"flex", alignItems:"center", gap:7, fontSize:13, fontWeight:500, color:"var(--tx)", marginBottom:2 }}>
-                      {s.label}
-                      {s.pro && (
-                        <span style={{ display:"flex", alignItems:"center", gap:3, fontSize:9, fontWeight:700,
-                          padding:"1px 6px", borderRadius:100, background:"rgba(245,158,11,0.12)",
-                          color:"var(--am-text)", border:"1px solid rgba(245,158,11,0.25)" }}>
-                          <Icons.Lock size={8}/> PRO
-                        </span>
-                      )}
-                    </p>
-                    <p style={{ fontSize:11.5, color:"var(--tx3)" }}>{s.desc}</p>
-                  </div>
-                  {locked ? (
-                    <button onClick={() => navigate("settings")} className="btn btn-ghost btn-sm" style={{ flexShrink:0 }}>
-                      <Icons.Lock size={11}/> Upgrade
-                    </button>
-                  ) : (
-                    <Toggle
-                      on={settings[s.key]}
-                      onToggle={() => setSettings(prev => ({ ...prev, [s.key]:!prev[s.key] }))}
-                      label={s.label}
-                    />
-                  )}
+              { key:"scheduling"     as const, label:"Smart Scheduling",    desc:"AI plans your day based on priorities", icon:<Icons.Zap size={14}/> },
+              { key:"burnout"        as const, label:"Burnout Detection",   desc:"Monitor workload & alert on overload",  icon:<Icons.Shield size={14}/> },
+              { key:"learning"       as const, label:"Pattern Learning",    desc:"Learn your productivity habits",        icon:<Icons.Brain size={14}/> },
+              { key:"autoPrioritize" as const, label:"Auto-Prioritization", desc:"Re-rank tasks when new ones arrive",    icon:<Icons.Target size={14}/> },
+            ].map((s, i) => (
+              <div key={s.key} style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:14,
+                padding:"13px 0", borderTop: i === 0 ? "none" : "1px solid var(--br)" }}>
+                <span aria-hidden="true" style={{ width:30, height:30, borderRadius:9, flexShrink:0,
+                  display:"flex", alignItems:"center", justifyContent:"center",
+                  background:"var(--bg2)", border:"1px solid var(--br)", color:"var(--ac-text)" }}>{s.icon}</span>
+                <div style={{ flex:1, minWidth:0 }}>
+                  <p style={{ fontSize:13, fontWeight:500, color:"var(--tx)", marginBottom:2 }}>{s.label}</p>
+                  <p style={{ fontSize:11.5, color:"var(--tx3)" }}>{s.desc}</p>
                 </div>
-              );
-            })}
+                <Toggle
+                  on={settings[s.key]}
+                  onToggle={() => setSettings(prev => ({ ...prev, [s.key]:!prev[s.key] }))}
+                  label={s.label}
+                />
+              </div>
+            ))}
           </div>
         </section>
       </div>
@@ -2336,6 +2679,11 @@ function PageSaved() {
   };
   const moveBoard = (id: string, folder: string) => {
     setSavedBoards(prev => prev.map(b => b.id === id ? { ...b, folder } : b));
+    fetch(`/api/saved/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ folder }),
+    }).catch(() => {});
     setMovingId(null);
   };
 
@@ -3460,11 +3808,11 @@ export default function Dashboard() {
   const [savedBoards, setSavedBoards] = useState<SavedBoard[]>([]);
   useEffect(() => {
     fetch("/api/saved").then(r => r.json()).then(d => {
-      if (Array.isArray(d)) setSavedBoards(d.map((b: { id: string; title?: string; content?: string; created_at?: string; updated_at?: string }) => ({
+      if (Array.isArray(d)) setSavedBoards(d.map((b: { id: string; title?: string; content?: string; created_at?: string; updated_at?: string; folder?: string }) => ({
         id: b.id,
         name: b.title ?? "Untitled Board",
         taskCount: (() => { try { return JSON.parse(b.content ?? "[]").length; } catch { return 0; } })(),
-        folder: "Personal",
+        folder: b.folder ?? "Personal",
         lastEdited: b.updated_at ? new Date(b.updated_at).toLocaleDateString() : "Unknown",
         tasks: (() => { try { return JSON.parse(b.content ?? "[]"); } catch { return []; } })(),
       })));

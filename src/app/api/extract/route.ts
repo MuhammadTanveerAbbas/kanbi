@@ -16,7 +16,7 @@ const VALID_PRIORITIES = new Set(['urgent', 'high', 'medium', 'low'])
 
 export async function POST(request: NextRequest): Promise<Response> {
   const requestId = crypto.randomUUID()
-  const limitResult = await rateLimit(request, { maxRequests: 20, windowMs: 60000 })
+  const limitResult = await rateLimit(request, { maxRequests: 100, windowMs: 60000 })
   if (!limitResult.success) return rateLimitResponse(limitResult.limit, limitResult.remaining, limitResult.reset)
 
   try {

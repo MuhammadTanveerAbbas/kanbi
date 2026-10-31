@@ -47,7 +47,7 @@ function sse(event: string, data: unknown): Uint8Array {
 
 export async function POST(request: NextRequest) {
   const requestId = crypto.randomUUID()
-  const limitResult = await rateLimit(request, { maxRequests: 30, windowMs: 60_000 })
+  const limitResult = await rateLimit(request, { maxRequests: 200, windowMs: 60_000 })
   if (!limitResult.success) {
     return rateLimitResponse(limitResult.limit, limitResult.remaining, limitResult.reset)
   }
