@@ -1181,14 +1181,6 @@ function PageOverview() {
                   className="card panel"
                   style={{ textAlign:"left", position:"relative", display:"block" }}>
 
-                  {/* Top accent bar */}
-                  <span aria-hidden="true" style={{
-                    position:"absolute", top:0, left:0, right:0, height:3,
-                    background:`linear-gradient(90deg, ${accent}, transparent 80%)`,
-                    borderRadius:"var(--radius-lg) var(--radius-lg) 0 0",
-                    pointerEvents:"none",
-                  }}/>
-
                   {/* Icon + folder badge */}
                   <span style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start",
                     marginBottom:12, gap:8 }}>
