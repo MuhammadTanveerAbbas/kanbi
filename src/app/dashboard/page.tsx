@@ -549,6 +549,7 @@ function GlobalStyles() {
       @media(min-width:1025px) {
         .sidebar-backdrop { display: none }
         .bottom-nav { display:none !important }
+        .topbar-wrap { height: 69px !important; }
       }
 
       /* Coarse pointers get a 44px target. Every icon only control in the
@@ -960,10 +961,7 @@ function PageOverview() {
               </>
           }
         </div>
-        <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-          <span aria-hidden="true" className="pulse" style={{ width:6, height:6, borderRadius:"50%", background:"var(--gr)", flexShrink:0 }}/>
-          <span style={{ fontSize:12, color:"var(--gr-text)", fontWeight:600 }}>All systems active</span>
-        </div>
+
       </div>
 
       {/* Quick AI input */}
@@ -3250,32 +3248,37 @@ function PageSettings({ theme, toggleTheme }: { theme: Theme; toggleTheme: () =>
  * makes React treat every render as producing a new component type, which
  * discards the subtree state and remounts the nav on each parent render.
  */
-function NavBtn({ page, k, label, icon, badge, setPage, onNavigate }: {
+function NavBtn({ page, k, label, icon, badge, setPage, onNavigate, collapsed }: {
   page: Page; k: Page; label: string; icon: ReactNode; badge?: string;
-  setPage: (p: Page) => void; onNavigate?: () => void;
+  setPage: (p: Page) => void; onNavigate?: () => void; collapsed?: boolean;
 }) {
   const active = page === k;
   return (
     <button onClick={() => { setPage(k); onNavigate?.(); }} className="nav-btn"
       aria-current={active ? "page" : undefined}
+      aria-label={collapsed ? label : undefined}
+      title={collapsed ? label : undefined}
       style={{
-        width:"100%", padding:"7px 10px 7px 8px", borderRadius:"var(--radius-md)", border:"none",
+        width:"100%",
+        padding: collapsed ? "8px" : "7px 10px 7px 8px",
+        borderRadius:"var(--radius-md)", border:"none",
         background: active ? "rgba(99,102,241,0.1)" : "transparent",
         color: active ? "var(--ac)" : "var(--tx2)",
         fontSize:13, fontWeight: active ? 600 : 400,
-        cursor:"pointer", display:"flex", alignItems:"center", gap:9,
+        cursor:"pointer", display:"flex", alignItems:"center",
+        justifyContent: collapsed ? "center" : "flex-start",
+        gap: collapsed ? 0 : 9,
         textAlign:"left", marginBottom:2, position:"relative",
         transition:"all .15s", letterSpacing:"-0.01em",
       }}>
 
-      {/* Icon container */}
       <span style={{
         width:26, height:26, borderRadius:7, flexShrink:0,
         display:"flex", alignItems:"center", justifyContent:"center",
         transition:"all .18s",
       }}>{icon}</span>
-      <span style={{ flex:1, minWidth:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{label}</span>
-      {badge && (
+      {!collapsed && <span style={{ flex:1, minWidth:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{label}</span>}
+      {!collapsed && badge && (
         <span style={{
           fontSize:9, padding:"2px 7px", borderRadius:99, flexShrink:0,
           background: badge === "AI" ? "var(--as)" : "rgba(167,139,250,0.12)",
@@ -3288,8 +3291,9 @@ function NavBtn({ page, k, label, icon, badge, setPage, onNavigate }: {
   );
 }
 
-function Sidebar({ page, setPage, theme, toggleTheme }: {
+function Sidebar({ page, setPage, theme, toggleTheme, collapsed = false, toggleCollapsed }: {
   page: Page; setPage: (p: Page) => void; theme: Theme; toggleTheme: () => void;
+  collapsed?: boolean; toggleCollapsed?: () => void;
 }) {
   const { user } = useApp();
 
@@ -3315,77 +3319,134 @@ function Sidebar({ page, setPage, theme, toggleTheme }: {
       style={{
       /* dvh, not vh: 100vh on iOS is taller than the visible area, which cut
          the sign out control off the bottom of the drawer. */
-      width: "var(--sidebar-w)", height:"100dvh", position:"fixed", left:0, top:0, zIndex:50,
+      width: collapsed ? 72 : "var(--sidebar-w)", height:"100dvh", position:"fixed", left:0, top:0, zIndex:50,
       background:"var(--sb)", borderRight:"1px solid var(--sidebar-border)",
-      display:"flex", flexDirection:"column",
+      display:"flex", flexDirection:"column", transition:"width .18s ease",
     }}>
       {/* Logo */}
       <div style={{ padding:"18px 16px 16px", borderBottom:"1px solid var(--sidebar-border)" }}>
-        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+        <div style={{ display:"flex", alignItems:"center", justifyContent: collapsed ? "center" : "flex-start", gap: collapsed ? 0 : 10 }}>
           <div style={{
             width:34, height:34, borderRadius:10,
             background:"linear-gradient(135deg, var(--ac), var(--pu))",
             display:"flex", alignItems:"center", justifyContent:"center",
             boxShadow:"0 2px 12px rgba(99,102,241,0.35)", flexShrink:0,
-          }}>
+          }} title={collapsed ? "KANBI" : undefined}>
             <Icons.Zap size={15} style={{ color:"#fff" }}/>
           </div>
-          <div>
-            <span style={{ fontSize:15, fontWeight:800, color:"var(--tx)", letterSpacing:"-0.04em",
-              fontFamily:"var(--font-display)", display:"block", lineHeight:1.1 }}>KANBI</span>
-            <span style={{ fontSize:9.5, fontWeight:600, letterSpacing:"0.02em",
-              color: user?.plan === "pro" ? "var(--gr)" : "var(--ac)",
-              fontFamily:"var(--font-mono)" }}>
-              {user?.plan === "pro" ? "PRO PLAN" : "FREE PLAN"}
-            </span>
-          </div>
+          {!collapsed && (
+            <div>
+              <span style={{ fontSize:15, fontWeight:800, color:"var(--tx)", letterSpacing:"-0.04em",
+                fontFamily:"var(--font-display)", display:"block", lineHeight:1.1 }}>KANBI</span>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Nav */}
-      <nav aria-label="Main" style={{ flex:1, padding:"10px 10px 0", overflowY:"auto" }}>
-        <div className="nav-section-label">Workspace</div>
-        {mainNav.map(([k, l, i]) => <NavBtn key={k} page={page} k={k} label={l} icon={i} setPage={setPage}/>)}
+      <nav aria-label="Main" style={{ flex:1, padding: collapsed ? "10px 8px 0" : "10px 10px 0", overflowY:"auto", overflowX:"hidden" }}>
+        {!collapsed && <div className="nav-section-label">Workspace</div>}
+        {mainNav.map(([k, l, i]) => <NavBtn key={k} page={page} k={k} label={l} icon={i} setPage={setPage} collapsed={collapsed}/>)}
 
-        <div className="nav-section-label" style={{ marginTop:18 }}>AI Features</div>
-        {aiNav.map(([k, l, i, b]) => <NavBtn key={k} page={page} k={k} label={l} icon={i} badge={b} setPage={setPage}/>)}
+        {!collapsed ? (
+          <div className="nav-section-label" style={{ marginTop:18 }}>AI Features</div>
+        ) : (
+          <div aria-hidden="true" style={{ height:1, background:"var(--sidebar-border)", margin:"10px 10px 8px", borderRadius:1 }} />
+        )}
+        {aiNav.map(([k, l, i, b]) => <NavBtn key={k} page={page} k={k} label={l} icon={i} badge={b} setPage={setPage} collapsed={collapsed}/>)}
 
-        <div className="nav-section-label" style={{ marginTop:18 }}>Account</div>
-        <NavBtn page={page} k="settings" label="Settings" icon={<SettingsStarIcon size={26}/>} setPage={setPage}/>
+        {!collapsed ? (
+          <div className="nav-section-label" style={{ marginTop:18 }}>Account</div>
+        ) : (
+          <div aria-hidden="true" style={{ height:1, background:"var(--sidebar-border)", margin:"10px 10px 8px", borderRadius:1 }} />
+        )}
+        <NavBtn page={page} k="settings" label="Settings" icon={<SettingsStarIcon size={26}/>} setPage={setPage} collapsed={collapsed}/>
       </nav>
 
       {/* Bottom */}
-      <div style={{ padding:"12px 10px 16px", borderTop:"1px solid var(--sidebar-border)", display:"flex", flexDirection:"column", gap:10 }}>
+      <div style={{ padding: collapsed ? "12px 8px 16px" : "12px 10px 16px", borderTop:"1px solid var(--sidebar-border)", display:"flex", flexDirection:"column", gap:10 }}>
         {/* Usage */}
-        <div style={{ padding:"11px 13px", borderRadius:12, background:"var(--bg2)", border:"1px solid var(--br)" }}>
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:7 }}>
-            <span style={{ fontSize:11, color:"var(--tx3)", fontWeight:500 }}>Boards today</span>
-            <span style={{ fontSize:11, fontWeight:700, color: usagePct >= 90 ? "var(--rd)" : "var(--tx)", fontFamily:"var(--font-mono)" }}>
-              {boardsUsed}<span style={{ color:"var(--tx3)", fontWeight:400 }}>/{boardsLimit}</span>
-            </span>
+        {!collapsed && (
+          <div style={{ padding:"11px 13px", borderRadius:12, background:"var(--bg2)", border:"1px solid var(--br)" }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:7 }}>
+              <span style={{ fontSize:11, color:"var(--tx3)", fontWeight:500 }}>Boards today</span>
+              <span style={{ fontSize:11, fontWeight:700, color: usagePct >= 90 ? "var(--rd)" : "var(--tx)", fontFamily:"var(--font-mono)" }}>
+                {boardsUsed}<span style={{ color:"var(--tx3)", fontWeight:400 }}>/{boardsLimit}</span>
+              </span>
+            </div>
+            <PBar value={usagePct} h={3} color={usageColor} label="Daily board usage"/>
           </div>
-          <PBar value={usagePct} h={3} color={usageColor} label="Daily board usage"/>
-        </div>
+        )}
 
+        {toggleCollapsed && (
+          <button
+            type="button"
+            onClick={toggleCollapsed}
+            className="btn btn-ghost"
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            style={{
+              width: collapsed ? 40 : "100%",
+              height: 36,
+              margin: collapsed ? "0 auto" : undefined,
+              padding: collapsed ? "0" : "0 10px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: collapsed ? "center" : "flex-start",
+              gap: collapsed ? 0 : 8,
+              borderRadius: "var(--radius-md)",
+              border: "1px solid var(--sidebar-border)",
+              background: "var(--bg2)",
+              color: "var(--tx2)",
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink: 0 }}>
+              {collapsed ? (
+                <>
+                  <rect x="3" y="4" width="18" height="16" rx="2" />
+                  <path d="M9 4v16" />
+                  <path d="m14 10 2 2-2 2" />
+                </>
+              ) : (
+                <>
+                  <rect x="3" y="4" width="18" height="16" rx="2" />
+                  <path d="M9 4v16" />
+                  <path d="m15 10-2 2 2 2" />
+                </>
+              )}
+            </svg>
+            {!collapsed && <span>Collapse sidebar</span>}
+          </button>
+        )}
 
         {/* User row */}
-        <div style={{ display:"flex", alignItems:"center", gap:9, padding:"6px 4px" }}>
+        <div style={{ display:"flex", flexDirection: collapsed ? "column" : "row", alignItems:"center", justifyContent: collapsed ? "center" : "flex-start", gap: collapsed ? 8 : 9, padding: collapsed ? "2px 0" : "6px 4px" }}>
           <Avt name={user?.full_name ?? "User"} size={32} avatarUrl={user?.avatar_url}/>
-          <div style={{ flex:1, minWidth:0 }}>
-            <p style={{ fontSize:12.5, fontWeight:600, color:"var(--tx)", overflow:"hidden",
-              textOverflow:"ellipsis", whiteSpace:"nowrap", fontFamily:"var(--font-display)",
-              letterSpacing:"-0.02em" }}>
-              {(user?.full_name ?? "User").split(" ")[0]}
-            </p>
-          </div>
-          <button onClick={toggleTheme} className="btn btn-ghost btn-icon"
-            aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}>
-            <span aria-hidden="true">{theme === "dark" ? <Icons.Sun size={13}/> : <Icons.Moon size={13}/>}</span>
-          </button>
-          <button className="btn btn-ghost btn-icon" aria-label="Sign out"
-            onClick={async () => { const s = createClient(); await s.auth.signOut(); window.location.href = "/"; }}>
-            <Icons.Logout size={13}/>
-          </button>
+          {collapsed ? (
+            <button className="btn btn-ghost btn-icon" aria-label="Log out" title="Log out"
+              onClick={async () => { const s = createClient(); await s.auth.signOut(); window.location.href = "/"; }}>
+              <Icons.Logout size={13}/>
+            </button>
+          ) : (
+            <>
+              <div style={{ flex:1, minWidth:0 }}>
+                <p style={{ fontSize:12.5, fontWeight:600, color:"var(--tx)", overflow:"hidden",
+                  textOverflow:"ellipsis", whiteSpace:"nowrap", fontFamily:"var(--font-display)",
+                  letterSpacing:"-0.02em" }}>
+                  {(user?.full_name ?? "User").split(" ")[0]}
+                </p>
+              </div>
+              <button className="btn btn-ghost btn-sm" aria-label="Log out"
+                onClick={async () => { const s = createClient(); await s.auth.signOut(); window.location.href = "/"; }}
+                style={{ display:"inline-flex", alignItems:"center", gap:6, padding:"0 10px", fontSize:11, fontWeight:600, flexShrink:0 }}>
+                <Icons.Logout size={12}/>
+                <span>Log out</span>
+              </button>
+            </>
+          )}
         </div>
       </div>
     </aside>
@@ -3508,10 +3569,10 @@ const PAGE_META: Record<Page, { title: string; sub: string; icon: React.ReactNod
   },
 };
 
-function Topbar({ page }: {
-  page: Page;
+function Topbar({ page, theme, toggleTheme, sidebarCollapsed = false }: {
+  page: Page; theme: Theme; toggleTheme: () => void; sidebarCollapsed?: boolean;
 }) {
-  const { user, savedBoards, setSavedBoards, activeBoardId, setActiveBoardId, navigate } = useApp();
+  const { savedBoards, setSavedBoards, activeBoardId, setActiveBoardId, navigate } = useApp();
   const meta = PAGE_META[page];
 
   const openBoard = activeBoardId ? savedBoards.find(b => b.id === activeBoardId) : undefined;
@@ -3564,7 +3625,7 @@ function Topbar({ page }: {
       <div style={{ display:"flex", alignItems:"center", gap:10, minWidth:0 }}>
 
         <div className="topbar-icon" style={{
-          width:34, height:34, borderRadius:10, flexShrink:0,
+          width: sidebarCollapsed ? 30 : 34, height: sidebarCollapsed ? 30 : 34, borderRadius: sidebarCollapsed ? 8 : 10, flexShrink:0,
           background:meta.gradient,
           display:"flex", alignItems:"center", justifyContent:"center",
           boxShadow:"0 2px 10px rgba(99,102,241,0.35)",
@@ -3591,7 +3652,7 @@ function Topbar({ page }: {
         </div>
       </div>
 
-      {/* Right: delete, then avatar */}
+      {/* Right: actions */}
       <div style={{ display:"flex", alignItems:"center", gap:10, flexShrink:0 }}>
         {openBoard && page === "kanban" && (
           <button onClick={() => { setDeleteError(""); setAskingDelete(true); }}
@@ -3600,7 +3661,11 @@ function Topbar({ page }: {
             <Icons.Trash size={12}/> Delete board
           </button>
         )}
-        <Avt name={user?.full_name ?? "User"} size={32} avatarUrl={user?.avatar_url}/>
+        <button onClick={toggleTheme} className="btn btn-ghost btn-icon"
+          aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+          title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}>
+          <span aria-hidden="true">{theme === "dark" ? <Icons.Sun size={13}/> : <Icons.Moon size={13}/>}</span>
+        </button>
       </div>
 
       {askingDelete && openBoard && (
@@ -3829,6 +3894,7 @@ export default function Dashboard() {
   const [briefings, setBriefings]       = useState<Briefing[]>([]);
   const [burnoutAlerts]                 = useState<BurnoutAlert[]>([]);
   const [activeBoardId, setActiveBoardId] = useState<string | null>(null);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const navigate = useCallback((p: Page) => setPage(p), []);
 
   const appState: AppState = {
@@ -3847,9 +3913,10 @@ export default function Dashboard() {
       <div className="root-layout" style={{ display:"flex", height:"100vh", background:"var(--bg)", overflow:"hidden" }}>
         <Sidebar
           page={page} setPage={setPage} theme={theme} toggleTheme={toggleTheme}
+          collapsed={sidebarCollapsed} toggleCollapsed={() => setSidebarCollapsed(c => !c)}
         />
-        <div className="main-wrap" style={{ marginLeft:"var(--sidebar-w)", flex:1, display:"flex", flexDirection:"column", overflow:"hidden", minWidth:0 }}>
-          {page !== "chat" && <Topbar page={page}/>}
+        <div className="main-wrap" style={{ marginLeft: sidebarCollapsed ? 72 : "var(--sidebar-w)", flex:1, display:"flex", flexDirection:"column", overflow:"hidden", minWidth:0 }}>
+          {page !== "chat" && <Topbar page={page} theme={theme} toggleTheme={toggleTheme} sidebarCollapsed={sidebarCollapsed}/>}
           <div style={{ flex:1, overflow:"hidden", minWidth:0 }}>
             {page === "overview"  && <PageOverview/>}
             {page === "board"     && <PageBoard/>}
