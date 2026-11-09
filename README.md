@@ -518,18 +518,17 @@ Distributed under the MIT License. See `LICENSE` for more information.
 
 ---
 
-## 👨‍💻 Built by The MVP Guy
+## 👨‍💻 Built by Muhammad Tanveer Abbas
 
-<div align="center">
+<div>
 
 **Muhammad Tanveer Abbas**
-SaaS Developer | Building production-ready MVPs in 14–21 days
+Technical Product Partner for B2B SaaS & Internals Tools
 
-[![Portfolio](https://img.shields.io/badge/Portfolio-themvpguy.vercel.app-black?style=for-the-badge)](https://themvpguy.vercel.app)
-[![Twitter](https://img.shields.io/badge/Twitter-@themvpguy-1DA1F2?style=for-the-badge&logo=twitter)](https://x.com/themvpguy)
+[![Twitter](https://img.shields.io/badge/Twitter-@m_tanveerabbas-1DA1F2?style=for-the-badge&logo=twitter)](https://x.com/m_tanveerabbas)
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-0077B5?style=for-the-badge&logo=linkedin)](https://linkedin.com/in/muhammadtanveerabbas)
 [![GitHub](https://img.shields.io/badge/GitHub-Follow-181717?style=for-the-badge&logo=github)](https://github.com/MuhammadTanveerAbbas)
 
-_If this project helped you, please consider giving it a ⭐_
+If this project helped you, please consider giving it a ⭐
 
 </div>
