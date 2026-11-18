@@ -59,7 +59,9 @@ const nextConfig: NextConfig = {
     resolveAlias: {},
   },
   allowedDevOrigins: ['192.168.100.5'],
-  experimental: {},
+  experimental: {
+    agentUpgrade: "security",
+  },
   webpack: (config, { isServer }) => {
     config.output = {
       ...config.output,
