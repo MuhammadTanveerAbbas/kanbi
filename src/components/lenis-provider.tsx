@@ -4,6 +4,10 @@ import Lenis from "lenis";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
 
+declare global {
+  interface Window { __lenis?: Lenis }
+}
+
 const EASING = (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t));
 
 // Fixed page navs (landing, pricing) are 56px tall, anchors stay clear of them
@@ -36,10 +40,12 @@ export default function LenisProvider({ children }: { children: React.ReactNode 
     });
 
     lenisRef.current = lenis;
+    window.__lenis = lenis;
 
     return () => {
       lenis.destroy();
       lenisRef.current = null;
+      window.__lenis = undefined;
     };
   }, []);
 

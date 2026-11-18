@@ -8,6 +8,8 @@ import { createClient } from '@/lib/supabase/client';
 import { BarChart3, CalendarDays, CircleGauge, ClipboardList, Layers3, MessageSquareText, Workflow, ShieldCheck, Eye, ArrowRight, CheckCircle2, TimerReset, PanelTop, FileDown, BrainCircuit, Boxes, Target, ListTodo, TrendingUp, BadgeCheck, Flame, Orbit, LaptopMinimal, PanelRightOpen, Stars, GitBranch, Gauge, Clock3, Route, BadgeInfo, SquareKanban, SplitSquareVertical, ArrowUpRight, BookOpenText, Sparkles, MoveRight, Info, FileText, Tag, CalendarClock, Trash2, Lock, CreditCard } from "lucide-react";
 import Link from "next/link";
 
+declare global { interface Window { __lenis?: import("lenis").default } }
+
 type Theme = "dark" | "light";
 const ThemeCtx = createContext<{ theme: Theme; toggle: () => void }>({ theme: "dark", toggle: () => { } });
 const useTheme = () => useContext(ThemeCtx);
@@ -276,7 +278,7 @@ function Styles() {
     .msb-nav-item{flex-shrink:0!important;margin:0!important;padding:8px 11px!important;font-size:11px!important;white-space:nowrap}
   }
   @media(max-width:768px){
-    .hh{font-size:clamp(36px,8vw,56px)!important}
+    .hh{font-size:clamp(28px,7vw,42px)!important;letter-spacing:-0.03em!important;line-height:1.1!important}
     .hero-section{padding:112px 0 48px!important}
     /* The stat numbers used to hold a 30px floor from clamp, so on a phone
        they stayed desktop sized inside a cell a third of the width and pushed
@@ -618,9 +620,10 @@ function Navbar() {
   useEffect(() => {
     if (!mob) return;
     document.body.style.overflow = "hidden";
+    window.__lenis?.stop();
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") closeMob(); };
     window.addEventListener("keydown", onKey);
-    return () => { document.body.style.overflow = ""; window.removeEventListener("keydown", onKey); };
+    return () => { document.body.style.overflow = ""; window.__lenis?.start(); window.removeEventListener("keydown", onKey); };
   }, [mob, closeMob]);
   // Same order as the sections themselves. The old list ran Features, How It
   // Works, Product while the page ran Product, Features, How It Works, so every
@@ -756,10 +759,9 @@ function Hero() {
   return (
     <section className="hero-section" style={{ position: "relative", overflow: "hidden" }}>
       <div style={{ position: "absolute", inset: 0, pointerEvents: "none", backgroundImage: "linear-gradient(var(--br) 1px,transparent 1px),linear-gradient(90deg,var(--br) 1px,transparent 1px)", backgroundSize: "72px 72px" }} />
-      <div style={{ position: "absolute", top: -60, left: "50%", transform: "translateX(-50%)", width: 800, height: 520, background: "radial-gradient(ellipse,var(--ag) 0%,transparent 68%)", pointerEvents: "none" }} />
       <div className="lp-wrap" style={{ textAlign: "center", position: "relative" }}>
 <HeroBadge />
-        <h1 className="hh" style={{ fontSize: "clamp(52px,7vw,96px)", fontWeight: 800, letterSpacing: "-0.05em", lineHeight: 1.03, color: "var(--tx)", marginBottom: 28 }}>
+        <h1 className="hh" style={{ fontSize: "clamp(38px,5.5vw,72px)", fontWeight: 800, letterSpacing: "-0.04em", lineHeight: 1.08, color: "var(--tx)", marginBottom: 24 }}>
           Turn hours of task{" "}
           <span style={{ position: "relative", display: "inline-block" }}><Wavy /><span style={{ color: "var(--ac-text)", fontWeight: 800 }}>planning</span></span>
           {" "}into{" "}<span style={{ color: "var(--ac-text)", fontWeight: 800 }}>a real task board</span>
