@@ -340,9 +340,11 @@ function Styles() {
        and min-width:0 here lets the sidebar nav scroll instead of stretching
        the page wider than the viewport. */
     .hero-mock-wrap{margin-top:32px!important;text-align:left!important}
-    .msb{min-width:0!important}
-    .msb-nav{min-width:0!important}
+    /* The mock sidebar repeats the real app chrome. On a phone it only takes
+       vertical space, so the mock starts at the board header instead. */
+    .msb{display:none!important}
     .hero-mock-head{padding:10px 12px!important}
+    .hero-workload-wrap{padding:10px 10px 0!important}
     .hero-kanban{padding:10px!important}
     .hero-sub{font-size:15px!important;padding:0 4px!important}
     .hero-workload-bar{gap:8px!important;padding:8px 10px!important;font-size:10px!important}
@@ -362,6 +364,7 @@ function Styles() {
   }
   @media(max-width:480px){
     /* Single column kanban, smaller padding, tighter text on very narrow screens */
+    .hero-workload-wrap{padding:8px 8px 0!important}
     .hero-kanban{grid-template-columns:1fr!important;gap:7px!important;padding:8px!important}
     /* The stat row stays two columns on a phone because four full width tiles
        would push the section taller than the hero it sits under. Sizes come
@@ -809,7 +812,7 @@ function Hero() {
                   </div>
                 </div>
               </div>
-              <div style={{ padding: "12px 18px 0" }}>
+              <div className="hero-workload-wrap" style={{ padding: "12px 16px 0" }}>
                 <HeroWorkloadBar active={v} score={82} />
               </div>
               <div className="hero-kanban" style={{ padding: 16, alignItems: "start" }}>
