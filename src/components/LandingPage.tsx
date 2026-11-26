@@ -299,8 +299,13 @@ function Styles() {
     .hero-kanban .task-tag{font-size:8px!important}
     .hero-kanban .task-prog{height:3px!important}
     .hero-charts{grid-template-columns:1fr!important;gap:8px!important}
+    /* Match the kanban above so both panels share the same left and right edge. */
+    .hero-charts-wrap{padding:0 10px 10px!important}
     .hero-charts > div{padding:10px!important}
-    .hero-charts .bar-chart-wrap{height:60px!important}
+    /* The inline bar track is 84px tall. Keep the track and the day labels
+       inside the card instead of letting them spill past its bottom edge. */
+    .hero-charts .bar-chart-wrap{height:auto!important}
+    .hero-charts .bar-item > div{height:60px!important}
     .hero-charts .bar-item{font-size:7px!important}
     .hero-mock-head{align-items:flex-start!important}
     .cr{flex-direction:column!important;align-items:stretch!important}
@@ -331,7 +336,12 @@ function Styles() {
     .cta-actions a{justify-content:center!important;width:100%!important}
     .cta-stats{flex-direction:column!important;align-items:stretch!important}
     .cta-stat{width:100%!important}
-    .hero-mock-wrap{display:none!important}
+    /* The hero mockup stays visible on phones. It stacks into one column above,
+       and min-width:0 here lets the sidebar nav scroll instead of stretching
+       the page wider than the viewport. */
+    .hero-mock-wrap{margin-top:32px!important;text-align:left!important}
+    .msb{min-width:0!important}
+    .msb-nav{min-width:0!important}
     .hero-mock-head{padding:10px 12px!important}
     .hero-kanban{padding:10px!important}
     .hero-sub{font-size:15px!important;padding:0 4px!important}
@@ -361,7 +371,8 @@ function Styles() {
     .proof-label{font-size:11px!important;margin-top:6px!important}
     .proof-sub{font-size:10.5px!important;line-height:1.45!important}
     .hero-kanban > div{padding:8px!important;border-radius:10px!important}
-    .hero-charts{gap:7px!important;padding:0 8px 8px!important}
+    .hero-charts{gap:7px!important}
+    .hero-charts-wrap{padding:0 8px 8px!important}
     .hero-charts > div{padding:9px!important;border-radius:10px!important}
     /* Workload bar: condense the label so it fits in one line */
     .hero-workload-bar{flex-wrap:nowrap!important;font-size:9.5px!important;padding:6px 8px!important}
@@ -836,7 +847,7 @@ function Hero() {
                   </div>
                 ))}
               </div>
-              <div style={{ padding: "0 16px 16px" }}>
+              <div className="hero-charts-wrap" style={{ padding: "0 16px 16px" }}>
                 <div className="hero-charts">
                   <div style={{ borderRadius: 16, border: "1px solid var(--br)", background: "var(--bg2)", padding: 14 }}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
