@@ -26,7 +26,7 @@ export default function NotFound() {
       <div className="text-center max-w-md w-full">
 
         {/* 404 */}
-        <p className="text-8xl sm:text-9xl font-black text-foreground select-none leading-none mb-6">
+        <p className="text-7xl sm:text-8xl font-medium text-foreground select-none leading-none mb-6">
           404
         </p>
 

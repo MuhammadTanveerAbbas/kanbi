@@ -33,9 +33,9 @@ const ptSans = PT_Sans({
  * measurement in this repository supports, and pointed metadataBase at a
  * different domain than the sitemap and robots file.
  */
-const SITE_TITLE = "Kanbi - Turn notes into a task board";
+const SITE_TITLE = "Kanbi - Private task and note management";
 const SITE_DESCRIPTION =
-  "Paste text, upload a PDF, or give a web page URL. Kanbi extracts the action items into a Kanban board, scores how loaded your week is, and exports to DOCX or PDF.";
+  "Kanbi turns notes, PDFs and URLs into a Kanban board, and keeps your todos, notes and images private. 50 AI requests a day, free.";
 
 export const metadata: Metadata = {
   title: SITE_TITLE,
@@ -52,7 +52,10 @@ export const metadata: Metadata = {
     "project management",
     "free kanban",
     "AI productivity tool",
-    "open source AI models",
+    "private task management",
+    "personal notes",
+    "todo lists",
+    "private image storage",
   ],
   authors: [{ name: "Kanbi" }],
   creator: "Kanbi",
@@ -82,12 +85,13 @@ export const metadata: Metadata = {
     images: ["/twitter-image"],
   },
   icons: {
+    // All sizes are derived from public/Kanbi.png. The old favicon.ico,
+    // favicon.svg, icon-64.png and apple-icon-180.png files were removed.
     icon: [
-      { url: "/favicon.ico", type: "image/x-icon", sizes: "48x48" },
-      { url: "/favicon.svg", type: "image/svg+xml" },
-      { url: "/icon-64.png", type: "image/png", sizes: "64x64" },
+      { url: "/favicon.ico", type: "image/x-icon", sizes: "any" },
+      { url: "/icon.png", type: "image/png", sizes: "64x64" },
     ],
-    apple: [{ url: "/apple-icon-180.png", type: "image/png", sizes: "180x180" }],
+    apple: [{ url: "/apple-icon.png", type: "image/png", sizes: "180x180" }],
     shortcut: "/favicon.ico",
   },
 };
@@ -100,8 +104,8 @@ export const viewport = {
   // the light theme, which is the same class of bug as a light page frame
   // around a dark app.
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f2f3fb" },
-    { media: "(prefers-color-scheme: dark)", color: "#07070b" },
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#000000" },
   ],
 };
 

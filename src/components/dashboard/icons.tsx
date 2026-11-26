@@ -14,16 +14,15 @@ function S({ size = 16, style, children, vb = "0 0 24 24" }: IC & { children: Re
 
 /* ── 3D icon: coloured square bg + white stroke icon ── */
 export function Icon3D({
-  size = 28, bg, shadow, children, style,
+  size = 28, bg, children, style,
 }: {
-  size?: number; bg: string; shadow: string; children: React.ReactNode; style?: React.CSSProperties;
+  size?: number; bg: string; children: React.ReactNode; style?: React.CSSProperties;
 }) {
   return (
     <span style={{
       display: "inline-flex", alignItems: "center", justifyContent: "center",
       width: size, height: size, borderRadius: Math.round(size * 0.32),
       background: bg,
-      boxShadow: `0 2px 0 ${shadow}, 0 4px 12px ${shadow}55`,
       flexShrink: 0,
       ...style,
     }}>
@@ -261,6 +260,22 @@ export const Icons = {
       <rect x="3" y="14" width="7" height="7" rx="1.2"/><rect x="14" y="14" width="7" height="7" rx="1.2"/>
     </S>
   ),
+  Kanban: ({ size = 16, style }: IC) => (
+    <S size={size} style={style}>
+      {/* Perspective view of board with depth */}
+      <path d="M4 4h16v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4z"/>
+      <path d="M4 4L2 6v12l2 2M20 4l2 2v12l-2 2"/>
+      {/* Dynamic cards floating */}
+      <rect x="6.5" y="7" width="4" height="3" rx="0.6" fill="currentColor" stroke="none" style={{opacity:0.5}}/>
+      <rect x="11.5" y="7" width="4" height="3" rx="0.6" fill="currentColor" stroke="none" style={{opacity:0.4}}/>
+      <rect x="16.5" y="7" width="2.5" height="3" rx="0.6" fill="currentColor" stroke="none" style={{opacity:0.3}}/>
+      <rect x="6.5" y="11" width="4" height="3" rx="0.6" fill="currentColor" stroke="none" style={{opacity:0.4}}/>
+      <rect x="11.5" y="11" width="2.5" height="3" rx="0.6" fill="currentColor" stroke="none" style={{opacity:0.5}}/>
+      <rect x="16.5" y="11" width="2.5" height="3" rx="0.6" fill="currentColor" stroke="none" style={{opacity:0.4}}/>
+      <rect x="6.5" y="15" width="2.5" height="2.5" rx="0.6" fill="currentColor" stroke="none" style={{opacity:0.3}}/>
+      <rect x="11.5" y="15" width="4" height="2.5" rx="0.6" fill="currentColor" stroke="none" style={{opacity:0.4}}/>
+    </S>
+  ),
   Trending: ({ size = 16, style }: IC) => (
     <S size={size} style={style}><path d="M23 6l-9.5 9.5-5-5L1 18"/></S>
   ),
@@ -275,36 +290,29 @@ export const Icons = {
   ),
 };
 
-/* ── 3D Nav Icons for sidebar ── */
+/* ── Nav icons. One flat surface for every row; the active row carries the
+      selection, not a different hue on the icon. ── */
 const NAV_ICONS = {
-  overview:  { bg: "linear-gradient(145deg,#818cf8 0%,#6366f1 50%,#4f46e5 100%)", sh: "#3730a3", hi: "rgba(255,255,255,0.22)" },
-  board:     { bg: "linear-gradient(145deg,#34d399 0%,#10b981 50%,#059669 100%)", sh: "#047857", hi: "rgba(255,255,255,0.2)"  },
-  kanban:    { bg: "linear-gradient(145deg,#2dd4bf 0%,#14b8a6 50%,#0d9488 100%)", sh: "#0f766e", hi: "rgba(255,255,255,0.2)"  },
-  saved:     { bg: "linear-gradient(145deg,#60a5fa 0%,#3b82f6 50%,#2563eb 100%)", sh: "#1d4ed8", hi: "rgba(255,255,255,0.2)"  },
-  chat:      { bg: "linear-gradient(145deg,#f472b6 0%,#ec4899 50%,#db2777 100%)", sh: "#be185d", hi: "rgba(255,255,255,0.2)"  },
-  autopilot: { bg: "linear-gradient(145deg,#fbbf24 0%,#f59e0b 50%,#d97706 100%)", sh: "#b45309", hi: "rgba(255,255,255,0.22)" },
-  settings:  { bg: "linear-gradient(145deg,#94a3b8 0%,#64748b 50%,#475569 100%)", sh: "#334155", hi: "rgba(255,255,255,0.18)" },
-};
+  overview:  "var(--tx2)",
+  board:     "var(--tx2)",
+  kanban:    "var(--tx2)",
+  saved:     "var(--tx2)",
+  chat:      "var(--tx2)",
+  autopilot: "var(--tx2)",
+  settings:  "var(--tx2)",
+} as const;
 
 function NavIcon3D({ type, size = 26 }: { type: keyof typeof NAV_ICONS; size?: number }) {
-  const c = NAV_ICONS[type];
-  const r = Math.round(size * 0.34);
-  const iconSize = Math.round(size * 0.5);
+  const iconSize = Math.round(size * 0.62);
   return (
-    <span style={{
-      display: "inline-flex", alignItems: "center", justifyContent: "center",
-      width: size, height: size, borderRadius: r,
-      background: c.bg,
-      boxShadow: `0 2px 0 ${c.sh}, 0 1px 0 ${c.hi} inset, 0 6px 14px ${c.sh}55`,
-      flexShrink: 0, position: "relative",
-    }}>
-      {type === "overview"  && <Icons.Overview  size={iconSize} style={{ color:"#fff", strokeWidth:2.2 }}/>}
-      {type === "board"     && <Icons.Board     size={iconSize} style={{ color:"#fff", strokeWidth:2.2 }}/>}
-      {type === "kanban"    && <Icons.LayoutGrid size={iconSize} style={{ color:"#fff", strokeWidth:2.2 }}/>}
-      {type === "saved"     && <Icons.Saved     size={iconSize} style={{ color:"#fff", strokeWidth:2.2 }}/>}
-      {type === "chat"      && <Icons.Chat      size={iconSize} style={{ color:"#fff", strokeWidth:2.2 }}/>}
-      {type === "autopilot" && <Icons.Autopilot size={iconSize} style={{ color:"#fff", strokeWidth:2.2 }}/>}
-      {type === "settings"  && <Icons.Settings  size={iconSize} style={{ color:"#fff", strokeWidth:2.2 }}/>}
+    <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: size, height: size, flexShrink: 0, color: NAV_ICONS[type] }}>
+      {type === "overview"  && <Icons.Overview  size={iconSize} style={{ strokeWidth:1.6 }}/>}
+      {type === "board"     && <Icons.Board     size={iconSize} style={{ strokeWidth:1.6 }}/>}
+      {type === "kanban"    && <Icons.Kanban    size={iconSize} style={{ strokeWidth:1.6 }}/>}
+      {type === "saved"     && <Icons.Saved     size={iconSize} style={{ strokeWidth:1.6 }}/>}
+      {type === "chat"      && <Icons.Chat      size={iconSize} style={{ strokeWidth:1.6 }}/>}
+      {type === "autopilot" && <Icons.Autopilot size={iconSize} style={{ strokeWidth:1.6 }}/>}
+      {type === "settings"  && <Icons.Settings  size={iconSize} style={{ strokeWidth:1.6 }}/>}
     </span>
   );
 }

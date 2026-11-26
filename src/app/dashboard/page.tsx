@@ -6,6 +6,7 @@ import {
   type ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { useTheme } from "@/lib/theme";
 import {
@@ -22,6 +23,8 @@ import { useBoardExport } from "@/components/dashboard/use-board-export";
 import { normalizeBriefingResponse } from "@/lib/autopilot/normalize";
 import { BOARD_TEMPLATES } from "@/lib/templates";
 import { ChatBubble } from "@/components/dashboard/chat-bubble";
+import { TodoPage } from "@/components/dashboard/todos-page";
+import { NotePage } from "@/components/dashboard/notes-page";
 import { QUICK_ACTIONS, CHAT_ERRORS, CHAT_EMPTY_STATE, type QuickActionId } from "@/lib/ai/chat-copy";
 import { normalizeChatReply } from "@/lib/text/normalize";
 import {
@@ -102,6 +105,7 @@ function GlobalStyles() {
   return (
 <style>{`
       *,*::before,*::after { box-sizing:border-box; margin:0; padding:0 }
+      ::selection { background: var(--ac); color: #fff }
 
       /* ── Scales ──────────────────────────────────────────────────────────
          One radius scale, one gap scale, one inset scale. Every card, panel
@@ -123,17 +127,12 @@ function GlobalStyles() {
       }
 
       body {
-        background:
-          radial-gradient(circle at top left, var(--dash-glow-a), transparent 32%),
-          radial-gradient(circle at top right, var(--dash-glow-b), transparent 28%),
-          var(--bg);
+        background: var(--bg);
         color: var(--tx);
         -moz-osx-font-smoothing: grayscale;
         overflow: hidden;
         height: 100vh;
       }
-      [data-theme='dark'] body { --dash-glow-a: rgba(99,102,241,0.10); --dash-glow-b: rgba(168,85,247,0.08); }
-      [data-theme='light'] body { --dash-glow-a: rgba(99,102,241,0.07); --dash-glow-b: rgba(168,85,247,0.05); }
 
       a { text-decoration:none; color:inherit }
       button { font-family:var(--font-body); cursor:pointer; letter-spacing:-0.01em }
@@ -147,7 +146,6 @@ function GlobalStyles() {
       /* ── Keyframes ── */
       @keyframes fadeUp    { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
       @keyframes fadeIn    { from{opacity:0} to{opacity:1} }
-      @keyframes pulse     { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.3;transform:scale(.5)} }
       @keyframes spin      { from{transform:rotate(0)} to{transform:rotate(360deg)} }
       @keyframes slideR    { from{transform:translateX(-12px);opacity:0} to{transform:translateX(0);opacity:1} }
       @keyframes shimmer   { from{background-position:-200% 0} to{background-position:200% 0} }
@@ -156,7 +154,6 @@ function GlobalStyles() {
       /* ── Utility classes ── */
       .fade-up   { animation: fadeUp .36s cubic-bezier(.22,1,.36,1) both }
       .fade-in   { animation: fadeIn .26s ease both }
-      .pulse     { animation: pulse 2.4s ease-in-out infinite }
       .spin      { animation: spin .7s linear infinite }
       .slide-r   { animation: slideR .28s cubic-bezier(.22,1,.36,1) both }
 
@@ -208,7 +205,7 @@ function GlobalStyles() {
         padding: var(--pad-2) var(--pad-3);
         display: flex;
         flex-direction: column;
-        gap: var(--gap-3);
+        gap: var(--gap-2);
       }
       .page-title {
         font-size: 22px;
@@ -238,30 +235,15 @@ function GlobalStyles() {
 
       /* ── Cards ── */
       .card {
-        transition: border-color .18s, transform .2s, box-shadow .2s;
+        transition: border-color .18s;
         position: relative;
-        overflow: hidden;
         min-width: 0;
       }
-      .card::after {
-        content:'';
-        position:absolute;
-        inset:0;
-        background: linear-gradient(135deg, var(--card-glow), transparent 60%);
-        opacity:0;
-        transition:opacity .22s;
-        pointer-events:none;
-        border-radius:inherit;
-      }
-      .card:hover { border-color:var(--brh) !important; transform:translateY(-1px); box-shadow:0 12px 36px var(--sh) }
-      .card:hover::after { opacity:1 }
-      /* The glow layer needs overflow hidden, but clipping the card also clips
-         the focus ring of anything focusable inside it. */
-      .card:focus-within { overflow: visible }
+      .card:hover { border-color:var(--brh) !important }
 
       /* ── Task cards ── */
-      .task-card { transition: border-color .15s, background .15s, transform .15s, box-shadow .15s }
-      .task-card:hover { border-color:rgba(99,102,241,0.3) !important; background:var(--bg2) !important; transform:translateX(2px); box-shadow:0 2px 12px rgba(0,0,0,0.2) }
+      .task-card { transition: border-color .15s, background .15s }
+      .task-card:hover { border-color:var(--ag) !important; background:var(--bg2) !important }
 
       /* ── Buttons ─────────────────────────────────────────────────────────
          One primary, one ghost, one danger, one icon only. Height, radius,
@@ -288,7 +270,7 @@ function GlobalStyles() {
       .btn-icon { width: 32px; height: 32px; padding: 0; border-radius: var(--radius-sm) }
 
       .btn-primary { background: var(--ac); color: #fff; box-shadow: 0 2px 12px rgba(99,102,241,0.28) }
-      .btn-primary:hover:not(:disabled) { filter: brightness(1.08); box-shadow: 0 14px 34px rgba(99,102,241,0.28); transform: translateY(-1px) }
+      .btn-primary:hover:not(:disabled) { filter: brightness(1.08) }
       .btn-primary:active:not(:disabled) { transform: scale(.97) }
 
       .btn-ghost {
@@ -413,9 +395,8 @@ function GlobalStyles() {
       .quick-ai-bar {
         border-radius: var(--radius-md);
         border: 1px solid var(--br);
-        background: linear-gradient(180deg, rgba(255,255,255,0.03), transparent 30%), var(--bg1);
-        padding: 10px 14px;
-        box-shadow: 0 14px 40px rgba(0,0,0,0.10);
+        background: var(--bg1);
+        padding: 12px 16px;
       }
       .quick-ai-header {
         display: flex;
@@ -427,7 +408,7 @@ function GlobalStyles() {
         width: 28px;
         height: 28px;
         border-radius: 8px;
-        background: linear-gradient(135deg, var(--ac), var(--pu));
+        background: var(--ac-solid);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -481,7 +462,7 @@ function GlobalStyles() {
         padding: 0 20px;
         border-radius: var(--radius-sm);
         border: none;
-        background: linear-gradient(135deg, var(--ac), var(--pu));
+        background: var(--ac-solid);
         color: #fff;
         font-size: 13px;
         font-weight: 700;
@@ -500,14 +481,11 @@ function GlobalStyles() {
 
       /* ── Section labels ── */
       .nav-section-label {
-        font-size: 9.5px;
-        font-weight: 700;
-        letter-spacing: 0.1em;
-        text-transform: uppercase;
-        color: var(--tx3);
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--tx2);
         padding: 0 12px;
-        margin: 14px 0 5px;
-        font-family: var(--font-mono);
+        margin: 16px 0 8px;
       }
 
       /* ── Grid defaults (desktop) ── */
@@ -549,7 +527,7 @@ function GlobalStyles() {
       @media(min-width:1025px) {
         .sidebar-backdrop { display: none }
         .bottom-nav { display:none !important }
-        .topbar-wrap { height: 69px !important; }
+        .topbar-wrap { height: 63px !important; }
       }
 
       /* Coarse pointers get a 44px target. Every icon only control in the
@@ -614,7 +592,7 @@ function GlobalStyles() {
         .quick-ai-input { flex:1 1 100% }
         .quick-ai-btn { width:100%; justify-content:center }
         .topbar-title { font-size:13px !important }
-        .topbar-icon { width:28px !important; height:28px !important; border-radius:8px !important }
+        .topbar-icon { width:26px !important; height:26px !important; border-radius:7px !important }
         .chat-prompts { grid-template-columns:1fr !important; max-width:100% !important }
         .settings-tabs { grid-template-columns:repeat(2,1fr) !important; gap:5px !important }
         .settings-tabs button { font-size:11px !important; padding:12px 6px !important }
@@ -787,7 +765,7 @@ function TaskCard({
             borderRadius:"var(--radius-md)",
             background:"var(--bg1)",
             border:"1px solid var(--brh)",
-            boxShadow:"0 16px 48px rgba(0,0,0,0.32), 0 2px 8px rgba(0,0,0,0.16)",
+            boxShadow:"0 1px 2px rgba(0,0,0,0.12)",
             padding:8,
             display:"flex", flexDirection:"column", gap:3,
             animation:"fadeUp .15s cubic-bezier(.22,1,.36,1) both",
@@ -801,7 +779,7 @@ function TaskCard({
           </p>
 
           {/* Status */}
-          <p style={{ fontSize:9.5, fontWeight:700, letterSpacing:"0.07em", textTransform:"uppercase",
+          <p style={{ fontSize:12, fontWeight:500,
             color:"var(--tx3)", padding:"2px 8px", fontFamily:"var(--font-mono)" }}>Status</p>
           <div style={{ display:"flex", gap:5, padding:"0 4px 4px" }}>
             {statusOptions.map(o => (
@@ -814,7 +792,7 @@ function TaskCard({
                   color: task.status === o.s ? o.color : "var(--tx2)",
                   fontSize:10.5, fontWeight: task.status === o.s ? 700 : 400,
                   display:"flex", flexDirection:"column", alignItems:"center", gap:4,
-                  cursor:"pointer", transition:"all .12s",
+                  cursor:"pointer", transition:"border-color .12s,background .12s,color .12s",
                 }}>
                 <span style={{ width:7, height:7, borderRadius:"50%", background:o.color, flexShrink:0 }}/>
                 {o.label}
@@ -823,7 +801,7 @@ function TaskCard({
           </div>
 
           {/* Priority */}
-          <p style={{ fontSize:9.5, fontWeight:700, letterSpacing:"0.07em", textTransform:"uppercase",
+          <p style={{ fontSize:12, fontWeight:500,
             color:"var(--tx3)", padding:"2px 8px", fontFamily:"var(--font-mono)" }}>Priority</p>
           <div style={{ display:"flex", gap:5, padding:"0 4px 4px" }}>
             {priorityOptions.map(o => (
@@ -836,7 +814,7 @@ function TaskCard({
                   color: task.priority === o.p ? o.color : "var(--tx2)",
                   fontSize:10.5, fontWeight: task.priority === o.p ? 700 : 400,
                   display:"flex", alignItems:"center", justifyContent:"center",
-                  cursor:"pointer", transition:"all .12s",
+                  cursor:"pointer", transition:"border-color .12s,background .12s,color .12s",
                 }}>
                 {o.label}
               </button>
@@ -953,7 +931,7 @@ function PageOverview() {
             : <>
                 {/* The topbar owns the page's h1. This greeting is the first
                     thing under it, so it is an h2. */}
-                <h2 style={{ fontSize:20, fontWeight:800, letterSpacing:"-0.035em", color:"var(--tx)",
+                <h2 style={{ fontSize:20, fontWeight:600, letterSpacing:"-0.035em", color:"var(--tx)",
                   marginBottom:2, fontFamily:"var(--font-display)" }}>
                   {greeting}, {displayName}
                 </h2>
@@ -1021,7 +999,7 @@ function PageOverview() {
             </div>
             {isLoading
               ? <Skeleton w="60%" h={28} style={{ marginBottom:6 }}/>
-              : <div className="stat-value" style={{ fontSize:25, fontWeight:800, letterSpacing:"-0.045em",
+              : <div className="stat-value" style={{ fontSize:25, fontWeight:600, letterSpacing:"-0.045em",
                   color: s.color ?? "var(--tx)", lineHeight:1, marginBottom:4,
                   fontFamily:"var(--font-display)", animation:"countUp .5s ease both" }}>
                   {s.value}
@@ -1058,7 +1036,7 @@ function PageOverview() {
         <section className="card panel" style={{ display:"flex", flexDirection:"column", gap:12 }}>
           <div className="panel-head" style={{ marginBottom:0 }}>
             <h3 className="panel-title">Workload Health</h3>
-            <span style={{ fontSize:10, padding:"2px 8px", borderRadius:99, fontWeight:700, fontFamily:"var(--font-mono)",
+            <span style={{ fontSize:10, padding:"2px 8px", borderRadius:99, fontWeight:600, fontFamily:"var(--font-mono)",
               background: HEALTH_BAND_BG[band],
               color: HEALTH_BAND_FG[band],
               border: `1px solid ${HEALTH_BAND_BORDER[band]}`,
@@ -1075,7 +1053,7 @@ function PageOverview() {
                 <div key={s.l} style={{ display:"flex", justifyContent:"space-between", alignItems:"center",
                   padding:"4px 8px", borderRadius:7, background:"var(--bg2)" }}>
                   <span style={{ fontSize:11, color:"var(--tx3)" }}>{s.l}</span>
-                  <span style={{ fontSize:12, fontWeight:700, color:s.c, fontFamily:"var(--font-mono)" }}>{s.v}</span>
+                  <span style={{ fontSize:12, fontWeight:600, color:s.c, fontFamily:"var(--font-mono)" }}>{s.v}</span>
                 </div>
               ))}
             </div>
@@ -1103,7 +1081,7 @@ function PageOverview() {
               <div key={g.label} style={{ padding:"9px 11px", borderRadius:9, background:"var(--bg2)", border:"1px solid var(--br)" }}>
                 <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:7 }}>
                   <span style={{ fontSize:11.5, color:"var(--tx2)" }}>{g.label}</span>
-                  <span style={{ fontSize:12, fontWeight:800, color:g.color, fontFamily:"var(--font-mono)" }}>
+                  <span style={{ fontSize:12, fontWeight:600, color:g.color, fontFamily:"var(--font-mono)" }}>
                     {g.current}<span style={{ fontSize:10, fontWeight:500, color:"var(--tx3)" }}>/{g.goal}{(g as any).suffix ?? ""}</span>
                   </span>
                 </div>
@@ -1130,12 +1108,11 @@ function PageOverview() {
               <div key={p.label} style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
                 padding:"9px 11px", borderRadius:9, background:p.bg, border:`1px solid ${p.border}` }}>
                 <div style={{ display:"flex", alignItems:"center", gap:8, minWidth:0 }}>
-                  <span aria-hidden="true" style={{ width:7, height:7, borderRadius:"50%", background:p.color, flexShrink:0,
-                    boxShadow:`0 0 6px ${p.color}` }}/>
+                  <span aria-hidden="true" style={{ width:7, height:7, borderRadius:"50%", background:p.color, flexShrink:0 }}/>
                   <span style={{ fontSize:12, color:"var(--tx2)", fontWeight:500 }}>{p.label}</span>
                 </div>
                 <div style={{ display:"flex", alignItems:"center", gap:6, flexShrink:0 }}>
-                  <span style={{ fontSize:13, fontWeight:800, color:p.color, fontFamily:"var(--font-mono)" }}>{p.count}</span>
+                  <span style={{ fontSize:13, fontWeight:600, color:p.color, fontFamily:"var(--font-mono)" }}>{p.count}</span>
                   {total > 0 && <span style={{ fontSize:10, color:"var(--tx3)", fontFamily:"var(--font-mono)" }}>{Math.round((p.count/total)*100)}%</span>}
                 </div>
               </div>
@@ -1150,7 +1127,7 @@ function PageOverview() {
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center",
             marginBottom:12, gap:10, flexWrap:"wrap" }}>
             <div>
-              <h3 style={{ fontSize:16, fontWeight:800, color:"var(--tx)", fontFamily:"var(--font-display)",
+              <h3 style={{ fontSize:16, fontWeight:600, color:"var(--tx)", fontFamily:"var(--font-display)",
                 letterSpacing:"-0.03em", marginBottom:3 }}>Recent Boards</h3>
               <p style={{ fontSize:11.5, color:"var(--tx3)" }}>Jump back into your latest work</p>
             </div>
@@ -1200,7 +1177,7 @@ function PageOverview() {
 
                   {/* Board name */}
                   <span style={{
-                    display:"block", fontSize:14, fontWeight:700, color:"var(--tx)", marginBottom:6,
+                    display:"block", fontSize:14, fontWeight:600, color:"var(--tx)", marginBottom:6,
                     fontFamily:"var(--font-display)", letterSpacing:"-0.02em",
                     overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap",
                   }}>{b.name}</span>
@@ -1220,7 +1197,7 @@ function PageOverview() {
                   <span style={{ display:"block", marginBottom:10 }}>
                     <span style={{ display:"flex", justifyContent:"space-between", marginBottom:5 }}>
                       <span style={{ fontSize:10.5, color:"var(--tx3)" }}>Completion</span>
-                      <span style={{ fontSize:10.5, fontWeight:700, color:accent, fontFamily:"var(--font-mono)" }}>{donePct}%</span>
+                      <span style={{ fontSize:10.5, fontWeight:600, color:accent, fontFamily:"var(--font-mono)" }}>{donePct}%</span>
                     </span>
                     <PBar value={donePct} h={4} color={accent} label={`${b.name} completion`}/>
                   </span>
@@ -1234,7 +1211,7 @@ function PageOverview() {
                       {b.tasks.filter(t => t.status === "done").length}/{b.taskCount} done
                     </span>
                     <span style={{
-                      fontSize:11.5, fontWeight:700, color:accent,
+                      fontSize:11.5, fontWeight:600, color:accent,
                       display:"flex", alignItems:"center", gap:4,
                     }}>
                       Open <Icons.ChevronRight size={11}/>
@@ -1336,6 +1313,14 @@ function PageBoard() {
 
   const handlePdfUpload = async (file: File) => {
     if (!file) return;
+    if (file.type !== "application/pdf") {
+      setExtractError("Choose a PDF file.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setExtractError("PDF is too large. Use a file under 5 MB.");
+      return;
+    }
     setExtracting(true);
     setExtractError("");
     try {
@@ -1366,6 +1351,7 @@ function PageBoard() {
       const loaded = await loadTasksFromApi();
       if (loaded.length > 0) setTasks(loaded);
       syncTaskStats();
+      toast.success('Board updated from PDF');
       navigate('kanban');
     } catch {
       setExtractError('Network error while processing PDF.');
@@ -1389,6 +1375,13 @@ function PageBoard() {
   const handleUrlExtract = async () => {
     const url = urlInput.trim();
     if (!url) return;
+    try {
+      const parsed = new URL(url);
+      if (parsed.protocol !== "http:" && parsed.protocol !== "https:") throw new Error("bad protocol");
+    } catch {
+      setExtractError("Enter a full URL starting with https://");
+      return;
+    }
     setExtracting(true);
     setExtractError("");
     try {
@@ -1419,6 +1412,7 @@ function PageBoard() {
       }));
       setTasks(loaded);
       setUrlInput("");
+      toast.success(`${loaded.length} tasks added from the page`);
       navigate('kanban');
     } catch {
       setExtractError('Network error. Check your connection and try again.');
@@ -1446,6 +1440,7 @@ function PageBoard() {
       if (loaded.length > 0) setTasks(loaded);
       syncTaskStats();
       setInputText('');
+      toast.success('Tasks added to your board');
       navigate('kanban');
     } catch {
       setExtractError('Network error. Check your connection and try again.');
@@ -1543,7 +1538,7 @@ function PageBoard() {
                 <Icons.Sparkle size={11}/> AI-Powered Extraction
               </span>
               {/* h2, not h1: the topbar above already owns the page heading. */}
-              <h2 style={{ fontSize:26, fontWeight:800, letterSpacing:"-0.04em", color:"var(--tx)",
+              <h2 style={{ fontSize:26, fontWeight:600, letterSpacing:"-0.025em", color:"var(--tx)",
                 marginBottom:8, fontFamily:"var(--font-display)" }}>
                 Transform Notes Into Action
               </h2>
@@ -1552,20 +1547,19 @@ function PageBoard() {
               </p>
             </div>
 
-            <div style={{ display:"grid", gridTemplateColumns:"minmax(0,1fr) 260px", gap:18 }}
+            <div style={{ display:"grid", gridTemplateColumns:"minmax(0,1fr)", gap:18 }}
               className="main-grid-2 board-input-grid">
               {/* Input card */}
               <div className="panel panel-lg">
                 {/* Styled source-type picker */}
                 <div style={{ marginBottom:18 }}>
-                  <p style={{ fontSize:10.5, fontWeight:700, letterSpacing:"0.08em",
-                    textTransform:"uppercase", color:"var(--tx3)", marginBottom:10,
-                    fontFamily:"var(--font-mono)" }}>Choose input type</p>
+                  <p style={{ fontSize:12, fontWeight:500,
+                    color:"var(--tx2)", marginBottom:10 }}>Choose input type</p>
                   <div role="tablist" aria-label="Source of tasks to extract"
                     className="board-source-picker"
                     style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:8 }}>
                     {inputModes.map(m => (
-                      <button key={m.key} onClick={() => setInputMode(m.key)}
+                      <button key={m.key} onClick={() => { setInputMode(m.key); setExtractError(""); }}
                         role="tab"
                         aria-selected={inputMode === m.key}
                         aria-controls="extract-panel"
@@ -1574,16 +1568,11 @@ function PageBoard() {
                           border: inputMode === m.key
                             ? "1.5px solid var(--ac)"
                             : "1.5px solid var(--br)",
-                          background: inputMode === m.key
-                            ? "linear-gradient(135deg,rgba(99,102,241,0.10),rgba(167,139,250,0.07))"
-                            : "var(--bg2)",
-                          color: inputMode === m.key ? "var(--ac)" : "var(--tx3)",
-                          fontSize:11.5, fontWeight: inputMode === m.key ? 700 : 500,
+                          background: inputMode === m.key ? "var(--as)" : "var(--bg2)",
+                          color: inputMode === m.key ? "var(--ac-text)" : "var(--tx2)",
+                          fontSize:12, fontWeight: inputMode === m.key ? 500 : 400,
                           display:"flex", flexDirection:"column", alignItems:"center",
-                          justifyContent:"center", gap:7, transition:"all .15s",
-                          boxShadow: inputMode === m.key
-                            ? "0 0 0 3px rgba(99,102,241,0.10), 0 4px 14px rgba(99,102,241,0.12)"
-                            : "none",
+                          justifyContent:"center", gap:8, transition:"border-color .15s,background .15s,color .15s",
                           cursor:"pointer",
                         }}>
                         <span style={{
@@ -1591,7 +1580,7 @@ function PageBoard() {
                           display:"flex", alignItems:"center", justifyContent:"center",
                           background: inputMode === m.key ? "rgba(99,102,241,0.13)" : "var(--bg3)",
                           color: inputMode === m.key ? "var(--ac)" : "var(--tx3)",
-                          transition:"all .15s",
+                          transition:"border-color .15s,background .15s,color .15s",
                         }}>
                           {m.icon}
                         </span>
@@ -1604,20 +1593,21 @@ function PageBoard() {
                 <div id="extract-panel" role="tabpanel" aria-label="Task source">
                 {inputMode === "paste" && (
                   <>
-                    <p style={{ fontSize:11, color:"var(--tx3)", marginBottom:8 }}>
-                      Paste emails, Slack messages, notes kanbi anything works
+                    <p style={{ fontSize:12, color:"var(--tx2)", marginBottom:8 }}>
+                      Paste notes, emails, or messages. Kanbi finds the tasks.
                     </p>
                     <textarea
                       value={inputText} onChange={e => setInputText(e.target.value)} rows={9}
-                      placeholder={"What's on your mind?\n\n- Fix login bug\n- Review copy\n- Call John\n- Send invoice to Acme"}
+                      maxLength={8000}
+                      placeholder={"Paste notes, one task per line\n\n- Fix login bug\n- Review copy\n- Call John"}
                       aria-label="Notes to turn into tasks"
                       className="input-focus"
                       style={{ width:"100%", background:"var(--inp)", border:"1px solid var(--br)",
                         borderRadius:"var(--radius-md)", padding:"12px 14px", fontSize:13, color:"var(--tx)",
                         resize:"none", lineHeight:1.65, height:220, minHeight:220, maxHeight:220,
                         overflowY:"auto", boxSizing:"border-box" }}/>
-                    <p style={{ fontSize:10, color:"var(--tx3)", marginTop:8 }}>
-                      AI-powered extraction · Smart deadline detection · Privacy first
+                    <p style={{ fontSize:11, color:"var(--tx3)", marginTop:8 }}>
+                      Tasks, priorities and dates, ready to edit. {inputText.length}/8000
                     </p>
                   </>
                 )}
@@ -1655,7 +1645,7 @@ function PageBoard() {
                 )}
                 {inputMode === "pdf" && (
                   <div style={{ border:"2px dashed var(--br)", borderRadius:12, padding:"50px 24px",
-                    textAlign:"center", cursor:"pointer", transition:"all .15s" }}
+                    textAlign:"center", cursor:"pointer", transition:"border-color .15s,background .15s,color .15s" }}
                     onClick={() => pdfInputRef.current?.click()}
                     onDragOver={e => { e.preventDefault(); (e.currentTarget as HTMLDivElement).style.borderColor = "var(--ac)"; (e.currentTarget as HTMLDivElement).style.background = "var(--as)"; }}
                     onDragLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = "var(--br)"; (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
@@ -1677,7 +1667,7 @@ function PageBoard() {
                         className="ghost"
                         style={{ padding:"13px", borderRadius:"var(--radius-sm)", border:"1px solid var(--br)",
                           background:"var(--bg2)", color:"var(--tx2)", fontSize:12, fontWeight:600,
-                          textAlign:"left", transition:"all .15s", minWidth:0 }}>
+                          textAlign:"left", transition:"border-color .15s,background .15s,color .15s", minWidth:0 }}>
                         <span style={{ display:"block", marginBottom:3 }}>{t.label}</span>
                         <span style={{ display:"block", fontSize:10.5, fontWeight:400, color:"var(--tx3)",
                           lineHeight:1.45 }}>{t.blurb}</span>
@@ -1715,14 +1705,14 @@ function PageBoard() {
                       Progress
                     </h3>
                   </div>
-                  <div style={{ marginBottom:13 }}>
-                    <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}>
-                      <span style={{ fontSize:11, color:"var(--tx2)" }}>Completion</span>
-                      <span style={{ fontSize:11, fontWeight:700, color:"var(--tx)", fontFamily:"var(--font-mono)" }}>
-                        {tasks.length > 0 ? Math.round((tasks.filter(t=>t.status==="done").length / tasks.length)*100) : 0}%
-                      </span>
+                  <div style={{ marginBottom:14, textAlign:"center" }}>
+                    <p style={{ fontSize:30, fontWeight:600, color:"var(--tx)", fontFamily:"var(--font-display)", lineHeight:1, margin:0 }}>
+                      {tasks.length > 0 ? Math.round((tasks.filter(t=>t.status==="done").length / tasks.length)*100) : 0}%
+                    </p>
+                    <p style={{ fontSize:11, color:"var(--tx2)", marginTop:4, marginBottom:0 }}>Completion</p>
+                    <div style={{ marginTop:10 }}>
+                      <PBar value={tasks.length > 0 ? (tasks.filter(t=>t.status==="done").length/tasks.length)*100 : 0} h={6} label="Board completion"/>
                     </div>
-                    <PBar value={tasks.length > 0 ? (tasks.filter(t=>t.status==="done").length/tasks.length)*100 : 0} h={5} label="Board completion"/>
                   </div>
                   <div style={{ display:"grid", gridTemplateColumns:"repeat(3,minmax(0,1fr))", gap:8 }}>
                     {[
@@ -1730,10 +1720,10 @@ function PageBoard() {
                       { l:"Working", v:tasks.filter(t=>t.status==="wip").length   },
                       { l:"Done",    v:tasks.filter(t=>t.status==="done").length  },
                     ].map(s => (
-                      <div key={s.l} style={{ textAlign:"center", padding:"10px 5px", borderRadius:8,
+                      <div key={s.l} style={{ textAlign:"center", padding:"12px 6px", borderRadius:8,
                         background:"var(--bg2)", border:"1px solid var(--br)", minWidth:0 }}>
-                        <p style={{ fontSize:18, fontWeight:800, color:"var(--tx)", fontFamily:"var(--font-display)" }}>{s.v}</p>
-                        <p style={{ fontSize:9.5, color:"var(--tx3)", marginTop:2 }}>{s.l}</p>
+                        <p style={{ fontSize:20, fontWeight:600, color:"var(--tx)", fontFamily:"var(--font-display)" }}>{s.v}</p>
+                        <p style={{ fontSize:10, color:"var(--tx3)", marginTop:3 }}>{s.l}</p>
                       </div>
                     ))}
                   </div>
@@ -1764,13 +1754,13 @@ function PageBoard() {
                   onKeyDown={e => { if (e.key === "Enter") confirmRenameBoard(); if (e.key === "Escape") { setRenamingBoard(false); setRenameVal(""); } }}
                   onBlur={confirmRenameBoard}
                   className="input-focus"
-                  style={{ fontSize:13, fontWeight:700, color:"var(--tx)", background:"var(--inp)",
+                  style={{ fontSize:13, fontWeight:600, color:"var(--tx)", background:"var(--inp)",
                     border:"1px solid var(--ac)", borderRadius:"var(--radius-sm)", padding:"4px 9px",
                     height:28, minWidth:0, maxWidth:220 }}
                   aria-label="Rename this board"
                 />
               ) : (
-                <h2 style={{ fontSize:13, fontWeight:700, color:"var(--tx)", fontFamily:"var(--font-display)",
+                <h2 style={{ fontSize:13, fontWeight:600, color:"var(--tx)", fontFamily:"var(--font-display)",
                   minWidth:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
                   {openBoard ? openBoard.name : "My Board"}
                 </h2>
@@ -1781,7 +1771,7 @@ function PageBoard() {
             <div className="board-kanban-actions" style={{ display:"flex", alignItems:"center", gap:9, flexWrap:"wrap" }}>
               <div style={{ display:"flex", alignItems:"center", gap:5, padding:"4px 11px",
                 borderRadius:8, background:"var(--as)", border:"1px solid var(--ag)" }}>
-                <span aria-hidden="true" className="pulse" style={{ width:5, height:5, borderRadius:"50%", background:"var(--ac)", flexShrink:0 }}/>
+                <span aria-hidden="true" style={{ width:5, height:5, borderRadius:"50%", background:"var(--ac)", flexShrink:0 }}/>
                 <span style={{ fontSize:10.5, color:"var(--ac-text)", fontWeight:600 }}>
                   {openBoard ? `${tasks.length} tasks` : `AI extracted ${tasks.length} tasks`}
                 </span>
@@ -1807,7 +1797,7 @@ function PageBoard() {
                       onClick={e => e.stopPropagation()}
                       style={{ position:"absolute", top:"calc(100% + 6px)", right:0, zIndex:100,
                         minWidth:170, borderRadius:"var(--radius-md)", background:"var(--bg1)",
-                        border:"1px solid var(--br)", boxShadow:"0 8px 28px rgba(0,0,0,0.22)", padding:5 }}>
+                        border:"1px solid var(--br)", boxShadow:"0 1px 2px rgba(0,0,0,0.12)", padding:5 }}>
                       <button role="menuitem" className="btn btn-quiet btn-sm"
                         style={{ width:"100%", justifyContent:"flex-start", gap:8, marginBottom:2 }}
                         onClick={() => { setBoardMenuOpen(false); setRenameVal(openBoard.name); setRenamingBoard(true); }}>
@@ -1836,14 +1826,14 @@ function PageBoard() {
                 onClick={e => e.stopPropagation()}
                 style={{ width:"100%", maxWidth:400, borderRadius:"var(--radius-lg)",
                   background:"var(--bg1)", border:"1px solid var(--br)", padding:22,
-                  boxShadow:"0 20px 50px rgba(0,0,0,0.4)" }}>
+                  boxShadow:"0 1px 2px rgba(0,0,0,0.12)" }}>
                 <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:12 }}>
                   <span aria-hidden="true" style={{ width:32, height:32, borderRadius:8,
                     display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0,
                     background:"rgba(239,68,68,0.12)", color:"var(--rd-text)" }}>
                     <Icons.Trash size={15}/>
                   </span>
-                  <h2 id="kb-delete-title" style={{ fontSize:15.5, fontWeight:800,
+                  <h2 id="kb-delete-title" style={{ fontSize:15.5, fontWeight:600,
                     color:"var(--tx)", fontFamily:"var(--font-display)", margin:0 }}>
                     Delete this board?
                   </h2>
@@ -1870,10 +1860,9 @@ function PageBoard() {
               {cols.map(([key, label, color]) => (
                 <section key={key} aria-label={`${label} column`} style={{ minWidth:0 }}>
                   <div style={{ display:"flex", alignItems:"center", gap:7, marginBottom:12, padding:"0 2px" }}>
-                    <span aria-hidden="true" style={{ width:9, height:9, borderRadius:"50%", background:color,
-                      boxShadow:`0 0 8px ${color}`, flexShrink:0 }}/>
-                    <h3 style={{ fontSize:10.5, fontWeight:700, letterSpacing:"0.07em",
-                      textTransform:"uppercase", color:"var(--tx3)", fontFamily:"var(--font-display)",
+                    <span aria-hidden="true" style={{ width:8, height:8, borderRadius:"50%", background:color, flexShrink:0 }}/>
+                    <h3 style={{ fontSize:13, fontWeight:500,
+                      color:"var(--tx2)", fontFamily:"var(--font-display)",
                       minWidth:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{label}</h3>
                     <span style={{ fontSize:10, padding:"1px 6px", borderRadius:4, background:"var(--br)",
                       color:"var(--tx3)", fontFamily:"var(--font-mono)", flexShrink:0 }}>
@@ -2036,20 +2025,19 @@ function PageChat() {
           height:56, borderBottom:"1px solid var(--br)",
           background:"var(--bg1)", display:"flex", alignItems:"center",
           justifyContent:"space-between", padding:"0 20px", flexShrink:0, gap:10,
-          boxShadow:"0 1px 12px rgba(0,0,0,0.12)",
+          boxShadow:"0 1px 2px rgba(0,0,0,0.08)",
         }}>
           <div style={{ display:"flex", alignItems:"center", gap:10, minWidth:0 }}>
             <div aria-hidden="true" style={{
               width:34, height:34, borderRadius:10, flexShrink:0,
-              background:"linear-gradient(135deg,#6366f1,#ec4899)",
+              background:"var(--ac-solid)",
               display:"flex", alignItems:"center", justifyContent:"center",
-              boxShadow:"0 2px 10px rgba(99,102,241,0.35)",
             }}>
               <ChatBotIcon size={16} color="#fff"/>
             </div>
             <div style={{ minWidth:0 }}>
               <h1 className="chat-header-title" style={{
-                fontSize:15, fontWeight:700, color:"var(--tx)",
+                fontSize:15, fontWeight:600, color:"var(--tx)",
                 fontFamily:"var(--font-display)", lineHeight:1.2,
                 letterSpacing:"-0.03em", whiteSpace:"nowrap",
                 overflow:"hidden", textOverflow:"ellipsis",
@@ -2090,18 +2078,15 @@ function PageChat() {
           {chatMessages.length === 0 ? (
             <div className="fade-in" style={{ display:"flex", flexDirection:"column", alignItems:"center",
               justifyContent:"center", minHeight:"100%", padding:"24px", maxWidth:"var(--chat-max)", margin:"0 auto", width:"100%" }}>
-              <div aria-hidden="true" style={{ width:64, height:64, borderRadius:18,
-                background:"linear-gradient(135deg, #6366f1, #a78bfa)",
+              <div aria-hidden="true" style={{ width:56, height:56, borderRadius:14,
+                background:"var(--bg2)", border:"1px solid var(--br)",
                 display:"flex", alignItems:"center", justifyContent:"center",
-                boxShadow:"0 4px 24px rgba(99,102,241,0.45), 0 0 0 1px rgba(99,102,241,0.2)",
-                marginBottom:18, position:"relative", flexShrink:0 }}>
-                <div style={{ position:"absolute", inset:-4, borderRadius:22,
-                  border:"1px solid rgba(99,102,241,0.25)", pointerEvents:"none" }}/>
-                <ChatBotIcon size={32} color="#fff"/>
+                marginBottom:20, flexShrink:0 }}>
+                <ChatBotIcon size={28} color="var(--ac-text)"/>
               </div>
               {/* Copy comes from the shared chat copy so the empty state and the
                   model prompt cannot describe the assistant differently. */}
-              <p style={{ fontSize:15, fontWeight:700, color:"var(--tx)", marginBottom:8,
+              <p style={{ fontSize:15, fontWeight:600, color:"var(--tx)", marginBottom:8,
                 fontFamily:"var(--font-display)", textAlign:"center" }}>{CHAT_EMPTY_STATE.title}</p>
               <p style={{ fontSize:12.5, color:"var(--tx3)", lineHeight:1.65, textAlign:"center", marginBottom:18 }}>
                 {CHAT_EMPTY_STATE.body}
@@ -2145,7 +2130,7 @@ function PageChat() {
                   <div style={{ padding:"13px 15px", borderRadius:"4px 14px 14px 14px",
                     background:"var(--bg1)", border:"1px solid var(--br)", display:"flex", gap:5, alignItems:"center" }}>
                     {[0, 1, 2].map(i => (
-                      <div key={i} className="pulse" style={{ width:6, height:6, borderRadius:"50%",
+                      <div key={i} style={{ width:6, height:6, borderRadius:"50%",
                         background:"var(--ac)", animationDelay:`${i * 0.15}s` }}/>
                     ))}
                     <span style={{ fontSize:11, color:"var(--tx3)", marginLeft:6 }}>Thinking</span>
@@ -2173,7 +2158,7 @@ function PageChat() {
                 className="ghost"
                 style={{ padding:"6px 11px", borderRadius:999, border:"1px solid var(--br)",
                   background:"var(--bg1)", color:"var(--tx2)", fontSize:11, fontWeight:600,
-                  transition:"all .15s", whiteSpace:"nowrap" }}
+                  transition:"border-color .15s,background .15s,color .15s", whiteSpace:"nowrap" }}
               >
                 {action.label}
               </button>
@@ -2182,8 +2167,7 @@ function PageChat() {
         </div>
 
         {/* Input bar */}
-        <div className="chat-input-bar" style={{ padding:"14px 28px", borderTop:"1px solid var(--br)", flexShrink:0,
-          background:"linear-gradient(180deg, transparent, rgba(99,102,241,0.03))" }}>
+        <div className="chat-input-bar" style={{ padding:"16px 28px", borderTop:"1px solid var(--br)", flexShrink:0, background:"var(--bg1)" }}>
           <div style={{ display:"flex", gap:9, alignItems:"flex-end", maxWidth:"var(--chat-max)", margin:"0 auto", width:"100%" }}>
             <textarea
               value={input} onChange={e => setInput(e.target.value)} rows={1}
@@ -2241,10 +2225,9 @@ function PageChat() {
                 return (
                   <section key={s} aria-label={labels[s] ?? s} style={{ marginBottom:13, minWidth:0 }}>
                     <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:7 }}>
-                      <span aria-hidden="true" style={{ width:6, height:6, borderRadius:"50%", background:colors[s],
-                        boxShadow:`0 0 6px ${colors[s]}`, flexShrink:0 }}/>
-                      <h3 style={{ fontSize:9.5, fontWeight:700, letterSpacing:"0.07em",
-                        textTransform:"uppercase", color:"var(--tx3)", fontFamily:"var(--font-display)",
+                      <span aria-hidden="true" style={{ width:6, height:6, borderRadius:"50%", background:colors[s], flexShrink:0 }}/>
+                      <h3 style={{ fontSize:12, fontWeight:500,
+                        color:"var(--tx2)", fontFamily:"var(--font-display)",
                         minWidth:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
                         {labels[s]}
                       </h3>
@@ -2390,7 +2373,7 @@ function PageAutopilot() {
       {/* Live sync status */}
       <div className="autopilot-sync-bar" style={{ display:"flex", alignItems:"center", gap:11, padding:"12px 16px",
         borderRadius:"var(--radius-md)", background:"var(--as)", border:"1px solid var(--ag)" }}>
-        <span aria-hidden="true" className="pulse" style={{ width:7, height:7, borderRadius:"50%", background:"var(--ac)", flexShrink:0 }}/>
+        <span aria-hidden="true" style={{ width:7, height:7, borderRadius:"50%", background:"var(--ac)", flexShrink:0 }}/>
         <span style={{ fontSize:12, color:"var(--ac-text)", fontWeight:600, flexShrink:0 }}>Live sync with board</span>
         <div className="autopilot-sync-chips" style={{ display:"flex", gap:7, minWidth:0 }}>
           <span className="autopilot-stat-chip">{pendingTasks.length} pending</span>
@@ -2410,7 +2393,7 @@ function PageAutopilot() {
                   {briefings[0]!.date}
                 </span>
                 <span style={{ fontSize:10, padding:"2px 9px", borderRadius:100,
-                  background:"rgba(16,185,129,0.1)", color:"var(--gr-text)", border:"1px solid rgba(16,185,129,0.2)", fontWeight:700 }}>
+                  background:"rgba(16,185,129,0.1)", color:"var(--gr-text)", border:"1px solid rgba(16,185,129,0.2)", fontWeight:600 }}>
                   Latest
                 </span>
               </span>
@@ -2428,15 +2411,14 @@ function PageAutopilot() {
 
               {(briefings[0]!.priorities?.length ?? 0) > 0 && (
                 <div style={{ marginTop:4 }}>
-                  <p style={{ fontSize:10, color:"var(--tx3)", fontWeight:700, letterSpacing:"0.06em",
-                    textTransform:"uppercase", marginBottom:9 }}>Top priorities</p>
+                  <p style={{ fontSize:12, color:"var(--tx2)", fontWeight:500, marginBottom:12 }}>Top priorities</p>
                   <div style={{ display:"flex", flexDirection:"column", gap:9 }}>
                     {briefings[0]!.priorities!.map((p, i) => {
                       const rankColor = i === 0 ? "var(--rd-text)" : i === 1 ? "var(--am-text)" : "var(--ac-text)";
                       const rankBg = i === 0 ? "rgba(239,68,68,0.1)" : i === 1 ? "rgba(245,158,11,0.1)" : "var(--as)";
                       return (
                         <div key={i} style={{ display:"flex", gap:10, alignItems:"flex-start" }}>
-                          <span aria-hidden="true" style={{ fontSize:10.5, fontWeight:800, color:rankColor,
+                          <span aria-hidden="true" style={{ fontSize:10.5, fontWeight:600, color:rankColor,
                             background:rankBg, flexShrink:0, width:20, height:20, borderRadius:"50%",
                             display:"flex", alignItems:"center", justifyContent:"center",
                             fontFamily:"var(--font-mono)" }}>{i + 1}</span>
@@ -2454,8 +2436,8 @@ function PageAutopilot() {
               {(briefings[0]!.warnings?.length ?? 0) > 0 && (
                 <div style={{ padding:"10px 13px", borderRadius:9,
                   background:"rgba(245,158,11,0.07)", border:"1px solid rgba(245,158,11,0.22)" }}>
-                  <p style={{ display:"flex", alignItems:"center", gap:6, fontSize:10, color:"var(--am-text)", fontWeight:700,
-                    letterSpacing:"0.06em", textTransform:"uppercase", marginBottom:6 }}>
+                  <p style={{ display:"flex", alignItems:"center", gap:6, fontSize:12, color:"var(--am-text)", fontWeight:500,
+                    marginBottom:8 }}>
                     <Icons.AlertTri size={11}/> Worth knowing
                   </p>
                   <ul style={{ margin:0, padding:0, listStyle:"none", display:"flex", flexDirection:"column", gap:5 }}>
@@ -2467,8 +2449,8 @@ function PageAutopilot() {
               )}
 
               {briefings[0]!.quote && (
-                <p style={{ fontSize:11.5, color:"var(--tx3)", fontStyle:"italic", marginTop:2,
-                  lineHeight:1.6, paddingTop:11, borderTop:"1px solid var(--br)" }}>
+                <p style={{ fontSize:11.5, color:"var(--tx2)", marginTop:2,
+                  lineHeight:1.6, paddingTop:12, borderTop:"1px solid var(--br)" }}>
                   &ldquo;{briefings[0]!.quote}&rdquo;
                 </p>
               )}
@@ -2503,7 +2485,7 @@ function PageAutopilot() {
             <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
               {briefings[0]!.schedule.map((s, i) => (
                 <div key={i} className="autopilot-timeline-row">
-                  <span style={{ fontSize:10, fontWeight:700, color:"var(--ac-text)", fontFamily:"var(--font-mono)",
+                  <span style={{ fontSize:10, fontWeight:600, color:"var(--ac-text)", fontFamily:"var(--font-mono)",
                     flexShrink:0, minWidth:78, background:"var(--as)", padding:"3px 7px", borderRadius:6,
                     textAlign:"center" }}>{s.time}</span>
                   <span style={{ fontSize:12, color:"var(--tx)", flex:1, minWidth:0, overflow:"hidden",
@@ -2524,8 +2506,8 @@ function PageAutopilot() {
           </div>
           <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:4, padding:"4px 0 14px" }}>
             <HealthRing score={healthScore}/>
-            <span style={{ fontSize:11, fontWeight:700, letterSpacing:"0.04em", textTransform:"uppercase",
-              color: pilotBand === "healthy" ? "var(--gr)" : "var(--rd)" }}>
+            <span style={{ fontSize:12, fontWeight:500,
+              color: pilotBand === "healthy" ? "var(--gr-text)" : "var(--rd-text)" }}>
               {pilotBand === "healthy" ? "Healthy" : pilotBand === "moderate" ? "At risk" : "Critical"}
             </span>
           </div>
@@ -2552,7 +2534,7 @@ function PageAutopilot() {
                     background: severe ? "rgba(239,68,68,0.06)" : "rgba(245,158,11,0.06)",
                     border:`1px solid ${severe ? "rgba(239,68,68,0.2)" : "rgba(245,158,11,0.2)"}` }}>
                     <div style={{ display:"flex", justifyContent:"space-between", marginBottom:3 }}>
-                      <span style={{ fontSize:11, color: severe ? "var(--rd-text)" : "var(--am-text)", fontWeight:700 }}>
+                      <span style={{ fontSize:11, color: severe ? "var(--rd-text)" : "var(--am-text)", fontWeight:600 }}>
                         Score: {a.score}/100
                       </span>
                       <span style={{ fontSize:10, color:"var(--tx3)", fontFamily:"var(--font-mono)" }}>{a.date}</span>
@@ -2800,7 +2782,7 @@ function PageSaved() {
                   style={{ width:"100%", background:"var(--inp)", border:"1px solid var(--ac)",
                     borderRadius:"var(--radius-sm)", padding:"6px 9px", fontSize:13, color:"var(--tx)", marginBottom:4 }}/>
               ) : (
-                <p style={{ fontSize:13.5, fontWeight:700, color:"var(--tx)", marginBottom:4,
+                <p style={{ fontSize:13.5, fontWeight:600, color:"var(--tx)", marginBottom:4,
                   lineHeight:1.35, fontFamily:"var(--font-display)", overflowWrap:"anywhere" }}>{b.name}</p>
               )}
               <p style={{ fontSize:11, color:"var(--tx3)", marginBottom:16, fontFamily:"var(--font-mono)" }}>
@@ -2984,7 +2966,7 @@ function PageSettings({ theme, toggleTheme }: { theme: Theme; toggleTheme: () =>
   return (
     <div className="fade-up page-pad" style={{ padding:"28px 30px", height:"100%", overflowY:"auto" }}>
       <div style={{ marginBottom:24 }}>
-        <h1 style={{ fontSize:22, fontWeight:800, letterSpacing:"-0.035em", color:"var(--tx)",
+        <h1 style={{ fontSize:22, fontWeight:600, letterSpacing:"-0.035em", color:"var(--tx)",
           marginBottom:4, fontFamily:"var(--font-display)" }}>Settings</h1>
         <p style={{ fontSize:13, color:"var(--tx2)" }}>Manage your account and preferences</p>
       </div>
@@ -3009,17 +2991,11 @@ function PageSettings({ theme, toggleTheme }: { theme: Theme; toggleTheme: () =>
                 color: tab === t.key ? "var(--ac)" : "var(--tx2)",
                 fontSize:12, fontWeight: tab === t.key ? 700 : 500,
                 display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:6,
-                whiteSpace:"nowrap", transition:"all 0.2s ease", position:"relative" }}>
+                whiteSpace:"nowrap", transition:"border-color 0.2s ease,background 0.2s ease,color 0.2s ease", position:"relative" }}>
               <span aria-hidden="true" style={{ color: tab === t.key ? "var(--ac)" : "var(--tx3)", display:"flex", alignItems:"center", justifyContent:"center" }}>{t.icon}</span>
               <span style={{ fontSize:11, lineHeight:1.2, textAlign:"center", overflow:"hidden",
                 textOverflow:"ellipsis", maxWidth:"100%" }}>{t.label}</span>
-              {(t.key === "data") && (
-                <span style={{
-                  fontSize:9, fontWeight:700, color:"var(--am-text)", background:"rgba(245,158,11,0.15)",
-                  border:"1px solid rgba(245,158,11,0.3)", padding:"1px 5px", borderRadius:99,
-                  letterSpacing:"0.05em", textTransform:"uppercase", marginTop:2
-                }}>Soon</span>
-              )}
+              
             </button>
           ))}
         </div>
@@ -3030,18 +3006,18 @@ function PageSettings({ theme, toggleTheme }: { theme: Theme; toggleTheme: () =>
           style={{ borderRadius:"var(--radius-lg)", border:"1px solid var(--br)", background:"var(--bg1)", padding:26 }}>
           {tab === "profile" && (
             <div>
-              <h3 style={{ fontSize:15, fontWeight:800, color:"var(--tx)", marginBottom:4, fontFamily:"var(--font-display)" }}>Profile</h3>
+              <h3 style={{ fontSize:15, fontWeight:600, color:"var(--tx)", marginBottom:4, fontFamily:"var(--font-display)" }}>Profile</h3>
               <p style={{ fontSize:12.5, color:"var(--tx2)", marginBottom:22 }}>Update your personal information</p>
               <div style={{ display:"flex", alignItems:"center", gap:14, marginBottom:24,
                 padding:"16px", borderRadius:12, background:"var(--bg2)", border:"1px solid var(--br)", flexWrap:"wrap" }}>
                 <Avt name={user?.full_name ?? "User"} size={48}/>
                 <div style={{ flex:1, minWidth:0 }}>
-                  <p style={{ fontSize:14, fontWeight:700, color:"var(--tx)", fontFamily:"var(--font-display)", wordBreak:"break-word" }}>
+                  <p style={{ fontSize:14, fontWeight:600, color:"var(--tx)", fontFamily:"var(--font-display)", wordBreak:"break-word" }}>
                     {user?.full_name ?? "User"}
                   </p>
                   <p style={{ fontSize:11.5, color:"var(--tx3)", wordBreak:"break-all" }}>{user?.email}</p>
                   <p style={{ fontSize:10.5, padding:"2px 8px", borderRadius:100, display:"inline-block",
-                    marginTop:4, background:"var(--as)", color:"var(--ac-text)", fontWeight:700 }}>
+                    marginTop:4, background:"var(--as)", color:"var(--ac-text)", fontWeight:600 }}>
                     {user?.plan === "pro" ? "Pro Plan" : "Free Plan"}
                   </p>
                 </div>
@@ -3076,7 +3052,7 @@ function PageSettings({ theme, toggleTheme }: { theme: Theme; toggleTheme: () =>
 
           {tab === "security" && (
             <div>
-              <h3 style={{ fontSize:15, fontWeight:800, color:"var(--tx)", marginBottom:4, fontFamily:"var(--font-display)" }}>Security</h3>
+              <h3 style={{ fontSize:15, fontWeight:600, color:"var(--tx)", marginBottom:4, fontFamily:"var(--font-display)" }}>Security</h3>
               <p style={{ fontSize:12.5, color:"var(--tx2)", marginBottom:22 }}>Update your password</p>
               <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
                 {[
@@ -3105,12 +3081,12 @@ function PageSettings({ theme, toggleTheme }: { theme: Theme; toggleTheme: () =>
 
           {tab === "billing" && (
             <div>
-              <h3 style={{ fontSize:15, fontWeight:800, color:"var(--tx)", marginBottom:4, fontFamily:"var(--font-display)" }}>Billing</h3>
+              <h3 style={{ fontSize:15, fontWeight:600, color:"var(--tx)", marginBottom:4, fontFamily:"var(--font-display)" }}>Billing</h3>
               <p style={{ fontSize:12.5, color:"var(--tx2)", marginBottom:22 }}>Manage your subscription</p>
               <div className="settings-billing-row" style={{ borderRadius:"var(--radius-md)", border:"1px solid var(--br)", padding:"18px",
                 display:"flex", alignItems:"center", gap:16, flexWrap:"wrap" }}>
                 <div style={{ flex:1, minWidth:0 }}>
-                  <p style={{ fontSize:14, fontWeight:700, color:"var(--tx)", fontFamily:"var(--font-display)" }}>
+                  <p style={{ fontSize:14, fontWeight:600, color:"var(--tx)", fontFamily:"var(--font-display)" }}>
                     {user?.plan === "pro" ? "Pro Plan" : "Free Plan"}
                   </p>
                   <p style={{ fontSize:12, color:"var(--tx3)", wordBreak:"break-word" }}>
@@ -3132,7 +3108,7 @@ function PageSettings({ theme, toggleTheme }: { theme: Theme; toggleTheme: () =>
 
           {tab === "appearance" && (
             <div>
-              <h3 style={{ fontSize:15, fontWeight:800, color:"var(--tx)", marginBottom:4, fontFamily:"var(--font-display)" }}>Appearance</h3>
+              <h3 style={{ fontSize:15, fontWeight:600, color:"var(--tx)", marginBottom:4, fontFamily:"var(--font-display)" }}>Appearance</h3>
               <p style={{ fontSize:12.5, color:"var(--tx2)", marginBottom:22 }}>Customize how Kanbi looks</p>
               <div className="settings-appearance-row" style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"16px 18px",
                 borderRadius:"var(--radius-md)", border:"1px solid var(--br)", background:"var(--bg2)", gap:12 }}>
@@ -3153,11 +3129,11 @@ function PageSettings({ theme, toggleTheme }: { theme: Theme; toggleTheme: () =>
 
           {tab === "danger" && (
             <div>
-              <h3 style={{ fontSize:15, fontWeight:800, color:"var(--rd-text)", marginBottom:4, fontFamily:"var(--font-display)" }}>Danger Zone</h3>
+              <h3 style={{ fontSize:15, fontWeight:600, color:"var(--rd-text)", marginBottom:4, fontFamily:"var(--font-display)" }}>Danger Zone</h3>
               <p style={{ fontSize:12.5, color:"var(--tx2)", marginBottom:22 }}>These actions are permanent and cannot be undone.</p>
               <div style={{ borderRadius:"var(--radius-md)", border:"1px solid rgba(239,68,68,0.22)",
                 background:"rgba(239,68,68,0.04)", padding:"20px 22px" }}>
-                <p style={{ fontSize:13.5, fontWeight:700, color:"var(--rd-text)", marginBottom:6 }}>Delete Account</p>
+                <p style={{ fontSize:13.5, fontWeight:600, color:"var(--rd-text)", marginBottom:6 }}>Delete Account</p>
                 <p style={{ fontSize:12.5, color:"var(--tx2)", marginBottom:16, lineHeight:1.65 }}>
                   Permanently deletes your account, all boards, and all data. Type <strong>DELETE</strong> to confirm.
                 </p>
@@ -3181,7 +3157,7 @@ function PageSettings({ theme, toggleTheme }: { theme: Theme; toggleTheme: () =>
 
           {tab === "data" && (
             <div>
-              <h3 style={{ fontSize:15, fontWeight:800, color:"var(--tx)", marginBottom:4, fontFamily:"var(--font-display)" }}>Data & Export</h3>
+              <h3 style={{ fontSize:15, fontWeight:600, color:"var(--tx)", marginBottom:4, fontFamily:"var(--font-display)" }}>Data & Export</h3>
               <p style={{ fontSize:12.5, color:"var(--tx2)", marginBottom:22 }}>Export and manage your data</p>
 
               {savedBoards.length === 0 ? (
@@ -3262,20 +3238,24 @@ function NavBtn({ page, k, label, icon, badge, setPage, onNavigate, collapsed }:
         width:"100%",
         padding: collapsed ? "8px" : "7px 10px 7px 8px",
         borderRadius:"var(--radius-md)", border:"none",
-        background: active ? "rgba(99,102,241,0.1)" : "transparent",
-        color: active ? "var(--ac)" : "var(--tx2)",
+        background: active ? "var(--bg2)" : "transparent",
+        color: active ? "var(--tx)" : "var(--tx2)",
         fontSize:13, fontWeight: active ? 600 : 400,
         cursor:"pointer", display:"flex", alignItems:"center",
         justifyContent: collapsed ? "center" : "flex-start",
         gap: collapsed ? 0 : 9,
         textAlign:"left", marginBottom:2, position:"relative",
-        transition:"all .15s", letterSpacing:"-0.01em",
+        transition:"border-color .15s,background .15s,color .15s", letterSpacing:"-0.01em",
       }}>
 
       <span style={{
         width:26, height:26, borderRadius:7, flexShrink:0,
         display:"flex", alignItems:"center", justifyContent:"center",
-        transition:"all .18s",
+        background: active ? "var(--bg3)" : "transparent",
+        color: active ? "var(--tx)" : "inherit",
+        transform: active ? "scale(1.08)" : "scale(1)",
+        transition:"background .18s,color .18s,transform .18s",
+        boxShadow: active ? "0 0 0 1px var(--ag)" : "none",
       }}>{icon}</span>
       {!collapsed && <span style={{ flex:1, minWidth:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{label}</span>}
       {!collapsed && badge && (
@@ -3283,7 +3263,7 @@ function NavBtn({ page, k, label, icon, badge, setPage, onNavigate, collapsed }:
           fontSize:9, padding:"2px 7px", borderRadius:99, flexShrink:0,
           background: badge === "AI" ? "var(--as)" : "rgba(167,139,250,0.12)",
           color: badge === "AI" ? "var(--ac)" : "var(--pu)",
-          fontWeight:700, fontFamily:"var(--font-mono)", letterSpacing:"0.04em",
+          fontWeight:600, fontFamily:"var(--font-mono)", letterSpacing:"0.04em",
           border: `1px solid ${badge === "AI" ? "var(--ag)" : "rgba(167,139,250,0.2)"}`,
         }}>{badge}</span>
       )}
@@ -3295,6 +3275,7 @@ function Sidebar({ page, setPage, theme, toggleTheme, collapsed = false, toggleC
   page: Page; setPage: (p: Page) => void; theme: Theme; toggleTheme: () => void;
   collapsed?: boolean; toggleCollapsed?: () => void;
 }) {
+  const router = useRouter();
   const { user } = useApp();
 
   const mainNav: [Page, string, ReactNode][] = [
@@ -3302,6 +3283,8 @@ function Sidebar({ page, setPage, theme, toggleTheme, collapsed = false, toggleC
     ["board",     "Board",        <BoardStarIcon key="board" size={26}/>   ],
     ["kanban",    "View Board",   <ViewBoardIcon key="kanban" size={26}/>  ],
     ["saved",     "Saved Boards", <SavedStarIcon key="saved" size={26}/>   ],
+    ["todos",     "Todos",        <Icons.Check key="todos" size={16}/>     ],
+    ["notes",     "Notes",        <Icons.Edit key="notes" size={16}/>      ],
   ];
   const aiNav: [Page, string, ReactNode, string?][] = [
     ["chat",      "Assistant",      <ChatStarIcon key="chat" size={26}/>,    "AI"   ],
@@ -3324,19 +3307,16 @@ function Sidebar({ page, setPage, theme, toggleTheme, collapsed = false, toggleC
       display:"flex", flexDirection:"column", transition:"width .18s ease",
     }}>
       {/* Logo */}
-      <div style={{ padding:"18px 16px 16px", borderBottom:"1px solid var(--sidebar-border)" }}>
-        <div style={{ display:"flex", alignItems:"center", justifyContent: collapsed ? "center" : "flex-start", gap: collapsed ? 0 : 10 }}>
-          <div style={{
-            width:34, height:34, borderRadius:10,
-            background:"linear-gradient(135deg, var(--ac), var(--pu))",
-            display:"flex", alignItems:"center", justifyContent:"center",
-            boxShadow:"0 2px 12px rgba(99,102,241,0.35)", flexShrink:0,
-          }} title={collapsed ? "KANBI" : undefined}>
-            <Icons.Zap size={15} style={{ color:"#fff" }}/>
-          </div>
+      <div style={{ padding:"16px 16px 12px", borderBottom:"1px solid var(--sidebar-border)" }}>
+        <div style={{ display:"flex", alignItems:"center", justifyContent: collapsed ? "center" : "flex-start", gap: collapsed ? 0 : 6 }}>
+          <img
+            src="/Kanbi.png" alt="" width={34} height={34}
+            style={{ width:34, height:34, borderRadius:10, display:"block", flexShrink:0 }}
+            title={collapsed ? "KANBI" : undefined}
+          />
           {!collapsed && (
             <div>
-              <span style={{ fontSize:15, fontWeight:800, color:"var(--tx)", letterSpacing:"-0.04em",
+              <span style={{ fontSize:15, fontWeight:600, color:"var(--tx)", letterSpacing:"-0.025em",
                 fontFamily:"var(--font-display)", display:"block", lineHeight:1.1 }}>KANBI</span>
             </div>
           )}
@@ -3344,7 +3324,7 @@ function Sidebar({ page, setPage, theme, toggleTheme, collapsed = false, toggleC
       </div>
 
       {/* Nav */}
-      <nav aria-label="Main" style={{ flex:1, padding: collapsed ? "10px 8px 0" : "10px 10px 0", overflowY:"auto", overflowX:"hidden" }}>
+      <nav aria-label="Main" style={{ flex:1, padding: collapsed ? "8px 8px 0" : "8px 10px 0", overflowY:"auto", overflowX:"hidden" }}>
         {!collapsed && <div className="nav-section-label">Workspace</div>}
         {mainNav.map(([k, l, i]) => <NavBtn key={k} page={page} k={k} label={l} icon={i} setPage={setPage} collapsed={collapsed}/>)}
 
@@ -3365,18 +3345,7 @@ function Sidebar({ page, setPage, theme, toggleTheme, collapsed = false, toggleC
 
       {/* Bottom */}
       <div style={{ padding: collapsed ? "12px 8px 16px" : "12px 10px 16px", borderTop:"1px solid var(--sidebar-border)", display:"flex", flexDirection:"column", gap:10 }}>
-        {/* Usage */}
-        {!collapsed && (
-          <div style={{ padding:"11px 13px", borderRadius:12, background:"var(--bg2)", border:"1px solid var(--br)" }}>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:7 }}>
-              <span style={{ fontSize:11, color:"var(--tx3)", fontWeight:500 }}>Boards today</span>
-              <span style={{ fontSize:11, fontWeight:700, color: usagePct >= 90 ? "var(--rd)" : "var(--tx)", fontFamily:"var(--font-mono)" }}>
-                {boardsUsed}<span style={{ color:"var(--tx3)", fontWeight:400 }}>/{boardsLimit}</span>
-              </span>
-            </div>
-            <PBar value={usagePct} h={3} color={usageColor} label="Daily board usage"/>
-          </div>
-        )}
+
 
         {toggleCollapsed && (
           <button
@@ -3427,7 +3396,7 @@ function Sidebar({ page, setPage, theme, toggleTheme, collapsed = false, toggleC
           <Avt name={user?.full_name ?? "User"} size={32} avatarUrl={user?.avatar_url}/>
           {collapsed ? (
             <button className="btn btn-ghost btn-icon" aria-label="Log out" title="Log out"
-              onClick={async () => { const s = createClient(); await s.auth.signOut(); window.location.href = "/"; }}>
+              onClick={async () => { const s = createClient(); await s.auth.signOut(); router.push("/"); router.refresh(); }}>
               <Icons.Logout size={13}/>
             </button>
           ) : (
@@ -3440,7 +3409,7 @@ function Sidebar({ page, setPage, theme, toggleTheme, collapsed = false, toggleC
                 </p>
               </div>
               <button className="btn btn-ghost btn-sm" aria-label="Log out"
-                onClick={async () => { const s = createClient(); await s.auth.signOut(); window.location.href = "/"; }}
+                onClick={async () => { const s = createClient(); await s.auth.signOut(); router.push("/"); router.refresh(); }}
                 style={{ display:"inline-flex", alignItems:"center", gap:6, padding:"0 10px", fontSize:11, fontWeight:600, flexShrink:0 }}>
                 <Icons.Logout size={12}/>
                 <span>Log out</span>
@@ -3460,10 +3429,11 @@ function BottomNav({ page, setPage, onNavigate }: { page: Page; setPage: (p: Pag
   const items: [Page, string, ReactNode][] = [
     ["overview",  "Home",     <StarIcon key="overview" size={19}/>        ],
     ["board",     "Board",    <BoardStarIcon key="board" size={19}/>   ],
-    ["kanban",    "View",     <ViewBoardIcon key="kanban" size={19}/>  ],
     ["chat",      "Chat",     <ChatStarIcon key="chat" size={19}/>    ],
-    ["autopilot", "Pilot",    <PilotStarIcon key="autopilot" size={19}/>   ],
+    ["todos",     "Todos",    <Icons.Check key="todos" size={19}/>     ],
+    ["notes",     "Notes",    <Icons.Edit key="notes" size={19}/>      ],
     ["saved",     "Saved",    <SavedStarIcon key="saved" size={19}/>   ],
+    ["autopilot", "Pilot",    <PilotStarIcon key="autopilot" size={19}/>   ],
     ["settings",  "Settings", <SettingsStarIcon key="settings" size={19}/>],
   ];
   return (
@@ -3493,10 +3463,10 @@ function BottomNav({ page, setPage, onNavigate }: { page: Page; setPage: (p: Pag
 /* ═══════════════════════════════════════════════════════════════════════════
    TOPBAR
 ═══════════════════════════════════════════════════════════════════════════ */
-const PAGE_META: Record<Page, { title: string; sub: string; icon: React.ReactNode; gradient: string }> = {
+const PAGE_META: Record<Page, { title: string; sub: string; icon: React.ReactNode; bg: string }> = {
   overview:  {
     title:"Dashboard", sub:"Your workload at a glance",
-    gradient:"linear-gradient(135deg,#6366f1,#a78bfa)",
+    bg:"var(--ac-solid)",
     icon:(
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/>
@@ -3506,7 +3476,7 @@ const PAGE_META: Record<Page, { title: string; sub: string; icon: React.ReactNod
   },
   board:     {
     title:"Board", sub:"Paste, import, or extract tasks",
-    gradient:"linear-gradient(135deg,#6366f1,#06b6d4)",
+    bg:"var(--ac-solid)",
     icon:(
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <rect x="3" y="4" width="18" height="16" rx="2.5"/>
@@ -3516,7 +3486,7 @@ const PAGE_META: Record<Page, { title: string; sub: string; icon: React.ReactNod
   },
   kanban:    {
     title:"View Board", sub:"Your columns, drag and drop",
-    gradient:"linear-gradient(135deg,#14b8a6,#6366f1)",
+    bg:"var(--ac-solid)",
     icon:(
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <rect x="2" y="3" width="6" height="18" rx="1.5"/>
@@ -3532,7 +3502,7 @@ const PAGE_META: Record<Page, { title: string; sub: string; icon: React.ReactNod
   },
   chat:      {
     title:"Assistant", sub:"Your board-aware coach",
-    gradient:"linear-gradient(135deg,#6366f1,#ec4899)",
+    bg:"var(--ac-solid)",
     icon:(
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
         <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
@@ -3541,7 +3511,7 @@ const PAGE_META: Record<Page, { title: string; sub: string; icon: React.ReactNod
   },
   autopilot: {
     title:"AI Autopilot", sub:"Autonomous workload management",
-    gradient:"linear-gradient(135deg,#f59e0b,#6366f1)",
+    bg:"var(--ac-solid)",
     icon:(
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .962 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.962 0z"/>
@@ -3550,16 +3520,36 @@ const PAGE_META: Record<Page, { title: string; sub: string; icon: React.ReactNod
   },
   saved:     {
     title:"Saved Boards", sub:"All your boards and projects",
-    gradient:"linear-gradient(135deg,#10b981,#6366f1)",
+    bg:"var(--ac-solid)",
     icon:(
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
       </svg>
     ),
   },
+  todos:     {
+    title:"Todos", sub:"Your personal lists",
+    bg:"var(--ac-solid)",
+    icon:(
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M9 6h11M9 12h11M9 18h11"/>
+        <path d="m3 6 1.5 1.5L7 5M3 12l1.5 1.5L7 11M3 18l1.5 1.5L7 17"/>
+      </svg>
+    ),
+  },
+  notes:     {
+    title:"Notes", sub:"Your saved notes",
+    bg:"var(--ac-solid)",
+    icon:(
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <path d="M14 2v6h6M8 13h8M8 17h5"/>
+      </svg>
+    ),
+  },
   settings:  {
     title:"Settings", sub:"Account preferences",
-    gradient:"linear-gradient(135deg,#64748b,#6366f1)",
+    bg:"var(--ac-solid)",
     icon:(
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="12" cy="12" r="3"/>
@@ -3615,20 +3605,19 @@ function Topbar({ page, theme, toggleTheme, sidebarCollapsed = false }: {
 
   return (
     <header className="topbar-wrap" style={{
-      height:56, borderBottom:"1px solid var(--br)",
+      height:63, borderBottom:"1px solid var(--br)",
       background:"var(--bg1)", display:"flex", alignItems:"center",
       justifyContent:"space-between", padding:"0 20px", flexShrink:0,
-      boxShadow:"0 1px 12px rgba(0,0,0,0.12)",
       position:"sticky", top:0, zIndex:50,
     }}>
       {/* Left: menu + icon + title */}
       <div style={{ display:"flex", alignItems:"center", gap:10, minWidth:0 }}>
 
         <div className="topbar-icon" style={{
-          width: sidebarCollapsed ? 30 : 34, height: sidebarCollapsed ? 30 : 34, borderRadius: sidebarCollapsed ? 8 : 10, flexShrink:0,
-          background:meta.gradient,
+          width: sidebarCollapsed ? 26 : 30, height: sidebarCollapsed ? 26 : 30, borderRadius: sidebarCollapsed ? 7 : 9, flexShrink:0,
+          border:"1px solid var(--br)", boxShadow:"0 1px 3px rgba(0,0,0,0.08)",
+          background:meta.bg,
           display:"flex", alignItems:"center", justifyContent:"center",
-          boxShadow:"0 2px 10px rgba(99,102,241,0.35)",
         }}>
           {meta.icon}
         </div>
@@ -3636,7 +3625,7 @@ function Topbar({ page, theme, toggleTheme, sidebarCollapsed = false }: {
           {/* The one h1 for this page. Every page below the topbar is an h2
               or lower, so the outline runs top to bottom in one chain. */}
           <h1 className="topbar-title" style={{
-            fontSize:15, fontWeight:700, color:"var(--tx)",
+            fontSize:15, fontWeight:600, color:"var(--tx)",
             fontFamily:"var(--font-display)", lineHeight:1.2,
             letterSpacing:"-0.03em", whiteSpace:"nowrap",
             overflow:"hidden", textOverflow:"ellipsis",
@@ -3678,7 +3667,7 @@ function Topbar({ page, theme, toggleTheme, sidebarCollapsed = false }: {
             onClick={e => e.stopPropagation()}
             style={{ width:"100%", maxWidth:400, borderRadius:"var(--radius-lg)",
               background:"var(--bg1)", border:"1px solid var(--br)", padding:22,
-              boxShadow:"0 20px 50px rgba(0,0,0,0.4)" }}>
+              boxShadow:"0 1px 2px rgba(0,0,0,0.12)" }}>
 
             <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:12 }}>
               <span aria-hidden="true" style={{ width:32, height:32, borderRadius:8,
@@ -3686,7 +3675,7 @@ function Topbar({ page, theme, toggleTheme, sidebarCollapsed = false }: {
                 background:"rgba(239,68,68,0.12)", color:"var(--rd-text)" }}>
                 <Icons.Trash size={15}/>
               </span>
-              <h2 id="confirm-delete-title" style={{ fontSize:15.5, fontWeight:800,
+              <h2 id="confirm-delete-title" style={{ fontSize:15.5, fontWeight:600,
                 color:"var(--tx)", fontFamily:"var(--font-display)", margin:0 }}>
                 Delete this board?
               </h2>
@@ -3723,98 +3712,23 @@ function Topbar({ page, theme, toggleTheme, sidebarCollapsed = false }: {
   );
 }
 
-/* ─── 3-D time-of-day greeting icon ──────────────────────────────────────── */
+/* ─── Time-of-day icon ───────────────────────────────────────────────────── */
 function TimeOfDayIcon({ tod }: { tod: "morning" | "afternoon" | "evening" }) {
-  if (tod === "morning") {
-    return (
-      <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style={{ flexShrink: 0 }}>
-        <defs>
-          <radialGradient id="sun-core" cx="50%" cy="38%" r="52%">
-            <stop offset="0%" stopColor="#fff7a1"/>
-            <stop offset="45%" stopColor="#ffd93d"/>
-            <stop offset="100%" stopColor="#ff9500"/>
-          </radialGradient>
-          <radialGradient id="sun-glow" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#ffe066" stopOpacity="0.55"/>
-            <stop offset="100%" stopColor="#ff9500" stopOpacity="0"/>
-          </radialGradient>
-          <filter id="sun-shadow" x="-30%" y="-30%" width="160%" height="160%">
-            <feDropShadow dx="0" dy="2" stdDeviation="2.5" floodColor="#ff9500" floodOpacity="0.45"/>
-          </filter>
-        </defs>
-        {/* glow halo */}
-        <circle cx="14" cy="14" r="13" fill="url(#sun-glow)"/>
-        {/* rays */}
-        {[0,45,90,135,180,225,270,315].map((deg, i) => {
-          const r = Math.PI * deg / 180;
-          const x1 = 14 + Math.cos(r) * 9.5, y1 = 14 + Math.sin(r) * 9.5;
-          const x2 = 14 + Math.cos(r) * 12.8, y2 = 14 + Math.sin(r) * 12.8;
-          return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke="#ffb800" strokeWidth={deg % 90 === 0 ? "1.8" : "1.2"} strokeLinecap="round" opacity={deg % 90 === 0 ? 1 : 0.7}/>
-        })}
-        {/* core sphere */}
-        <circle cx="14" cy="14" r="7.2" fill="url(#sun-core)" filter="url(#sun-shadow)"/>
-        {/* specular highlight */}
-        <ellipse cx="11.8" cy="11.4" rx="2.2" ry="1.4" fill="white" opacity="0.45" transform="rotate(-20 11.8 11.4)"/>
-      </svg>
-    );
-  }
-  if (tod === "afternoon") {
-    return (
-      <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style={{ flexShrink: 0 }}>
-        <defs>
-          <radialGradient id="sun2-core" cx="50%" cy="35%" r="52%">
-            <stop offset="0%" stopColor="#fff3c4"/>
-            <stop offset="40%" stopColor="#ffcc00"/>
-            <stop offset="100%" stopColor="#ff6a00"/>
-          </radialGradient>
-          <radialGradient id="sun2-glow" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#ffdd57" stopOpacity="0.5"/>
-            <stop offset="100%" stopColor="#ff6a00" stopOpacity="0"/>
-          </radialGradient>
-          <filter id="sun2-shadow" x="-30%" y="-30%" width="160%" height="160%">
-            <feDropShadow dx="0" dy="3" stdDeviation="3" floodColor="#ff6a00" floodOpacity="0.5"/>
-          </filter>
-        </defs>
-        <circle cx="14" cy="14" r="13" fill="url(#sun2-glow)"/>
-        {[0,30,60,90,120,150,180,210,240,270,300,330].map((deg, i) => {
-          const r = Math.PI * deg / 180;
-          const x1 = 14 + Math.cos(r) * 9.8, y1 = 14 + Math.sin(r) * 9.8;
-          const x2 = 14 + Math.cos(r) * 13, y2 = 14 + Math.sin(r) * 13;
-          return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke="#ffa500" strokeWidth={deg % 90 === 0 ? "2" : "1.1"} strokeLinecap="round" opacity={deg % 90 === 0 ? 1 : 0.6}/>
-        })}
-        <circle cx="14" cy="14" r="7.8" fill="url(#sun2-core)" filter="url(#sun2-shadow)"/>
-        <ellipse cx="11.5" cy="11" rx="2.5" ry="1.5" fill="white" opacity="0.4" transform="rotate(-25 11.5 11)"/>
-      </svg>
-    );
-  }
-  // evening
+  const common = { width: 20, height: 20, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.5, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, "aria-hidden": true, style: { flexShrink: 0 } };
+  if (tod === "morning") return (
+    <svg {...common}>
+      <circle cx="12" cy="12" r="4"/>
+      <path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4"/>
+    </svg>
+  );
+  if (tod === "afternoon") return (
+    <svg {...common}>
+      <path d="M17 18a5 5 0 0 0-10 0"/><path d="M12 2v2M4.9 6.3l1.4 1.4M19.1 6.3l-1.4 1.4M2 18h20"/>
+    </svg>
+  );
   return (
-    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style={{ flexShrink: 0 }}>
-      <defs>
-        <radialGradient id="moon-body" cx="38%" cy="32%" r="60%">
-          <stop offset="0%" stopColor="#e8eaff"/>
-          <stop offset="50%" stopColor="#b8bfff"/>
-          <stop offset="100%" stopColor="#7c85e0"/>
-        </radialGradient>
-        <radialGradient id="moon-glow" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor="#a78bfa" stopOpacity="0.4"/>
-          <stop offset="100%" stopColor="#7c85e0" stopOpacity="0"/>
-        </radialGradient>
-        <filter id="moon-shadow" x="-30%" y="-30%" width="160%" height="160%">
-          <feDropShadow dx="0" dy="2" stdDeviation="2.5" floodColor="#7c3aed" floodOpacity="0.4"/>
-        </filter>
-      </defs>
-      {/* glow */}
-      <circle cx="13" cy="15" r="12" fill="url(#moon-glow)"/>
-      {/* stars */}
-      <circle cx="22" cy="5" r="1.1" fill="#e0e7ff" opacity="0.9"/>
-      <circle cx="25" cy="11" r="0.7" fill="#c7d2fe" opacity="0.8"/>
-      <circle cx="20" cy="3" r="0.6" fill="#e0e7ff" opacity="0.7"/>
-      <circle cx="24" cy="7" r="0.5" fill="#a5b4fc" opacity="0.6"/>
-      {/* crescent moon */}
-      <path d="M13.5 5.5 A8.5 8.5 0 1 0 13.5 24.5 A6 6 0 1 1 13.5 5.5 Z" fill="url(#moon-body)" filter="url(#moon-shadow)"/>
-      {/* specular */}
-      <ellipse cx="11" cy="9" rx="2" ry="1.2" fill="white" opacity="0.35" transform="rotate(-30 11 9)"/>
+    <svg {...common}>
+      <path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/>
     </svg>
   );
 }
@@ -3924,6 +3838,8 @@ export default function Dashboard() {
             {page === "chat"      && <PageChat/>}
             {page === "autopilot" && <PageAutopilot/>}
             {page === "saved"     && <PageSaved/>}
+            {page === "todos"     && <TodoPage/>}
+            {page === "notes"     && <NotePage/>}
             {page === "settings"  && <PageSettings theme={theme} toggleTheme={toggleTheme}/>}
           </div>
         </div>

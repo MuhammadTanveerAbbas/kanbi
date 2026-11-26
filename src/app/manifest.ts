@@ -7,16 +7,17 @@ export default function manifest(): MetadataRoute.Manifest {
     description: 'Paste text, a PDF, or a web page URL and get a Kanban board, a workload health score, and DOCX or PDF export.',
     start_url: '/',
     display: 'standalone',
-    background_color: '#07070b',
-    theme_color: '#5e6fe8',
+    background_color: '#ffffff',
+    // Sampled from public/Kanbi.png, the single source for every icon size.
+    theme_color: '#004DB9',
     icons: [
       {
-        src: '/icon-64.png',
+        src: '/icon.png',
         sizes: '64x64',
         type: 'image/png',
       },
       {
-        src: '/apple-icon-180.png',
+        src: '/apple-icon.png',
         sizes: '180x180',
         type: 'image/png',
       },

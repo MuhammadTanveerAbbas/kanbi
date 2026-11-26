@@ -15,12 +15,13 @@
  *   AI_API_KEY    optional, ignored by local runtimes
  *   AI_MODEL      optional pin, overrides preference entirely
  *
- * ## Why there is no default base URL
+ * ## Why there is a default base URL
  *
- * A sensible-looking default would be a hosted vendor's URL, which is exactly
- * the coupling being removed. With nothing configured, `provider()` returns
- * null, every AI route reports that inference is not configured, and the
- * deterministic parts of the product still work. That is a truthful state.
+ * The default points at Groq's OpenAI-compatible endpoint because that is the
+ * deployment this product ships with. It is still only a default: `AI_BASE_URL`
+ * overrides it, so a self-hosted llama.cpp, vLLM, Ollama or LM Studio runtime
+ * works with no code change. With an endpoint set but no reachable runtime,
+ * `provider()` still returns a provider and the request reports the real error.
  */
 
 export interface AiSettings {
@@ -34,7 +35,7 @@ export interface AiSettings {
 }
 
 const DEFAULTS = {
-  baseUrl: '',
+  baseUrl: 'https://api.groq.com/openai/v1',
   apiKey: '',
   defaultModel: '',
   requestTimeoutMs: 60_000,
@@ -49,7 +50,7 @@ const DEFAULTS = {
  * than looping. The name is a family rather than a pinned build so a compatible
  * runtime with a differently tagged quantisation still matches it.
  */
-export const DEFAULT_AI_MODEL = 'llama-3.3-70b'
+export const DEFAULT_AI_MODEL = 'gpt-oss-120b'
 
 function readNumber(name: string, fallback: number): number {
   const raw = process.env[name]

@@ -175,7 +175,7 @@ export default function ChangelogPage() {
           font-weight: 500;
           font-family: inherit;
           cursor: pointer;
-          transition: all 0.15s ease;
+          transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
           display: inline-flex;
           align-items: center;
           gap: 6px;
@@ -318,11 +318,9 @@ export default function ChangelogPage() {
           letter-spacing: -0.03em;
         }
         .chart .donut-cap {
-          fill: var(--tx3);
-          font-size: 10px;
+          fill: var(--tx2);
+          font-size: 11px;
           text-anchor: middle;
-          letter-spacing: 0.06em;
-          text-transform: uppercase;
         }
         .legend {
           display: flex;
@@ -406,11 +404,9 @@ export default function ChangelogPage() {
           display: flex;
           align-items: center;
           gap: 7px;
-          font-size: 10.5px;
-          font-weight: 600;
-          text-transform: uppercase;
-          letter-spacing: 0.07em;
-          color: var(--tx3);
+          font-size: 12px;
+          font-weight: 500;
+          color: var(--tx2);
           line-height: 1.3;
         }
         .stat-dot {
@@ -542,21 +538,13 @@ export default function ChangelogPage() {
           flex-wrap: wrap;
         }
         .tag {
-          font-size: 10px;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.07em;
-          padding: 3px 8px;
-          border-radius: 999px;
-          background: var(--as);
+          font-size: 11px;
+          font-weight: 500;
           color: var(--ac-text);
           white-space: nowrap;
         }
         .tag.count-tag {
-          background: var(--bg2);
           color: var(--tx3);
-          font-weight: 600;
-          letter-spacing: 0.04em;
           font-variant-numeric: tabular-nums;
         }
         .summary {
@@ -588,12 +576,10 @@ export default function ChangelogPage() {
         .badge {
           flex-shrink: 0;
           margin-top: 1px;
-          font-size: 9.5px;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.06em;
-          padding: 3px 7px;
-          border-radius: 5px;
+          font-size: 11px;
+          font-weight: 500;
+          padding: 2px 8px;
+          border-radius: 6px;
           min-width: 62px;
           text-align: center;
         }

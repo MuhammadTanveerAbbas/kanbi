@@ -77,6 +77,14 @@ export const MODEL_PROFILES: readonly ModelProfile[] = [
     maxOutputTokens: 65536,
   },
   {
+    // Groq vision model, used only when a turn carries images
+    priority: 12,
+    match: ['qwen3.8-27b'],
+    label: 'Qwen 3.8 27B vision (Groq)',
+    contextWindow: 131072,
+    maxOutputTokens: 16384,
+  },
+  {
     // Qwen3 family — strong reasoning
     priority: 15,
     match: ['qwen3', 'qwen-3', 'qwen3.8'],
@@ -90,6 +98,14 @@ export const MODEL_PROFILES: readonly ModelProfile[] = [
     label: 'Llama 3.3 70B',
     contextWindow: 131072,
     maxOutputTokens: 32768,
+  },
+  {
+    // Groq vision model, used only when a turn carries images
+    priority: 22,
+    match: ['llama-4-scout'],
+    label: 'Llama 4 Scout vision (Groq)',
+    contextWindow: 131072,
+    maxOutputTokens: 8192,
   },
   {
     priority: 25,
@@ -167,6 +183,25 @@ export const NON_CHAT_PATTERNS: readonly RegExp[] = [
   // Groq MiniMax and Muse are multimodal / enterprise — may not serve plain chat
   /muse-spark/i,
 ] as const
+
+/**
+ * Models that can read an image as well as text.
+ *
+ * Kept separate from `MODEL_PROFILES` because capability is not preference. A
+ * vision request must never be sent to a text-only model, which would answer
+ * about the file name it was given rather than the picture it never saw.
+ */
+export const VISION_MODEL_PATTERNS: readonly RegExp[] = [
+  /qwen3\.8-27b/i,
+  /llama-4-scout/i,
+  /qwen[\w.-]*-vl/i,
+] as const
+
+/** True when the model id is known to accept image parts. */
+export function isVisionModel(id: string): boolean {
+  if (!id) return false
+  return VISION_MODEL_PATTERNS.some((pattern) => pattern.test(id))
+}
 
 /**
  * Ids that were withdrawn from their runtime.

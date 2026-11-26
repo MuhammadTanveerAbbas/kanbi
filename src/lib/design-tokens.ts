@@ -100,13 +100,13 @@ export function themeStyleSheet(): string {
 export function themeVars(theme: Theme): string {
   const neutrals =
     theme === 'dark'
-      ? '--bg:#07070b;--bg1:#0d0d13;--bg2:#111119;--bg3:#16161f;--br:rgba(255,255,255,0.07);--brh:rgba(255,255,255,0.14);' +
-        '--tx:#e0e0ea;--tx2:#9a9ab4;--tx3:#83839d;--inv:#fff;--inv2:#07070b;' +
-        '--nb:rgba(7,7,11,0.88);' +
+      ? '--bg:#000000;--bg1:#0a0a0a;--bg2:#141414;--bg3:#1e1e1e;--br:rgba(255,255,255,0.14);--brh:rgba(255,255,255,0.24);' +
+        '--tx:#f5f5f5;--tx2:#a8a8b3;--tx3:#8a8a96;--inv:#fff;--inv2:#000000;' +
+        '--nb:rgba(0,0,0,0.94);' +
         '--kind-added:#11ba82;--kind-fixed:#f69f0c;--kind-changed:#797cff;--kind-security:#f35151;--kind-removed:#8989a5;'
-      : '--bg:#f2f3fb;--bg1:#ffffff;--bg2:#eaebf8;--bg3:#e0e2f5;--br:rgba(0,0,0,0.07);--brh:rgba(0,0,0,0.14);' +
+      : '--bg:#ffffff;--bg1:#ffffff;--bg2:#f2f3fb;--bg3:#e6e8f4;--br:rgba(0,0,0,0.14);--brh:rgba(0,0,0,0.24);' +
         '--tx:#0a0a18;--tx2:#4a4a72;--tx3:#63637e;--inv:#0a0a18;--inv2:#fff;' +
-        '--nb:rgba(242,243,251,0.92);' +
+        '--nb:rgba(255,255,255,0.94);' +
         '--kind-added:#006c37;--kind-fixed:#9a4700;--kind-changed:#4649ce;--kind-security:#b51313;--kind-removed:#595976;'
 
   // The accents ship inside this block rather than beside it. Leaving them as a
@@ -129,11 +129,11 @@ export function appThemeVars(theme: Theme): string {
   return (
     themeVars(theme) +
     (theme === 'dark'
-      ? '--inp:#111119;--card:#0d0d13;--sb:#0a0a11;--sh:rgba(0,0,0,0.6);' +
-        '--card-glow:rgba(94,111,232,0.05);--sidebar-border:rgba(255,255,255,0.055);' +
-        '--inv:#fff;--inv2:#07070b;'
-      : '--inp:#eaebf8;--card:#ffffff;--sb:#ffffff;--sh:rgba(0,0,0,0.08);' +
-        '--card-glow:rgba(94,111,232,0.04);--sidebar-border:rgba(0,0,0,0.07);' +
+      ? '--inp:#141414;--card:#0a0a0a;--sb:#050505;--sh:rgba(0,0,0,0.7);' +
+        '--card-glow:rgba(94,111,232,0.05);--sidebar-border:rgba(255,255,255,0.14);' +
+        '--inv:#fff;--inv2:#000000;'
+      : '--inp:#f2f3fb;--card:#ffffff;--sb:#ffffff;--sh:rgba(0,0,0,0.10);' +
+        '--card-glow:rgba(94,111,232,0.04);--sidebar-border:rgba(0,0,0,0.14);' +
         '--inv:#0a0a18;--inv2:#fff;')
   )
 }

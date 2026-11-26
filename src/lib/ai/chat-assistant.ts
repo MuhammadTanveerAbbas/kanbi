@@ -33,8 +33,26 @@ export interface ChatTask {
   status?: string;
 }
 
+export interface ChatTodo {
+  title: string;
+  done?: boolean;
+}
+
+export interface ChatNote {
+  title: string;
+  content?: string;
+}
+
+export interface ChatImage {
+  name: string;
+  caption?: string;
+}
+
 export interface ChatContext {
   tasks: ChatTask[];
+  todos?: ChatTodo[];
+  notes?: ChatNote[];
+  images?: ChatImage[];
   workloadHealth?: number;
   estimatedHours?: number;
   completedToday?: number;
@@ -79,13 +97,40 @@ function formatTaskList(tasks: ChatTask[]): string {
     .join('\n');
 }
 
-function buildSystemPrompt(context: ChatContext): string {
+function formatTodos(todos: ChatTodo[]): string {
+  if (!todos || todos.length === 0) return '- (no todos)';
+  return todos
+    .slice(0, MAX_TASKS_IN_PROMPT)
+    .map((todo) => `- ${normalizeLine(todo.title)} (${todo.done ? 'done' : 'open'})`)
+    .join('\\n');
+}
+
+function formatNotes(notes: ChatNote[]): string {
+  if (!notes || notes.length === 0) return '- (no notes)';
+  return notes
+    .slice(0, MAX_TASKS_IN_PROMPT)
+    .map((note) => `- ${normalizeLine(note.title)}: ${normalizeLine(note.content ?? '')}`)
+    .join('\\n');
+}
+
+function formatImages(images: ChatImage[]): string {
+  if (!images || images.length === 0) return '- (no images)';
+  return images
+    .slice(0, MAX_TASKS_IN_PROMPT)
+    .map((image) => `- ${normalizeLine(image.name)}${image.caption ? `: ${normalizeLine(image.caption)}` : ''}`)
+    .join('\\n');
+}
+
+export function buildSystemPrompt(context: ChatContext): string {
   const all = context.tasks ?? [];
   const { open } = partition(all);
   return CHAT_SYSTEM_PROMPT.replace('PENDING of TOTAL', `${open.length} of ${all.length}`)
     .replace('HEALTH out of 100', String(context.workloadHealth ?? 'unknown'))
     .replace('DONE', String(context.completedToday ?? 0))
-    .replace('TASKS', formatTaskList(all));
+    .replace('TASKS', formatTaskList(all))
+    .replace('TODOS', formatTodos(context.todos ?? []))
+    .replace('NOTES', formatNotes(context.notes ?? []))
+    .replace('IMAGES', formatImages(context.images ?? []));
 }
 
 export class ChatAssistant {
@@ -107,6 +152,25 @@ export class ChatAssistant {
 
     const direct = this.answerFromBoard(question, context);
     if (direct) return direct;
+
+    const todos = context.todos ?? [];
+    const notes = context.notes ?? [];
+    const images = context.images ?? [];
+
+    // Direct arithmetic answers. These do not need a model call, and answering
+    // them locally keeps the reply instant and deterministic.
+    if (/\b(how many|count)\b[^?]*\btodo/i.test(question) || /\btodo[^?]*\b(how many|count)\b/i.test(question)) {
+      const open = todos.filter((item) => !item.done).length;
+      return normalizeChatReply(FALLBACK_RESPONSES.todoSummary(open, todos.length), MAX_REPLY_CHARS);
+    }
+
+    if (/\b(what|which|list)\b[^?]*\bnotes?\b/i.test(question) || /\bnotes?\b[^?]*\b(what|which|list)\b/i.test(question)) {
+      return normalizeChatReply(FALLBACK_RESPONSES.noteTitles(notes.map((note) => note.title)), MAX_REPLY_CHARS);
+    }
+
+    if (/\b(read|look|describe|show)\b[^?]*\b(image|picture|photo|screenshot)\b/i.test(question) && images.length === 0) {
+      return FALLBACK_RESPONSES.noImages;
+    }
 
     try {
       if (!isInferenceConfigured()) throw new Error('Inference is not configured');

@@ -33,16 +33,7 @@ function Styles() {
     .cmp-scroll{
       overflow-x:auto;
       -webkit-overflow-scrolling:touch;
-      /* A visible edge when there is more to see, so the scroll is discoverable
-         rather than looking like a clipped layout. */
-      background:
-        linear-gradient(to right, var(--bg1) 30%, transparent),
-        linear-gradient(to left, var(--bg1) 30%, transparent) 100% 0,
-        radial-gradient(farthest-side at 0 50%, var(--brh), transparent),
-        radial-gradient(farthest-side at 100% 50%, var(--brh), transparent) 100% 0;
-      background-repeat:no-repeat;
-      background-size:40px 100%,40px 100%,14px 100%,14px 100%;
-      background-attachment:local,local,scroll,scroll;
+      border-right:1px solid var(--br);
     }
     .cmp-table{
       width:100%;
@@ -58,10 +49,8 @@ function Styles() {
     .cmp-table thead th{
       background:var(--bg2);
       font-size:12px;
-      font-weight:700;
-      color:var(--tx3);
-      text-transform:uppercase;
-      letter-spacing:0.06em;
+      font-weight:500;
+      color:var(--tx2);
       white-space:nowrap;
     }
     .cmp-table thead th:first-child,
@@ -88,16 +77,6 @@ function Styles() {
     .cmp-table tbody tr:last-child th,
     .cmp-table tbody tr:last-child td{ border-bottom:none }
   `}</style>;
-}
-
-function useScrollP() {
-  const [p, setP] = useState(0);
-  useEffect(() => {
-    const fn = () => { const d = document.documentElement; setP(d.scrollTop / (d.scrollHeight - d.clientHeight) || 0); };
-    window.addEventListener("scroll", fn, { passive: true });
-    return () => window.removeEventListener("scroll", fn);
-  }, []);
-  return p;
 }
 
 function useInView(ref: React.RefObject<HTMLElement | null>, thr = 0.1) {
@@ -152,28 +131,26 @@ function Navbar() {
   const [mob, setMob] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [user, setUser] = useState<{ id: string } | null>(null);
-  const prog = useScrollP();
   useEffect(() => { const fn = () => setScrolled(window.scrollY > 24); window.addEventListener("scroll", fn, { passive: true }); return () => window.removeEventListener("scroll", fn); }, []);
   useEffect(() => { const sb = createClient(); sb.auth.getUser().then(({ data }) => setUser(data.user)); }, []);
   const links: [string, string][] = [["Features", "/#features"], ["How It Works", "/#how-it-works"], ["Product", "/#showcase"], ["Pricing", "/pricing"]];
   return (<>
     <nav style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 200, height: 56, display: "flex", alignItems: "center", borderBottom: `1px solid ${scrolled ? "var(--br)" : "transparent"}`, background: scrolled ? "var(--nb)" : "transparent", backdropFilter: scrolled ? "blur(24px)" : "none", WebkitBackdropFilter: scrolled ? "blur(24px)" : "none", transition: "background .3s,border-color .3s" }}>
-      <div style={{ position: "absolute", bottom: -1, left: 0, height: 1, background: "linear-gradient(90deg,var(--ac),var(--pu))", width: `${prog * 100}%`, transition: "width .1s linear" }} />
       <div style={{ maxWidth: 1140, margin: "0 auto", padding: "0 24px", width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <Link href="/" style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{ width: 28, height: 28, borderRadius: 8, background: "var(--ac)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", boxShadow: "0 0 18px var(--ag)" }}><IC.Zap size={13} /></div>
+          <img src="/Kanbi.png" alt="" width={28} height={28} style={{ width: 28, height: 28, borderRadius: 8, display: "block", flexShrink: 0 }} />
           <span style={{ fontSize: 15, fontWeight: 700, color: "var(--tx)", letterSpacing: "-0.025em" }}>Kanbi</span>
         </Link>
         <div className="nl" style={{ display: "flex", gap: 26, alignItems: "center" }}>
           {links.map(([l, h]) => <a key={l} href={h} className="na" style={{ fontSize: 13, color: l === "Pricing" ? "var(--ac)" : "var(--tx2)", fontWeight: l === "Pricing" ? 600 : 400, transition: "color .15s" }}>{l}</a>)}
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <button onClick={toggle} style={{ width: 34, height: 34, borderRadius: 8, border: "1px solid var(--br)", background: "var(--bg1)", color: "var(--tx2)", display: "flex", alignItems: "center", justifyContent: "center", transition: "all .15s" }} onMouseOver={e => { e.currentTarget.style.borderColor = "var(--brh)"; e.currentTarget.style.color = "var(--tx)"; }} onMouseOut={e => { e.currentTarget.style.borderColor = "var(--br)"; e.currentTarget.style.color = "var(--tx2)"; }}>
+          <button onClick={toggle} style={{ width: 34, height: 34, borderRadius: 8, border: "1px solid var(--br)", background: "var(--bg1)", color: "var(--tx2)", display: "flex", alignItems: "center", justifyContent: "center", transition: "border-color .15s,color .15s,background .15s" }} onMouseOver={e => { e.currentTarget.style.borderColor = "var(--brh)"; e.currentTarget.style.color = "var(--tx)"; }} onMouseOut={e => { e.currentTarget.style.borderColor = "var(--br)"; e.currentTarget.style.color = "var(--tx2)"; }}>
             {theme === "dark" ? <IC.Sun size={14} /> : <IC.Moon size={14} />}
           </button>
           {user
             ? <a href="/dashboard" style={{ height: 34, padding: "0 15px", borderRadius: 8, background: "var(--inv)", color: "var(--inv2)", fontSize: 13, fontWeight: 600, display: "inline-flex", alignItems: "center", transition: "opacity .15s" }} onMouseOver={e => (e.currentTarget.style.opacity = ".88")} onMouseOut={e => (e.currentTarget.style.opacity = "1")}>Dashboard</a>
-            : <a href="/sign-up" style={{ height: 34, padding: "0 15px", borderRadius: 8, background: "var(--inv)", color: "var(--inv2)", fontSize: 13, fontWeight: 600, display: "inline-flex", alignItems: "center", transition: "opacity .15s" }} onMouseOver={e => (e.currentTarget.style.opacity = ".88")} onMouseOut={e => (e.currentTarget.style.opacity = "1")}>Get Started Free</a>
+            : <a href="/sign-up" style={{ height: 34, padding: "0 15px", borderRadius: 8, background: "var(--inv)", color: "var(--inv2)", fontSize: 13, fontWeight: 600, display: "inline-flex", alignItems: "center", transition: "opacity .15s" }} onMouseOver={e => (e.currentTarget.style.opacity = ".88")} onMouseOut={e => (e.currentTarget.style.opacity = "1")}>Start for free</a>
           }
           <button className="ms" onClick={() => setMob(!mob)} style={{ display: "none", background: "none", border: "none", color: "var(--tx2)", padding: 4 }}>{mob ? <IC.X /> : <IC.Menu />}</button>
         </div>
@@ -183,7 +160,7 @@ function Navbar() {
       {links.map(([l, h]) => <a key={l} href={h} onClick={() => setMob(false)} style={{ fontSize: 14, color: "var(--tx2)" }}>{l}</a>)}
       {user
         ? <a href="/dashboard" onClick={() => setMob(false)} style={{ height: 42, borderRadius: 9, background: "var(--ac)", color: "#fff", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center" }}>Dashboard</a>
-        : <a href="/sign-up" onClick={() => setMob(false)} style={{ height: 42, borderRadius: 9, background: "var(--ac)", color: "#fff", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center" }}>Get Started Free</a>
+        : <a href="/sign-up" onClick={() => setMob(false)} style={{ height: 42, borderRadius: 9, background: "var(--ac)", color: "#fff", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center" }}>Start for free</a>
       }
     </div>}
   </>);
@@ -194,8 +171,10 @@ function Navbar() {
 // usage limits, it does not unlock functionality. This is stated plainly rather
 // than showing a comparison table of locks that the product does not implement.
 const FREE_FEATURES = [
-  { t: "10 AI requests / day", ok: true },
-  { t: "300 board saves / month", ok: true },
+  { t: "50 AI requests / day", ok: true },
+  { t: "1,500 AI requests / month", ok: true },
+  { t: "100 board saves / day", ok: true },
+  { t: "3,000 board saves / month", ok: true },
   { t: "Full Kanban board", ok: true },
   { t: "Priority levels & due dates", ok: true },
   { t: "Board templates (5 presets)", ok: true },
@@ -207,8 +186,10 @@ const FREE_FEATURES = [
 ];
 
 const PRO_FEATURES = [
-  { t: "100 AI requests / day", highlight: false },
-  { t: "1,500 board saves / month", highlight: false },
+  { t: "500 AI requests / day", highlight: false },
+  { t: "15,000 AI requests / month", highlight: false },
+  { t: "500 board saves / day", highlight: false },
+  { t: "15,000 board saves / month", highlight: false },
   { t: "Everything in Free", highlight: false },
   { t: "Text, PDF & URL import", highlight: false },
   { t: "Kanbi Assistant (board-aware)", highlight: true },
@@ -229,9 +210,9 @@ function PricingCards({ billing }: { billing: "monthly" | "yearly" }) {
 
           {/* FREE */}
           <div style={{ borderRadius: 16, border: "1px solid var(--br)", background: "var(--bg1)", padding: 32, display: "flex", flexDirection: "column" }}>
-            <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--tx3)", marginBottom: 16 }}>Free</p>
+            <p style={{ fontSize: 13, fontWeight: 500,color: "var(--tx3)", marginBottom: 16 }}>Free</p>
             <div style={{ display: "flex", alignItems: "flex-end", gap: 4, marginBottom: 6 }}>
-              <span style={{ fontSize: 52, fontWeight: 800, letterSpacing: "-0.05em", color: "var(--tx)", lineHeight: 1 }}>$0</span>
+              <span style={{ fontSize: 46, fontWeight: 600, letterSpacing: "-0.035em", color: "var(--tx)", lineHeight: 1 }}>$0</span>
               <span style={{ fontSize: 13, color: "var(--tx3)", marginBottom: 9 }}>/month</span>
             </div>
             <p style={{ fontSize: 13, color: "var(--tx3)", marginBottom: 28 }}>Perfect for getting started. No card needed.</p>
@@ -246,7 +227,7 @@ function PricingCards({ billing }: { billing: "monthly" | "yearly" }) {
               ))}
             </ul>
             <a href="/sign-up" style={{ display: "block", height: 42, borderRadius: 9, border: "1px solid var(--br)", fontSize: 13, fontWeight: 500, color: "var(--tx)", textAlign: "center", lineHeight: "42px", transition: "background .15s" }} onMouseOver={e => (e.currentTarget.style.background = "var(--bg2)")} onMouseOut={e => (e.currentTarget.style.background = "transparent")}>
-              Get Started Free
+              Start for free
             </a>
           </div>
 
@@ -254,11 +235,11 @@ function PricingCards({ billing }: { billing: "monthly" | "yearly" }) {
           <div style={{ borderRadius: 16, border: "1px solid var(--ag)", background: "var(--bg1)", padding: 32, position: "relative", overflow: "hidden", display: "flex", flexDirection: "column" }}>
             <div style={{ position: "relative", display: "flex", flexDirection: "column", flex: 1 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--ac-text)" }}>Pro</p>
-                <span style={{ fontSize: 11, padding: "3px 10px", borderRadius: 100, background: "var(--as)", border: "1px solid var(--ag)", color: "var(--ac-text)", fontWeight: 600 }}>Coming soon</span>
+                <p style={{ fontSize: 13, fontWeight: 500,color: "var(--ac-text)" }}>Pro</p>
+                <span style={{ fontSize: 11, color: "var(--tx3)" }}>Coming soon</span>
               </div>
               <div style={{ display: "flex", alignItems: "flex-end", gap: 4, marginBottom: 4 }}>
-                <span style={{ fontSize: 52, fontWeight: 800, letterSpacing: "-0.05em", color: "var(--tx)", lineHeight: 1 }}>${billing === "yearly" ? yearlyPrice : monthlyPrice}</span>
+                <span style={{ fontSize: 46, fontWeight: 600, letterSpacing: "-0.035em", color: "var(--tx)", lineHeight: 1 }}>${billing === "yearly" ? yearlyPrice : monthlyPrice}</span>
                 <span style={{ fontSize: 13, color: "var(--tx3)", marginBottom: 9 }}>/month</span>
                 {billing === "yearly" && <span style={{ fontSize: 11, color: "var(--tx3)", marginBottom: 9, marginLeft: 4, textDecoration: "line-through" }}>${monthlyPrice}</span>}
               </div>
@@ -292,9 +273,9 @@ function PricingCards({ billing }: { billing: "monthly" | "yearly" }) {
 
 // ── FEATURE COMPARISON TABLE ──────────────────────────────────────────────
 const CMP_ROWS = [
-  { f: "AI requests", free: "10 / day", pro: "100 / day" },
-  { f: "AI requests per month", free: "300", pro: "1,500" },
-  { f: "Board saves", free: "300 / month", pro: "1,500 / month" },
+  { f: "AI requests", free: "50 / day", pro: "500 / day" },
+  { f: "AI requests per month", free: "1,500", pro: "15,000" },
+  { f: "Board saves", free: "100 / day", pro: "500 / day" },
   { f: "Kanban board", free: "Yes", pro: "Yes" },
   { f: "Board templates", free: "Yes", pro: "Yes" },
   { f: "Text import", free: "Yes", pro: "Yes" },
@@ -315,8 +296,8 @@ function ComparisonTable() {
     <section style={{ padding: "0 0 96px", borderTop: "1px solid var(--br)" }}>
       <div style={{ maxWidth: 860, margin: "0 auto", padding: "64px 24px 0" }}>
         <div style={{ textAlign: "center", marginBottom: 40 }}>
-          <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--ac-text)", marginBottom: 12 }}>Compare</p>
-          <h2 style={{ fontSize: "clamp(24px,4vw,40px)", fontWeight: 700, letterSpacing: "-0.035em", color: "var(--tx)" }}>Free vs Pro, side by side</h2>
+          <p style={{ fontSize: 13, fontWeight: 500,color: "var(--ac-text)", marginBottom: 12 }}>Compare</p>
+          <h2 style={{ fontSize: "clamp(24px,4vw,40px)", fontWeight: 600, letterSpacing: "-0.035em", color: "var(--tx)" }}>Free vs Pro, side by side</h2>
         </div>
         <div ref={ref} style={{ borderRadius: 14, border: "1px solid var(--br)", background: "var(--bg1)", overflow: "hidden", opacity: v ? 1 : 0, transform: v ? "translateY(0)" : "translateY(20px)", transition: "opacity .5s ease,transform .5s ease" }}>
           {/* A real table, inside its own scroll container. The caption names it
@@ -381,8 +362,8 @@ function SocialProof() {
     <section style={{ padding: "0 0 96px", borderTop: "1px solid var(--br)" }}>
       <div style={{ maxWidth: 1140, margin: "0 auto", padding: "64px 24px 0" }}>
         <div style={{ textAlign: "center", marginBottom: 40 }}>
-          <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--ac-text)", marginBottom: 12 }}>How it works</p>
-          <h2 style={{ fontSize: "clamp(24px,4vw,40px)", fontWeight: 700, letterSpacing: "-0.035em", color: "var(--tx)" }}>What the software actually does</h2>
+          <p style={{ fontSize: 13, fontWeight: 500,color: "var(--ac-text)", marginBottom: 12 }}>How it works</p>
+          <h2 style={{ fontSize: "clamp(24px,4vw,40px)", fontWeight: 600, letterSpacing: "-0.035em", color: "var(--tx)" }}>What the software actually does</h2>
         </div>
         <div ref={ref} className="g3" style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14 }}>
           {CAPABILITIES.map((c, i) => (
@@ -413,8 +394,8 @@ function FAQ() {
     <section style={{ padding: "0 0 96px", borderTop: "1px solid var(--br)" }}>
       <div style={{ maxWidth: 720, margin: "0 auto", padding: "64px 24px 0" }}>
         <div style={{ textAlign: "center", marginBottom: 40 }}>
-          <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--ac-text)", marginBottom: 12 }}>FAQ</p>
-          <h2 style={{ fontSize: "clamp(24px,4vw,40px)", fontWeight: 700, letterSpacing: "-0.035em", color: "var(--tx)" }}>Pricing questions answered</h2>
+          <p style={{ fontSize: 13, fontWeight: 500,color: "var(--ac-text)", marginBottom: 12 }}>FAQ</p>
+          <h2 style={{ fontSize: "clamp(24px,4vw,40px)", fontWeight: 600, letterSpacing: "-0.035em", color: "var(--tx)" }}>Pricing questions answered</h2>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
           {FAQS.map((f, i) => (
@@ -437,16 +418,15 @@ function CTABanner() {
   return (
     <section style={{ padding: "0 0 96px", borderTop: "1px solid var(--br)" }}>
       <div style={{ maxWidth: 1140, margin: "0 auto", padding: "64px 24px 0" }}>
-        <div style={{ borderRadius: 20, border: "1px solid var(--ag)", background: "linear-gradient(160deg,var(--as) 0%,transparent 100%)", padding: "72px 40px", textAlign: "center", position: "relative", overflow: "hidden" }}>
-          <div style={{ position: "absolute", top: 0, left: "50%", transform: "translateX(-50%)", width: 560, height: 200, background: "radial-gradient(ellipse at top,var(--ag) 0%,transparent 70%)", pointerEvents: "none" }} />
+        <div style={{ borderRadius: 16, border: "1px solid var(--br)", background: "var(--bg2)", padding: "56px 40px", textAlign: "center", position: "relative", overflow: "hidden" }}>
           <div style={{ position: "relative" }}>
-            <h2 style={{ fontSize: "clamp(28px,5vw,52px)", fontWeight: 700, letterSpacing: "-0.038em", color: "var(--tx)", marginBottom: 16 }}>Ready to get your notes onto a board?</h2>
+            <h2 style={{ fontSize: "clamp(26px,3.6vw,38px)", fontWeight: 600, letterSpacing: "-0.025em", color: "var(--tx)", marginBottom: 16 }}>Ready to get your notes onto a board?</h2>
             <p style={{ fontSize: 15, color: "var(--tx2)", maxWidth: 440, margin: "0 auto 34px", lineHeight: 1.65 }}>Start free. Every feature is on both plans. Upgrade when you need higher limits.</p>
             <div className="cr" style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-              <a href="/sign-up" style={{ height: 48, padding: "0 28px", borderRadius: 10, background: "var(--inv)", color: "var(--inv2)", fontSize: 14, fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 9, transition: "opacity .15s" }} onMouseOver={e => (e.currentTarget.style.opacity = ".88")} onMouseOut={e => (e.currentTarget.style.opacity = "1")}>
+              <a href="/sign-up" style={{ height: 48, padding: "0 28px", borderRadius: 10, background: "var(--inv)", color: "var(--inv2)", fontSize: 14, fontWeight: 500, display: "inline-flex", alignItems: "center", gap: 9, transition: "opacity .15s" }} onMouseOver={e => (e.currentTarget.style.opacity = ".88")} onMouseOut={e => (e.currentTarget.style.opacity = "1")}>
                 Start free, no card needed <IC.Arrow size={15} />
               </a>
-              <a href="#faq" style={{ height: 48, padding: "0 22px", borderRadius: 10, border: "1px solid var(--brh)", fontSize: 14, color: "var(--tx2)", display: "inline-flex", alignItems: "center", transition: "all .15s" }} onMouseOver={e => { e.currentTarget.style.borderColor = "var(--ag)"; e.currentTarget.style.color = "var(--tx)"; }} onMouseOut={e => { e.currentTarget.style.borderColor = "var(--brh)"; e.currentTarget.style.color = "var(--tx2)"; }}>
+              <a href="#faq" style={{ height: 48, padding: "0 22px", borderRadius: 10, border: "1px solid var(--brh)", fontSize: 14, color: "var(--tx2)", display: "inline-flex", alignItems: "center", transition: "border-color .15s,color .15s,background .15s" }} onMouseOver={e => { e.currentTarget.style.borderColor = "var(--ag)"; e.currentTarget.style.color = "var(--tx)"; }} onMouseOut={e => { e.currentTarget.style.borderColor = "var(--brh)"; e.currentTarget.style.color = "var(--tx2)"; }}>
                 See FAQ <IC.ArrowRight size={13} style={{ display: "inline-block", verticalAlign: "-2px", marginLeft: 4 }}/>
               </a>
             </div>
@@ -467,12 +447,12 @@ function Footer() {
         {/* Top row: logo + nav links + theme toggle */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", flexWrap: "wrap", gap: "16px 28px", width: "100%" }}>
           <Link href="/" style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-            <div style={{ width: 24, height: 24, borderRadius: 7, background: "var(--ac)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", boxShadow: "0 0 12px var(--ag)" }}><IC.Zap size={11} /></div>
+            <img src="/Kanbi.png" alt="" width={24} height={24} style={{ width: 24, height: 24, borderRadius: 7, display: "block", flexShrink: 0 }} />
             <span style={{ fontSize: 14, fontWeight: 700, color: "var(--tx)", letterSpacing: "-0.025em" }}>Kanbi</span>
           </Link>
           <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap", justifyContent: "center" }}>
             {[
-              ["Home", "/", "🏠"],
+              ["Home", "/", null],
               ["Pricing", "/pricing", null],
               ["Changelog", "/changelog", null],
               ["Sign In", "/sign-in", null],
@@ -523,15 +503,10 @@ export default function PricingPage() {
         <Navbar />
         {/* HERO with billing toggle */}
         <section style={{ padding: "148px 0 64px", position: "relative", overflow: "hidden" }}>
-          <div style={{ position: "absolute", inset: 0, pointerEvents: "none", backgroundImage: "linear-gradient(var(--br) 1px,transparent 1px),linear-gradient(90deg,var(--br) 1px,transparent 1px)", backgroundSize: "72px 72px" }} />
-          <div style={{ position: "absolute", top: -60, left: "50%", transform: "translateX(-50%)", width: 700, height: 420, background: "radial-gradient(ellipse,var(--ag) 0%,transparent 68%)", pointerEvents: "none" }} />
           <div style={{ maxWidth: 1140, margin: "0 auto", padding: "0 24px", textAlign: "center", position: "relative" }}>
-            <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "5px 14px 5px 10px", borderRadius: 100, border: "1px solid var(--ag)", background: "var(--as)", marginBottom: 28 }}>
-              <div style={{ width: 20, height: 20, borderRadius: 6, background: "var(--as)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--ac-text)" }}><IC.Spark size={13} /></div>
-              <span style={{ fontSize: 12, color: "var(--ac-text)", fontWeight: 500 }}>Simple, honest pricing, no hidden fees</span>
-            </div>
-            <h1 style={{ fontSize: "clamp(40px,6.5vw,76px)", fontWeight: 800, letterSpacing: "-0.048em", lineHeight: 1.06, color: "var(--tx)", marginBottom: 20 }}>
-              Start free.{" "}<span className="shimmer">Upgrade when ready.</span>
+            <p style={{ fontSize: 13, color: "var(--tx2)", marginBottom: 28 }}>Simple limits, no hidden fees</p>
+            <h1 style={{ fontSize: "clamp(36px,5.2vw,58px)", fontWeight: 600, letterSpacing: "-0.03em", lineHeight: 1.14, color: "var(--tx)", marginBottom: 20 }}>
+              Start free, upgrade when you need more
             </h1>
             <p style={{ fontSize: 17, color: "var(--tx2)", maxWidth: 480, margin: "0 auto 36px", lineHeight: 1.7 }}>
               Every plan includes the full Kanban board. Pro raises the limits and nothing else, so it pays for itself the first time you stop rebuilding a board by hand.
@@ -539,9 +514,9 @@ export default function PricingPage() {
             {/* billing toggle */}
             <div style={{ display: "inline-flex", alignItems: "center", borderRadius: 10, border: "1px solid var(--br)", background: "var(--bg1)", padding: 4, marginBottom: 8 }}>
               {(["monthly", "yearly"] as const).map(b => (
-                <button key={b} onClick={() => setBilling(b)} style={{ padding: "8px 20px", borderRadius: 7, border: "none", background: billing === b ? "var(--bg2)" : "transparent", color: billing === b ? "var(--tx)" : "var(--tx2)", fontSize: 13, fontWeight: billing === b ? 600 : 400, boxShadow: billing === b ? "0 1px 4px rgba(0,0,0,.2)" : "none", transition: "all .15s", display: "flex", alignItems: "center", gap: 6 }}>
+                <button key={b} onClick={() => setBilling(b)} style={{ padding: "8px 20px", borderRadius: 7, border: "none", background: billing === b ? "var(--bg2)" : "transparent", color: billing === b ? "var(--tx)" : "var(--tx2)", fontSize: 13, fontWeight: billing === b ? 500 : 400, transition: "background .15s,color .15s", display: "flex", alignItems: "center", gap: 6 }}>
                   {b === "monthly" ? "Monthly" : "Yearly"}
-                  {b === "yearly" && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 100, background: "var(--as)", border: "1px solid var(--ag)", color: "var(--ac-text)" }}>Save 33%</span>}
+                  {b === "yearly" && <span style={{ fontSize: 11, color: "var(--gr-text)" }}>Save 33%</span>}
                 </button>
               ))}
             </div>

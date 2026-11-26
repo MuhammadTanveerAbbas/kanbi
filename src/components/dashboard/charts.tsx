@@ -43,18 +43,6 @@ export function BarChart({ data }: { data: { label: string; value: number; color
         <svg viewBox={`0 0 100 ${H}`} preserveAspectRatio="none"
           style={{ position:"absolute", inset:0, width:"100%", height:"100%", overflow:"visible" }}>
           <defs>
-            <linearGradient id="lineArea" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="var(--ac)" stopOpacity="0.22"/>
-              <stop offset="100%" stopColor="var(--ac)" stopOpacity="0"/>
-            </linearGradient>
-            <linearGradient id="lineStroke" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stopColor="var(--pu)"/>
-              <stop offset="100%" stopColor="var(--ac)"/>
-            </linearGradient>
-            <filter id="lineglow">
-              <feGaussianBlur stdDeviation="1.2" result="blur"/>
-              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-            </filter>
           </defs>
 
           {[0.25, 0.5, 0.75, 1].map(f => (
@@ -64,7 +52,7 @@ export function BarChart({ data }: { data: { label: string; value: number; color
               stroke="var(--br)" strokeWidth="0.4" strokeDasharray="2,3"/>
           ))}
 
-          <path d={area} fill="url(#lineArea)"
+          <path d={area} fill="var(--ac)" fillOpacity="0.12"
             style={{ transition: mounted ? "opacity .6s" : "none", opacity: mounted ? 1 : 0 }}/>
 
           {hoveredPt && (
@@ -72,9 +60,8 @@ export function BarChart({ data }: { data: { label: string; value: number; color
               stroke="var(--ac)" strokeWidth="0.5" strokeDasharray="2,2" opacity="0.6"/>
           )}
 
-          <polyline points={polyline} fill="none" stroke="url(#lineStroke)"
+          <polyline points={polyline} fill="none" stroke="var(--ac)"
             strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
-            filter="url(#lineglow)"
             style={{
               strokeDasharray: mounted ? "none" : "200",
               strokeDashoffset: mounted ? "0" : "200",
@@ -121,16 +108,15 @@ export function BarChart({ data }: { data: { label: string; value: number; color
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center",
         paddingTop:8, borderTop:"1px solid var(--br)" }}>
         <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-          <div style={{ width:20, height:2, borderRadius:1,
-            background:"linear-gradient(90deg, var(--pu), var(--ac))" }}/>
+          <div style={{ width:20, height:2, borderRadius:1, background:"var(--ac)" }}/>
           <span style={{ fontSize:10.5, color:"var(--tx3)" }}>Completed tasks</span>
         </div>
         <div style={{ display:"flex", gap:14 }}>
           <span style={{ fontSize:10.5, color:"var(--tx3)" }}>
-            Peak <span style={{ color:"var(--tx)", fontWeight:700, fontFamily:"var(--font-mono)" }}>{max}</span>
+            Peak <span style={{ color:"var(--tx)", fontWeight:500, fontFamily:"var(--font-mono)" }}>{max}</span>
           </span>
           <span style={{ fontSize:10.5, color:"var(--tx3)" }}>
-            Total <span style={{ color:"var(--ac-text)", fontWeight:700, fontFamily:"var(--font-mono)" }}>{total}</span>
+            Total <span style={{ color:"var(--ac-text)", fontWeight:500, fontFamily:"var(--font-mono)" }}>{total}</span>
           </span>
         </div>
       </div>
@@ -175,15 +161,6 @@ export function DonutChart({ segs, size = 110 }: { segs: { value: number; color:
       <div style={{ position:"relative", flexShrink:0 }}>
         <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}
           style={{ overflow:"visible" }}>
-          <defs>
-            {segs.map((s, i) => (
-              <filter key={i} id={`dseg${i}`}>
-                <feGaussianBlur stdDeviation="2" result="blur"/>
-                <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-              </filter>
-            ))}
-          </defs>
-
           <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--br)" strokeWidth={sw}/>
 
           {hasData ? arcs.map((arc, i) => {
@@ -200,7 +177,6 @@ export function DonutChart({ segs, size = 110 }: { segs: { value: number; color:
                 strokeLinecap="round"
                 strokeDasharray={`${Math.max(dash, 0)} ${curCirc}`}
                 strokeDashoffset={off}
-                filter={isHov ? `url(#dseg${i})` : undefined}
                 style={{
                   transition: "r .2s, stroke-width .2s, stroke-dasharray .9s cubic-bezier(.4,0,.2,1)",
                   cursor:"pointer",
@@ -217,7 +193,7 @@ export function DonutChart({ segs, size = 110 }: { segs: { value: number; color:
           transition:"all .2s" }}>
           {centerLabel ? (
             <>
-              <span style={{ fontSize: size * 0.17, fontWeight:800, color: hovered !== null ? centerLabel.col : "var(--tx)",
+              <span style={{ fontSize: size * 0.17, fontWeight:600, color: hovered !== null ? centerLabel.col : "var(--tx)",
                 letterSpacing:"-0.04em", fontFamily:"var(--font-display)", lineHeight:1,
                 transition:"color .2s" }}>
                 {centerLabel.val}%
@@ -229,7 +205,7 @@ export function DonutChart({ segs, size = 110 }: { segs: { value: number; color:
               </span>
             </>
           ) : (
-            <span style={{ fontSize: size * 0.13, color:"var(--tx3)", fontWeight:700 }}></span>
+            <span style={{ fontSize: size * 0.13, color:"var(--tx3)", fontWeight:500 }}></span>
           )}
         </div>
       </div>
@@ -243,11 +219,10 @@ export function DonutChart({ segs, size = 110 }: { segs: { value: number; color:
               opacity: hovered !== null && hovered !== i ? 0.4 : 1,
               transition:"opacity .2s" }}>
             <div style={{ width:8, height:8, borderRadius:"50%", background:s.color, flexShrink:0,
-              boxShadow: hovered === i ? `0 0 8px ${s.color}` : s.value > 0 ? `0 0 4px ${s.color}66` : "none",
-              transition:"box-shadow .2s", opacity: s.value > 0 ? 1 : 0.3 }}/>
+              opacity: s.value > 0 ? 1 : 0.3 }}/>
             <span style={{ fontSize:10.5, color:"var(--tx3)", flex:1, overflow:"hidden",
               textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{s.label}</span>
-            <span style={{ fontSize:10.5, fontWeight:700, fontFamily:"var(--font-mono)",
+            <span style={{ fontSize:10.5, fontWeight:500, fontFamily:"var(--font-mono)",
               color: s.value > 0 ? "var(--tx)" : "var(--tx3)" }}>{s.value}%</span>
           </div>
         ))}
@@ -281,28 +256,20 @@ export function CompletionChart({ done, wip, todo, total }: { done: number; wip:
       <div style={{ position:"relative", width:size, height:size }}>
         <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}
           style={{ transform:"rotate(-90deg)", overflow:"visible" }}>
-          <defs>
-            <filter id="ringGlow">
-              <feGaussianBlur stdDeviation="2.5" result="blur"/>
-              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-            </filter>
-          </defs>
           <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--br)" strokeWidth="8"/>
           <circle cx={cx} cy={cy} r={r} fill="none" stroke={ringColor} strokeWidth="8"
             strokeLinecap="round"
             strokeDasharray={circ}
             strokeDashoffset={dashOffset}
-            filter="url(#ringGlow)"
             style={{ transition:"stroke-dashoffset 1.2s cubic-bezier(.4,0,.2,1), stroke .3s" }}/>
         </svg>
         <div style={{ position:"absolute", inset:0, display:"flex", flexDirection:"column",
           alignItems:"center", justifyContent:"center" }}>
-          <span style={{ fontSize:26, fontWeight:800, color: ringColor, fontFamily:"var(--font-display)",
-            letterSpacing:"-0.04em", lineHeight:1, transition:"color .3s" }}>
+          <span style={{ fontSize:26, fontWeight:600, color: ringColor, fontFamily:"var(--font-display)",
+            letterSpacing:"-0.03em", lineHeight:1, transition:"color .3s" }}>
             {pct}%
           </span>
-          <span style={{ fontSize:9, color:"var(--tx3)", fontWeight:600, marginTop:2,
-            fontFamily:"var(--font-mono)" }}>
+          <span style={{ fontSize:11, color:"var(--tx2)", fontWeight:500, marginTop:4 }}>
             done
           </span>
         </div>
@@ -314,12 +281,9 @@ export function CompletionChart({ done, wip, todo, total }: { done: number; wip:
             onMouseEnter={() => setHovered(s.key)}
             onMouseLeave={() => setHovered(null)}>
             <div style={{ width:7, height:7, borderRadius:"50%", background:s.color, flexShrink:0,
-              transition:"all .15s",
-              boxShadow: hovered === s.key ? `0 0 8px ${s.color}` : "none",
               opacity: hovered && hovered !== s.key ? 0.3 : 1 }}/>
-            <span style={{ fontSize:11, color: hovered === s.key ? "var(--tx)" : "var(--tx3)",
-              fontWeight: hovered === s.key ? 700 : 500, fontFamily:"var(--font-mono)",
-              transition:"all .15s" }}>
+            <span style={{ fontSize:11, color: hovered === s.key ? "var(--tx)" : "var(--tx2)",
+              fontWeight: hovered === s.key ? 500 : 400, fontFamily:"var(--font-mono)" }}>
               {s.label} <span style={{ color:"var(--tx)" }}>{s.value}</span>
             </span>
           </div>
@@ -346,14 +310,13 @@ export function HealthRing({ score, size = 120 }: { score: number; size?: number
           strokeLinecap="round"
           strokeDasharray={circ}
           strokeDashoffset={circ * (1 - (mounted ? pct / 100 : 0))}
-          filter="url(#ringGlow)"
           style={{ transition:"stroke-dashoffset 1.2s cubic-bezier(.4,0,.2,1), stroke .3s" }}/>
       </svg>
       <div style={{ textAlign:"center", zIndex:1 }}>
-        <div style={{ fontSize:28, fontWeight:800, color, fontFamily:"var(--font-display)",
-          letterSpacing:"-0.04em", lineHeight:1, transition:"color .3s" }}>{score}</div>
-        <div style={{ fontSize:8.5, color:"var(--tx3)", fontWeight:600, marginTop:1, letterSpacing:"0.05em" }}>
-          HEALTH
+        <div style={{ fontSize:28, fontWeight:600, color, fontFamily:"var(--font-display)",
+          letterSpacing:"-0.03em", lineHeight:1, transition:"color .3s" }}>{score}</div>
+        <div style={{ fontSize:11, color:"var(--tx2)", fontWeight:500, marginTop:2 }}>
+          Health
         </div>
       </div>
     </div>

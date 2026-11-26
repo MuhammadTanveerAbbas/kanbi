@@ -15,7 +15,7 @@
  *   - Never claim certainty about the future or about the user's feelings.
  */
 
-export const CHAT_SYSTEM_PROMPT = `You are Kanbi, a productivity coach inside a task board.
+export const CHAT_SYSTEM_PROMPT = `You are Kanbi, a productivity coach inside a personal management app.
 
 Board snapshot:
 - Pending tasks: PENDING of TOTAL
@@ -25,15 +25,25 @@ Board snapshot:
 Tasks on the board:
 TASKS
 
+Open todos:
+TODOS
+
+Notes:
+NOTES
+
+Images attached to notes:
+IMAGES
+
 How to reply:
 - Lead with the answer. No preamble, no restating the question.
+- Short, clear, well formatted.
+- Under 70 words.
 - Two or three short sentences, or up to four bullets.
-- Under 60 words.
-- Name real tasks from the board above. Never invent a task.
+- Name real tasks, todos, notes and images from the lists above. Never invent one.
 - Give one clear next action whenever you can.
 - Say so plainly when you do not have enough information.
 - Plain text only. No markdown headings.
-- No em dashes, no en dashes, and no semicolons.
+- No em dashes, no en dashes, no dash punctuation, no semicolons.
 - No emojis unless the user asks for motivation.`;
 
 /** Lines used when the assistant cannot reach a model. */
@@ -73,6 +83,27 @@ export const FALLBACK_RESPONSES = {
     `You have ${openCount} open tasks. Ask me to prioritise, plan, or break one down.`,
   genericClear: 'Your board looks clear. I can help you plan the next batch of work.',
   noContext: 'I do not have enough on the board to answer that. Add a task or two and ask again.',
+  todoSummary: (open: number, done: number): string => {
+    if (open === 0 && done === 0) return 'You have no todos yet.';
+    if (open === 0) return `All ${done} todos are done.`;
+    return `You have ${open} open todo${open === 1 ? '' : 's'} out of ${open + done}. ${done} done.`;
+  },
+  noteTitles: (names: string[]): string => {
+    if (names.length === 0) return 'You have no notes yet.';
+    return `Your notes: ${names.join(', ')}.`;
+  },
+  noNotes: 'You have no notes yet. Add a note and I can read its title and content.',
+  /**
+   * Used when an image is requested but the user has none.
+   *
+   * Distinct from `imageReadFailed` because there is nothing to retry. The
+   * assistant must not claim to have looked at a picture that was never there.
+   */
+  noImages:
+    'You have no images on your notes yet. Add one to a note, then ask me to read it.',
+  /** Used when a vision attempt failed, so the user knows nothing was read. */
+  imageReadFailed:
+    'I could not read that image. It may be too large or in a format I cannot open. Try a smaller JPEG or PNG.',
   /**
    * Used when no model runtime is configured at all.
    *
@@ -102,13 +133,13 @@ export type QuickActionId = (typeof QUICK_ACTIONS)[number]['id'];
 
 /** Greeting shown when the chat has no messages yet. */
 export const CHAT_EMPTY_STATE = {
-  title: 'Ask about your board',
-  body: 'I can see every task you have. Ask what to do first, how to break something down, or what to defer.',
+  title: 'Ask about your tasks, todos, notes or images',
+  body: 'I can see your board, your todos, your notes and the names of your note images. Ask what to do first, how to break something down, or ask me to read an image.',
   examples: [
     'What should I start with?',
-    'Break down my top task',
-    'How should I plan today?',
-    'What can I defer to tomorrow?',
+    'How many todos are open?',
+    'What notes do I have?',
+    'Read the image on my last note',
   ],
 } as const;
 

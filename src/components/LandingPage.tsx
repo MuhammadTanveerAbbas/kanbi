@@ -5,8 +5,10 @@
 import { useTheme as useSiteTheme } from '@/lib/theme';
 import { useState, useEffect, useRef, createContext, useContext, useCallback, type ComponentType } from "react";
 import { createClient } from '@/lib/supabase/client';
-import { BarChart3, CalendarDays, CircleGauge, ClipboardList, Layers3, MessageSquareText, Workflow, ShieldCheck, Eye, ArrowRight, CheckCircle2, TimerReset, PanelTop, FileDown, BrainCircuit, Boxes, Target, ListTodo, TrendingUp, BadgeCheck, Flame, Orbit, LaptopMinimal, PanelRightOpen, Stars, GitBranch, Gauge, Clock3, Route, BadgeInfo, SquareKanban, SplitSquareVertical, ArrowUpRight, BookOpenText, Sparkles, MoveRight, Info, FileText, Tag, CalendarClock, Trash2, Lock, CreditCard } from "lucide-react";
+import { BarChart3, CalendarDays, CircleGauge, ClipboardList, Layers3, MessageSquareText, Workflow, ShieldCheck, Eye, ArrowRight, CheckCircle2, TimerReset, FileDown, BrainCircuit, Boxes, Target, ListTodo, TrendingUp, BadgeCheck, Flame, Orbit, LaptopMinimal, PanelRightOpen, Stars, GitBranch, Gauge, Clock3, Route, BadgeInfo, SquareKanban, SplitSquareVertical, ArrowUpRight, BookOpenText, Sparkles, MoveRight, Info, FileText, Tag, CalendarClock, Trash2, Lock, CreditCard } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { FlickeringGrid } from "@/components/ui/flickering-grid";
 
 declare global { interface Window { __lenis?: import("lenis").default } }
 
@@ -25,26 +27,20 @@ function Styles() {
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0} html{scroll-behavior:smooth}
   .lp{font-family:inherit;background:var(--bg);color:var(--tx);-webkit-font-smoothing:antialiased;overflow-x:hidden;transition:background .2s,color .2s}
   .lp a{text-decoration:none;color:inherit} .lp button{font-family:inherit;cursor:pointer}
+  .lp :focus-visible{outline:2px solid var(--ac);outline-offset:2px;border-radius:4px}
   .lp ::-webkit-scrollbar{display:none;width:0;height:0} .lp ::-webkit-scrollbar-track{display:none} .lp ::-webkit-scrollbar-thumb{display:none} .lp{scrollbar-width:none;-ms-overflow-style:none}
-  @keyframes shimmer{from{background-position:-300% center}to{background-position:300% center}}
-  @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.55)}}
-  @keyframes badgeFadeUp{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
-  .shimmer{background:linear-gradient(90deg,var(--ac),var(--pu) 40%,var(--ac) 70%,var(--pu));background-size:300% auto;-webkit-background-clip:text;background-clip:text;color:transparent;animation:shimmer 4s linear infinite}
-  .pulse{animation:pulse 2.2s ease-in-out infinite}
-  .wavy{stroke-dasharray:380;stroke-dashoffset:380;transition:stroke-dashoffset 1.1s cubic-bezier(.4,0,.2,1) .2s}
-  .wavy.drawn{stroke-dashoffset:0}
   .na:hover{color:var(--tx)!important;background:var(--bg2)!important}
-  .fc{transition:background .18s,border-color .18s,transform .18s} .fc:hover{background:var(--bg2)!important;border-color:var(--brh)!important;transform:translateY(-2px)}
+  .fc{transition:background .18s,border-color .18s} .fc:hover{background:var(--bg2)!important;border-color:var(--brh)!important}
   .sh:hover{border-color:var(--ac)!important}
   .fi{transition:border-color .18s}
-  .tb{transition:all .15s;min-width:0}
+  .tb{transition:border-color .15s,background .15s,color .15s;min-width:0}
   .cmp-mobile{display:none;flex-direction:column;gap:12px}
   .cmp-card{border-radius:14px;border:1px solid var(--br);background:var(--bg1);overflow:hidden}
   .cmp-card-head{padding:14px 16px;border-bottom:1px solid var(--br);display:flex;align-items:center;gap:10px;font-size:13.5px;font-weight:600;color:var(--tx)}
   .cmp-card-row{display:grid;grid-template-columns:72px 1fr;gap:10px;padding:11px 16px;border-bottom:1px solid var(--br);align-items:center}
   .cmp-card-row:last-child{border-bottom:none}
   .cmp-card-row.kanbi{background:var(--as)}
-  .cmp-card-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--tx3)}
+  .cmp-card-label{font-size:11px;font-weight:500;color:var(--tx3)}
   .cmp-card-row.kanbi .cmp-card-label{color:var(--ac)}
   .cmp-card-val{font-size:12.5px;color:var(--tx2);line-height:1.45}
   .cmp-card-row.kanbi .cmp-card-val{color:var(--tx);font-weight:500}
@@ -52,25 +48,36 @@ function Styles() {
   .lp-section{padding:clamp(56px,8vw,96px) 0;scroll-margin-top:64px}
   /* One heading shape for every section, so the page reads as a single system
      rather than as ten separately styled blocks. */
-  .lp-kicker{font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--ac-text);margin:0 0 14px}
-  .lp-h2{font-family:var(--font-display);font-size:clamp(28px,4vw,44px);font-weight:700;letter-spacing:-0.04em;line-height:1.1;color:var(--tx);margin:0 0 14px}
+  .lp-kicker{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:6px;border:1px solid var(--br);background:var(--bg2);font-size:11.5px;font-weight:500;color:var(--tx2);margin:0 0 12px;letter-spacing:.02em;text-transform:uppercase}
+  .lp-h2{font-family:var(--font-display);font-size:clamp(26px,3.6vw,38px);font-weight:500;letter-spacing:-0.025em;line-height:1.18;color:var(--tx);margin:0 0 14px}
   .lp-lede{font-size:16px;line-height:1.65;color:var(--tx2);margin:0}
 
   /* Proof band. Four figures on a hairline row, then three plain-language
      promises, then one honest paragraph about what the model does. */
-  .proof-stats{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--br);border-radius:16px;overflow:hidden;background:var(--bg1)}
+  .proof-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .proof-box{padding:22px 20px;border:1px solid var(--br);border-radius:14px;background:var(--bg1);min-width:0;text-align:center}
+  .proof-box-ico{margin:0 auto 12px}
+  .proof-box-ico{width:34px;height:34px;border-radius:9px;background:var(--bg2);border:1px solid var(--br);color:var(--ac-text);display:flex;align-items:center;justify-content:center;margin-bottom:12px}
+  .proof-box-big{font-family:var(--font-display);font-size:clamp(26px,3vw,38px);font-weight:600;letter-spacing:-0.03em;line-height:1;color:var(--tx);margin:0 0 6px;font-variant-numeric:tabular-nums}
+  .proof-box-title{font-size:14px;font-weight:500;color:var(--tx);margin:0 0 6px;text-wrap:balance}
+  .proof-box-desc{font-size:12.5px;color:var(--tx2);line-height:1.55;margin:0}
   /* min-width:0 lets a long sub line wrap inside its cell instead of
      stretching the grid track. */
-  .proof-stat{padding:26px 24px;border-right:1px solid var(--br);min-width:0}
+  .proof-stat{padding:28px 24px;border-right:1px solid var(--br);min-width:0;text-align:center}
   .proof-stat:last-child{border-right:none}
-  .proof-num{font-family:var(--font-display);font-size:clamp(26px,3.2vw,42px);font-weight:700;letter-spacing:-0.045em;line-height:1;color:var(--tx);font-variant-numeric:tabular-nums}
-  .proof-label{font-size:13px;color:var(--tx);font-weight:600;margin-top:10px;text-wrap:balance}
-  .proof-sub{font-size:12px;color:var(--tx3);margin-top:4px;line-height:1.5}
-  .proof-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:14px}
-  .proof-card{border:1px solid var(--br);border-radius:14px;background:var(--bg1);padding:20px;min-width:0}
+  .proof-num-row{display:flex;align-items:center;justify-content:center;gap:12px;min-width:0}
+  .proof-num-ico{width:32px;height:32px;border-radius:9px;background:var(--bg2);border:1px solid var(--br);color:var(--ac-text);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .proof-num{font-family:var(--font-display);font-size:clamp(28px,3.4vw,44px);font-weight:600;letter-spacing:-0.03em;line-height:1;color:var(--tx);font-variant-numeric:tabular-nums}
+  .proof-label{font-size:14px;color:var(--tx);font-weight:500;margin-top:14px;text-wrap:balance}
+  .proof-sub{font-size:12.5px;color:var(--tx2);margin-top:6px;line-height:1.5}
+  .promise-head{margin-bottom:24px}
+  .promise-panel{border:1px solid var(--br);border-radius:16px;background:var(--bg1);overflow:hidden}
+  .promise-row{display:grid;grid-template-columns:44px minmax(0,1fr);gap:16px;padding:24px 28px;border-bottom:1px solid var(--br)}
+  .promise-row:last-child{border-bottom:none}
+  .promise-ico{width:40px;height:40px;border-radius:10px;background:var(--bg2);border:1px solid var(--br);color:var(--ac-text);display:flex;align-items:center;justify-content:center}
+  .promise-t{font-size:15px;font-weight:500;color:var(--tx);margin:0 0 6px}
+  .promise-d{font-size:13px;line-height:1.6;color:var(--tx2);margin:0;max-width:72ch}
   .proof-card-ico{width:32px;height:32px;border-radius:9px;background:var(--as);border:1px solid var(--ag);color:var(--ac-text);display:flex;align-items:center;justify-content:center;margin-bottom:12px}
-  .proof-card-t{font-size:13.5px;font-weight:600;color:var(--tx);margin-bottom:6px}
-  .proof-card-d{font-size:12.5px;line-height:1.65;color:var(--tx2)}
   .proof-note{display:flex;gap:14px;align-items:flex-start;margin-top:14px;padding:20px 22px;border-radius:14px;border:1px solid var(--br);background:var(--bg2)}
   .proof-note-b{font-size:13px;line-height:1.7;color:var(--tx2);margin:0}
   .proof-note-b b{color:var(--tx);font-weight:600}
@@ -83,13 +90,13 @@ function Styles() {
   .vs-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
   .vs-table{width:100%;min-width:680px;border-collapse:collapse;font-size:13px}
   .vs-table th,.vs-table td{padding:14px 18px;border-bottom:1px solid var(--br);vertical-align:middle}
-  .vs-table thead th{font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--tx3);background:var(--bg2);white-space:nowrap;text-align:left}
+  .vs-table thead th{font-size:12px;font-weight:500;color:var(--tx2);background:var(--bg2);white-space:nowrap;text-align:left}
   .vs-table thead th:first-child,.vs-table tbody th{text-align:left;vertical-align:middle}
   /* Large screens: row header left, every competitor value left aligned too, and
      every row vertically centered so a row reads as one line across products. */
   .vs-table td{text-align:left}
   /* Brand icon next to each top-row column name, icon left, text centered vertically */
-  .vs-col-head{display:inline-flex;align-items:center;gap:7px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--tx3);white-space:nowrap}
+  .vs-col-head{display:inline-flex;align-items:center;gap:7px;font-weight:500;color:var(--tx2);white-space:nowrap}
   .vs-col-head-ico{width:20px;height:20px;flex-shrink:0;border-radius:6px;background:var(--bg2);border:1px solid var(--br);color:var(--ac-text);display:flex;align-items:center;justify-content:center}
   /* The row header is the only cell that wraps, so it carries the icon that
      says what the row is about before the words do. */
@@ -126,7 +133,7 @@ function Styles() {
      instead of the whole block drifting left. */
   .vs-mobile{display:none;flex-direction:column;gap:20px}
   .vs-card{border:1px solid var(--br);border-radius:14px;background:var(--bg1);overflow:hidden}
-  .vs-card.is-kanbi{border-color:var(--ag);box-shadow:0 0 0 1px var(--ag)}
+  .vs-card.is-kanbi{border-color:var(--ag)}
   .vs-card-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 16px;border-bottom:1px solid var(--br);font-size:13.5px;font-weight:600;color:var(--tx)}
   .vs-card-head-label{display:inline-flex;align-items:center;gap:7px;color:var(--tx);font-weight:600;white-space:nowrap}
   .vs-card-head-ico{width:16px;height:16px;flex-shrink:0;border-radius:6px;background:var(--bg2);border:1px solid var(--br);color:var(--ac-text);display:flex;align-items:center;justify-content:center}
@@ -144,8 +151,8 @@ function Styles() {
 
   /* Who it is for. Three roles, one shape, no invented customer quotes. */
   .who-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
-  .who-card{border:1px solid var(--br);border-radius:14px;background:var(--bg1);padding:24px;min-width:0;transition:border-color .18s,transform .18s}
-  .who-card:hover{border-color:var(--brh);transform:translateY(-2px)}
+  .who-card{border:1px solid var(--br);border-radius:14px;background:var(--bg1);padding:24px;min-width:0;transition:border-color .18s}
+  .who-card:hover{border-color:var(--brh)}
   .who-card-t{font-size:15px;font-weight:600;color:var(--tx);margin-bottom:8px;letter-spacing:-0.02em}
   .who-card-d{font-size:13px;line-height:1.65;color:var(--tx2);margin-bottom:16px}
   .who-card-tag{display:inline-flex;padding:4px 10px;border-radius:6px;background:var(--bg2);border:1px solid var(--br);font-size:11px;color:var(--tx3)}
@@ -154,9 +161,7 @@ function Styles() {
      marker rather than as another section with a heading. The accent is a wash
      and a soft radial, never a hard rule: a line under the buttons would read
      as a divider between the ask and the reassurance that supports it. */
-  .cta-banner{position:relative;border-radius:22px;border:1px solid var(--br);background:linear-gradient(180deg,rgba(94,111,232,0.08),rgba(94,111,232,0.015));padding:clamp(30px,5vw,56px) clamp(18px,4vw,40px);overflow:hidden;text-align:center}
-  .cta-banner-grid{position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(var(--br) 1px,transparent 1px),linear-gradient(90deg,var(--br) 1px,transparent 1px);background-size:64px 64px;opacity:.5}
-  .cta-banner-glow{position:absolute;top:-45%;left:50%;transform:translateX(-50%);width:130%;height:95%;background:radial-gradient(ellipse,var(--ag) 0%,transparent 64%);pointer-events:none}
+  .cta-banner{position:relative;border-radius:16px;border:1px solid var(--br);background:var(--bg2);padding:clamp(32px,5vw,56px) clamp(20px,4vw,40px);overflow:hidden;text-align:center}
   .cta-banner-inner{position:relative;z-index:1;max-width:640px;margin:0 auto}
   .cta-actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:30px}
   .cta-stats{display:flex;justify-content:center;align-items:stretch;flex-wrap:wrap;gap:10px;margin-top:28px}
@@ -182,6 +187,8 @@ function Styles() {
   .ms{display:none;background:none;border:none;color:var(--tx2);padding:4px;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;transition:background .15s,color .15s}
   .ms:hover{background:var(--bg2);color:var(--tx)}
   .hero-cta-secondary{background:var(--bg2)!important;border:1px solid var(--brh)!important;color:var(--tx2)!important}
+  [data-theme="dark"] .hero-cta-secondary{background:#fff!important;border-color:#fff!important;color:#000!important}
+  [data-theme="dark"] .hero-cta-secondary svg{color:#000!important;stroke:#000!important}
   @keyframes mobMenuIn{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:translateY(0)}}
   @keyframes mobLinkIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:translateX(0)}}
   .hero-section{padding:148px 0 80px}
@@ -203,14 +210,8 @@ function Styles() {
     .cta-grid{grid-template-columns:1fr!important}
     .g2{grid-template-columns:1fr!important}
     .g3{grid-template-columns:repeat(2,1fr)!important}
-    .proof-stats{grid-template-columns:1fr 1fr!important}
-    .proof-stat{padding:20px 18px!important;border-bottom:1px solid var(--br)!important}
-    .proof-stat:nth-child(2n){border-right:none!important}
-    /* Two rows of two, so the bottom row is the one that ends the grid. Without
-       this the last pair keeps a bottom edge inside the rounded container and
-       the border looks doubled against the container's own border. */
-    .proof-stat:nth-child(n+3){border-bottom:none!important}
-    .proof-cards{grid-template-columns:1fr!important}
+    .proof-grid{grid-template-columns:repeat(2,1fr)!important}
+    .proof-box{padding:18px 16px!important}
     .who-cards{grid-template-columns:1fr!important}
     /* A six column table at 1024px is where the cells start wrapping mid word,
        which is the width where the per feature panels take over. */
@@ -235,14 +236,12 @@ function Styles() {
     .nav-actions{justify-content:flex-end!important}
     .lp-nav-open{background:var(--nb)!important;border-bottom:1px solid var(--br)!important;backdrop-filter:blur(24px)!important;-webkit-backdrop-filter:blur(24px)!important}
     .mob-menu{position:fixed;inset:0;z-index:210;display:flex;flex-direction:column;background:var(--bg);animation:mobMenuIn .26s cubic-bezier(.22,1,.36,1);overflow:hidden}
-    .mob-menu-grid{position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(var(--br) 1px,transparent 1px),linear-gradient(90deg,var(--br) 1px,transparent 1px);background-size:64px 64px;opacity:.45}
-    .mob-menu-glow{position:absolute;top:-20%;left:50%;transform:translateX(-50%);width:120%;height:45%;background:radial-gradient(ellipse,var(--ag) 0%,transparent 68%);pointer-events:none;opacity:.7}
     .mob-menu-head{position:relative;z-index:2;display:flex;align-items:center;justify-content:space-between;padding:14px clamp(16px,4vw,24px);border-bottom:1px solid var(--br);background:var(--nb);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);flex-shrink:0}
     .mob-menu-body{position:relative;z-index:2;flex:1;min-height:0;overflow-y:auto;padding:20px clamp(16px,4vw,24px) 16px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:14px;-webkit-overflow-scrolling:touch}
     .mob-menu-intro{width:100%;max-width:400px}
-    .mob-menu-kicker{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ac);margin-bottom:6px}
+    .mob-menu-kicker{font-size:12px;font-weight:500;color:var(--tx2);margin-bottom:6px}
     .mob-menu-desc{font-size:13px;color:var(--tx2);line-height:1.5}
-    .mob-nav-panel{width:100%;max-width:400px;border:1px solid var(--br);border-radius:16px;background:linear-gradient(180deg,var(--bg1),rgba(255,255,255,.01));overflow:hidden;box-shadow:0 16px 48px rgba(0,0,0,.18),inset 0 1px 0 rgba(255,255,255,.04)}
+    .mob-nav-panel{width:100%;max-width:400px;border:1px solid var(--br);border-radius:14px;background:var(--bg1);overflow:hidden}
     .mob-link{display:flex;align-items:center;gap:12px;padding:13px 14px;border-bottom:1px solid var(--br);font-size:15px;font-weight:600;color:var(--tx);letter-spacing:-0.02em;transition:background .15s;animation:mobLinkIn .32s cubic-bezier(.22,1,.36,1) both}
     .mob-link:last-child{border-bottom:none}
     .mob-link:nth-child(1){animation-delay:.04s}
@@ -259,18 +258,18 @@ function Styles() {
     .mob-signin:hover{color:var(--ac)}
     .mob-menu-foot{position:relative;z-index:2;flex-shrink:0;padding:16px clamp(16px,4vw,24px) max(24px,env(safe-area-inset-bottom));border-top:1px solid var(--br);background:var(--nb);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);display:flex;justify-content:center}
     .mob-foot-panel{width:100%;max-width:400px;display:flex;flex-direction:column;gap:10px}
-    .mob-theme-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-radius:14px;border:1px solid var(--br);background:linear-gradient(180deg,var(--bg1),var(--bg2))}
+    .mob-theme-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-radius:14px;border:1px solid var(--br);background:var(--bg2)}
     .mob-theme-info{display:flex;align-items:center;gap:10px;min-width:0}
     .mob-theme-icon{width:34px;height:34px;border-radius:10px;background:var(--as);border:1px solid var(--ag);color:var(--ac);display:flex;align-items:center;justify-content:center;flex-shrink:0}
     .mob-theme-copy{display:flex;flex-direction:column;gap:1px;min-width:0}
     .mob-theme-label{font-size:13px;font-weight:600;color:var(--tx);letter-spacing:-0.01em}
     .mob-theme-value{font-size:11px;color:var(--tx3)}
-    .mob-theme-toggle{height:34px;padding:0 12px;border-radius:9px;border:1px solid var(--br);background:var(--bg3);color:var(--tx2);font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;flex-shrink:0;transition:all .15s;white-space:nowrap}
+    .mob-theme-toggle{height:34px;padding:0 12px;border-radius:9px;border:1px solid var(--br);background:var(--bg3);color:var(--tx2);font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;flex-shrink:0;transition:border-color .15s,color .15s,background .15s;white-space:nowrap}
     .mob-theme-toggle:hover{border-color:var(--brh);color:var(--tx);background:var(--bg2)}
-    .mob-cta{height:50px;border-radius:14px;background:linear-gradient(135deg,var(--ac),#7c83ff);color:#fff;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 12px 36px var(--ag);border:1px solid rgba(255,255,255,.12);transition:opacity .15s,transform .12s,box-shadow .15s;position:relative;z-index:1}
-    .mob-cta:hover{box-shadow:0 16px 40px var(--ag);opacity:.96}
-    .mob-cta:active{transform:scale(.98);opacity:.92}
-    .mob-menu-close{width:38px;height:38px;border-radius:10px;border:1px solid var(--br);background:var(--bg1);color:var(--tx2);display:flex;align-items:center;justify-content:center;transition:all .15s}
+    .mob-cta{height:48px;border-radius:10px;background:var(--ac-solid);color:#fff;font-size:14px;font-weight:500;display:flex;align-items:center;justify-content:center;gap:8px;border:none;transition:background .15s;position:relative;z-index:1}
+    .mob-cta:hover{background:var(--ac-solid-h)}
+    .mob-cta:active{transform:scale(.98)}
+    .mob-menu-close{width:36px;height:36px;border-radius:9px;border:1px solid var(--br);background:var(--bg1);color:var(--tx2);display:flex;align-items:center;justify-content:center;transition:border-color .15s,color .15s,background .15s}
     .mob-menu-close:hover{border-color:var(--brh);color:var(--tx);background:var(--bg2)}
     .msb{border-right:none!important;border-bottom:1px solid var(--br)!important;padding:12px 14px!important;display:flex!important;align-items:center!important;justify-content:space-between!important}
     .msb-brand{padding:0!important;margin-bottom:0!important;border-bottom:none!important}
@@ -283,12 +282,13 @@ function Styles() {
     /* The stat numbers used to hold a 30px floor from clamp, so on a phone
        they stayed desktop sized inside a cell a third of the width and pushed
        the labels to three lines. Fixed sizes per tier so they actually shrink. */
-    .proof-stat{padding:16px 14px!important}
+    .proof-box{padding:14px 12px!important}
     .proof-num{font-size:26px!important}
     .proof-label{font-size:12px!important;margin-top:7px!important}
     .proof-sub{font-size:11px!important;margin-top:3px!important}
-    .proof-card{padding:16px!important}
-    .proof-card-d{font-size:12px!important}
+    .promise-row{padding:20px 18px!important;gap:12px!important}
+    .promise-ico{width:36px;height:36px!important}
+    .promise-d{font-size:12px!important}
     .msb-nav-item .msb-nav-label{display:none}
     .msb-nav-item{padding:8px 10px!important;gap:0!important}
     /* On narrow screens the 3-col kanban stacks to 2 cols so cards are readable
@@ -356,7 +356,7 @@ function Styles() {
     /* The stat row stays two columns on a phone because four full width tiles
        would push the section taller than the hero it sits under. Sizes come
        down instead so each tile stays two lines. */
-    .proof-stat{padding:13px 12px!important}
+    .proof-box{padding:12px 10px!important}
     .proof-num{font-size:22px!important}
     .proof-label{font-size:11px!important;margin-top:6px!important}
     .proof-sub{font-size:10.5px!important;line-height:1.45!important}
@@ -392,8 +392,8 @@ function Styles() {
      narrow for its own 4-column grid on large screens. */
   .footer-grid{display:grid;grid-template-columns:minmax(220px,1fr) minmax(0,2.2fr);gap:clamp(24px,3vw,44px);align-items:start}
   .footer-brand{min-width:0}
-  .footer-logo{display:flex;align-items:center;gap:9px;margin-bottom:14px}
-  .footer-logo-mark{width:30px;height:30px;border-radius:9px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff;background:linear-gradient(135deg,var(--ac),var(--pu));box-shadow:0 0 16px var(--ag)}
+  .footer-logo{display:flex;align-items:center;gap:7px;margin-bottom:14px}
+  .footer-logo-mark{width:32px;height:32px;border-radius:10px;flex-shrink:0;display:block}
   .footer-logo-text{font-family:var(--font-display);font-size:15px;font-weight:700;letter-spacing:-0.025em;color:var(--tx)}
   .footer-blurb{font-size:13px;line-height:1.65;color:var(--tx2);max-width:34ch;margin:0 0 20px;text-wrap:pretty}
   /* These two are prefixed with .lp on purpose. The rule .lp a{color:inherit}
@@ -403,10 +403,10 @@ function Styles() {
   .lp .footer-cta{
     display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 18px;
     border-radius:10px;background:var(--ac-solid);color:#fff;font-size:13px;font-weight:600;
-    text-decoration:none;box-shadow:0 8px 24px var(--ag);
-    transition:background .15s,transform .15s,box-shadow .15s;
+    text-decoration:none;
+    transition:background .15s;
   }
-  .lp .footer-cta:hover{background:var(--ac-solid-h);color:#fff;transform:translateY(-1px);box-shadow:0 12px 30px var(--ag)}
+  .lp .footer-cta:hover{background:var(--ac-solid-h);color:#fff}
   .footer-social{list-style:none;display:flex;gap:8px;flex-wrap:wrap;margin:18px 0 0;padding:0}
   .footer-social-link{
     display:flex;align-items:center;justify-content:center;width:40px;height:40px;
@@ -420,7 +420,7 @@ function Styles() {
   /* The h6 scale from globals.css is the right one here: a small uppercase
      label, not a section heading. The previous markup used a <p> at 10px in
      one column and 11px in the others. */
-  .footer-col-heading{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--tx3);margin:0 0 14px}
+  .footer-col-heading{font-size:13px;font-weight:500;color:var(--tx2);margin:0 0 14px}
   .footer-col-list{list-style:none;display:flex;flex-direction:column;gap:10px;margin:0;padding:0}
   /* Same reason as the CTA above: .lp a outranks a bare class. */
   .lp .footer-link{
@@ -523,28 +523,8 @@ function useInView(ref: React.RefObject<HTMLElement | null>, thr = 0.12) {
   }, []);
   return v;
 }
-function useCountUp(target: number, active: boolean, dur = 1600) {
-  const [n, setN] = useState(0);
-  useEffect(() => { if (!active) return; let r: number; const t0 = performance.now(); const tick = (now: number) => { const p = Math.min((now - t0) / dur, 1), e = 1 - Math.pow(1 - p, 3); setN(Math.round(e * target)); if (p < 1) r = requestAnimationFrame(tick); }; r = requestAnimationFrame(tick); return () => cancelAnimationFrame(r); }, [active, target, dur]);
-  return n;
-}
-function useScrollP() {
-  const [p, setP] = useState(0);
-  useEffect(() => { const fn = () => { const d = document.documentElement; setP(d.scrollTop / (d.scrollHeight - d.clientHeight) || 0); }; window.addEventListener("scroll", fn, { passive: true }); return () => window.removeEventListener("scroll", fn); }, []);
-  return p;
-}
-
 function ST({ text, style: s }: { text: string; delay?: number; style?: React.CSSProperties; playOnMount?: boolean }) {
   return <span style={{ display: "inline", ...s }}>{text}</span>;
-}
-
-function Wavy() {
-  return <span style={{ position: "relative", display: "inline-block" }}>
-    <svg viewBox="0 0 290 13" preserveAspectRatio="none" style={{ position: "absolute", bottom: -10, left: 0, width: "100%", height: 13, overflow: "visible", pointerEvents: "none" }}>
-      <defs><linearGradient id="wg" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stopColor="var(--ac)" /><stop offset="55%" stopColor="var(--pu)" /><stop offset="100%" stopColor="var(--ac)" /></linearGradient></defs>
-      <path className="wavy drawn" d="M3 8 C25 2,50 13,75 7 C100 1,125 13,150 7 C175 1,200 13,225 7 C250 1,268 11,287 7" fill="none" stroke="url(#wg)" strokeWidth="2.5" strokeLinecap="round" />
-    </svg>
-  </span>;
 }
 
 /**
@@ -554,7 +534,7 @@ function Wavy() {
  */
 const S = (name: string, d: string | string[], sw = "1.8") => {
   const Icon = ({ size = 16 }: { size?: number }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round">
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       {(Array.isArray(d) ? d : [d]).map((p, i) => <path key={i} d={p} />)}
     </svg>
   );
@@ -571,7 +551,17 @@ const IC = {
   Zap: S('Zap', "M13 2L3 14h9l-1 8 10-12h-9l1-8z", "2.2"),
   Spark: S('Spark', "M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .962 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.962 0z"),
   Shield: S('Shield', "M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"),
-  Brain: S('Brain', "M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.46 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"),
+  Brain: S('Brain', [
+    "M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z",
+    "M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z",
+    "M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4",
+    "M17.599 6.5a3 3 0 0 0 .399-1.375",
+    "M6.003 5.125A3 3 0 0 0 6.401 6.5",
+    "M3.477 10.896a4 4 0 0 1 .585-.396",
+    "M19.938 10.5a4 4 0 0 1 .585.396",
+    "M6 18a4 4 0 0 1-1.967-.516",
+    "M19.967 17.484A4 4 0 0 1 18 18",
+  ]),
   Cal: S('Cal', ["M19 4H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z", "M16 2v4M8 2v4M3 10h18"]),
   Chart: S('Chart', "M18 20V10M12 20V4M6 20v-6"),
   Chat: S('Chat', "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"),
@@ -607,9 +597,9 @@ function Navbar() {
   const [mob, setMob] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [user, setUser] = useState<{ id: string } | null>(null);
-  const prog = useScrollP();
+  const router = useRouter();
   const handleGetStarted = () => {
-    window.location.href = '/sign-up';
+    router.push('/sign-up');
   };
   const closeMob = useCallback(() => setMob(false), []);
   useEffect(() => { const fn = () => setScrolled(window.scrollY > 24); window.addEventListener("scroll", fn, { passive: true }); return () => window.removeEventListener("scroll", fn); }, []);
@@ -631,22 +621,21 @@ function Navbar() {
   const links = [["Product", "#showcase"], ["How It Works", "#how-it-works"], ["Features", "#features"], ["Compare", "#compare"], ["Pricing", "#pricing"], ["FAQ", "#faq"]];
   return (<>
     <nav className={`lp-nav${mob ? " lp-nav-open" : ""}`} style={{ borderBottom: `1px solid ${scrolled || mob ? "var(--br)" : "transparent"}`, background: scrolled || mob ? "var(--nb)" : "transparent", backdropFilter: scrolled || mob ? "blur(24px)" : "none", WebkitBackdropFilter: scrolled || mob ? "blur(24px)" : "none" }}>
-      <div style={{ position: "absolute", bottom: -1, left: 0, height: 1, background: "linear-gradient(90deg,var(--ac),var(--pu))", width: `${prog * 100}%`, transition: "width .1s linear", opacity: mob ? 0 : 1 }} />
       <div className="lp-wrap nav-inner" style={{ width: "100%", maxWidth: "none" }}>
-        <Link href="/" style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }} onClick={closeMob}>
-          <div style={{ width: 28, height: 28, borderRadius: 8, background: "var(--ac)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", boxShadow: "0 0 18px var(--ag)" }}><IC.Zap size={13} /></div>
-          <span style={{ fontSize: 15, fontWeight: 700, color: "var(--tx)", letterSpacing: "-0.025em" }}>Kanbi</span>
+        <Link href="/" style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }} onClick={closeMob}>
+          <img src="/Kanbi.png" alt="" width={30} height={30} style={{ width: 30, height: 30, borderRadius: 9, display: "block", flexShrink: 0 }} />
+          <span style={{ fontSize: 15, fontWeight: 500, color: "var(--tx)", letterSpacing: "-0.025em" }}>Kanbi</span>
         </Link>
         <div className="nl" style={{ display: "flex", gap: 6, alignItems: "center", justifyContent: "center" }}>
           {links.map(([l, h]) => <a key={l} href={h} className="na" style={{ fontSize: 13.5, fontWeight: 500, color: "var(--tx2)", transition: "color .15s", whiteSpace: "nowrap", padding: "6px 12px", borderRadius: 8 }}>{l}</a>)}
         </div>
         <div className="nav-actions">
-          <button className="nav-theme-btn" onClick={toggle} aria-label="Toggle theme" style={{ width: 34, height: 34, borderRadius: 8, border: "1px solid var(--br)", background: "var(--bg1)", color: "var(--tx2)", display: "flex", alignItems: "center", justifyContent: "center", transition: "all .15s", flexShrink: 0 }} onMouseOver={e => { e.currentTarget.style.borderColor = "var(--brh)"; e.currentTarget.style.color = "var(--tx)" }} onMouseOut={e => { e.currentTarget.style.borderColor = "var(--br)"; e.currentTarget.style.color = "var(--tx2)" }}>
+          <button className="nav-theme-btn" onClick={toggle} aria-label="Toggle theme" style={{ width: 34, height: 34, borderRadius: 8, border: "1px solid var(--br)", background: "var(--bg1)", color: "var(--tx2)", display: "flex", alignItems: "center", justifyContent: "center", transition: "border-color .15s,color .15s", flexShrink: 0 }} onMouseOver={e => { e.currentTarget.style.borderColor = "var(--brh)"; e.currentTarget.style.color = "var(--tx)" }} onMouseOut={e => { e.currentTarget.style.borderColor = "var(--br)"; e.currentTarget.style.color = "var(--tx2)" }}>
             {theme === "dark" ? <IC.Sun size={14} /> : <IC.Moon size={14} />}
           </button>
           {user
             ? <a href="/dashboard" className="nav-cta-desktop" style={{ height: 34, padding: "0 15px", borderRadius: 8, background: "var(--inv)", color: "var(--inv2)", fontSize: 13, fontWeight: 600, alignItems: "center", transition: "opacity .15s", textDecoration: "none", whiteSpace: "nowrap" }} onMouseOver={e => (e.currentTarget.style.opacity = ".88")} onMouseOut={e => (e.currentTarget.style.opacity = "1")}>Dashboard</a>
-            : <button onClick={handleGetStarted} className="nav-cta-desktop" style={{ height: 34, padding: "0 15px", borderRadius: 8, background: "var(--ac)", color: "#fff", fontSize: 13, fontWeight: 600, alignItems: "center", transition: "opacity .15s", border: "none", whiteSpace: "nowrap" }} onMouseOver={e => (e.currentTarget.style.opacity = ".88")} onMouseOut={e => (e.currentTarget.style.opacity = "1")}>Get Started Free</button>
+            : <button onClick={handleGetStarted} className="nav-cta-desktop" style={{ height: 34, padding: "0 15px", borderRadius: 8, background: "var(--ac-solid)", color: "#fff", fontSize: 13, fontWeight: 500, alignItems: "center", transition: "background .15s", border: "none", whiteSpace: "nowrap" }} onMouseOver={e => (e.currentTarget.style.background = "var(--ac-solid-h)")} onMouseOut={e => (e.currentTarget.style.background = "var(--ac-solid)")}>Start for free</button>
           }
           <button className="ms" onClick={() => setMob(!mob)} aria-label={mob ? "Close menu" : "Open menu"} aria-expanded={mob}>{mob ? <IC.X size={18} /> : <IC.Menu size={18} />}</button>
         </div>
@@ -654,12 +643,10 @@ function Navbar() {
     </nav>
     {mob && (
       <div className="mob-menu" role="dialog" aria-modal="true" aria-label="Navigation menu">
-        <div className="mob-menu-grid" />
-        <div className="mob-menu-glow" />
         <div className="mob-menu-head">
-          <Link href="/" onClick={closeMob} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div style={{ width: 30, height: 30, borderRadius: 9, background: "linear-gradient(135deg,var(--ac),var(--pu))", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", boxShadow: "0 0 16px var(--ag)" }}><IC.Zap size={14} /></div>
-            <span style={{ fontSize: 16, fontWeight: 700, color: "var(--tx)", letterSpacing: "-0.03em" }}>Kanbi</span>
+          <Link href="/" onClick={closeMob} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            <img src="/Kanbi.png" alt="" width={30} height={30} style={{ width: 30, height: 30, borderRadius: 9, display: "block", flexShrink: 0 }} />
+            <span style={{ fontSize: 16, fontWeight: 500, color: "var(--tx)", letterSpacing: "-0.03em" }}>Kanbi</span>
           </Link>
           <button type="button" className="mob-menu-close" onClick={closeMob} aria-label="Close menu"><IC.X size={16} /></button>
         </div>
@@ -698,7 +685,7 @@ function Navbar() {
             </div>
             {user
               ? <a href="/dashboard" onClick={closeMob} className="mob-cta">Go to Dashboard <IC.Arrow size={15} /></a>
-              : <a href="/sign-up" onClick={closeMob} className="mob-cta">Get Started Free <IC.Arrow size={15} /></a>
+              : <a href="/sign-up" onClick={closeMob} className="mob-cta">Start for free <IC.Arrow size={15} /></a>
             }
           </div>
         </div>
@@ -715,73 +702,64 @@ function HeroWorkloadBar({ active, score = 82 }: { active: boolean; score?: numb
         <span style={{ fontSize: 11, fontWeight: 600, color: "var(--tx)" }}>Workload</span>
       </div>
       <div style={{ flex: "1 1 120px", height: 7, borderRadius: 999, background: "var(--bg3)", overflow: "hidden" }}>
-        <div style={{ height: "100%", width: active ? `${score}%` : "0%", borderRadius: 999, background: "linear-gradient(90deg,var(--gr),#4ade80)", transition: "width 1s cubic-bezier(.22,1,.36,1) .35s" }} />
+        <div style={{ height: "100%", width: active ? `${score}%` : "0%", borderRadius: 999, background: "var(--gr-text)", transition: "width 1s cubic-bezier(.22,1,.36,1) .35s" }} />
       </div>
-      <span style={{ fontSize: 13, fontWeight: 700, color: "var(--tx)", fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{score}<span style={{ color: "var(--tx3)", fontWeight: 500, fontSize: 11 }}> / 100</span></span>
+      <span style={{ fontSize: 13, fontWeight: 500, color: "var(--tx)", fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{score}<span style={{ color: "var(--tx3)", fontWeight: 500, fontSize: 11 }}> / 100</span></span>
       <span style={{ fontSize: 10, fontWeight: 600, color: "var(--gr-text)", padding: "4px 9px", borderRadius: 999, background: "rgba(34,197,94,0.12)", border: "1px solid rgba(34,197,94,0.2)", whiteSpace: "nowrap" }}>Balanced</span>
     </div>
   );
 }
 
-const BADGE_WORDS = [
-  { pre: "Paste notes.", hi: "Get a board instantly." },
-  { pre: "AI extracts tasks.", hi: "You stay in control." },
-  { pre: "Plan your week.", hi: "Autopilot does the math." },
-  { pre: "Built for solo work.", hi: "No team required." },
-];
 function HeroBadge() {
-  const [i, setI] = useState(0);
-  const [vis, setVis] = useState(true);
-  useEffect(() => {
-    const id = setInterval(() => {
-      setVis(false);
-      setTimeout(() => { setI(p => (p + 1) % BADGE_WORDS.length); setVis(true); }, 220);
-    }, 2600);
-    return () => clearInterval(id);
-  }, []);
-  const w = BADGE_WORDS[i]!;
   return (
-    <div style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "5px 13px 5px 6px", borderRadius: 100, border: "1px solid var(--ag)", background: "var(--as)", marginBottom: 28 }}>
-      <span style={{ width: 18, height: 18, borderRadius: "50%", background: "linear-gradient(135deg,var(--ac),var(--pu))", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 0 7px var(--ag)" }}><IC.Spark size={10} /></span>
-      <span style={{ fontSize: 12, fontWeight: 500, color: "var(--tx2)", animation: vis ? "badgeFadeUp .22s ease both" : "none", opacity: vis ? 1 : 0, whiteSpace: "nowrap", letterSpacing: "-0.01em" }}>
-        {w.pre} <span style={{ fontWeight: 800, color: "var(--tx)" }}>{w.hi}</span>
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "5px 14px 5px 5px", borderRadius: 999, border: "1px solid var(--br)", background: "var(--bg1)", color: "var(--tx2)", fontSize: 12.5, fontWeight: 500, marginBottom: 28 }}>
+      <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 24, height: 24, borderRadius: 9, background: "var(--ac-solid)", color: "#fff", flexShrink: 0, boxShadow: "0 2px 0 rgba(0,0,0,0.22), 0 3px 6px rgba(0,0,0,0.12)" }}>
+        <FileText size={13} strokeWidth={1.8} aria-hidden="true" />
       </span>
-    </div>
+      Paste notes and get a board you can edit
+    </span>
   );
 }
 
 function Hero() {
   const ref = useRef<HTMLDivElement>(null);
   const v = useInView(ref as React.RefObject<HTMLElement>);
+  const router = useRouter();
+  const { theme } = useTheme();
   const handleGetStarted = () => {
-    window.location.href = '/sign-up';
+    router.push('/sign-up');
   };
   return (
     <section className="hero-section" style={{ position: "relative", overflow: "hidden" }}>
-      <div style={{ position: "absolute", inset: 0, pointerEvents: "none", backgroundImage: "linear-gradient(var(--br) 1px,transparent 1px),linear-gradient(90deg,var(--br) 1px,transparent 1px)", backgroundSize: "72px 72px" }} />
-      <div className="lp-wrap" style={{ textAlign: "center", position: "relative" }}>
-<HeroBadge />
-        <h1 className="hh" style={{ fontSize: "clamp(38px,5.5vw,72px)", fontWeight: 800, letterSpacing: "-0.04em", lineHeight: 1.08, color: "var(--tx)", marginBottom: 24 }}>
-          Turn hours of task{" "}
-          <span style={{ position: "relative", display: "inline-block" }}><Wavy /><span style={{ color: "var(--ac-text)", fontWeight: 800 }}>planning</span></span>
-          {" "}into{" "}<span style={{ color: "var(--ac-text)", fontWeight: 800 }}>a real task board</span>
+      <FlickeringGrid
+        style={{ position: "absolute", inset: 0, zIndex: 0 }}
+        aria-hidden="true"
+        squareSize={4}
+        gridGap={6}
+        flickerChance={0.05}
+        maxOpacity={0.14}
+        color={theme === "dark" ? "#7787f9" : "#5e6fe8"}
+      />
+      <div className="lp-wrap" style={{ textAlign: "center", position: "relative", zIndex: 1 }}>
+        <HeroBadge />
+        <h1 className="hh" style={{ fontSize: "clamp(36px,4.6vw,56px)", fontWeight: 600, letterSpacing: "-0.03em", lineHeight: 1.14, color: "var(--tx)", margin: "0 auto 20px", maxWidth: 760 }}>
+          Private task and note management
         </h1>
-        <p className="hero-sub" style={{ fontSize: 19, color: "var(--tx2)", maxWidth: 580, margin: "0 auto 44px", lineHeight: 1.65 }}>Paste Your Docs. Kanbi extracts tasks, sets priorities, and builds your Kanban board in seconds. Built for freelancers and solo operators.</p>
+        <p className="hero-sub" style={{ fontSize: 17, color: "var(--tx2)", maxWidth: 560, margin: "0 auto 32px", lineHeight: 1.6 }}>Your boards, todos, notes and images stay yours.</p>
         <div className="cr" style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-          <button onClick={handleGetStarted} style={{ height: 48, padding: "0 26px", borderRadius: 10, background: "var(--ac)", color: "#fff", fontSize: 14, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 9, boxShadow: "0 0 0 1px var(--ag),0 10px 38px var(--ag)", transition: "opacity .15s", border: "none" }} onMouseOver={e => (e.currentTarget.style.opacity = ".88")} onMouseOut={e => (e.currentTarget.style.opacity = "1")}>Start for Free <IC.Arrow size={15} /></button>
+          <button onClick={handleGetStarted} style={{ height: 48, padding: "0 26px", borderRadius: 10, background: "var(--ac-solid)", color: "#fff", fontSize: 14, fontWeight: 500, display: "inline-flex", alignItems: "center", gap: 9, transition: "background .15s", border: "none" }} onMouseOver={e => (e.currentTarget.style.background = "var(--ac-solid-h)")} onMouseOut={e => (e.currentTarget.style.background = "var(--ac-solid)")}>Start for free <IC.Arrow size={15} /></button>
           <a href="#showcase" className="hero-cta-secondary" style={{ height: 48, padding: "0 22px", borderRadius: 10, fontSize: 14, fontWeight: 500, display: "inline-flex", alignItems: "center", gap: 8 }}><Eye size={15} />See product</a>
         </div>
-        <p style={{ marginTop: 14, fontSize: 12, color: "var(--tx3)" }}>Free plan, 10 AI requests per day, no card required</p>
-        <div ref={ref} className="hero-mock-wrap" style={{ marginTop: 60, borderRadius: 24, border: "1px solid var(--br)", background: "linear-gradient(180deg,rgba(255,255,255,0.03),transparent 28%),var(--bg1)", overflow: "hidden", boxShadow: "0 0 0 1px rgba(255,255,255,0.03),0 42px 120px rgba(0,0,0,0.62)" }}>
+        <p style={{ marginTop: 16, fontSize: 12, color: "var(--tx3)" }}>Free plan, 50 AI requests a day, no card required</p>
+        <div ref={ref} className="hero-mock-wrap" style={{ marginTop: 48, borderRadius: 16, border: "1px solid var(--br)", background: "var(--bg1)", overflow: "hidden" }}>
           <div className="hero-mock-grid">
-            <div className="msb" style={{ borderRight: "1px solid var(--br)", background: "linear-gradient(180deg,var(--bg),var(--bg1))", padding: "18px 14px", flexShrink: 0 }}>
+            <div className="msb" style={{ borderRight: "1px solid var(--br)", background: "var(--bg1)", padding: "18px 14px", flexShrink: 0 }}>
               <div className="msb-brand" style={{ padding: "0 4px 14px", borderBottom: "1px solid var(--br)", marginBottom: 10 }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <div style={{ width: 28, height: 28, borderRadius: 8, background: "linear-gradient(135deg,var(--ac),var(--pu))", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", boxShadow: "0 0 18px var(--ag)" }}><IC.Zap size={13} /></div>
+                    <img src="/Kanbi.png" alt="" width={30} height={30} loading="lazy" decoding="async" style={{ width: 30, height: 30, borderRadius: 9, display: "block", flexShrink: 0 }} />
                     <div>
-                      <span style={{ display: "block", fontSize: 13, fontWeight: 700, color: "var(--tx)" }}>Kanbi</span>
-                      <span style={{ fontSize: 9, color: "var(--tx3)" }}>Overview</span>
+                      <span style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--tx)" }}>Kanbi</span>
                     </div>
                   </div>
                 </div>
@@ -804,11 +782,11 @@ function Hero() {
                 })}
               </div>
             </div>
-            <div style={{ minWidth: 0, display: "flex", flexDirection: "column", background: "radial-gradient(circle at top right,rgba(167,139,250,0.08),transparent 34%),var(--bg1)" }}>
+            <div style={{ minWidth: 0, display: "flex", flexDirection: "column", background: "var(--bg1)" }}>
               <div className="hero-mock-head" style={{ borderBottom: "1px solid var(--br)", padding: "14px 18px", flexShrink: 0 }}>
                 <div style={{ minWidth: 0 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: "var(--tx)" }}>Client sprint</span>
+                    <span style={{ fontSize: 13, fontWeight: 500, color: "var(--tx)" }}>Client sprint</span>
                     <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 999, background: "var(--bg2)", color: "var(--tx3)" }}>6 tasks</span>
                   </div>
                   <p style={{ fontSize: 11, color: "var(--tx3)" }}>From Friday standup notes</p>
@@ -829,11 +807,11 @@ function Hero() {
                   { col: "In Progress", color: "var(--am-text)", tasks: [{ t: "Stripe webhook fix", p: "high", prog: 55, tag: "Dev" }, { t: "Landing page copy pass", p: "medium", prog: 30, tag: "Design" }] },
                   { col: "Done", color: "var(--gr-text)", tasks: [{ t: "Deploy staging build", p: "high", tag: "Ops" }, { t: "Invoice for March retainer", p: "medium", tag: "Admin" }] },
                 ].map(col => (
-                  <div key={col.col} style={{ borderRadius: 16, border: "1px solid var(--br)", background: "linear-gradient(180deg,var(--bg2),var(--bg1))", padding: 12, boxShadow: "inset 0 1px 0 rgba(255,255,255,0.02)" }}>
+                  <div key={col.col} style={{ borderRadius: 16, border: "1px solid var(--br)", background: "var(--bg2)", padding: 12 }}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                        <div style={{ width: 8, height: 8, borderRadius: "50%", background: col.color, boxShadow: `0 0 0 4px color-mix(in srgb, ${col.color} 12%, transparent)` }} />
-                        <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--tx3)" }}>{col.col}</span>
+                        <div style={{ width: 8, height: 8, borderRadius: "50%", background: col.color }} />
+                        <span style={{ fontSize: 11, fontWeight: 500, color: "var(--tx2)" }}>{col.col}</span>
                       </div>
                       <span style={{ fontSize: 10, color: "var(--tx3)" }}>{col.tasks.length}</span>
                     </div>
@@ -846,11 +824,11 @@ function Hero() {
                               <BadgeInfo size={10} />{t.tag}
                             </div>
                           </div>
-                          <span style={{ fontSize: 9, fontWeight: 700, color: t.p === "high" ? "var(--rd)" : "var(--am)", flexShrink: 0, marginTop: 3, textTransform: "uppercase" }}>{t.p}</span>
+                          <span style={{ fontSize: 10, fontWeight: 500, color: t.p === "high" ? "var(--rd-text)" : "var(--am-text)", flexShrink: 0, marginTop: 3 }}>{t.p}</span>
                         </div>
                         {"prog" in t && t.prog !== undefined && (
                           <div className="task-prog" style={{ height: 4, borderRadius: 999, background: "var(--bg2)", overflow: "hidden" }}>
-                            <div style={{ height: "100%", width: v ? `${t.prog}%` : "0%", transition: "width .8s ease .6s", borderRadius: 999, background: "linear-gradient(90deg,var(--ac),var(--pu))" }} />
+                            <div style={{ height: "100%", width: v ? `${t.prog}%` : "0%", transition: "width .8s ease .6s", borderRadius: 999, background: "var(--ac)" }} />
                           </div>
                         )}
                       </div>
@@ -860,11 +838,11 @@ function Hero() {
               </div>
               <div style={{ padding: "0 16px 16px" }}>
                 <div className="hero-charts">
-                  <div style={{ borderRadius: 16, border: "1px solid var(--br)", background: "linear-gradient(180deg,rgba(94,111,232,0.1),rgba(94,111,232,0.03))", padding: 14 }}>
+                  <div style={{ borderRadius: 16, border: "1px solid var(--br)", background: "var(--bg2)", padding: 14 }}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <ICONS.analytics size={16} />
-                        <span style={{ fontSize: 12, fontWeight: 700, color: "var(--tx)" }}>Completed this week</span>
+                        <span style={{ fontSize: 12, fontWeight: 500, color: "var(--tx)" }}>Completed this week</span>
                       </div>
                       <span style={{ fontSize: 10, color: "var(--tx3)" }}>Last 7 days</span>
                     </div>
@@ -872,17 +850,17 @@ function Hero() {
                       {[3, 5, 2, 6, 4, 7, 5].map((n, i) => (
                         <div key={i} className="bar-item" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
                           <div style={{ width: "100%", height: 84, display: "flex", alignItems: "end" }}>
-                            <div style={{ width: "100%", height: v ? `${Math.min(n * 12, 84)}%` : "0%", borderRadius: "8px 8px 4px 4px", background: i === 6 ? "linear-gradient(180deg,var(--ac),var(--pu))" : "linear-gradient(180deg,var(--bg3),var(--brh))", transition: `height .8s ease ${0.15 + i * 0.08}s` }} />
+                            <div style={{ width: "100%", height: v ? `${Math.min(n * 12, 84)}%` : "0%", borderRadius: "8px 8px 4px 4px", background: i === 6 ? "var(--ac)" : "var(--bg3)", transition: `height .8s ease ${0.15 + i * 0.08}s` }} />
                           </div>
                           <span style={{ fontSize: 8, color: "var(--tx3)" }}>{["M", "T", "W", "T", "F", "S", "S"][i]}</span>
                         </div>
                       ))}
                     </div>
                   </div>
-                  <div style={{ borderRadius: 16, border: "1px solid var(--br)", background: "linear-gradient(180deg,var(--bg2),var(--bg1))", padding: 14 }}>
+                  <div style={{ borderRadius: 16, border: "1px solid var(--br)", background: "var(--bg2)", padding: 14 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
                       <ICONS.flow size={16} />
-                      <span style={{ fontSize: 12, fontWeight: 700, color: "var(--tx)" }}>Today&apos;s mix</span>
+                      <span style={{ fontSize: 12, fontWeight: 500, color: "var(--tx)" }}>Today&apos;s mix</span>
                     </div>
                     {[
                       { l: "Client work", v: 45, c: "var(--ac)" },
@@ -892,7 +870,7 @@ function Hero() {
                       <div key={item.l} style={{ marginBottom: 10 }}>
                         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
                           <span style={{ fontSize: 10, color: "var(--tx3)" }}>{item.l}</span>
-                          <span style={{ fontSize: 10, fontWeight: 700, color: item.c }}>{item.v}%</span>
+                          <span style={{ fontSize: 10, fontWeight: 500, color: item.c }}>{item.v}%</span>
                         </div>
                         <div style={{ height: 6, borderRadius: 999, background: "var(--bg2)", overflow: "hidden" }}>
                           <div style={{ height: "100%", width: v ? `${item.v}%` : "0%", borderRadius: 999, background: item.c, transition: "width .9s ease .6s" }} />
@@ -920,49 +898,39 @@ function Hero() {
 /* ── Proof: the numbers, the promises, and one honest paragraph ─────────────
    The figures come from src/lib/constants.ts (USAGE_LIMITS) so the page cannot
    drift away from the limits the API actually enforces. */
-const PROOF_STATS = [
-  { n: 10, label: "AI extractions a day", sub: "Free plan daily limit" },
-  { n: 300, label: "Board saves a month", sub: "Free plan monthly limit" },
-  { n: 4, label: "Views in one workspace", sub: "Dashboard, Board, Assistant" },
-  { n: 0, pre: "$", label: "To start", sub: "No card, no trial period" },
+const PROOF_BOXES = [
+  { I: BrainCircuit, big: "10", title: "AI extractions a day", desc: "Free plan daily limit" },
+  { I: SquareKanban, big: "300", title: "Board saves a month", desc: "Free plan monthly limit" },
+  { I: CreditCard, big: "$0", title: "To start", desc: "No card, no trial period" },
+  { I: IC.Shield, big: "RLS", title: "Your rows are yours", desc: "Only your account reads." },
+  { I: IC.Brain, big: "Offline", title: "The model is optional", desc: "Falls back when offline." },
+  { I: IC.Check, big: "Self-serve", title: "Delete and go", desc: "Delete from Settings anytime." },
 ];
 
-const PROOF_CARDS = [
-  { I: IC.Shield, t: "Your rows are yours", d: "Every table sits behind row level security, so only your account can read your boards. Nobody else sees them." },
-  { I: IC.Brain, t: "The model is optional", d: "If the model runtime is unreachable, extraction falls back to parsing bullet points and the assistant falls back to a board aware reply." },
-  { I: IC.Check, t: "Delete and go", d: "Remove your account and every board from Settings, without emailing anyone." },
-];
-
-function ProofStat({ n, pre, label, sub, active }: { n: number; pre?: string; label: string; sub: string; active: boolean }) {
-  const v = useCountUp(n, active, 1400);
+function ProofBox({ big, I, title, desc }: { big: string | null; I: ComponentType<{ size?: number; strokeWidth?: number }>; title: string; desc: string }) {
   return (
-    <div className="proof-stat">
-      {/* The prefix sits outside the animated figure so the count up never
-          produces "$" on its own for a frame while it climbs to zero. */}
-      <p className="proof-num">{pre}{v}</p>
-      <p className="proof-label">{label}</p>
-      <p className="proof-sub">{sub}</p>
+    <div className="proof-box">
+      <div className="proof-box-ico" aria-hidden="true"><I size={17} strokeWidth={1.6} /></div>
+      {big && <p className="proof-box-big">{big}</p>}
+      <p className="proof-box-title">{title}</p>
+      <p className="proof-box-desc">{desc}</p>
     </div>
   );
 }
 
 function Proof() {
-  const ref = useRef<HTMLDivElement>(null);
-  const v = useInView(ref as React.RefObject<HTMLElement>);
   return (
-    <section id="proof" className="lp-section" style={{ paddingTop: 0 }}>
-      <div className="lp-wrap" ref={ref}>
-        <div className="proof-stats">
-          {PROOF_STATS.map(s => <ProofStat key={s.label} {...s} active={v} />)}
+    <section id="proof" className="lp-section" style={{ borderTop: "1px solid var(--br)" }}>
+      <div className="lp-wrap">
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 24 }}>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 10px", borderRadius: 6, border: "1px solid var(--br)", background: "var(--bg2)", fontSize: 11.5, fontWeight: 500, color: "var(--tx2)", letterSpacing: "0.02em", textTransform: "uppercase" }}><BadgeCheck size={12} /> Proof</span>
         </div>
-        <div className="proof-cards">
-          {PROOF_CARDS.map(c => (
-            <div key={c.t} className="proof-card">
-              <div className="proof-card-ico"><c.I size={15} /></div>
-              <p className="proof-card-t">{c.t}</p>
-              <p className="proof-card-d">{c.d}</p>
-            </div>
-          ))}
+        <div className="promise-head" style={{ marginBottom: 20, textAlign: "center" }}>
+          <h2 className="lp-h2">What you can count on</h2>
+          <p className="lp-lede" style={{ maxWidth: 460, margin: "0 auto" }}>Your data, the model, and your exit, spelled out.</p>
+        </div>
+        <div className="proof-grid">
+          {PROOF_BOXES.map(b => <ProofBox key={b.title} {...b} />)}
         </div>
       </div>
     </section>
@@ -980,7 +948,7 @@ function MockPreview({ tab }: { tab: typeof TABS[0] }) {
   const cols: Record<string, string> = { overview: "var(--ac)", board: "var(--am)", chat: "var(--pu)", autopilot: "var(--gr)" };
   const col = cols[tab.key];
   return (
-    <div className="showcase-mock" style={{ borderRadius: 20, border: "1px solid var(--br)", background: "linear-gradient(180deg,rgba(255,255,255,0.03),transparent 28%),var(--bg1)", overflow: "hidden", height: 440, display: "flex", flexDirection: "column", boxShadow: "0 18px 60px rgba(0,0,0,0.18)" }}>
+    <div className="showcase-mock" style={{ borderRadius: 20, border: "1px solid var(--br)", background: "var(--bg1)", overflow: "hidden", height: 440, display: "flex", flexDirection: "column" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "12px 16px", borderBottom: "1px solid var(--br)", background: "var(--bg)" }}>
         {["#ff5f57", "#febc2e", "#28c840"].map(c => <div key={c} style={{ width: 10, height: 10, borderRadius: "50%", background: c }} />)}
         <span style={{ fontSize: 11, color: "var(--tx3)", marginLeft: 6 }}>app.kanbi / {tab.key}</span>
@@ -988,8 +956,8 @@ function MockPreview({ tab }: { tab: typeof TABS[0] }) {
       </div>
       <div style={{ flex: 1, padding: 16, display: "flex", flexDirection: "column", gap: 12, overflow: "hidden" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{ width: 8, height: 8, borderRadius: "50%", background: col, boxShadow: `0 0 0 5px color-mix(in srgb, ${col} 14%, transparent)` }} />
-          <span style={{ fontSize: 12, fontWeight: 700, color: "var(--tx)" }}>{tab.label}</span>
+          <div style={{ width: 8, height: 8, borderRadius: "50%", background: col }} />
+          <span style={{ fontSize: 12, fontWeight: 500, color: "var(--tx)" }}>{tab.label}</span>
           <div className="pulse" style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--gr)", marginLeft: "auto" }} />
         </div>
         {tab.key === "overview" && (<>
@@ -1004,12 +972,12 @@ function MockPreview({ tab }: { tab: typeof TABS[0] }) {
                 {overviewCards.map(({ v, l, I }) => {
                   const Icon = I;
                   return (
-                    <div key={l as string} style={{ borderRadius: 14, border: "1px solid var(--br)", background: "linear-gradient(180deg,var(--bg2),var(--bg1))", padding: "12px 12px 11px" }}>
+                    <div key={l as string} style={{ borderRadius: 14, border: "1px solid var(--br)", background: "var(--bg2)", padding: "12px 12px 11px" }}>
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
                         <div style={{ width: 28, height: 28, borderRadius: 9, background: "var(--as)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--ac-text)" }}><Icon size={14} /></div>
                         <span style={{ fontSize: 9, color: "var(--tx3)" }}>{l}</span>
                       </div>
-                      <p style={{ fontSize: 17, fontWeight: 800, color: "var(--tx)", letterSpacing: "-0.04em" }}>{v}</p>
+                      <p style={{ fontSize: 17, fontWeight: 600, color: "var(--tx)", letterSpacing: "-0.04em" }}>{v}</p>
                       <p style={{ fontSize: 9.5, color: "var(--tx3)", marginTop: 2 }}>Free plan</p>
                     </div>
                   );
@@ -1018,18 +986,18 @@ function MockPreview({ tab }: { tab: typeof TABS[0] }) {
             );
           })()}
           <div className="mock-overview-charts" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, flex: 1 }}>
-            <div style={{ borderRadius: 16, border: "1px solid var(--br)", background: "linear-gradient(180deg,var(--bg2),var(--bg1))", padding: 12, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ borderRadius: 16, border: "1px solid var(--br)", background: "var(--bg2)", padding: 12, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
                 <ICONS.health size={15} />
-                <span style={{ fontSize: 11, fontWeight: 700, color: "var(--tx)" }}>Health</span>
+                <span style={{ fontSize: 11, fontWeight: 500, color: "var(--tx)" }}>Health</span>
               </div>
-              <svg width="62" height="62" viewBox="0 0 62 62" style={{ transform: "rotate(-90deg)" }}>
+              <svg width="62" height="62" viewBox="0 0 62 62" style={{ transform: "rotate(-90deg)" }} aria-hidden="true">
                 <circle cx="31" cy="31" r="23" fill="none" stroke="var(--br)" strokeWidth="7" />
                 <circle cx="31" cy="31" r="23" fill="none" stroke="var(--gr)" strokeWidth="7" strokeLinecap="round" strokeDasharray={2 * Math.PI * 23} strokeDashoffset={2 * Math.PI * 23 * 0.22} />
               </svg>
               <p style={{ fontSize: 10, color: "var(--tx3)", marginTop: 8 }}>Score 82, balanced</p>
             </div>
-            <div style={{ borderRadius: 16, border: "1px solid var(--br)", background: "linear-gradient(180deg,var(--bg2),var(--bg1))", padding: 12 }}>
+            <div style={{ borderRadius: 16, border: "1px solid var(--br)", background: "var(--bg2)", padding: 12 }}>
               {[["AI today", "7/10", "var(--ac)", "70%"], ["Boards", "3/10", "var(--pu)", "30%"], ["Done rate", "68%", "var(--gr)", "68%"]].map(([l, v, c, w]) => (
                 <div key={l} style={{ marginBottom: 7 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
@@ -1047,9 +1015,9 @@ function MockPreview({ tab }: { tab: typeof TABS[0] }) {
         {tab.key === "board" && (<>
           <div className="mock-board-cols" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, flex: 1 }}>
             {[{ c: "To Do", ts: [["Send quote to Meridian", "Client", "var(--ac)"], ["Refresh portfolio page", "Marketing", "var(--pu)"]] }, { c: "In Progress", ts: [["Webhook retry logic", "Dev", "var(--am)"], ["Blog outline", "Content", "var(--pu)"]] }, { c: "Done", ts: [["Ship v1.2 patch", "Ops", "var(--gr)"]] }].map(col => (
-              <div key={col.c} style={{ borderRadius: 14, border: "1px solid var(--br)", background: "linear-gradient(180deg,var(--bg2),var(--bg1))", padding: 10 }}>
+              <div key={col.c} style={{ borderRadius: 14, border: "1px solid var(--br)", background: "var(--bg2)", padding: 10 }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-                  <span style={{ fontSize: 8.5, fontWeight: 800, color: "var(--tx3)", textTransform: "uppercase", letterSpacing: "0.08em" }}>{col.c}</span>
+                  <span style={{ fontSize: 10, fontWeight: 500, color: "var(--tx2)" }}>{col.c}</span>
                   <span style={{ fontSize: 9, color: "var(--tx3)" }}>{col.ts.length}</span>
                 </div>
                 {col.ts.map(([t, tag, c]) => (
@@ -1086,10 +1054,10 @@ function MockPreview({ tab }: { tab: typeof TABS[0] }) {
                 </div>
               ))}
             </div>
-            <div style={{ borderRadius: 14, border: "1px solid var(--br)", background: "linear-gradient(180deg,var(--bg2),var(--bg1))", padding: 10 }}>
+            <div style={{ borderRadius: 14, border: "1px solid var(--br)", background: "var(--bg2)", padding: 10 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 8 }}>
                 <BrainCircuit size={15} />
-                <span style={{ fontSize: 11, fontWeight: 700, color: "var(--tx)" }}>Board context</span>
+                <span style={{ fontSize: 11, fontWeight: 500, color: "var(--tx)" }}>Board context</span>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
                 {[["Pending", "4 tasks"], ["Due soon", "1 task"], ["Focus", "Meridian quote"]].map(([a, b]) => (
@@ -1105,20 +1073,20 @@ function MockPreview({ tab }: { tab: typeof TABS[0] }) {
         {tab.key === "autopilot" && (<>
           <div style={{ padding: "10px 12px", borderRadius: 14, background: "var(--as)", border: "1px solid var(--ag)" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-              <p style={{ fontSize: 9, color: "var(--ac-text)", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase" }}>Morning briefing</p>
+              <p style={{ fontSize: 11, color: "var(--tx2)", fontWeight: 500 }}>Morning briefing</p>
               <span style={{ fontSize: 9, color: "var(--ac-text)", display: "inline-flex", alignItems: "center", gap: 4 }}><Clock3 size={11} />Today</span>
             </div>
             <p style={{ fontSize: 10, color: "var(--tx2)", lineHeight: 1.5 }}>4 tasks open, 1 urgent. Start with the Meridian quote, then the webhook fix. About 5 hours of focused work.</p>
           </div>
           <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
             {[["9:00 AM", "Meridian quote review", "45m"], ["10:00 AM", "Webhook retry logic", "2h"], ["1:30 PM", "Portfolio copy edits", "1h"]].map((s, i) => (
-              <div key={i} style={{ display: "flex", gap: 8, padding: "8px 10px", borderRadius: 12, background: "linear-gradient(180deg,var(--bg2),var(--bg1))", border: "1px solid var(--br)", alignItems: "center" }}>
-                <span style={{ fontSize: 9, fontWeight: 800, color: "var(--ac-text)", fontFamily: "var(--font-mono)", flexShrink: 0 }}>{s[0]}</span>
+              <div key={i} style={{ display: "flex", gap: 8, padding: "8px 10px", borderRadius: 12, background: "var(--bg2)", border: "1px solid var(--br)", alignItems: "center" }}>
+                <span style={{ fontSize: 9, fontWeight: 600, color: "var(--ac-text)", fontFamily: "var(--font-mono)", flexShrink: 0 }}>{s[0]}</span>
                 <span style={{ fontSize: 9.5, color: "var(--tx)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s[1]}</span>
                 <span style={{ fontSize: 9, color: "var(--tx3)", flexShrink: 0 }}>{s[2]}</span>
               </div>
             ))}
-            <button style={{ marginTop: 2, padding: "8px", borderRadius: 12, border: "1px solid var(--ac)", background: "var(--as)", color: "var(--ac-text)", fontSize: 9.5, fontWeight: 700, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+            <button style={{ marginTop: 2, padding: "8px", borderRadius: 12, border: "1px solid var(--ac)", background: "var(--as)", color: "var(--ac-text)", fontSize: 9.5, fontWeight: 500, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
               Add to board <ArrowUpRight size={12} />
             </button>
           </div>
@@ -1135,18 +1103,18 @@ function Showcase() {
     <section id="showcase" className="lp-section" style={{ borderTop: "1px solid var(--br)" }}>
       <div className="lp-wrap">
         <div style={{ textAlign: "center", marginBottom: 48 }}>
-          <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--ac-text)", marginBottom: 14 }}>Product</p>
-          <h2 style={{ fontSize: "clamp(30px,4vw,48px)", fontWeight: 700, letterSpacing: "-0.04em", color: "var(--tx)", marginBottom: 14 }}>Four views, one workflow</h2>
+          <p style={{ fontSize: 13, fontWeight: 500, color: "var(--tx2)", marginBottom: 12 }}>Product</p>
+          <h2 style={{ fontSize: "clamp(26px,3.4vw,38px)", fontWeight: 600, letterSpacing: "-0.025em", color: "var(--tx)", marginBottom: 14 }}>Four views, one workflow</h2>
           <p style={{ fontSize: 16, color: "var(--tx2)", maxWidth: 480, margin: "0 auto" }}>From raw notes to a planned day, without switching tools.</p>
         </div>
         <div className="tsc" style={{ display: "flex", gap: 4, marginBottom: 28, background: "var(--bg1)", border: "1px solid var(--br)", borderRadius: 12, padding: 4 }}>
           {TABS.map((t, i) => (
-            <button key={t.key} onClick={() => handleTabClick(i, t.key)} className="tb" style={{ flex: 1, padding: "9px 12px", borderRadius: 9, border: "none", background: active === i ? "var(--bg2)" : "transparent", color: active === i ? "var(--tx)" : "var(--tx2)", fontSize: 13, fontWeight: active === i ? 600 : 400, cursor: "pointer", boxShadow: active === i ? "0 1px 4px rgba(0,0,0,.2)" : "none", whiteSpace: "nowrap" }}>{t.label}</button>
+            <button key={t.key} onClick={() => handleTabClick(i, t.key)} className="tb" style={{ flex: 1, padding: "9px 12px", borderRadius: 9, border: active === i ? "1px solid var(--br)" : "1px solid transparent", background: active === i ? "var(--bg1)" : "transparent", color: active === i ? "var(--tx)" : "var(--tx2)", fontSize: 13, fontWeight: active === i ? 500 : 400, cursor: "pointer", whiteSpace: "nowrap" }}>{t.label}</button>
           ))}
         </div>
         <div className="g2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32, alignItems: "center" }}>
           <div>
-            <h3 style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.03em", color: "var(--tx)", marginBottom: 12 }}>{tab.label}</h3>
+            <h3 style={{ fontSize: 22, fontWeight: 500, letterSpacing: "-0.03em", color: "var(--tx)", marginBottom: 12 }}>{tab.label}</h3>
             <p style={{ fontSize: 14.5, color: "var(--tx2)", lineHeight: 1.7, marginBottom: 20 }}>{tab.desc}</p>
             <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: 10 }}>
               {tab.features.map(f => (
@@ -1174,6 +1142,9 @@ const FEATS = [
   { I: IC.Cal, t: "Autopilot scheduling", d: "A morning briefing and suggested time blocks built from your tasks. Push the plan onto the board when it looks right." },
   { I: IC.Export, t: "DOCX and PDF export", d: "Hand a board to a client as a formatted Word document or PDF. No copy paste reformatting." },
   { I: IC.Zap, t: "Templates and saved boards", d: "Start from Daily, Sprint, Meeting, or Project templates. Save finished boards and reload them later." },
+  { I: IC.Check, t: "Personal todo lists", d: "Keep your own lists next to the board. Check items off without touching your tasks." },
+  { I: IC.Chat, t: "Private notes", d: "Write and edit notes in plain text. Your notes stay in your account." },
+  { I: IC.Export, t: "Image import", d: "Attach images to a note. They stay private and are read only when you ask." },
 ];
 
 function Features() {
@@ -1181,9 +1152,9 @@ function Features() {
     <section id="features" className="lp-section" style={{ borderTop: "1px solid var(--br)" }}>
       <div className="lp-wrap">
         <div style={{ textAlign: "center", marginBottom: 52 }}>
-          <p className="lp-kicker">Features</p>
+          <p className="lp-kicker"><Boxes size={12} /> Features</p>
           <h2 className="lp-h2">Built for solo operators</h2>
-          <p className="lp-lede" style={{ maxWidth: 440, margin: "0 auto" }}>Everything you need to plan a week, nothing you do not need.</p>
+          <p className="lp-lede" style={{ maxWidth: 440, margin: "0 auto" }}>Plan a week. Nothing extra.</p>
         </div>
         <div className="g3" style={{ border: "1px solid var(--br)", borderRadius: 16, overflow: "hidden" }}>
           {FEATS.map((f) => (
@@ -1209,15 +1180,15 @@ function HowItWorks() {
     <section id="how-it-works" className="lp-section" style={{ borderTop: "1px solid var(--br)" }}>
       <div className="lp-wrap">
         <div style={{ textAlign: "center", marginBottom: 52 }}>
-          <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--ac-text)", marginBottom: 14 }}>How It Works</p>
-          <h2 style={{ fontSize: "clamp(30px,4vw,48px)", fontWeight: 700, letterSpacing: "-0.04em", color: "var(--tx)" }}>From chaos to clarity in 3 steps</h2>
+          <p className="lp-kicker"><Workflow size={12} /> How It Works</p>
+          <h2 style={{ fontSize: "clamp(26px,3.4vw,38px)", fontWeight: 600, letterSpacing: "-0.025em", color: "var(--tx)" }}>From chaos to clarity in 3 steps</h2>
         </div>
         <div className="g3 sg" style={{ gap: 16 }}>
           {steps.map(s => (
             <div key={s.n} className="sh" style={{ borderRadius: 12, border: "1px solid var(--br)", background: "var(--bg1)", padding: 24, transition: "border-color .18s" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 18 }}>
                 <div style={{ width: 40, height: 40, borderRadius: 10, background: "var(--as)", border: "1px solid var(--ag)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--ac-text)" }}><s.I size={17} /></div>
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 700, color: "var(--tx3)" }}>{s.n}</span>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 500, color: "var(--tx3)" }}>{s.n}</span>
               </div>
               <div style={{ fontSize: 14, fontWeight: 600, color: "var(--tx)", marginBottom: 8 }}>{s.t}</div>
               <div style={{ fontSize: 12.5, color: "var(--tx2)", lineHeight: 1.65, marginBottom: 16 }}>{s.d}</div>
@@ -1243,7 +1214,7 @@ function Pricing() {
     <section id="pricing" className="lp-section" style={{ borderTop: "1px solid var(--br)" }}>
       <div className="lp-wrap">
         <div style={{ textAlign: "center", marginBottom: 52 }}>
-          <p className="lp-kicker">Pricing</p>
+          <p className="lp-kicker"><CreditCard size={12} /> Pricing</p>
           <h2 className="lp-h2">One feature list, two limits</h2>
           <p className="lp-lede" style={{ maxWidth: 460, margin: "0 auto" }}>Every capability is on the free plan. Pro raises the daily and monthly ceilings and nothing else.</p>
         </div>
@@ -1255,7 +1226,7 @@ function Pricing() {
                 <span style={{ fontSize: 11, padding: "3px 9px", borderRadius: 100, background: "var(--as)", border: "1px solid var(--ag)", color: "var(--ac-text)", fontWeight: 600 }}>Start here</span>
               </div>
               <div style={{ display: "flex", alignItems: "flex-end", gap: 4, marginBottom: 8 }}>
-                <span style={{ fontFamily: "var(--font-display)", fontSize: 46, fontWeight: 700, letterSpacing: "-0.045em", color: "var(--tx)", lineHeight: 1 }}>$0</span>
+                <span style={{ fontFamily: "var(--font-display)", fontSize: 46, fontWeight: 500, letterSpacing: "-0.045em", color: "var(--tx)", lineHeight: 1 }}>$0</span>
                 <span style={{ fontSize: 13, color: "var(--tx3)", marginBottom: 7 }}>forever</span>
               </div>
               <p style={{ fontSize: 12.5, color: "var(--tx3)", marginBottom: 24, lineHeight: 1.6 }}>No card, no trial, no expiry. Delete your account whenever you like.</p>
@@ -1272,7 +1243,7 @@ function Pricing() {
               <span style={{ fontSize: 11, padding: "3px 9px", borderRadius: 100, background: "var(--bg2)", border: "1px solid var(--br)", color: "var(--tx3)", fontWeight: 600 }}>Coming soon</span>
             </div>
             <div style={{ display: "flex", alignItems: "flex-end", gap: 4, marginBottom: 8 }}>
-              <span style={{ fontFamily: "var(--font-display)", fontSize: 46, fontWeight: 700, letterSpacing: "-0.045em", color: "var(--tx)", lineHeight: 1 }}>$9</span>
+              <span style={{ fontFamily: "var(--font-display)", fontSize: 46, fontWeight: 500, letterSpacing: "-0.045em", color: "var(--tx)", lineHeight: 1 }}>$9</span>
               <span style={{ fontSize: 13, color: "var(--tx3)", marginBottom: 7 }}>/month</span>
             </div>
             <p style={{ fontSize: 12.5, color: "var(--tx3)", marginBottom: 24, lineHeight: 1.6 }}>
@@ -1316,12 +1287,40 @@ const VS_ROWS = [
   { I: Tag, f: "Cost to try", v: ["Free, no card", "Free", "Free tier", "Free tier"] },
 ];
 
+function Privacy() {
+  return (
+    <section id="privacy" className="lp-section" style={{ borderTop: "1px solid var(--br)" }}>
+      <div className="lp-wrap">
+        <div style={{ textAlign: "center", marginBottom: 44 }}>
+          <p className="lp-kicker"><Lock size={12} /> Privacy</p>
+          <h2 className="lp-h2">Your data stays yours</h2>
+          <p className="lp-lede" style={{ maxWidth: 520, margin: "0 auto" }}>
+            Images live in a private bucket. The assistant only reads one when you ask. No public links, no sharing by default.
+          </p>
+        </div>
+        <div className="g3" style={{ border: "1px solid var(--br)", borderRadius: 16, overflow: "hidden" }}>
+          {[
+            { t: "Private storage", d: "Images are stored per user. Only you can see them." },
+            { t: "Read on request", d: "The assistant describes an image only when you ask it to." },
+            { t: "No public links", d: "Nothing is published or shared unless you choose to export it." },
+          ].map((item) => (
+            <div key={item.t} className="fc fc-item" style={{ padding: "24px 22px", background: "var(--bg)" }}>
+              <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--tx)", marginBottom: 7 }}>{item.t}</div>
+              <div style={{ fontSize: 12.5, color: "var(--tx2)", lineHeight: 1.65 }}>{item.d}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function Compare() {
   return (
     <section id="compare" className="lp-section" style={{ borderTop: "1px solid var(--br)" }}>
       <div className="lp-wrap">
         <div style={{ textAlign: "center", marginBottom: 44 }}>
-          <p className="lp-kicker">Compare</p>
+          <p className="lp-kicker"><SplitSquareVertical size={12} /> Compare</p>
           <h2 className="lp-h2">What you do instead</h2>
           <p className="lp-lede" style={{ maxWidth: 480, margin: "0 auto" }}>
             Every tool below can hold a task. These are the six differences that matter when nobody else is on the board with you.
@@ -1399,7 +1398,7 @@ function Compare() {
                   {c.name}
                 </span>
                 {ci === 0 ? (
-                  <span style={{ fontSize: 10.5, fontWeight: 700, padding: "3px 9px", borderRadius: 100, background: "var(--as)", border: "1px solid var(--ag)", color: "var(--ac-text)" }}>This one</span>
+                  <span style={{ fontSize: 11, color: "var(--ac-text)" }}>This one</span>
                 ) : (
                   <span className="vs-card-head-ico"><c.I size={11} /></span>
                 )}
@@ -1435,7 +1434,7 @@ function WhoFor() {
             keeps the lede to a readable measure, so it is centred rather than
             stretched across the wrap. */}
         <div style={{ marginBottom: 44, maxWidth: 520, marginInline: "auto", textAlign: "center" }}>
-          <p className="lp-kicker">Who it is for</p>
+          <p className="lp-kicker"><Target size={12} /> Who it is for</p>
           <h2 className="lp-h2">Made for one person, not a team</h2>
           <p className="lp-lede">Kanbi assumes you are the whole company. That is why there is no invite flow and no seat count.</p>
         </div>
@@ -1463,15 +1462,13 @@ function CTABanner() {
     <section className="lp-section" style={{ paddingTop: 0 }}>
       <div className="lp-wrap">
         <div className="cta-banner">
-          <div className="cta-banner-grid" aria-hidden="true" />
-          <div className="cta-banner-glow" aria-hidden="true" />
           <div className="cta-banner-inner">
             <h2 className="lp-h2" style={{ marginBottom: 12 }}>Start with the notes you already have</h2>
             <p className="lp-lede" style={{ maxWidth: 460, margin: "0 auto" }}>
               Paste a standup transcript or upload a PDF. You will have a board with priorities before you finish reading this sentence.
             </p>
             <div className="cta-actions">
-              <a href="/sign-up" style={{ height: 48, padding: "0 26px", borderRadius: 10, background: "var(--ac-solid)", color: "#fff", fontSize: 14, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 9, boxShadow: "0 10px 38px var(--ag)", transition: "background .15s" }}>
+              <a href="/sign-up" style={{ height: 48, padding: "0 26px", borderRadius: 10, background: "var(--ac-solid)", color: "#fff", fontSize: 14, fontWeight: 500, display: "inline-flex", alignItems: "center", gap: 9, transition: "background .15s" }}>
                 Create your free board <IC.Arrow size={15} />
               </a>
               <a href="#showcase" style={{ height: 48, padding: "0 22px", borderRadius: 10, fontSize: 14, fontWeight: 500, display: "inline-flex", alignItems: "center", gap: 8, background: "var(--bg2)", border: "1px solid var(--brh)", color: "var(--tx2)", transition: "color .15s,border-color .15s" }}>
@@ -1512,7 +1509,7 @@ function FAQ() {
     <section id="faq" className="lp-section" style={{ borderTop: "1px solid var(--br)" }}>
       <div className="lp-wrap" style={{ maxWidth: 720 }}>
         <div style={{ textAlign: "center", marginBottom: 48 }}>
-          <p className="lp-kicker">FAQ</p>
+          <p className="lp-kicker"><Info size={12} /> FAQ</p>
           <h2 className="lp-h2" style={{ marginBottom: 0 }}>Common questions</h2>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
@@ -1583,9 +1580,7 @@ function Footer() {
         <div className="footer-grid">
           <div className="footer-brand">
             <div className="footer-logo">
-              <span className="footer-logo-mark" aria-hidden="true">
-                <IC.Zap size={13} />
-              </span>
+              <img src="/Kanbi.png" alt="" width={32} height={32} loading="lazy" decoding="async" className="footer-logo-mark" />
               <span className="footer-logo-text">Kanbi</span>
             </div>
             <p className="footer-blurb">
@@ -1650,7 +1645,7 @@ export default function LandingPage() {
         {/* Ten sections. The order is the argument: what it is, what it costs to
             trust, what it does, how it does it, who it is for, what you do
             instead, what it charges, what people ask, then the ask itself. */}
-        <main><Hero /><Proof /><Showcase /><HowItWorks /><Features /><WhoFor /><Compare /><Pricing /><FAQ /><CTABanner /></main>
+        <main><Hero /><Proof /><Showcase /><HowItWorks /><Features /><WhoFor /><Privacy /><Compare /><Pricing /><FAQ /><CTABanner /></main>
         <Footer />
       </div>
     </ThemeCtx.Provider>

@@ -75,7 +75,7 @@ export default function SignUpPage() {
           <div style={{ width: 56, height: 56, borderRadius: 14, background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.25)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--gr-text)", margin: "0 auto 18px" }}>
             {I.send()}
           </div>
-          <h2 style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.03em", color: "var(--tx)", marginBottom: 10 }}>Check your email</h2>
+          <h2 style={{ fontSize: 20, fontWeight: 600, letterSpacing: "-0.02em", color: "var(--tx)", marginBottom: 10 }}>Check your email</h2>
           <p style={{ fontSize: 13.5, color: "var(--tx2)", lineHeight: 1.65, maxWidth: 320, margin: "0 auto 10px", wordBreak: "break-word" }}>
             We sent a confirmation link to <strong style={{ color: "var(--tx)" }}>{email}</strong>. Click it to activate your account.
           </p>
@@ -92,12 +92,11 @@ export default function SignUpPage() {
     <AuthLayout>
       <div className="auth-card">
         <div style={{ textAlign: "center", marginBottom: 24 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 14 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg,var(--ac),var(--pu))", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", boxShadow: "0 0 18px var(--ag)", flexShrink: 0 }}>
-              {I.zap(16)}
-            </div>
-            <span style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-0.04em", color: "var(--tx)", lineHeight: 1 }}>kanbi</span>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginBottom: 8 }}>
+            <img src="/Kanbi.png" alt="" width={36} height={36} style={{ width: 36, height: 36, borderRadius: 10, display: "block", flexShrink: 0 }} />
+            <span style={{ fontSize: 20, fontWeight: 600, letterSpacing: "-0.03em", color: "var(--tx)", lineHeight: 1 }}>kanbi</span>
           </div>
+          <p style={{ fontSize: 12, color: "var(--tx3)", margin: "0 0 8px", textAlign: "center" }}>Your private task board.</p>
           <h1 style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.035em", color: "var(--tx)", marginBottom: 7 }}>Create your account</h1>
           <p style={{ fontSize: 13, color: "var(--tx2)", lineHeight: 1.5 }}>Free forever plan, no card needed</p>
         </div>
@@ -147,8 +146,8 @@ export default function SignUpPage() {
               />
               <span className="auth-box" aria-hidden="true" style={{
                 width: 17, height: 17, borderRadius: 5, marginTop: 1, flexShrink: 0,
-                border: `1px solid ${agreed ? "var(--ac)" : errors.agreed ? "var(--rd)" : "var(--br)"}`,
-                background: agreed ? "var(--ac)" : "transparent",
+                border: `1px solid ${agreed ? "#fff" : errors.agreed ? "var(--rd)" : "var(--br)"}`,
+                background: agreed ? "#fff" : "transparent", color: agreed ? "#000" : "var(--tx2)",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 transition: "all .15s",
               }}>

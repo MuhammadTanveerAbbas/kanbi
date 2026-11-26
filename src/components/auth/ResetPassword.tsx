@@ -55,7 +55,7 @@ export default function ResetPasswordPage() {
           <div style={{ width: 56, height: 56, borderRadius: 14, background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.25)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--gr-text)", margin: "0 auto 18px" }}>
             {I.check(26)}
           </div>
-          <h2 style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.03em", color: "var(--tx)", marginBottom: 10 }}>Password updated!</h2>
+          <h2 style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.03em", color: "var(--tx)", marginBottom: 10 }}>Password updated</h2>
           <p style={{ fontSize: 13.5, color: "var(--tx2)", lineHeight: 1.65, marginBottom: 24 }}>Your password has been reset. You can now sign in with your new password.</p>
           <AuthButton icon={I.arrow()} onClick={() => router.push("/sign-in")} type="button">
             Sign In
@@ -72,7 +72,7 @@ export default function ResetPasswordPage() {
           <div style={{ width: 46, height: 46, borderRadius: 13, background: "var(--as)", border: "1px solid var(--ag)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--ac-text)", margin: "0 auto 13px" }}>
             {I.shield()}
           </div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.035em", color: "var(--tx)", marginBottom: 7 }}>Set new password</h1>
+          <h1 style={{ fontSize: 22, fontWeight: 600, letterSpacing: "-0.025em", color: "var(--tx)", marginBottom: 7 }}>Set new password</h1>
           <p style={{ fontSize: 13, color: "var(--tx2)", lineHeight: 1.5 }}>Choose a strong password for your account</p>
         </div>
 

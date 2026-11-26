@@ -10,7 +10,7 @@ import { useTheme } from "@/lib/theme";
  * theme from React state and interpolated the whole palette into a `<style>`
  * element, and it also hard-coded the page background as a ternary in JSX:
  *
- *   background: t === "dark" ? "...#07070b" : "...#f2f3fb"
+ *   background: t === "dark" ? "...#000000" : "...#ffffff"
  *
  * Both are the theme flash by another route. The server has no way to know the
  * stored preference, so it sent the light background, the browser painted it,
@@ -38,12 +38,8 @@ const AUTH_CSS = `
     padding: 76px 16px calc(24px + env(safe-area-inset-bottom, 0px));
     position: relative;
     isolation: isolate;
-    background:
-      radial-gradient(ellipse at 50% -20%, var(--auth-glow) 0%, transparent 60%),
-      var(--bg);
+    background: var(--bg);
   }
-  [data-theme='dark'] .auth-shell { --auth-glow: rgba(94,111,232,0.12); }
-  [data-theme='light'] .auth-shell { --auth-glow: rgba(94,111,232,0.08); }
 
   .auth-card-shell {
     width: 100%;
@@ -55,13 +51,12 @@ const AUTH_CSS = `
     border: 1px solid var(--br);
     box-shadow: var(--auth-card-shadow);
   }
-  [data-theme='dark'] .auth-card-shell { --auth-card-shadow: 0 0 0 1px rgba(255,255,255,0.04), 0 24px 80px rgba(0,0,0,0.7); }
-  [data-theme='light'] .auth-card-shell { --auth-card-shadow: 0 24px 80px rgba(0,0,0,0.08); }
+  [data-theme='dark'] .auth-card-shell { --auth-card-shadow: 0 1px 2px rgba(0,0,0,0.4); }
+  [data-theme='light'] .auth-card-shell { --auth-card-shadow: 0 1px 2px rgba(0,0,0,0.08); }
 
   .auth-accent {
     height: 2px;
-    background: linear-gradient(90deg, transparent, var(--ac) 35%, var(--pu) 65%, transparent);
-    opacity: .85;
+    background: var(--ac);
   }
 
   /* One padding scale shared by every login screen */
@@ -101,6 +96,7 @@ const AUTH_CSS = `
 
   .auth-check { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
   .auth-check:focus-visible + .auth-box { border-color: var(--ac) !important; box-shadow: 0 0 0 3px var(--as); }
+  [data-theme="light"] .auth-box { border-color: #000 !important; }
 
   @media (max-width: 480px) {
     .auth-shell { padding: 68px 14px calc(20px + env(safe-area-inset-bottom, 0px)); }
@@ -132,18 +128,6 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
     <>
       <style>{AUTH_CSS}</style>
       <div className="auth-shell">
-        <div
-          aria-hidden="true"
-          style={{
-            position: "fixed",
-            inset: 0,
-            pointerEvents: "none",
-            zIndex: 0,
-            backgroundImage:
-              "linear-gradient(var(--br) 1px, transparent 1px), linear-gradient(90deg, var(--br) 1px, transparent 1px)",
-            backgroundSize: "72px 72px",
-          }}
-        />
 
         <header className="auth-topbar">
           <Link
@@ -152,26 +136,18 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
             style={{
               display: "flex",
               alignItems: "center",
-              gap: 8,
+              gap: 6,
               color: "var(--tx)",
               textDecoration: "none",
             }}
           >
-            <div
-              style={{
-                width: 28,
-                height: 28,
-                borderRadius: 8,
-                background: "var(--ac)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#fff",
-                boxShadow: "0 0 18px var(--ag)",
-              }}
-            >
-              {I.zap(13)}
-            </div>
+            <img
+              src="/Kanbi.png"
+              alt=""
+              width={28}
+              height={28}
+              style={{ width: 28, height: 28, borderRadius: 8, display: "block", flexShrink: 0 }}
+            />
             <span style={{ fontSize: 15, fontWeight: 700, letterSpacing: "-0.025em" }}>
               Kanbi
             </span>

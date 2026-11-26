@@ -38,6 +38,7 @@
 
 import { logger } from '@/lib/logging/logger'
 import { aiSettings } from '@/lib/ai/config'
+import { isVisionModel } from '@/lib/ai/model-profiles'
 import { OpenAiCompatibleProvider } from '@/lib/ai/openai-compatible-provider'
 import { pickFallbackModel, selectModelForRequest } from '@/lib/ai/model-registry'
 import {
@@ -93,6 +94,8 @@ export interface CompleteOptions {
   maxTokens?: number
   /** Overrides model selection entirely. */
   model?: string
+  /** True when the turn carries image parts and needs a vision capable model. */
+  requiresVision?: boolean
   signal?: AbortSignal
 }
 
@@ -118,12 +121,29 @@ export async function complete(options: CompleteOptions): Promise<CompletionResu
     temperature: options.temperature,
     maxTokens: options.maxTokens,
     model: options.model,
+    requiresVision: options.requiresVision,
     signal: options.signal,
   }
 
   // A caller-supplied model still gets the rotation treatment, because a pinned
   // id is exactly the thing most likely to have been withdrawn.
-  let model = options.model ?? (await selectModelForRequest(provider, { maxOutputTokens: options.maxTokens }))
+  let model =
+    options.model ??
+    (await selectModelForRequest(provider, {
+      maxOutputTokens: options.maxTokens,
+      requiresVision: options.requiresVision,
+    }))
+
+  // A vision request must never fall through to a text only model. When the
+  // catalog is empty the registry answers with the configured default, which
+  // cannot read an image, so the honest outcome is an error the caller can
+  // present rather than a confident answer about a file it never saw.
+  if (options.requiresVision && !isVisionModel(model)) {
+    throw new AiProviderError(
+      `No vision capable model is available for ${model}`,
+      'unavailable',
+    )
+  }
 
   // At most 2 model attempts: the selected one, then the next compatible.
   for (let attempt = 0; attempt < 2; attempt++) {
@@ -138,6 +158,8 @@ export async function complete(options: CompleteOptions): Promise<CompletionResu
 
       const fallback = await pickFallbackModel(provider, model)
       if (!fallback) throw failure
+      // Rotation is only safe when the next model can also read the images.
+      if (options.requiresVision && !isVisionModel(fallback)) throw failure
 
       logger.warn('Model unavailable, rotating', { from: model, to: fallback })
       model = fallback

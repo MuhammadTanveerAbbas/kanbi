@@ -65,14 +65,13 @@ export default function SignInPage() {
     <AuthLayout>
       <div className="auth-card">
         <div style={{ textAlign: "center", marginBottom: 24 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 14 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg,var(--ac),var(--pu))", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", boxShadow: "0 0 18px var(--ag)", flexShrink: 0 }}>
-              {I.zap(16)}
-            </div>
-            <span style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-0.04em", color: "var(--tx)", lineHeight: 1 }}>kanbi</span>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginBottom: 8 }}>
+            <img src="/Kanbi.png" alt="" width={36} height={36} style={{ width: 36, height: 36, borderRadius: 10, display: "block", flexShrink: 0 }} />
+            <span style={{ fontSize: 20, fontWeight: 600, letterSpacing: "-0.03em", color: "var(--tx)", lineHeight: 1 }}>kanbi</span>
           </div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.035em", color: "var(--tx)", marginBottom: 7 }}>Welcome back</h1>
-          <p style={{ fontSize: 13, color: "var(--tx2)", lineHeight: 1.5 }}>Sign in to your kanbi account</p>
+          <p style={{ fontSize: 12, color: "var(--tx3)", margin: "0 0 8px", textAlign: "center" }}>Your private task board.</p>
+          <h1 style={{ fontSize: 22, fontWeight: 600, letterSpacing: "-0.025em", color: "var(--tx)", marginBottom: 7 }}>Sign in</h1>
+          <p style={{ fontSize: 13, color: "var(--tx2)", lineHeight: 1.5 }}>Use your Kanbi account to continue</p>
         </div>
 
         <SocialAuth mode="signin" />
@@ -99,9 +98,9 @@ export default function SignInPage() {
                 onChange={e => setRemember(e.target.checked)}
               />
               <span className="auth-box" aria-hidden="true" style={{
-                width: 16, height: 16, borderRadius: 4, border: `1px solid ${remember ? "var(--ac)" : "var(--br)"}`,
-                background: remember ? "var(--ac)" : "transparent", flexShrink: 0,
-                display: "flex", alignItems: "center", justifyContent: "center", transition: "all .15s",
+                width: 16, height: 16, borderRadius: 4, border: `1px solid ${remember ? "#fff" : "var(--br)"}`, color: remember ? "#000" : "var(--tx2)",
+                background: remember ? "#fff" : "transparent", flexShrink: 0,
+                display: "flex", alignItems: "center", justifyContent: "center", transition: "border-color .15s,background .15s",
               }}>
                 {remember && I.check()}
               </span>

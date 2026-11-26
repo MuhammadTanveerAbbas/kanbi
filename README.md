@@ -1,6 +1,6 @@
 <div align="center">
 
-  <img src="public/favicon.svg" alt="Kanbi Logo" width="80" height="80" />
+  <img src="public/Kanbi.png" alt="Kanbi Logo" width="80" height="80" />
 
 # Kanbi
 

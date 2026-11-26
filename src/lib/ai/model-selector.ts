@@ -32,6 +32,7 @@ import {
   MODEL_PROFILES,
   NON_CHAT_PATTERNS,
   RETIRED_MODEL_PATTERNS,
+  isVisionModel,
 } from './model-profiles'
 import type { ModelInfo } from './provider'
 
@@ -43,6 +44,8 @@ export interface ModelRequirement {
   contextWindow?: number
   /** Model ids that must not be chosen, used when retrying after a rejection. */
   exclude?: string[]
+  /** True when the request carries image parts, so a text only model is unusable. */
+  requiresVision?: boolean
 }
 
 /**
@@ -104,6 +107,7 @@ export function isUsable(model: ModelInfo, requirement: ModelRequirement): boole
   if (matchesAny(model.id, RETIRED_MODEL_PATTERNS)) return false
   if (matchesAny(model.id, NON_CHAT_PATTERNS)) return false
   if (requirement.exclude?.includes(model.id)) return false
+  if (requirement.requiresVision && !isVisionModel(model.id)) return false
 
   const resolved = resolveModel(model)
   const { maxOutputTokens, contextWindow } = requirement
@@ -188,6 +192,7 @@ export const __testing = {
   NON_CHAT_PATTERNS,
   RETIRED_MODEL_PATTERNS,
   isUsable,
+  isVisionModel,
   profileFor,
   resolveModel,
   compare,

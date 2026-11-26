@@ -55,20 +55,18 @@ export function Avt({ name, size = 28, avatarUrl }: { name: string; size?: numbe
         referrerPolicy="no-referrer"
         loading="lazy"
         onError={() => setImgErr(true)}
-        style={{ borderRadius: "50%", objectFit: "cover", flexShrink: 0,
-          boxShadow: "0 0 0 2px var(--bg1), 0 0 0 3px var(--br)" }}
+        style={{ borderRadius: "50%", objectFit: "cover", flexShrink: 0, border: "1px solid var(--br)" }}
       />
     );
   }
   return (
     <div style={{
       width: size, height: size, borderRadius: "50%",
-      background: "linear-gradient(135deg, var(--ac), var(--pu))",
+      background: "var(--ac-solid)",
       display: "flex", alignItems: "center", justifyContent: "center",
-      fontSize: size * 0.36, fontWeight: 700, color: "#fff", flexShrink: 0,
+      fontSize: size * 0.36, fontWeight: 500, color: "#fff", flexShrink: 0,
       fontFamily: "var(--font-display)",
-      boxShadow: "0 0 0 2px var(--bg1), 0 0 0 3px var(--br)",
-      letterSpacing: "-0.02em",
+      border: "1px solid var(--br)",
     }}>
       {init}
     </div>
@@ -103,11 +101,6 @@ export function PBar({ value, color = "var(--ac)", h = 4, animated = true, label
         transition: animated ? "width .9s cubic-bezier(.4,0,.2,1)" : "none",
         position: "relative",
       }}>
-        <div style={{
-          position: "absolute", inset: 0,
-          background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent)",
-          borderRadius: "inherit",
-        }}/>
       </div>
     </div>
   );
@@ -130,19 +123,18 @@ export function Toggle({ on, onToggle, label }: { on: boolean; onToggle: () => v
       onClick={onToggle}
       style={{
         width: 44, height: 26, borderRadius: 13,
-        background: on ? "var(--ac)" : "var(--bg3)",
+        background: on ? "var(--ac-solid)" : "var(--bg3)",
         cursor: "pointer", position: "relative",
-        transition: "background .22s", flexShrink: 0,
+        transition: "background .18s", flexShrink: 0,
         border: "1px solid var(--br)",
-        boxShadow: on ? "0 0 12px rgba(99,102,241,0.3)" : "none",
       }}
     >
       <span style={{
-        position: "absolute", top: 3,
-        left: on ? 23 : 3, width: 18, height: 18,
+        position: "absolute", top: 3, left: 3, width: 18, height: 18,
         borderRadius: "50%", background: "#fff",
-        transition: "left .22s cubic-bezier(.34,1.56,.64,1)",
-        boxShadow: "0 1px 4px rgba(0,0,0,.3)",
+        transform: on ? "translateX(18px)" : "translateX(0)",
+        transition: "transform .18s ease-out",
+        boxShadow: "0 1px 2px rgba(0,0,0,.12)",
         pointerEvents: "none",
       }}/>
     </button>

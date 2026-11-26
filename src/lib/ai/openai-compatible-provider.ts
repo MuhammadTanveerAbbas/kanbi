@@ -410,3 +410,4 @@ function retryAfterMs(response: Response): number | undefined {
 
 /** Re-exported so callers do not need to reach into the provider module. */
 export type { ChatMessage, CompletionRequest, CompletionResult, ModelInfo }
+export type { ContentPart } from '@/lib/ai/provider'

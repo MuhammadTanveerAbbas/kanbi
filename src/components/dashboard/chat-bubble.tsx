@@ -83,10 +83,9 @@ export function ChatBubble({
           maxWidth: "84%",
           padding: isUser ? "11px 15px" : "12px 15px 10px",
           borderRadius: isUser ? "14px 4px 14px 14px" : "4px 14px 14px 14px",
-          background: isUser ? "var(--ac)" : "var(--bg1)",
+          background: isUser ? "var(--ac-solid)" : "var(--bg1)",
           border: isUser ? "none" : "1px solid var(--br)",
           color: isUser ? "#fff" : "var(--tx)",
-          boxShadow: isUser ? "none" : "0 8px 24px rgba(0,0,0,0.06)",
           minWidth: 0,
         }}
       >
@@ -194,11 +193,10 @@ function ChatAvatar() {
         height: 30,
         borderRadius: 8,
         flexShrink: 0,
-        background: "linear-gradient(135deg, #6366f1, #a78bfa)",
+        background: "var(--ac-solid)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        boxShadow: "0 2px 10px rgba(99,102,241,0.28)",
       }}
     >
       <Icons.Chat size={14} style={{ color: "#fff" }} />

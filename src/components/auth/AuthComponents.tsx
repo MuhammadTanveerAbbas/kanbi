@@ -24,6 +24,14 @@ const authFieldStyles = `
     border-color: var(--br);
     box-shadow: none;
   }
+  .auth-input:-webkit-autofill,
+  .auth-input:-webkit-autofill:hover,
+  .auth-input:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0 1000px var(--inp) inset;
+    -webkit-text-fill-color: var(--tx);
+    caret-color: var(--tx);
+    transition: background-color 9999s ease-out 0s;
+  }
   .auth-input.error {
     border-color: var(--rd);
   }
@@ -172,23 +180,18 @@ export function AuthButton({ children, loading, icon, onClick, type = "submit", 
       aria-busy={loading ? true : undefined}
       style={{
         width: "100%", height: 44, borderRadius: 10,
-        background: "var(--ac)", border: "none", color: "#fff",
-        fontSize: 14, fontWeight: 600, cursor: loading ? "not-allowed" : "pointer",
+        background: "var(--ac-solid)", border: "none", color: "#fff",
+        fontSize: 14, fontWeight: 500, cursor: loading ? "not-allowed" : "pointer",
         display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-        transition: "background .15s, box-shadow .15s",
-        boxShadow: "0 0 0 1px var(--ag), 0 6px 20px var(--ag)",
+        transition: "background .15s",
         opacity: loading ? 0.55 : 1,
         marginTop: 4,
       }}
       onMouseOver={e => {
-        if (!loading) {
-          e.currentTarget.style.background = "var(--ach)";
-          e.currentTarget.style.boxShadow = "0 0 0 1px var(--ag), 0 10px 28px var(--ag)";
-        }
+        if (!loading) e.currentTarget.style.background = "var(--ac-solid-h)";
       }}
       onMouseOut={e => {
-        e.currentTarget.style.background = "var(--ac)";
-        e.currentTarget.style.boxShadow = "0 0 0 1px var(--ag), 0 6px 20px var(--ag)";
+        e.currentTarget.style.background = "var(--ac-solid)";
       }}
     >
       {loading ? (

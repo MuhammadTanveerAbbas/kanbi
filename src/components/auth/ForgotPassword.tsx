@@ -73,7 +73,7 @@ export default function ForgotPasswordPage() {
           <div style={{ width: 46, height: 46, borderRadius: 13, background: "var(--as)", border: "1px solid var(--ag)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--ac-text)", margin: "0 auto 13px" }}>
             {I.lock()}
           </div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.035em", color: "var(--tx)", marginBottom: 7 }}>Forgot your password?</h1>
+          <h1 style={{ fontSize: 22, fontWeight: 600, letterSpacing: "-0.025em", color: "var(--tx)", marginBottom: 7 }}>Forgot your password?</h1>
           <p style={{ fontSize: 13, color: "var(--tx2)", lineHeight: 1.6, maxWidth: 320, margin: "0 auto" }}>
             Enter your email and we&apos;ll send you a link to reset your password.
           </p>

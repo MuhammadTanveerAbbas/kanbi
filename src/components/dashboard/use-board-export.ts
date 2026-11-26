@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { toast } from "sonner";
 
 /**
  * Downloads a saved board as DOCX or PDF.
@@ -10,6 +11,17 @@ import { useCallback, useState } from "react";
  * Content-Disposition, so the filename comes from the response rather than being
  * guessed on the client.
  */
+/** Reads the filename from Content-Disposition, with UTF-8 names first. */
+function downloadName(header: string | null, fallback: string): string {
+  if (!header) return fallback;
+  const encoded = /filename\*=UTF-8''([^;]+)/i.exec(header);
+  if (encoded?.[1]) {
+    try { return decodeURIComponent(encoded[1].replace(/"/g, "")); } catch { /* fall through */ }
+  }
+  const plain = /filename="?([^";]+)"?/i.exec(header);
+  return plain?.[1]?.trim() || fallback;
+}
+
 export function useBoardExport() {
   const [exportingId, setExportingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -31,14 +43,18 @@ export function useBoardExport() {
       }
 
       const blob = await res.blob();
+      const filename = downloadName(res.headers.get("content-disposition"), `kanbi-board.${format}`);
       const objectUrl = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = objectUrl;
-      link.download = "";
+      link.download = filename;
       document.body.appendChild(link);
       link.click();
       link.remove();
-      URL.revokeObjectURL(objectUrl);
+      // Revoke after the browser has started the download. An immediate revoke
+      // cancels it in some browsers.
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+      toast.success(`Exported ${filename}`);
     } catch {
       setError("Network error while exporting. Check your connection.");
     } finally {

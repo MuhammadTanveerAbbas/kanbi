@@ -702,6 +702,119 @@ CREATE POLICY "Users can delete own files" ON storage.objects FOR DELETE
 --   It checks new passwords against HaveIBeenPwned and is worth turning on.
 
 -- ================================================
+-- PERSONAL MANAGEMENT (todos, notes and note images)
+-- ================================================
+
+CREATE TABLE IF NOT EXISTS todo_lists (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  name TEXT NOT NULL CHECK (char_length(name) BETWEEN 1 AND 300),
+  color VARCHAR(7) NOT NULL DEFAULT '#6b7280',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS todos (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  list_id UUID NOT NULL REFERENCES todo_lists(id) ON DELETE CASCADE,
+  title TEXT NOT NULL CHECK (char_length(title) BETWEEN 1 AND 300),
+  note TEXT,
+  done BOOLEAN NOT NULL DEFAULT FALSE,
+  priority TEXT NOT NULL DEFAULT 'medium' CHECK (priority IN ('urgent', 'high', 'medium', 'low')),
+  due_date DATE,
+  position INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS notes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  title TEXT NOT NULL CHECK (char_length(title) BETWEEN 1 AND 300),
+  content TEXT NOT NULL DEFAULT '' CHECK (char_length(content) <= 100000),
+  folder TEXT NOT NULL DEFAULT 'General',
+  is_favorite BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS note_images (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  note_id UUID NOT NULL REFERENCES notes(id) ON DELETE CASCADE,
+  storage_path TEXT NOT NULL,
+  file_name TEXT NOT NULL,
+  mime_type TEXT NOT NULL CHECK (mime_type IN ('image/jpeg','image/png','image/webp','image/gif')),
+  size_bytes INTEGER NOT NULL CHECK (size_bytes > 0 AND size_bytes <= 5242880),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- indexes
+CREATE INDEX IF NOT EXISTS idx_todo_lists_user_id ON todo_lists(user_id);
+CREATE INDEX IF NOT EXISTS idx_todos_user_id ON todos(user_id);
+CREATE INDEX IF NOT EXISTS idx_todos_list_id_position ON todos(list_id, position);
+CREATE INDEX IF NOT EXISTS idx_notes_user_id ON notes(user_id);
+CREATE INDEX IF NOT EXISTS idx_notes_user_updated_at ON notes(user_id, updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_note_images_user_id ON note_images(user_id);
+CREATE INDEX IF NOT EXISTS idx_note_images_note_id ON note_images(note_id);
+
+-- The shared updated_at trigger loop above runs before these tables exist, so
+-- the trigger is created for them here. Both steps are safe to re-run.
+DROP TRIGGER IF EXISTS set_updated_at ON todo_lists;
+CREATE TRIGGER set_updated_at BEFORE UPDATE ON todo_lists FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+DROP TRIGGER IF EXISTS set_updated_at ON todos;
+CREATE TRIGGER set_updated_at BEFORE UPDATE ON todos FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+DROP TRIGGER IF EXISTS set_updated_at ON notes;
+CREATE TRIGGER set_updated_at BEFORE UPDATE ON notes FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- row level security
+ALTER TABLE todo_lists ENABLE ROW LEVEL SECURITY;
+ALTER TABLE todos ENABLE ROW LEVEL SECURITY;
+ALTER TABLE notes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE note_images ENABLE ROW LEVEL SECURITY;
+
+-- todo_lists
+DROP POLICY IF EXISTS "Users can view own todo lists" ON todo_lists;
+DROP POLICY IF EXISTS "Users can insert own todo lists" ON todo_lists;
+DROP POLICY IF EXISTS "Users can update own todo lists" ON todo_lists;
+DROP POLICY IF EXISTS "Users can delete own todo lists" ON todo_lists;
+CREATE POLICY "Users can view own todo lists" ON todo_lists FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert own todo lists" ON todo_lists FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update own todo lists" ON todo_lists FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can delete own todo lists" ON todo_lists FOR DELETE USING (auth.uid() = user_id);
+
+-- todos
+DROP POLICY IF EXISTS "Users can view own todos" ON todos;
+DROP POLICY IF EXISTS "Users can insert own todos" ON todos;
+DROP POLICY IF EXISTS "Users can update own todos" ON todos;
+DROP POLICY IF EXISTS "Users can delete own todos" ON todos;
+CREATE POLICY "Users can view own todos" ON todos FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert own todos" ON todos FOR INSERT WITH CHECK (auth.uid() = user_id AND EXISTS (SELECT 1 FROM public.todo_lists pl WHERE pl.id = todos.list_id AND pl.user_id = auth.uid()));
+CREATE POLICY "Users can update own todos" ON todos FOR UPDATE USING (auth.uid() = user_id AND EXISTS (SELECT 1 FROM public.todo_lists pl WHERE pl.id = todos.list_id AND pl.user_id = auth.uid())) WITH CHECK (auth.uid() = user_id AND EXISTS (SELECT 1 FROM public.todo_lists pl WHERE pl.id = todos.list_id AND pl.user_id = auth.uid()));
+CREATE POLICY "Users can delete own todos" ON todos FOR DELETE USING (auth.uid() = user_id);
+
+-- notes
+DROP POLICY IF EXISTS "Users can view own notes" ON notes;
+DROP POLICY IF EXISTS "Users can insert own notes" ON notes;
+DROP POLICY IF EXISTS "Users can update own notes" ON notes;
+DROP POLICY IF EXISTS "Users can delete own notes" ON notes;
+CREATE POLICY "Users can view own notes" ON notes FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert own notes" ON notes FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update own notes" ON notes FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can delete own notes" ON notes FOR DELETE USING (auth.uid() = user_id);
+
+-- note_images
+DROP POLICY IF EXISTS "Users can view own note images" ON note_images;
+DROP POLICY IF EXISTS "Users can insert own note images" ON note_images;
+DROP POLICY IF EXISTS "Users can update own note images" ON note_images;
+DROP POLICY IF EXISTS "Users can delete own note images" ON note_images;
+CREATE POLICY "Users can view own note images" ON note_images FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert own note images" ON note_images FOR INSERT WITH CHECK (auth.uid() = user_id AND EXISTS (SELECT 1 FROM public.notes n WHERE n.id = note_images.note_id AND n.user_id = auth.uid()));
+CREATE POLICY "Users can update own note images" ON note_images FOR UPDATE USING (auth.uid() = user_id AND EXISTS (SELECT 1 FROM public.notes n WHERE n.id = note_images.note_id AND n.user_id = auth.uid())) WITH CHECK (auth.uid() = user_id AND EXISTS (SELECT 1 FROM public.notes n WHERE n.id = note_images.note_id AND n.user_id = auth.uid()));
+CREATE POLICY "Users can delete own note images" ON note_images FOR DELETE USING (auth.uid() = user_id);
+
+-- ================================================
 -- DONE
 -- ================================================
 

@@ -2,7 +2,7 @@
 
 import { createContext, useContext, type ReactNode } from "react";
 
-export type Page = "overview" | "board" | "kanban" | "chat" | "autopilot" | "saved" | "settings";
+export type Page = "overview" | "board" | "kanban" | "chat" | "autopilot" | "saved" | "todos" | "notes" | "settings";
 export type Priority = "urgent" | "high" | "medium" | "low";
 export type TaskStatus = "todo" | "wip" | "done";
 export type Theme = "dark" | "light";

@@ -13,9 +13,20 @@
 
 export type ChatRole = 'system' | 'user' | 'assistant'
 
+/**
+ * One piece of a multimodal user turn.
+ *
+ * The OpenAI chat format already describes images this way, so this is the wire
+ * shape rather than a new abstraction over it. A plain string is still accepted
+ * on `ChatMessage.content`, which is what every text-only caller uses.
+ */
+export type ContentPart =
+  | { type: 'text'; text: string }
+  | { type: 'image_url'; image_url: { url: string } }
+
 export interface ChatMessage {
   role: ChatRole
-  content: string
+  content: string | ContentPart[]
 }
 
 export interface CompletionRequest {
@@ -25,6 +36,8 @@ export interface CompletionRequest {
   temperature?: number
   /** Overrides selection entirely. Used by tests and by the fallback path. */
   model?: string
+  /** True when the turn carries image parts and needs a vision capable model. */
+  requiresVision?: boolean
   signal?: AbortSignal
 }
 

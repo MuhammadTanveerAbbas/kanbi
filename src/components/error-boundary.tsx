@@ -1,6 +1,7 @@
 'use client';
 
 import { Component, ReactNode } from 'react';
+import Link from 'next/link';
 import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { AlertTriangle, RefreshCw, Home, Download } from 'lucide-react';
@@ -50,10 +51,6 @@ export class ErrorBoundary extends Component<Props, State> {
 
   handleRefresh = () => {
     window.location.reload();
-  };
-
-  handleGoHome = () => {
-    window.location.href = '/';
   };
 
   handleExportData = () => {
@@ -118,13 +115,11 @@ export class ErrorBoundary extends Component<Props, State> {
                   Refresh Page
                 </Button>
                 
-                <Button
-                  onClick={this.handleGoHome}
-                  className="w-full gap-2"
-                  variant="outline"
-                >
-                  <Home className="h-4 w-4" />
-                  Go to Home
+                <Button asChild className="w-full gap-2" variant="outline">
+                  <Link href="/">
+                    <Home className="h-4 w-4" />
+                    Go to Home
+                  </Link>
                 </Button>
                 
                 <Button

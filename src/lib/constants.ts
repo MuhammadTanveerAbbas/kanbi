@@ -106,6 +106,17 @@ export const USAGE_LIMITS = {
   },
 } as const;
 
+// Personal management limits. These mirror the CHECK constraints in
+// supabase/schema.sql, so the client and database reject the same values.
+export const TODO_TITLE_MAX = 300;
+export const NOTE_TITLE_MAX = 300;
+export const NOTE_CONTENT_MAX = 100000;
+export const IMAGE_MAX_BYTES = 5242880; // 5 MiB
+export const DOCX_MAX_BYTES = 10485760; // 10 MiB
+// Typed as a plain string list so `includes(requestType)` typechecks. The
+// literal set is still enforced by the database CHECK constraint.
+export const ALLOWED_IMAGE_MIME: readonly string[] = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+
 // Feature flags
 export const FEATURES = {
   /**
@@ -116,4 +127,6 @@ export const FEATURES = {
   ASSISTANT: true,
   AUTOPILOT: true,
   BOARD_EXPORT: true,
+  TODOS: true,
+  NOTES: true,
 } as const;

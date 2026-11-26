@@ -4,7 +4,8 @@ import { ChatAssistant, ChatMessage, ChatContext } from '@/lib/ai/chat-assistant
 import { chatSchema } from '@/lib/validation/schemas'
 import { ValidationError, AuthError } from '@/lib/errors/AppError'
 import { logger } from '@/lib/logging/logger'
-import { rateLimit, rateLimitResponse, addRateLimitHeaders } from '@/lib/rate-limiter'
+// Rate limiting for this endpoint is intentionally removed: the provider
+// enforces its own limits, and the app must not block normal use.
 import { sanitizeChatText } from '@/lib/chat-text'
 import { sanitizeInput } from '@/lib/security'
 import { getProvider, isInferenceConfigured } from '@/lib/ai/service'
@@ -66,12 +67,6 @@ function failure(
 
 export async function POST(request: NextRequest) {
   const requestId = crypto.randomUUID()
-  // High limit: Groq itself enforces its own rate limits server-side.
-  // App-level limiting is kept only to prevent abuse, not to restrict normal use.
-  const limitResult = await rateLimit(request, { maxRequests: 200, windowMs: 60_000 })
-  if (!limitResult.success) {
-    return rateLimitResponse(limitResult.limit, limitResult.remaining, limitResult.reset)
-  }
 
   try {
     const supabase = await createClient()
@@ -84,7 +79,7 @@ export async function POST(request: NextRequest) {
     logger.info('Assistant request', { userId: user.id, requestId })
 
     const body = await request.json()
-    const { message, tasks, quickAction, workloadHealth, estimatedHours, completedToday } = body
+    const { message, tasks: clientTasks, quickAction, workloadHealth, estimatedHours, completedToday } = body
 
     if (!message && !quickAction) {
       throw new ValidationError('Message or quick action required')
@@ -94,11 +89,39 @@ export async function POST(request: NextRequest) {
     const sanitizedQuickAction = quickAction ? sanitizeInput(quickAction, 100) : undefined
 
     if (sanitizedMessage) {
-      chatSchema.parse({ message: sanitizedMessage, tasks })
+      chatSchema.parse({ message: sanitizedMessage, tasks: clientTasks })
     }
 
+    // The assistant context is assembled here from the caller's own rows, so a
+    // client cannot forge another user's data into the prompt. The board tasks
+    // fall back to the client list only when nothing has been saved yet.
+    const [taskRows, todoRows, noteRows, imageRows] = await Promise.all([
+      supabase.from('tasks').select('id, title, priority, status').eq('user_id', user.id),
+      supabase.from('todos').select('title, done').eq('user_id', user.id),
+      supabase.from('notes').select('title, content').eq('user_id', user.id),
+      supabase.from('note_images').select('file_name').eq('user_id', user.id),
+    ]);
+
+    const serverTasks = (taskRows.data ?? []).map((row: Record<string, unknown>) => ({
+      id: String(row.id ?? ''),
+      title: String(row.title ?? ''),
+      priority: typeof row.priority === 'string' ? row.priority : 'medium',
+      status: typeof row.status === 'string' ? row.status : 'todo',
+    }));
+
     const context: ChatContext = {
-      tasks: tasks || [],
+      tasks: serverTasks.length > 0 ? serverTasks : (clientTasks || []),
+      todos: (todoRows.data ?? []).map((row: Record<string, unknown>) => ({
+        title: String(row.title ?? ''),
+        done: row.done === true,
+      })),
+      notes: (noteRows.data ?? []).map((row: Record<string, unknown>) => ({
+        title: String(row.title ?? ''),
+        content: typeof row.content === 'string' ? row.content : '',
+      })),
+      images: (imageRows.data ?? []).map((row: Record<string, unknown>) => ({
+        name: String(row.file_name ?? ''),
+      })),
       workloadHealth,
       estimatedHours,
       completedToday,
@@ -123,13 +146,13 @@ export async function POST(request: NextRequest) {
     }
 
     if (sanitizedMessage) {
-      await saveMessage(supabase, user.id, 'user', sanitizedMessage, tasks)
+      await saveMessage(supabase, user.id, 'user', sanitizedMessage, clientTasks)
     }
 
     const cleanResponse = sanitizeChatText(
       DOMPurify.sanitize(aiResponse, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] }),
     )
-    await saveMessage(supabase, user.id, 'assistant', cleanResponse, tasks)
+    await saveMessage(supabase, user.id, 'assistant', cleanResponse, clientTasks)
 
     logger.info('Assistant success', { userId: user.id, requestId })
 
@@ -140,7 +163,7 @@ export async function POST(request: NextRequest) {
       // Lets the UI explain a board-aware answer rather than a generated one.
       ...(getProvider() ? { inference: true } : { inference: false }),
     })
-    return addRateLimitHeaders(response, limitResult.limit, limitResult.remaining, limitResult.reset)
+    return response
   } catch (error: unknown) {
     return errorResponse(error, requestId)
   }
