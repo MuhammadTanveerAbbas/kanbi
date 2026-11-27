@@ -74,15 +74,23 @@ export const metadata: Metadata = {
         url: "/opengraph-image",
         width: 1200,
         height: 630,
-        alt: "Kanbi - a Kanban board filled with extracted tasks",
+        alt: "Kanbi - a Kanban board filled with extracted tasks. Try Kanbi free, no card needed.",
       },
     ],
   },
   twitter: {
-    card: "summary_large_image",
+    // A summary card keeps the square logo beside the title and description,
+    // which is the layout the card preview uses. summary_large_image drops the
+    // description in that preview.
+    card: "summary",
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
-    images: ["/twitter-image"],
+    images: [
+      {
+        url: "/twitter-image",
+        alt: "Kanbi - turn notes into a Kanban board. Try Kanbi free, no card needed.",
+      },
+    ],
   },
   icons: {
     // All sizes are derived from public/Kanbi.png. The old favicon.ico,
@@ -117,6 +125,12 @@ export default function RootLayout({
   return (
     <html lang="en" data-theme="light" suppressHydrationWarning>
       <head>
+        {/*
+          Next.js has no openGraph.logo field, and the metadata API renders the
+          `other` field with a name attribute. Emit the exact property tag here
+          so crawlers checking for og:logo find it on every page.
+        */}
+        <meta property="og:logo" content={`${SITE_URL}/Kanbi.png`} />
         {/*
           The palette for both themes, emitted once. Every page used to carry
           its own copy interpolated from React state, which is why the first

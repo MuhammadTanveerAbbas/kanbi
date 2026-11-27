@@ -2,7 +2,7 @@ import { ImageResponse } from 'next/og';
 
 export const runtime = 'nodejs';
 
-export const alt = 'Kanbi - turn notes into a Kanban board';
+export const alt = 'Kanbi - turn notes into a Kanban board. Try Kanbi free, no card needed.';
 export const size = {
   width: 1200,
   height: 630,
@@ -11,6 +11,7 @@ export const size = {
 export const contentType = 'image/png';
 
 const LINES = ['Paste notes and get a Kanban board'];
+const CTA = 'Try Kanbi free, no card needed';
 
 export default async function Image() {
   return new ImageResponse(
@@ -88,6 +89,21 @@ export default async function Image() {
               {line}
             </div>
           ))}
+        </div>
+
+        <div
+          style={{
+            marginTop: '44px',
+            background: '#5162db',
+            color: '#ffffff',
+            fontSize: '28px',
+            fontWeight: 600,
+            lineHeight: 1,
+            padding: '20px 44px',
+            borderRadius: '14px',
+          }}
+        >
+          {CTA}
         </div>
       </div>
     ),
