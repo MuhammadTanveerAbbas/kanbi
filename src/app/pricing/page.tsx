@@ -1,15 +1,17 @@
 import { Metadata } from "next";
+import { SITE_URL } from "@/app/sitemap";
 import PricingPage from "@/components/PricingPage";
 
 export const metadata: Metadata = {
   title: "Pricing · Kanbi kanbi AI Task Management",
   description:
     "Start free forever. Upgrade to Pro for $9/month and unlock the Kanbi Assistant, burnout prevention, PDF import, and board export.",
+  alternates: { canonical: `${SITE_URL}/pricing` },
   openGraph: {
     title: "Pricing · Kanbi kanbi AI Task Management",
     description:
       "Free plan forever. Pro at $9/month. No contracts, cancel anytime.",
-    url: "https://kanbi.app/pricing",
+    url: `${SITE_URL}/pricing`,
     type: "website",
     // Next.js merges metadata shallowly, so this page-level openGraph replaces
     // the one in the root layout. Repeat the shared fields here or they vanish.
