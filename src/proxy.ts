@@ -42,6 +42,14 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
+  // Signed-in visitors used to be redirected from page.tsx, which called
+  // getUser() a second time on every request and kept the landing page dynamic.
+  // The middleware already knows the answer, so redirect here and let the page
+  // be prerendered and served from the CDN.
+  if (user && pathname === '/') {
+    return NextResponse.redirect(new URL('/dashboard', request.url))
+  }
+
   const isPublic = PUBLIC_PATHS.some(p => pathname === p || pathname.startsWith(p + '/'))
   if (!user && !isPublic && pathname.startsWith('/dashboard')) {
     return NextResponse.redirect(new URL('/sign-in', request.url))

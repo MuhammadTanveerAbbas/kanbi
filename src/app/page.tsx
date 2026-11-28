@@ -1,16 +1,18 @@
 import { Metadata } from 'next';
-import { redirect } from 'next/navigation';
 import { SITE_URL } from '@/app/sitemap';
-import { createClient } from '@/lib/supabase/server';
 import LandingPage from '@/components/LandingPage';
 
+const HOME_TITLE = 'Kanbi, AI task boards for freelancers';
+const HOME_DESCRIPTION = 'Paste notes, emails, or PDFs. Kanbi extracts tasks onto a Kanban board with workload health and autopilot planning.';
+const HOME_IMAGE_ALT = 'Kanbi - a Kanban board filled with extracted tasks. Try Kanbi free, no card needed.';
+
 export const metadata: Metadata = {
-  title: 'Kanbi, AI task boards for freelancers',
-  description: 'Paste notes, emails, or PDFs. Kanbi extracts tasks onto a Kanban board with workload health and autopilot planning.',
+  title: HOME_TITLE,
+  description: HOME_DESCRIPTION,
   alternates: { canonical: SITE_URL },
   openGraph: {
-    title: 'Kanbi, AI task boards for freelancers',
-    description: 'Paste notes, emails, or PDFs. Kanbi extracts tasks onto a Kanban board with workload health and autopilot planning.',
+    title: HOME_TITLE,
+    description: HOME_DESCRIPTION,
     url: SITE_URL,
     type: 'website',
     // Next.js merges metadata shallowly, so this page-level openGraph replaces
@@ -22,18 +24,27 @@ export const metadata: Metadata = {
         url: '/opengraph-image',
         width: 1200,
         height: 630,
-        alt: 'Kanbi - a Kanban board filled with extracted tasks. Try Kanbi free, no card needed.',
+        alt: HOME_IMAGE_ALT,
+      },
+    ],
+  },
+  // The same applies to twitter. Keep every field here so the card keeps its
+  // large image layout and attribution when this object replaces the root one.
+  twitter: {
+    card: 'summary_large_image',
+    site: '@m_tanveerabbas',
+    creator: '@m_tanveerabbas',
+    title: HOME_TITLE,
+    description: HOME_DESCRIPTION,
+    images: [
+      {
+        url: '/twitter-image',
+        alt: 'Kanbi - turn notes into a Kanban board. Try Kanbi free, no card needed.',
       },
     ],
   },
 };
 
-export default async function Home() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  // Already logged in <Icons.ArrowRight size={13}/> skip landing page, go straight to dashboard
-  if (user) redirect('/dashboard');
-
+export default function Home() {
   return <LandingPage />;
 }

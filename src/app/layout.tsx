@@ -79,10 +79,11 @@ export const metadata: Metadata = {
     ],
   },
   twitter: {
-    // A summary card keeps the square logo beside the title and description,
-    // which is the layout the card preview uses. summary_large_image drops the
-    // description in that preview.
-    card: "summary",
+    // The 1200x630 image is the point of the card. A summary card shrinks it to
+    // a thumbnail next to the text, so use the large image layout instead.
+    card: "summary_large_image",
+    site: "@m_tanveerabbas",
+    creator: "@m_tanveerabbas",
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
     images: [
@@ -93,14 +94,39 @@ export const metadata: Metadata = {
     ],
   },
   icons: {
-    // All sizes are derived from public/Kanbi.png. The old favicon.ico,
-    // favicon.svg, icon-64.png and apple-icon-180.png files were removed.
+    // Every size is resized from public/Kanbi.png, so the favicon is the real
+    // logo. Its corners stay transparent instead of being filled white.
     icon: [
+      { url: "/favicon-32x32.png", type: "image/png", sizes: "32x32" },
       { url: "/favicon.ico", type: "image/x-icon", sizes: "any" },
       { url: "/icon.png", type: "image/png", sizes: "64x64" },
     ],
     apple: [{ url: "/apple-icon.png", type: "image/png", sizes: "180x180" }],
     shortcut: "/favicon.ico",
+  },
+};
+
+/**
+ * Structured data for crawlers. Kept as one object and stringified so the
+ * values cannot drift away from the title, description and URL used above.
+ * No ratings or review counts are included because none are measured.
+ */
+const structuredData = {
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  name: SITE_TITLE,
+  description: SITE_DESCRIPTION,
+  url: SITE_URL,
+  image: `${SITE_URL}/opengraph-image`,
+  inLanguage: "en",
+  publisher: {
+    "@type": "Organization",
+    name: "KANBI",
+    url: SITE_URL,
+    logo: {
+      "@type": "ImageObject",
+      url: `${SITE_URL}/Kanbi.png`,
+    },
   },
 };
 
@@ -131,6 +157,15 @@ export default function RootLayout({
           so crawlers checking for og:logo find it on every page.
         */}
         <meta property="og:logo" content={`${SITE_URL}/Kanbi.png`} />
+        {/*
+          Next.js has no JSON-LD field in the metadata API. Emit the exact
+          script tag here so crawlers can read it on the server rendered page.
+        */}
+        <script
+          id="structured-data"
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+        />
         {/*
           The palette for both themes, emitted once. Every page used to carry
           its own copy interpolated from React state, which is why the first
